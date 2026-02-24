@@ -3,7 +3,6 @@ package com.proconsi.electrobazar.controller.api;
 import com.proconsi.electrobazar.model.Product;
 import com.proconsi.electrobazar.model.Sale;
 import com.proconsi.electrobazar.model.SaleLine;
-import com.proconsi.electrobazar.model.PaymentMethod;
 import com.proconsi.electrobazar.service.ProductService;
 import com.proconsi.electrobazar.service.SaleService;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +16,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/sales")
 @RequiredArgsConstructor
-public class SaleApiController {
+public class SaleApiRestController {
 
     private final SaleService saleService;
     private final ProductService productService;

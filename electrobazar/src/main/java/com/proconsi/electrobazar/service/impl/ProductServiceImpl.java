@@ -59,14 +59,16 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     public Product findByBarcode(String barcode) {
         return productRepository.findByBarcodeAndActiveTrue(barcode)
-                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con código de barras: " + barcode));
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Producto no encontrado con código de barras: " + barcode));
     }
 
     @Override
     public Product save(Product product) {
         if (product.getBarcode() != null && !product.getBarcode().isBlank()
                 && productRepository.existsByBarcodeAndIdNot(product.getBarcode(), -1L)) {
-            throw new DuplicateResourceException("Ya existe un producto con el código de barras: " + product.getBarcode());
+            throw new DuplicateResourceException(
+                    "Ya existe un producto con el código de barras: " + product.getBarcode());
         }
         return productRepository.save(product);
     }
@@ -77,7 +79,8 @@ public class ProductServiceImpl implements ProductService {
 
         if (updated.getBarcode() != null && !updated.getBarcode().isBlank()
                 && productRepository.existsByBarcodeAndIdNot(updated.getBarcode(), id)) {
-            throw new DuplicateResourceException("Ya existe un producto con el código de barras: " + updated.getBarcode());
+            throw new DuplicateResourceException(
+                    "Ya existe un producto con el código de barras: " + updated.getBarcode());
         }
 
         existing.setName(updated.getName());
@@ -86,6 +89,8 @@ public class ProductServiceImpl implements ProductService {
         existing.setBarcode(updated.getBarcode());
         existing.setActive(updated.getActive());
         existing.setCategory(updated.getCategory());
+        // Stock es gestionado únicamente a través de métodos específicos de stock
+        // no se actualiza en el método update
 
         return productRepository.save(existing);
     }
@@ -94,6 +99,41 @@ public class ProductServiceImpl implements ProductService {
     public void delete(Long id) {
         Product product = findById(id);
         product.setActive(false);
+        productRepository.save(product);
+    }
+
+    @Override
+    public void decreaseStock(Long productId, Integer quantity) {
+        Product product = findById(productId);
+        if (product.getStock() < quantity) {
+            // Se permite el cobro aunque no haya stock, habiendo avisado al usuario en el
+            // TPV
+            // Solo imprimimos un aviso en log
+            System.err.println("Aviso: Stock insuficiente para el producto " + product.getName() +
+                    " (" + product.getBarcode() + "). Disponible: " + product.getStock() + ", solicitado: " + quantity
+                    + ". Forzando venta.");
+        }
+        product.setStock(product.getStock() - quantity);
+        productRepository.save(product);
+    }
+
+    @Override
+    public void increaseStock(Long productId, Integer quantity) {
+        Product product = findById(productId);
+        product.setStock(product.getStock() + quantity);
+        productRepository.save(product);
+    }
+
+    @Override
+    public void adjustStock(Long productId, Integer quantity) {
+        Product product = findById(productId);
+        int newStock = product.getStock() + quantity;
+        if (newStock < 0) {
+            throw new IllegalArgumentException(
+                    "El stock no puede ser negativo. Stock actual: " + product.getStock() +
+                            ", cambio solicitado: " + quantity);
+        }
+        product.setStock(newStock);
         productRepository.save(product);
     }
 }

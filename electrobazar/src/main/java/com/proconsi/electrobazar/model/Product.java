@@ -6,7 +6,8 @@ import java.math.BigDecimal;
 
 @Entity
 @Table(name = "products")
-@Getter @Setter
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -30,7 +31,14 @@ public class Product {
 
     @Column(nullable = false)
     @Builder.Default
+    private Integer stock = 0;
+
+    @Column(nullable = false)
+    @Builder.Default
     private Boolean active = true;
+
+    @Column(length = 500)
+    private String imageUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")

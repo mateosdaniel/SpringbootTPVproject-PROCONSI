@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket - ElectroBazar</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a1a2e;
+            --secondary: #16213e;
+            --accent: #f5a623;
+            --accent-hover: #e09400;
+            --surface: #0f3460;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --text-muted: #8892a4;
+            --text-main: #e8eaf0;
+            --border: #1e2d45;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Barlow', sans-serif;
+            background: var(--primary);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .receipt-container {
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        .receipt {
+            background: var(--secondary);
+            border: 2px solid var(--accent);
+            border-radius: 15px;
+            padding: 2rem 1.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            page-break-inside: avoid;
+        }
+
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px dashed var(--text-muted);
+            padding-bottom: 1.5rem;
+        }
+
+        .receipt-logo {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+            letter-spacing: 1px;
+        }
+
+        .receipt-logo span {
+            color: var(--text-main);
+        }
+
+        .receipt-title {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .receipt-date {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .receipt-number {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .receipt-customer {
+            background: rgba(245, 166, 35, 0.08);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+        }
+
+        .receipt-customer-label {
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .receipt-customer-name {
+            color: var(--text-main);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .receipt-customer-type {
+            color: var(--accent);
+            font-size: 0.8rem;
+        }
+
+        .receipt-items {
+            margin-bottom: 1.5rem;
+        }
+
+        .receipt-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        .receipt-item:last-child {
+            border-bottom: none;
+            margin-bottom: 1rem;
+            padding-bottom: 0;
+        }
+
+        .receipt-item-name {
+            flex: 1;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .receipt-item-qty {
+            color: var(--text-muted);
+            margin: 0 0.75rem;
+            font-size: 0.85rem;
+        }
+
+        .receipt-item-price {
+            color: var(--accent);
+            font-weight: 600;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        .receipt-divider {
+            border-bottom: 1px dashed var(--text-muted);
+            margin: 1rem 0;
+        }
+
+        .receipt-summary {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .receipt-summary-label {
+            color: var(--text-muted);
+        }
+
+        .receipt-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 1.5rem;
+            padding-top: 1rem;
+            border-top: 2px solid var(--accent);
+        }
+
+        .receipt-total-label {
+            font-size: 1rem;
+            color: var(--text-main);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .receipt-total-amount {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .receipt-payment {
+            background: rgba(245, 166, 35, 0.1);
+            border: 1px solid rgba(245, 166, 35, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .receipt-payment-method {
+            color: var(--accent);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .receipt-payment-label {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+
+        .receipt-footer {
+            text-align: center;
+            padding-top: 1rem;
+            border-top: 1px dashed var(--text-muted);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .receipt-thanks {
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .buttons-container {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            justify-content: center;
+        }
+
+        .btn-print {
+            background: var(--accent);
+            color: var(--primary);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+
+        .btn-print:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(245, 166, 35, 0.35);
+            color: var(--primary);
+        }
+
+        .btn-back {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+
+        .btn-back:hover {
+            background: var(--secondary);
+            border-color: var(--text-muted);
+            color: var(--text-main);
+        }
+
+        @media print {
+            body {
+                background: #fff;
+                color: #000;
+            }
+
+            .buttons-container {
+                display: none;
+            }
+
+            .receipt {
+                background: #fff;
+                border: 1px solid #ddd;
+                color: #000;
+                box-shadow: none;
+                padding: 1rem;
+            }
+
+            .receipt-logo {
+                color: #000;
+            }
+
+            .receipt-logo span {
+                color: #000;
+            }
+
+            .receipt-number,
+            .receipt-total-amount {
+                color: #000;
+            }
+
+            .receipt-customer {
+                background: #f5f5f5;
+                border: 1px solid #ddd;
+            }
+
+            .receipt-item-price,
+            .receipt-total-amount,
+            .receipt-payment-method {
+                color: #000;
+            }
+
+            .receipt-divider,
+            .receipt-footer {
+                border-color: #ccc;
+            }
+
+            .receipt-customer-type,
+            .receipt-item-qty,
+            .receipt-summary-label {
+                color: #666;
+            }
+
+            .receipt-thanks {
+                color: #000;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 1rem;
+            }
+
+            .receipt {
+                padding: 1.5rem 1rem;
+            }
+
+            .buttons-container {
+                flex-direction: column;
+            }
+
+            .btn-print,
+            .btn-back {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="receipt-container">
+        <!-- Recibo -->
+        <div class="receipt" id="receipt">
+            <!-- Encabezado -->
+            <div class="receipt-header">
+                <div class="receipt-logo">Electro<span>Bazar</span></div>
+                <div class="receipt-title">Ticket de Venta</div>
+                <div class="receipt-date"
+                    th:text="${'Fecha: ' + #temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm')}">
+                    Fecha: 24/02/2026 14:30
+                </div>
+            </div>
+
+            <!-- Cliente -->
+            <div th:if="${sale.customer != null}" class="receipt-customer">
+                <div class="receipt-customer-label">Cliente</div>
+                <div class="receipt-customer-name" th:text="${sale.customer.name}">
+                    Eduardo García Pérez
+                </div>
+                <div class="receipt-customer-type"
+                    th:text="${sale.customer.type.name() == 'COMPANY' ? 'Empresa' : 'Particular'}">
+                    Particular
+                </div>
+            </div>
+
+            <!-- Productos -->
+            <div class="receipt-items">
+                <div th:each="line : ${sale.lines}" class="receipt-item">
+                    <span class="receipt-item-name" th:text="${line.product.name}">
+                        Producto
+                    </span>
+                    <span class="receipt-item-qty">
+                        <span th:text="${line.quantity}">1</span>x
+                    </span>
+                    <span class="receipt-item-price" th:text="${#numbers.formatDecimal(line.subtotal, 1, 2)} + '€'">
+                        20.00€
+                    </span>
+                </div>
+            </div>
+
+            <!-- Divisor -->
+            <div class="receipt-divider"></div>
+
+            <!-- Total -->
+            <div class="receipt-total">
+                <span class="receipt-total-label">Total</span>
+                <span class="receipt-total-amount" th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2)} + '€'">
+                    0.00€
+                </span>
+            </div>
+
+            <!-- Método de pago -->
+            <div class="receipt-payment">
+                <div class="receipt-payment-method"
+                    th:text="${sale.paymentMethod.name() == 'CASH' ? 'PAGO EN EFECTIVO' : 'PAGO CON TARJETA'}">
+                    PAGO EN EFECTIVO
+                </div>
+                <div class="receipt-payment-label">
+                    Importe pagado: <span th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2)} + '€'">0.00€</span>
+                </div>
+            </div>
+
+            <!-- Pie -->
+            <div class="receipt-footer">
+                <div class="receipt-thanks">¡Gracias por su compra!</div>
+                <p style="margin: 0.5rem 0;">ElectroBazar S.L.</p>
+                <p style="margin: 0; color: #666;">Vuelve pronto</p>
+            </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="buttons-container">
+            <button class="btn-print" onclick="window.print()">
+                <i class="bi bi-printer"></i> Imprimir Ticket
+            </button>
+            <a href="/tpv" class="btn-back">
+                <i class="bi bi-arrow-left"></i> Volver al TPV
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ── Apply saved theme ──
+        (function () {
+            var a = [{ value: '#f5a623', hover: '#e09400' }, { value: '#3b82f6', hover: '#2563eb' }, { value: '#22c55e', hover: '#16a34a' }, { value: '#ef4444', hover: '#dc2626' }, { value: '#a855f7', hover: '#9333ea' }, { value: '#ec4899', hover: '#db2777' }, { value: '#06b6d4', hover: '#0891b2' }];
+            var d = [{ primary: '#1a1a2e', secondary: '#16213e', border: '#1e2d45', muted: '#8892a4', text: '#e8eaf0' }, { primary: '#000000', secondary: '#111111', border: '#222222', muted: '#777777', text: '#e0e0e0' }, { primary: '#1c1c1c', secondary: '#2a2a2a', border: '#3a3a3a', muted: '#888888', text: '#e8e8e8' }, { primary: '#0d1b2a', secondary: '#1b2838', border: '#1e3a50', muted: '#6e8898', text: '#d4e4f0' }, { primary: '#1a2e1a', secondary: '#1e3a1e', border: '#2d4a2d', muted: '#7a9a7a', text: '#d8ecd8' }];
+            var l = [{ primary: '#f0f0f0', secondary: '#f8f8f8' }, { primary: '#e0d8cf', secondary: '#ede6dd' }, { primary: '#ccdcf0', secondary: '#dae7fa' }, { primary: '#e5dec8', secondary: '#f2ecd9' }, { primary: '#c8e6d4', secondary: '#daf2e3' }, { primary: '#dccce6', secondary: '#e9daf2' }];
+            var lf = { border: '#c8c8c8', muted: '#6b7280', text: '#1e293b' };
+            var df = { mode: 'dark', lightAccent: 0, lightPrimaryIdx: 1, darkAccent: 6, darkPrimaryIdx: 0 };
+            var p = JSON.parse(localStorage.getItem('tpv-prefs') || 'null');
+            if (!p || p.accent !== undefined) p = Object.assign({}, df, p ? { mode: p.mode } : {});
+            var isDark = p.mode === 'dark';
+            var cIdx = isDark ? p.darkAccent : p.lightAccent;
+            if (cIdx >= a.length) cIdx = 0;
+            var pIdx = isDark ? p.darkPrimaryIdx : p.lightPrimaryIdx;
+            var ac = a[cIdx] || a[isDark ? 6 : 0], pal = isDark ? d : l, t = pal[pIdx] || pal[isDark ? 0 : 1], r = document.documentElement.style;
+            r.setProperty('--primary', t.primary); r.setProperty('--secondary', t.secondary); r.setProperty('--accent', ac.value); r.setProperty('--accent-hover', ac.hover);
+            if (isDark) { r.setProperty('--border', t.border); r.setProperty('--text-muted', t.muted); r.setProperty('--text-main', t.text); }
+            else { r.setProperty('--border', lf.border); r.setProperty('--text-muted', lf.muted); r.setProperty('--text-main', lf.text); }
+            var logo = isDark ? '/favicon.svg' : '/favicon-light.svg';
+            document.querySelectorAll('img[alt="Logo"]').forEach(function (i) { i.src = logo; });
+            var fl = document.querySelector('link[rel="icon"]'); if (fl) fl.href = logo;
+        })();
+    </script>
+</body>
+
+</html>

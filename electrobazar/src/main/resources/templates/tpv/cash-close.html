@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cierre de Caja - ElectroBazar TPV</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a1a2e;
+            --secondary: #16213e;
+            --accent: #f5a623;
+            --accent-hover: #e09400;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --text-muted: #8892a4;
+            --text-main: #e8eaf0;
+            --border: #1e2d45;
+        }
+
+        body {
+            background: var(--primary);
+            color: var(--text-main);
+            font-family: 'Barlow', sans-serif;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+        }
+
+        .card {
+            background: var(--secondary);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+        }
+
+        .card-header {
+            background: rgba(245, 166, 35, 0.12);
+            border-color: var(--border);
+        }
+
+        .form-control {
+            background: var(--primary);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .form-control:focus {
+            background: var(--primary);
+            border-color: var(--accent);
+            color: var(--text-main);
+            box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.2);
+        }
+
+        .form-label {
+            color: var(--text-main);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border: none;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            color: var(--primary);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        .btn-secondary:hover {
+            background: var(--secondary);
+            color: var(--text-main);
+            border-color: var(--text-muted);
+        }
+
+        .stat-box {
+            background: var(--primary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .text-danger-custom {
+            color: var(--danger);
+        }
+
+        .text-success-custom {
+            color: var(--success);
+        }
+
+        .input-group-text {
+            background: var(--secondary);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        .card-title {
+            color: var(--text-main);
+        }
+    </style>
+</head>
+
+<body class="py-5">
+    <div class="container">
+        <!-- Header -->
+        <div class="mb-4">
+            <a href="/tpv" class="btn btn-secondary mb-3">
+                <i class="bi bi-arrow-left"></i> Volver al TPV
+            </a>
+            <h1 class="display-5 fw-bold mb-2 d-flex align-items-center gap-3">
+                <img th:src="@{/favicon.svg}" alt="Logo ElectroBazar" width="48" height="48" class="rounded"> Cierre de
+                Caja
+            </h1>
+            <p class="text-muted">Finaliza el día y genera el informe de arqueo</p>
+        </div>
+
+        <!-- Resumen del día -->
+        <div class="row mb-4 g-3">
+            <div class="col-md-6">
+                <div class="stat-box">
+                    <div class="stat-label">Ventas hoy</div>
+                    <div class="stat-value" th:text="${countToday}">0</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stat-box">
+                    <div class="stat-label">Total hoy</div>
+                    <div class="stat-value" th:text="${#numbers.formatDecimal(totalToday, 1, 2)} + '€'">0.00€</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stat-box">
+                    <div class="stat-label">Pagos en efectivo</div>
+                    <div class="stat-value" th:text="${#numbers.formatDecimal(cashSalesToday, 1, 2)} + '€'">0.00€</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stat-box">
+                    <div class="stat-label">Pagos con tarjeta</div>
+                    <div class="stat-value" th:text="${#numbers.formatDecimal(cardSalesToday, 1, 2)} + '€'">0.00€</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario de cierre -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-clipboard-check"></i> Arqueo de Caja
+                </h5>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/tpv/cash-close}" method="post">
+                    <div class="mb-3">
+                        <label for="closingBalance" class="form-label">Saldo total contado en caja</label>
+                        <div class="input-group">
+                            <input type="number" id="closingBalance" name="closingBalance" class="form-control"
+                                placeholder="0.00" step="0.01" min="0" required>
+                            <span class="input-group-text">€</span>
+                        </div>
+                        <small class="text-muted">Cantidad total de dinero en físico en la caja</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Observaciones</label>
+                        <textarea id="notes" name="notes" class="form-control" rows="4"
+                            placeholder="Notas sobre el cierre, diferencias, incidencias..."></textarea>
+                    </div>
+
+                    <!-- Resumen del diferencial -->
+                    <div class="alert alert-info mb-3"
+                        style="background: rgba(52,152,219,0.1); border-color: #3498db; color: #3498db;">
+                        <small>
+                            <strong>Teoría:</strong> <span id="theoryAmount"
+                                th:text="${#numbers.formatDecimal(totalToday, 1, 2)} + '€'">0.00€</span><br>
+                            <strong>Real:</strong> <span id="realAmount">0.00€</span><br>
+                            <strong>Diferencia:</strong> <span id="diffAmount">0.00€</span>
+                        </small>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-circle"></i> Confirmar Cierre de Caja
+                        </button>
+                        <a href="/tpv" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const theoryAmountText = document.getElementById('theoryAmount').textContent.replace('€', '').trim();
+        // El formato español usa punto como separador de miles y coma como decimal (ej: 1.234,56)
+        // Primero eliminamos los puntos de miles, luego reemplazamos la coma decimal por punto
+        const theoryAmount = parseFloat(theoryAmountText.replace(/\./g, '').replace(',', '.')) || 0;
+        const closingBalanceInput = document.getElementById('closingBalance');
+
+        function updateDifference() {
+            const realAmount = parseFloat(closingBalanceInput.value.replace(',', '.')) || 0;
+            const difference = realAmount - theoryAmount;
+
+            document.getElementById('realAmount').textContent = realAmount.toFixed(2) + '€';
+            const diffAmountSpan = document.getElementById('diffAmount');
+
+            // Cambiar color y texto según si hay diferencia
+            if (Math.abs(difference) < 0.01) {
+                diffAmountSpan.textContent = '0.00€';
+                diffAmountSpan.style.color = 'var(--success)';
+            } else if (difference > 0) {
+                diffAmountSpan.textContent = '+' + difference.toFixed(2) + '€';
+                diffAmountSpan.style.color = 'var(--success)';
+            } else {
+                diffAmountSpan.textContent = difference.toFixed(2) + '€';
+                diffAmountSpan.style.color = 'var(--danger)';
+            }
+        }
+
+        closingBalanceInput.addEventListener('input', updateDifference);
+        closingBalanceInput.addEventListener('change', updateDifference);
+        closingBalanceInput.addEventListener('keyup', updateDifference);
+
+        // ── Apply saved theme ──
+        (function () {
+            var a = [{ value: '#f5a623', hover: '#e09400' }, { value: '#3b82f6', hover: '#2563eb' }, { value: '#22c55e', hover: '#16a34a' }, { value: '#ef4444', hover: '#dc2626' }, { value: '#a855f7', hover: '#9333ea' }, { value: '#ec4899', hover: '#db2777' }, { value: '#06b6d4', hover: '#0891b2' }];
+            var d = [{ primary: '#1a1a2e', secondary: '#16213e', border: '#1e2d45', muted: '#8892a4', text: '#e8eaf0' }, { primary: '#000000', secondary: '#111111', border: '#222222', muted: '#777777', text: '#e0e0e0' }, { primary: '#1c1c1c', secondary: '#2a2a2a', border: '#3a3a3a', muted: '#888888', text: '#e8e8e8' }, { primary: '#0d1b2a', secondary: '#1b2838', border: '#1e3a50', muted: '#6e8898', text: '#d4e4f0' }, { primary: '#1a2e1a', secondary: '#1e3a1e', border: '#2d4a2d', muted: '#7a9a7a', text: '#d8ecd8' }];
+            var l = [{ primary: '#f0f0f0', secondary: '#f8f8f8' }, { primary: '#e0d8cf', secondary: '#ede6dd' }, { primary: '#ccdcf0', secondary: '#dae7fa' }, { primary: '#e5dec8', secondary: '#f2ecd9' }, { primary: '#c8e6d4', secondary: '#daf2e3' }, { primary: '#dccce6', secondary: '#e9daf2' }];
+            var lf = { border: '#c8c8c8', muted: '#6b7280', text: '#1e293b' };
+            var df = { mode: 'dark', lightAccent: 0, lightPrimaryIdx: 1, darkAccent: 6, darkPrimaryIdx: 0 };
+            var p = JSON.parse(localStorage.getItem('tpv-prefs') || 'null');
+            if (!p || p.accent !== undefined) p = Object.assign({}, df, p ? { mode: p.mode } : {});
+            var isDark = p.mode === 'dark';
+            var cIdx = isDark ? p.darkAccent : p.lightAccent;
+            if (cIdx >= a.length) cIdx = 0;
+            var pIdx = isDark ? p.darkPrimaryIdx : p.lightPrimaryIdx;
+            var ac = a[cIdx] || a[isDark ? 6 : 0], pal = isDark ? d : l, t = pal[pIdx] || pal[isDark ? 0 : 1], r = document.documentElement.style;
+            r.setProperty('--primary', t.primary); r.setProperty('--secondary', t.secondary); r.setProperty('--accent', ac.value); r.setProperty('--accent-hover', ac.hover);
+            if (isDark) { r.setProperty('--border', t.border); r.setProperty('--text-muted', t.muted); r.setProperty('--text-main', t.text); }
+            else { r.setProperty('--border', lf.border); r.setProperty('--text-muted', lf.muted); r.setProperty('--text-main', lf.text); }
+            var logo = isDark ? '/favicon.svg' : '/favicon-light.svg';
+            document.querySelectorAll('img[alt="Logo"]').forEach(function (i) { i.src = logo; });
+            var fl = document.querySelector('link[rel="icon"]'); if (fl) fl.href = logo;
+        })();
+    </script>
+</body>
+
+</html>

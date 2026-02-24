@@ -4,13 +4,16 @@ import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import com.proconsi.electrobazar.model.PaymentMethod;
 import com.proconsi.electrobazar.model.Sale;
 import com.proconsi.electrobazar.model.SaleLine;
+import com.proconsi.electrobazar.repository.CashRegisterRepository;
 import com.proconsi.electrobazar.repository.SaleRepository;
+import com.proconsi.electrobazar.service.ProductService;
 import com.proconsi.electrobazar.service.SaleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -20,6 +23,8 @@ import java.util.List;
 public class SaleServiceImpl implements SaleService {
 
     private final SaleRepository saleRepository;
+    private final ProductService productService;
+    private final CashRegisterRepository cashRegisterRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -42,8 +47,18 @@ public class SaleServiceImpl implements SaleService {
 
     @Override
     public Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes) {
+        return createSale(lines, paymentMethod, notes, null);
+    }
+
+    @Override
+    public Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, com.proconsi.electrobazar.model.Customer customer) {
         if (lines == null || lines.isEmpty()) {
             throw new IllegalArgumentException("Una venta debe tener al menos un producto.");
+        }
+
+        // Validar stock disponible antes de crear la venta
+        for (SaleLine line : lines) {
+            productService.decreaseStock(line.getProduct().getId(), line.getQuantity());
         }
 
         // Calcular subtotales y total
@@ -59,6 +74,7 @@ public class SaleServiceImpl implements SaleService {
                 .paymentMethod(paymentMethod)
                 .totalAmount(total)
                 .notes(notes)
+                .customer(customer)
                 .lines(lines)
                 .build();
 
@@ -71,14 +87,40 @@ public class SaleServiceImpl implements SaleService {
     @Override
     @Transactional(readOnly = true)
     public BigDecimal sumTotalToday() {
-        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
-        LocalDateTime endOfDay = startOfDay.plusDays(1).minusNanos(1);
-        return saleRepository.sumTotalBetween(startOfDay, endOfDay);
+        LocalDate today = LocalDate.now();
+        LocalDateTime startTime = cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc()
+                .filter(cr -> cr.getOpeningTime() != null)
+                .map(cr -> cr.getOpeningTime())
+                .orElse(today.atStartOfDay());
+        
+        LocalDateTime endOfDay = today.atStartOfDay().plusDays(1).minusNanos(1);
+        return saleRepository.sumTotalBetween(startTime, endOfDay);
     }
 
     @Override
     @Transactional(readOnly = true)
     public long countToday() {
-        return saleRepository.countToday();
+        LocalDate today = LocalDate.now();
+        LocalDateTime startTime = cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc()
+                .filter(cr -> cr.getOpeningTime() != null)
+                .map(cr -> cr.getOpeningTime())
+                .orElse(today.atStartOfDay());
+        
+        LocalDateTime endOfDay = today.atStartOfDay().plusDays(1).minusNanos(1);
+        return saleRepository.countByCreatedAtBetween(startTime, endOfDay);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal sumTotalByPaymentMethodToday(PaymentMethod paymentMethod) {
+        LocalDate today = LocalDate.now();
+        LocalDateTime startTime = cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc()
+                .filter(cr -> cr.getOpeningTime() != null)
+                .map(cr -> cr.getOpeningTime())
+                .orElse(today.atStartOfDay());
+        
+        LocalDateTime endOfDay = today.atStartOfDay().plusDays(1).minusNanos(1);
+        return saleRepository.sumTotalBetweenByPaymentMethod(startTime, endOfDay, paymentMethod)
+                .orElse(BigDecimal.ZERO);
     }
 }

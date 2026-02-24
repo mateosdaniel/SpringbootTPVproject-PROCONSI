@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ElectroBazar TPV</title>
+    <title>ElectroBazar</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap"
+        rel="stylesheet">
     <style>
         :root {
             --primary: #1a1a2e;
@@ -17,17 +21,242 @@
             --success: #2ecc71;
             --danger: #e74c3c;
             --text-muted: #8892a4;
+            --text-main: #e8eaf0;
             --border: #1e2d45;
             --sidebar-width: 200px;
-            --ticket-width: 320px;
+            --ticket-width: 420px;
         }
 
-        * { box-sizing: border-box; }
+        /* Themes are now applied dynamically via JS */
+
+        /* ── Hamburger menu ── */
+        .menu-wrapper {
+            position: relative;
+        }
+
+        .hamburger-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--accent);
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            transition: all 0.2s;
+        }
+
+        .hamburger-btn:hover {
+            border-color: var(--accent);
+            background: rgba(var(--accent-rgb, 245, 166, 35), 0.1);
+        }
+
+        .menu-dropdown {
+            display: none;
+            position: absolute;
+            top: 48px;
+            right: 0;
+            background: var(--secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            min-width: 180px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+            z-index: 500;
+            overflow: hidden;
+        }
+
+        .menu-dropdown.open {
+            display: block;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.7rem 1rem;
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: background 0.12s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+        }
+
+        .menu-item:hover {
+            background: rgba(var(--accent-rgb, 245, 166, 35), 0.1);
+        }
+
+        .menu-item i {
+            font-size: 1rem;
+            color: var(--accent);
+            width: 20px;
+            text-align: center;
+        }
+
+        /* ── Preferences modal ── */
+        .prefs-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .prefs-overlay.open {
+            display: flex;
+        }
+
+        .prefs-panel {
+            background: var(--secondary);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            width: 380px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 12px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .prefs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .prefs-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        .prefs-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .prefs-close:hover {
+            color: var(--danger);
+        }
+
+        .prefs-body {
+            padding: 1.25rem;
+        }
+
+        .prefs-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .prefs-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 0.6rem;
+        }
+
+        /* Toggle switch */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .toggle-row span {
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            background: var(--border);
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background 0.25s;
+        }
+
+        .toggle-switch.active {
+            background: var(--accent);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.25s;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(22px);
+        }
+
+        /* Color swatches */
+        .swatch-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .swatch {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.15s;
+            position: relative;
+        }
+
+        .swatch:hover {
+            transform: scale(1.15);
+        }
+
+        .swatch.selected {
+            border-color: var(--text-main);
+        }
+
+        .swatch.selected::after {
+            content: '\F26E';
+            font-family: 'bootstrap-icons';
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.9rem;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
 
         body {
             font-family: 'Barlow', sans-serif;
             background: var(--primary);
-            color: #e8eaf0;
+            color: var(--text-main);
             height: 100vh;
             overflow: hidden;
             margin: 0;
@@ -44,7 +273,9 @@
             justify-content: space-between;
             gap: 1rem;
             position: fixed;
-            top: 0; left: 0; right: 0;
+            top: 0;
+            left: 0;
+            right: 0;
             z-index: 100;
         }
 
@@ -57,7 +288,9 @@
             white-space: nowrap;
         }
 
-        .tpv-logo span { color: #e8eaf0; }
+        .tpv-logo span {
+            color: var(--text-main);
+        }
 
         .header-stats {
             display: flex;
@@ -66,7 +299,10 @@
             color: var(--text-muted);
         }
 
-        .header-stats strong { color: var(--accent); font-size: 1rem; }
+        .header-stats strong {
+            color: var(--accent);
+            font-size: 1rem;
+        }
 
         .header-search {
             flex: 1;
@@ -76,7 +312,7 @@
         .header-search .form-control {
             background: var(--primary);
             border: 1px solid var(--border);
-            color: #e8eaf0;
+            color: var(--text-main);
             border-radius: 8px;
             font-size: 0.9rem;
         }
@@ -84,22 +320,35 @@
         .header-search .form-control:focus {
             background: var(--primary);
             border-color: var(--accent);
-            color: #e8eaf0;
-            box-shadow: 0 0 0 2px rgba(245,166,35,0.2);
+            color: var(--text-main);
+            box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.2);
         }
 
-        .header-search .form-control::placeholder { color: var(--text-muted); }
+        .header-search .form-control::placeholder {
+            color: var(--text-muted);
+        }
 
         .btn-search {
-            background: var(--accent);
+            background: transparent;
             border: none;
-            color: var(--primary);
+            color: var(--accent);
             font-weight: 600;
             border-radius: 8px;
-            padding: 0.375rem 0.9rem;
+            padding: 0;
+            cursor: default;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            transition: color 0.15s, background 0.15s;
+            pointer-events: none;
         }
 
-        .btn-search:hover { background: var(--accent-hover); color: var(--primary); }
+        .btn-search:hover {
+            color: var(--accent);
+        }
 
         /* ── LAYOUT ── */
         .tpv-body {
@@ -135,7 +384,7 @@
             padding: 0.6rem 1rem;
             border: none;
             background: transparent;
-            color: #c5cad6;
+            color: var(--text-muted);
             font-family: 'Barlow', sans-serif;
             font-size: 0.88rem;
             font-weight: 500;
@@ -147,13 +396,13 @@
         }
 
         .cat-btn:hover {
-            background: rgba(245,166,35,0.08);
-            color: #e8eaf0;
-            border-left-color: rgba(245,166,35,0.4);
+            background: rgba(245, 166, 35, 0.08);
+            color: var(--text-main);
+            border-left-color: rgba(245, 166, 35, 0.4);
         }
 
         .cat-btn.active {
-            background: rgba(245,166,35,0.12);
+            background: rgba(245, 166, 35, 0.12);
             color: var(--accent);
             border-left-color: var(--accent);
             font-weight: 600;
@@ -176,8 +425,8 @@
         .product-card {
             background: var(--secondary);
             border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 1rem 0.75rem;
+            border-radius: 6px;
+            padding-bottom: 0.75rem;
             cursor: pointer;
             transition: all 0.15s;
             text-align: center;
@@ -190,7 +439,7 @@
             content: '';
             position: absolute;
             inset: 0;
-            background: rgba(245,166,35,0.06);
+            background: rgba(245, 166, 35, 0.06);
             opacity: 0;
             transition: opacity 0.15s;
         }
@@ -198,28 +447,52 @@
         .product-card:hover {
             border-color: var(--accent);
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
         }
 
-        .product-card:hover::after { opacity: 1; }
+        .product-card:hover::after {
+            opacity: 1;
+        }
 
-        .product-card:active { transform: translateY(0); }
+        .product-card:active {
+            transform: translateY(0);
+        }
+
+        .product-image-container {
+            width: 100%;
+            height: 110px;
+            background: var(--primary);
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .product-info {
+            padding: 0 0.5rem;
+        }
 
         .product-icon {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            display: block;
+            font-size: 2.5rem;
             color: var(--text-muted);
         }
 
         .product-name {
             font-size: 0.82rem;
             font-weight: 600;
-            color: #e8eaf0;
+            color: var(--text-main);
             margin-bottom: 0.35rem;
             line-height: 1.3;
             display: -webkit-box;
-            -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
@@ -244,7 +517,11 @@
             color: var(--text-muted);
         }
 
-        .no-products i { font-size: 3rem; display: block; margin-bottom: 0.75rem; }
+        .no-products i {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 0.75rem;
+        }
 
         /* ── TICKET ── */
         .tpv-ticket {
@@ -270,7 +547,7 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #e8eaf0;
+            color: var(--text-main);
         }
 
         .ticket-count {
@@ -299,7 +576,9 @@
             gap: 0.5rem;
         }
 
-        .ticket-empty i { font-size: 2.5rem; }
+        .ticket-empty i {
+            font-size: 2.5rem;
+        }
 
         .ticket-line {
             display: flex;
@@ -309,30 +588,41 @@
             border-radius: 8px;
             margin-bottom: 0.35rem;
             transition: background 0.1s;
+            min-width: 0;
         }
 
-        .ticket-line:hover { background: rgba(255,255,255,0.04); }
+        .ticket-line:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
 
         .ticket-line-name {
-            flex: 1;
+            flex: 1 1 auto;
+            min-width: 0;
             font-size: 0.83rem;
             font-weight: 500;
-            color: #e8eaf0;
+            color: var(--text-main);
             line-height: 1.3;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .ticket-line-price {
+            flex-shrink: 0;
             font-family: 'Barlow Condensed', sans-serif;
             font-size: 0.95rem;
             font-weight: 600;
             color: var(--accent);
             white-space: nowrap;
+            text-align: right;
+            min-width: 60px;
         }
 
         .qty-control {
             display: flex;
             align-items: center;
             gap: 0.25rem;
+            flex-shrink: 0;
         }
 
         .qty-btn {
@@ -341,7 +631,7 @@
             border-radius: 5px;
             border: 1px solid var(--border);
             background: var(--primary);
-            color: #e8eaf0;
+            color: var(--text-main);
             font-size: 0.9rem;
             display: flex;
             align-items: center;
@@ -350,16 +640,41 @@
             transition: all 0.1s;
             line-height: 1;
             padding: 0;
+            flex-shrink: 0;
         }
 
-        .qty-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .qty-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
 
         .qty-num {
             font-size: 0.85rem;
             font-weight: 700;
-            min-width: 20px;
+            width: 28px;
             text-align: center;
-            color: #e8eaf0;
+            color: var(--text-main);
+            flex-shrink: 0;
+            cursor: pointer;
+            border-bottom: 1px dashed transparent;
+            transition: border-color 0.15s;
+        }
+
+        .qty-num:hover {
+            border-bottom-color: var(--accent);
+        }
+
+        .qty-input {
+            width: 34px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            background: var(--primary);
+            color: var(--text-main);
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            padding: 1px 2px;
+            outline: none;
         }
 
         .btn-remove-line {
@@ -370,9 +685,17 @@
             padding: 0;
             font-size: 0.9rem;
             transition: color 0.1s;
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .btn-remove-line:hover { color: var(--danger); }
+        .btn-remove-line:hover {
+            color: var(--danger);
+        }
 
         /* ── TICKET FOOTER ── */
         .ticket-footer {
@@ -426,11 +749,14 @@
             gap: 0.4rem;
         }
 
-        .pay-btn:hover { border-color: var(--accent); color: #e8eaf0; }
+        .pay-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-main);
+        }
 
         .pay-btn.selected {
             border-color: var(--accent);
-            background: rgba(245,166,35,0.12);
+            background: rgba(245, 166, 35, 0.12);
             color: var(--accent);
         }
 
@@ -453,7 +779,7 @@
         .btn-cobrar:hover:not(:disabled) {
             background: var(--accent-hover);
             transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(245,166,35,0.35);
+            box-shadow: 0 4px 15px rgba(245, 166, 35, 0.35);
         }
 
         .btn-cobrar:disabled {
@@ -475,16 +801,33 @@
             font-family: 'Barlow', sans-serif;
         }
 
-        .btn-clear:hover { border-color: var(--danger); color: var(--danger); }
+        .btn-clear:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
 
         /* ── TOAST ── */
-        .toast-container { z-index: 9999; }
+        .toast-container {
+            z-index: 9999;
+        }
 
         /* ── SCROLLBAR ── */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 999px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
 
         /* ── ALERT SUCCESS ── */
         .alert-tpv {
@@ -504,217 +847,323 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
     </style>
 </head>
+
 <body>
 
-<!-- ── HEADER ── -->
-<header class="tpv-header">
-    <div class="tpv-logo">Electro<span>Bazar</span></div>
+    <!-- ── HEADER ── -->
+    <header class="tpv-header">
+        <div class="tpv-logo d-flex align-items-center gap-1"><img th:src="@{/favicon.svg}" alt="Logo" width="28"
+                height="28" style="border-radius:6px;">Electro<span>Bazar</span></div>
 
-    <!-- Buscador -->
-    <form class="header-search d-flex gap-2" th:action="@{/tpv}" method="get">
-        <input type="text" name="search" class="form-control"
-               placeholder="Buscar producto o código de barras..."
-               th:value="${search}" autocomplete="off">
-        <button type="submit" class="btn-search">
-            <i class="bi bi-search"></i>
-        </button>
-    </form>
-
-    <!-- Stats del día -->
-    <div class="header-stats">
-        <div>Ventas hoy <br><strong th:text="${countToday}">0</strong></div>
-        <div>Total hoy <br><strong th:text="${#numbers.formatDecimal(totalToday, 1, 2)} + '€'">0.00€</strong></div>
-    </div>
-</header>
-
-<!-- ── BODY ── -->
-<div class="tpv-body">
-
-    <!-- SIDEBAR CATEGORÍAS -->
-    <nav class="tpv-sidebar">
-        <div class="sidebar-title">Categorías</div>
-
-        <a th:href="@{/tpv}" class="cat-btn"
-           th:classappend="${selectedCategoryId == null and search == null} ? 'active' : ''">
-            <i class="bi bi-grid-3x3-gap"></i> Todos
-        </a>
-
-        <a th:each="cat : ${categories}"
-           th:href="@{/tpv(categoryId=${cat.id})}"
-           class="cat-btn"
-           th:classappend="${selectedCategoryId == cat.id} ? 'active' : ''"
-           th:text="${cat.name}">
-            Categoría
-        </a>
-    </nav>
-
-    <!-- GRID DE PRODUCTOS -->
-    <main class="tpv-products">
-
-        <!-- Alerta de venta completada -->
-        <div th:if="${successMessage}" class="alert-tpv" id="successAlert">
-            <i class="bi bi-check-circle-fill"></i>
-            <span th:text="${successMessage}"></span>
+        <!-- Buscador -->
+        <div class="header-search d-flex gap-2">
+            <i class="bi bi-search btn-search" id="searchIcon"></i>
+            <input type="text" id="searchInput" class="form-control" placeholder="Buscar producto..."
+                autocomplete="off">
         </div>
 
-        <div class="products-grid">
-            <!-- Sin productos -->
-            <div th:if="${#lists.isEmpty(products)}" class="no-products">
-                <i class="bi bi-box-seam"></i>
-                <p>No hay productos disponibles</p>
+        <!-- Botón Cierre de Caja + Menú -->
+        <div class="d-flex align-items-center gap-3">
+            <!-- Stats del día -->
+            <div class="header-stats"
+                style="border-right: 1px solid var(--border); padding-right: 1rem; margin-right: 0.25rem;">
+                <div>Ventas hoy <br><strong th:text="${countToday}">0</strong></div>
+                <div>Total hoy <br><strong th:text="${#numbers.formatDecimal(totalToday, 1, 2)} + '€'">0.00€</strong>
+                </div>
+            </div>
+            <a th:href="@{/tpv/cash-close}"
+                style="background: var(--accent); color: var(--primary); padding: 0.5rem 1rem; border-radius: 10px; text-decoration: none; font-weight: 700; border: none; display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; font-size: 0.82rem; letter-spacing: 0.3px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); transition: all 0.2s ease;"
+                onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 18px rgba(0,0,0,0.28)'"
+                onmouseout="this.style.transform='';this.style.boxShadow='0 2px 10px rgba(0,0,0,0.2)'">
+                <i class="bi bi-cash-register" style="line-height:1;flex-shrink:0;"></i> Cierre de caja
+            </a>
+            <div class="menu-wrapper">
+                <button class="hamburger-btn" id="hamburgerBtn" title="Menú">
+                    <i class="bi bi-list"></i>
+                </button>
+                <div class="menu-dropdown" id="menuDropdown">
+                    <a class="menu-item" href="/tpv/preferences" style="text-decoration:none;">
+                        <i class="bi bi-gear"></i> Preferencias
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ── BODY ── -->
+    <div class="tpv-body">
+
+        <!-- SIDEBAR CATEGORÍAS -->
+        <nav class="tpv-sidebar">
+            <div class="sidebar-title">Categorías</div>
+
+            <button type="button" class="cat-btn" id="catAll"
+                th:classappend="${selectedCategoryId == null and search == null} ? 'active' : ''">
+                <i class="bi bi-grid-3x3-gap"></i> Todos
+            </button>
+
+            <button type="button" th:each="cat : ${categories}" th:attr="data-category-id=${cat.id}" class="cat-btn"
+                th:classappend="${selectedCategoryId == cat.id} ? 'active' : ''" th:text="${cat.name}">
+                Categoría
+            </button>
+        </nav>
+
+        <!-- GRID DE PRODUCTOS -->
+        <main class="tpv-products">
+
+            <!-- Alerta de venta completada -->
+            <div th:if="${successMessage}" class="alert-tpv" id="successAlert">
+                <i class="bi bi-check-circle-fill"></i>
+                <span th:text="${successMessage}"></span>
             </div>
 
-            <!-- Tarjeta de producto -->
-            <div th:each="product : ${products}"
-                 class="product-card"
-                 th:attr="
+            <div class="products-grid">
+                <!-- Sin productos -->
+                <div th:if="${#lists.isEmpty(products)}" class="no-products">
+                    <i class="bi bi-box-seam"></i>
+                    <p>No hay productos disponibles</p>
+                </div>
+
+                <!-- Tarjeta de producto -->
+                <div th:each="product : ${products}" class="product-card" th:attr="
                     data-id=${product.id},
                     data-name=${product.name},
                     data-price=${product.price},
-                    data-category=${product.category != null ? product.category.name : ''}"
-                 onclick="addToTicket(this)">
+                    data-category=${product.category != null ? product.category.name : ''},
+                    data-stock=${product.stock}">
 
-                <i class="bi bi-box product-icon"></i>
-                <div class="product-name" th:text="${product.name}">Nombre producto</div>
-                <div class="product-price" th:text="${#numbers.formatDecimal(product.price, 1, 2)} + '€'">0.00€</div>
-                <div class="product-category-badge"
-                     th:text="${product.category != null ? product.category.name : ''}"></div>
+                    <div class="product-image-container">
+                        <img th:if="${product.imageUrl}" th:src="${product.imageUrl}" alt="Imagen producto"
+                            class="product-image">
+                        <i th:unless="${product.imageUrl}" class="bi bi-box product-icon"></i>
+                    </div>
+                    <div class="product-info">
+                        <div class="product-name" th:text="${product.name}">Nombre producto</div>
+                        <div class="product-price" th:text="${#numbers.formatDecimal(product.price, 1, 2)} + '€'">0.00€
+                        </div>
+                        <div class="product-category-badge"
+                            th:text="${product.category != null ? product.category.name : ''}"></div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </main>
+        </main>
 
-    <!-- TICKET -->
-    <aside class="tpv-ticket">
-        <div class="ticket-header">
-            <span class="ticket-title"><i class="bi bi-receipt me-1"></i> Ticket</span>
-            <span class="ticket-count" id="ticketCount">0</span>
-        </div>
-
-        <div class="ticket-lines" id="ticketLines">
-            <div class="ticket-empty" id="ticketEmpty">
-                <i class="bi bi-cart"></i>
-                <span>Pulsa un producto para añadirlo</span>
-            </div>
-        </div>
-
-        <div class="ticket-footer">
-            <div class="ticket-total-row">
-                <span class="ticket-total-label">Total</span>
-                <span class="ticket-total-amount" id="ticketTotal">0.00€</span>
+        <!-- TICKET -->
+        <aside class="tpv-ticket">
+            <div class="ticket-header">
+                <span class="ticket-title"><i class="bi bi-receipt me-1"></i> Ticket</span>
+                <span class="ticket-count" id="ticketCount">0</span>
             </div>
 
-            <!-- Selector método de pago -->
-            <div class="payment-selector">
-                <button type="button" class="pay-btn selected" id="btnCash" onclick="selectPayment('CASH')">
-                    <i class="bi bi-cash"></i> Efectivo
+            <div class="ticket-lines" id="ticketLines">
+                <div class="ticket-empty" id="ticketEmpty">
+                    <i class="bi bi-cart"></i>
+                    <span>Pulsa un producto para añadirlo</span>
+                </div>
+            </div>
+
+            <div class="ticket-footer">
+                <div class="ticket-total-row">
+                    <span class="ticket-total-label">Total</span>
+                    <span class="ticket-total-amount" id="ticketTotal">0.00€</span>
+                </div>
+
+                <!-- Selector método de pago -->
+                <div class="payment-selector">
+                    <button type="button" class="pay-btn selected" id="btnCash" onclick="selectPayment('CASH')">
+                        <i class="bi bi-cash"></i> Efectivo
+                    </button>
+                    <button type="button" class="pay-btn" id="btnCard" onclick="selectPayment('CARD')">
+                        <i class="bi bi-credit-card"></i> Tarjeta
+                    </button>
+                </div>
+
+                <form id="saleForm" th:action="@{/tpv/sale}" method="post">
+                    <input type="hidden" name="paymentMethod" id="paymentMethodInput" value="CASH">
+                    <input type="hidden" name="customerId" id="customerIdInput">
+                    <input type="hidden" name="customerName" id="customerNameInput">
+                    <input type="hidden" name="customerType" id="customerTypeInput">
+                    <div id="formLines"></div>
+                    <button type="button" class="btn-cobrar" id="btnCobrar" onclick="openCustomerModal()" disabled>
+                        <i class="bi bi-lightning-fill me-1"></i> Cobrar
+                    </button>
+                </form>
+
+                <button type="button" class="btn-clear" onclick="clearTicket()">
+                    <i class="bi bi-trash me-1"></i> Vaciar ticket
                 </button>
-                <button type="button" class="pay-btn" id="btnCard" onclick="selectPayment('CARD')">
-                    <i class="bi bi-credit-card"></i> Tarjeta
-                </button>
             </div>
+        </aside>
 
-            <!-- Formulario oculto que se envía al cobrar -->
-            <form id="saleForm" th:action="@{/tpv/sale}" method="post">
-                <input type="hidden" name="paymentMethod" id="paymentMethodInput" value="CASH">
-                <div id="formLines"></div>
-                <button type="button" class="btn-cobrar" id="btnCobrar"
-                        onclick="submitSale()" disabled>
-                    <i class="bi bi-lightning-fill me-1"></i> Cobrar
-                </button>
-            </form>
+    </div>
 
-            <button type="button" class="btn-clear" onclick="clearTicket()">
-                <i class="bi bi-trash me-1"></i> Vaciar ticket
-            </button>
+    <!-- Modal de Cliente -->
+    <div class="modal fade" id="customerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content"
+                style="background: var(--secondary); color: var(--text-main); border-color: var(--border);">
+                <div class="modal-header" style="border-color: var(--border);">
+                    <h5 class="modal-title">Datos del Cliente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        style="filter: var(--close-filter, invert(1));"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre completo</label>
+                        <input type="text" id="customerNameField" class="form-control"
+                            style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de cliente</label>
+                        <select id="customerTypeField" class="form-select"
+                            style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
+                            <option value="INDIVIDUAL">Particular</option>
+                            <option value="COMPANY">Empresa</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-color: var(--border);">
+                    <button type="button" class="btn" data-bs-dismiss="modal"
+                        style="background: var(--primary); border-color: var(--border); color: var(--text-main);">Cancelar</button>
+                    <button type="button" class="btn" style="background: var(--accent); color: var(--primary);"
+                        onclick="submitSaleWithCustomer()">Cobrar</button>
+                </div>
+            </div>
         </div>
-    </aside>
+    </div>
 
-</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ── Estado del ticket ──
+        const ticket = {}; // { productId: { name, price, quantity, stock } }
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    // ── Estado del ticket ──
-    const ticket = {}; // { productId: { name, price, quantity } }
+        function addToTicket(card) {
+            const id = card.dataset.id;
+            const name = card.dataset.name;
+            const price = parseFloat(card.dataset.price);
+            const stock = parseInt(card.dataset.stock) || 0;
 
-    function addToTicket(card) {
-        const id    = card.dataset.id;
-        const name  = card.dataset.name;
-        const price = parseFloat(card.dataset.price);
+            const currentQty = ticket[id] ? ticket[id].quantity : 0;
+            if (currentQty + 1 > stock) {
+                if (!confirm(`El producto "${name}" no tiene stock suficiente. Disponible: ${stock}. ¿Deseas añadirlo de todas formas?`)) {
+                    return;
+                }
+            }
 
-        if (ticket[id]) {
-            ticket[id].quantity++;
-        } else {
-            ticket[id] = { name, price, quantity: 1 };
+            if (ticket[id]) {
+                ticket[id].quantity++;
+            } else {
+                ticket[id] = { name, price, quantity: 1, stock };
+            }
+            renderTicket();
+
+            // Feedback visual en la tarjeta
+            card.style.borderColor = 'var(--success)';
+            setTimeout(() => card.style.borderColor = '', 300);
         }
-        renderTicket();
 
-        // Feedback visual en la tarjeta
-        card.style.borderColor = 'var(--success)';
-        setTimeout(() => card.style.borderColor = '', 300);
-    }
+        function changeQty(id, delta) {
+            if (!ticket[id]) return;
+            const newQty = ticket[id].quantity + delta;
 
-    function changeQty(id, delta) {
-        if (!ticket[id]) return;
-        ticket[id].quantity += delta;
-        if (ticket[id].quantity <= 0) delete ticket[id];
-        renderTicket();
-    }
+            if (delta > 0 && newQty > ticket[id].stock) {
+                if (!confirm(`El producto "${ticket[id].name}" no tiene stock suficiente. Disponible: ${ticket[id].stock}. ¿Deseas añadirlo de todas formas?`)) {
+                    return;
+                }
+            }
 
-    function removeLine(id) {
-        delete ticket[id];
-        renderTicket();
-    }
-
-    function clearTicket() {
-        Object.keys(ticket).forEach(k => delete ticket[k]);
-        renderTicket();
-    }
-
-    function renderTicket() {
-        const linesEl   = document.getElementById('ticketLines');
-        const emptyEl   = document.getElementById('ticketEmpty');
-        const countEl   = document.getElementById('ticketCount');
-        const totalEl   = document.getElementById('ticketTotal');
-        const cobrarBtn = document.getElementById('btnCobrar');
-        const formLines = document.getElementById('formLines');
-
-        const ids = Object.keys(ticket);
-
-        // Vacío
-        if (ids.length === 0) {
-            linesEl.innerHTML = '';
-            linesEl.appendChild(emptyEl);
-            emptyEl.style.display = 'flex';
-            countEl.textContent = '0';
-            totalEl.textContent = '0.00€';
-            cobrarBtn.disabled = true;
-            formLines.innerHTML = '';
-            return;
+            ticket[id].quantity = newQty;
+            if (ticket[id].quantity <= 0) delete ticket[id];
+            renderTicket();
         }
 
-        emptyEl.style.display = 'none';
+        function removeLine(id) {
+            delete ticket[id];
+            renderTicket();
+        }
 
-        let totalItems = 0;
-        let totalAmount = 0;
-        let linesHTML = '';
-        let formHTML = '';
+        function editQty(el, id) {
+            const current = ticket[id].quantity;
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.className = 'qty-input';
+            input.value = current;
+            input.min = 1;
+            input.setAttribute('inputmode', 'numeric');
+            el.replaceWith(input);
+            input.focus();
+            input.select();
 
-        ids.forEach(id => {
-            const item = ticket[id];
-            const subtotal = item.price * item.quantity;
-            totalItems += item.quantity;
-            totalAmount += subtotal;
+            function confirmQty() {
+                const val = parseInt(input.value);
+                if (val && val > 0) {
+                    if (val > ticket[id].stock) {
+                        if (!confirm(`El producto "${ticket[id].name}" no tiene stock suficiente. Disponible: ${ticket[id].stock}. ¿Deseas aplicar esta cantidad de todas formas?`)) {
+                            renderTicket();
+                            return;
+                        }
+                    }
+                    ticket[id].quantity = val;
+                }
+                renderTicket();
+            }
 
-            linesHTML += `
+            input.addEventListener('blur', confirmQty);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+                if (e.key === 'Escape') { renderTicket(); }
+            });
+        }
+
+        function clearTicket() {
+            Object.keys(ticket).forEach(k => delete ticket[k]);
+            renderTicket();
+        }
+
+        function renderTicket() {
+            const linesEl = document.getElementById('ticketLines');
+            const countEl = document.getElementById('ticketCount');
+            const totalEl = document.getElementById('ticketTotal');
+            const cobrarBtn = document.getElementById('btnCobrar');
+            const formLines = document.getElementById('formLines');
+
+            const ids = Object.keys(ticket);
+
+            // Vacío
+            if (ids.length === 0) {
+                linesEl.innerHTML = `
+                <div class="ticket-empty">
+                    <i class="bi bi-cart"></i>
+                    <span>Pulsa un producto para añadirlo</span>
+                </div>`;
+                countEl.textContent = '0';
+                totalEl.textContent = '0.00€';
+                cobrarBtn.disabled = true;
+                formLines.innerHTML = '';
+                return;
+            }
+
+            let totalItems = 0;
+            let totalAmount = 0;
+            let linesHTML = '';
+            let formHTML = '';
+
+            ids.forEach(id => {
+                const item = ticket[id];
+                const subtotal = item.price * item.quantity;
+                totalItems += item.quantity;
+                totalAmount += subtotal;
+
+                linesHTML += `
                 <div class="ticket-line">
                     <div class="ticket-line-name">${escapeHtml(item.name)}</div>
                     <div class="qty-control">
                         <button class="qty-btn" onclick="changeQty('${id}', -1)">−</button>
-                        <span class="qty-num">${item.quantity}</span>
+                        <span class="qty-num" onclick="editQty(this, '${id}')">${item.quantity}</span>
                         <button class="qty-btn" onclick="changeQty('${id}', 1)">+</button>
                     </div>
                     <div class="ticket-line-price">${subtotal.toFixed(2)}€</div>
@@ -723,36 +1172,260 @@
                     </button>
                 </div>`;
 
-            formHTML += `
+                formHTML += `
                 <input type="hidden" name="productIds" value="${id}">
                 <input type="hidden" name="quantities" value="${item.quantity}">`;
+            });
+
+            linesEl.innerHTML = linesHTML;
+            formLines.innerHTML = formHTML;
+            countEl.textContent = totalItems;
+            totalEl.textContent = totalAmount.toFixed(2) + '€';
+            cobrarBtn.disabled = false;
+        }
+
+        function selectPayment(method) {
+            document.getElementById('paymentMethodInput').value = method;
+            document.getElementById('btnCash').classList.toggle('selected', method === 'CASH');
+            document.getElementById('btnCard').classList.toggle('selected', method === 'CARD');
+        }
+
+        function submitSale() {
+            if (Object.keys(ticket).length === 0) return;
+            document.getElementById('saleForm').submit();
+        }
+
+        function openCustomerModal() {
+            if (Object.keys(ticket).length === 0) return;
+            const modal = new bootstrap.Modal(document.getElementById('customerModal'));
+            modal.show();
+        }
+
+        function submitSaleWithCustomer() {
+            const customerName = document.getElementById('customerNameField').value.trim();
+            const customerType = document.getElementById('customerTypeField').value;
+
+            document.getElementById('customerNameInput').value = customerName;
+            document.getElementById('customerTypeInput').value = customerType;
+
+            document.getElementById('saleForm').submit();
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // Auto-ocultar alerta de éxito tras 4 segundos
+        const alert = document.getElementById('successAlert');
+        if (alert) setTimeout(() => alert.style.display = 'none', 4000);
+
+        // ── SEARCH AND FILTER FUNCTIONALITY ──
+        let searchTimeout;
+        let currentCategoryId = null;
+
+        const searchInput = document.getElementById('searchInput');
+        const productsContainer = document.querySelector('.tpv-products');
+        const categoryButtons = document.querySelectorAll('.cat-btn');
+
+        function loadProducts(endpoint) {
+            fetch(endpoint)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(products => renderProducts(products))
+                .catch(error => console.error('Error loading products:', error));
+        }
+
+        function renderProducts(products) {
+            const productGrid = document.querySelector('.products-grid');
+            if (!productGrid) return;
+
+            if (!products || products.length === 0) {
+                productGrid.innerHTML = `
+                <div class="no-products" style="grid-column: 1/-1; text-align: center;">
+                    <i class="bi bi-box-seam"></i>
+                    <p>No hay productos disponibles</p>
+                </div>`;
+                return;
+            }
+
+            productGrid.innerHTML = products.map(product => `
+            <div class="product-card"
+                 data-id="${product.id}"
+                 data-name="${escapeHtml(product.name)}"
+                 data-price="${product.price}"
+                 data-category="${product.category ? escapeHtml(product.category.name) : ''}"
+                 data-stock="${product.stock}">
+                <div class="product-image-container">
+                    ${product.imageUrl
+                    ? `<img src="${escapeHtml(product.imageUrl)}" alt="Imagen producto" class="product-image">`
+                    : `<i class="bi bi-box product-icon"></i>`
+                }
+                </div>
+                <div class="product-info">
+                    <div class="product-name">${escapeHtml(product.name)}</div>
+                    <div class="product-price">${parseFloat(product.price).toFixed(2)}€</div>
+                    <div class="product-category-badge">${product.category ? escapeHtml(product.category.name) : ''}</div>
+                </div>
+            </div>
+        `).join('');
+        }
+
+        function performSearch() {
+            const query = searchInput.value.trim();
+
+            if (query) {
+                loadProducts(`/api/products/search?name=${encodeURIComponent(query)}`);
+                updateCategoryButtons(null);
+                currentCategoryId = null;
+            } else if (currentCategoryId) {
+                loadProducts(`/api/products/category/${currentCategoryId}`);
+            } else {
+                loadProducts('/api/products');
+            }
+        }
+
+        // Event delegation for product card clicks - attach to the products container
+        if (productsContainer) {
+            productsContainer.addEventListener('click', (e) => {
+                const productCard = e.target.closest('.product-card');
+                if (productCard) {
+                    addToTicket(productCard);
+                }
+            });
+        }
+
+        function updateCategoryButtons(activeId) {
+            categoryButtons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            if (activeId === null) {
+                document.getElementById('catAll').classList.add('active');
+            } else {
+                document.querySelector(`[data-category-id="${activeId}"]`)?.classList.add('active');
+            }
+        }
+
+        // Real-time search with debounce
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                performSearch();
+            });
+        }
+
+        // Category button click handlers
+        const catAllBtn = document.getElementById('catAll');
+        if (catAllBtn) {
+            catAllBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                currentCategoryId = null;
+                updateCategoryButtons(null);
+                loadProducts('/api/products');
+            });
+        }
+
+        document.querySelectorAll('.cat-btn[data-category-id]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const categoryId = btn.getAttribute('data-category-id');
+                searchInput.value = '';
+                currentCategoryId = categoryId;
+                updateCategoryButtons(categoryId);
+                loadProducts(`/api/products/category/${categoryId}`);
+            });
         });
 
-        linesEl.innerHTML = linesHTML;
-        formLines.innerHTML = formHTML;
-        countEl.textContent = totalItems;
-        totalEl.textContent = totalAmount.toFixed(2) + '€';
-        cobrarBtn.disabled = false;
-    }
+        // Search icon - decorative only
+        // No functionality needed
 
-    function selectPayment(method) {
-        document.getElementById('paymentMethodInput').value = method;
-        document.getElementById('btnCash').classList.toggle('selected', method === 'CASH');
-        document.getElementById('btnCard').classList.toggle('selected', method === 'CARD');
-    }
+        // ── Hamburger Menu ──
+        (function () {
+            const hamburger = document.getElementById('hamburgerBtn');
+            const dropdown = document.getElementById('menuDropdown');
 
-    function submitSale() {
-        if (Object.keys(ticket).length === 0) return;
-        document.getElementById('saleForm').submit();
-    }
+            hamburger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('open');
+            });
 
-    function escapeHtml(str) {
-        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
+            document.addEventListener('click', () => dropdown.classList.remove('open'));
+            dropdown.addEventListener('click', (e) => e.stopPropagation());
+        })();
 
-    // Auto-ocultar alerta de éxito tras 4 segundos
-    const alert = document.getElementById('successAlert');
-    if (alert) setTimeout(() => alert.style.display = 'none', 4000);
-</script>
+        // ── Apply saved theme from preferences page ──
+        (function () {
+            const accentColors = [
+                { value: '#f5a623', hover: '#e09400' },
+                { value: '#3b82f6', hover: '#2563eb' },
+                { value: '#22c55e', hover: '#16a34a' },
+                { value: '#ef4444', hover: '#dc2626' },
+                { value: '#a855f7', hover: '#9333ea' },
+                { value: '#ec4899', hover: '#db2777' },
+                { value: '#06b6d4', hover: '#0891b2' }
+            ];
+            const darkP = [
+                { primary: '#1a1a2e', secondary: '#16213e', border: '#1e2d45', muted: '#8892a4', text: '#e8eaf0' },
+                { primary: '#000000', secondary: '#111111', border: '#222222', muted: '#777777', text: '#e0e0e0' },
+                { primary: '#1c1c1c', secondary: '#2a2a2a', border: '#3a3a3a', muted: '#888888', text: '#e8e8e8' },
+                { primary: '#0d1b2a', secondary: '#1b2838', border: '#1e3a50', muted: '#6e8898', text: '#d4e4f0' },
+                { primary: '#1a2e1a', secondary: '#1e3a1e', border: '#2d4a2d', muted: '#7a9a7a', text: '#d8ecd8' },
+            ];
+            const lightP = [
+                { primary: '#f0f0f0', secondary: '#f8f8f8' },
+                { primary: '#e0d8cf', secondary: '#ede6dd' },
+                { primary: '#ccdcf0', secondary: '#dae7fa' },
+                { primary: '#e5dec8', secondary: '#f2ecd9' },
+                { primary: '#c8e6d4', secondary: '#daf2e3' },
+                { primary: '#dccce6', secondary: '#e9daf2' },
+            ];
+            const lightFixed = { border: '#c8c8c8', muted: '#6b7280', text: '#1e293b' };
+
+            const defaultPrefs = {
+                mode: 'dark',
+                lightAccent: 0, lightPrimaryIdx: 1, // Naranja, Mármol
+                darkAccent: 6, darkPrimaryIdx: 0    // Celeste, Medianoche
+            };
+
+            let prefs = JSON.parse(localStorage.getItem('tpv-prefs') || 'null');
+            if (!prefs || prefs.accent !== undefined) {
+                prefs = { ...defaultPrefs, mode: prefs ? prefs.mode : 'dark' };
+            }
+
+            const isDark = prefs.mode === 'dark';
+            let currentAccentIdx = isDark ? prefs.darkAccent : prefs.lightAccent;
+            if (currentAccentIdx >= accentColors.length) currentAccentIdx = 0;
+            const currentPrimaryIdx = isDark ? prefs.darkPrimaryIdx : prefs.lightPrimaryIdx;
+
+            const accent = accentColors[currentAccentIdx] || accentColors[isDark ? 6 : 0];
+            const palette = isDark ? darkP : lightP;
+            const p = palette[currentPrimaryIdx] || palette[isDark ? 0 : 1];
+
+            const r = document.documentElement.style;
+            r.setProperty('--primary', p.primary);
+            r.setProperty('--secondary', p.secondary);
+            if (isDark) {
+                r.setProperty('--border', p.border);
+                r.setProperty('--text-muted', p.muted);
+                r.setProperty('--text-main', p.text);
+                r.setProperty('--close-filter', 'invert(1)');
+            } else {
+                r.setProperty('--border', lightFixed.border);
+                r.setProperty('--text-muted', lightFixed.muted);
+                r.setProperty('--text-main', lightFixed.text);
+                r.setProperty('--close-filter', 'none');
+            }
+            r.setProperty('--accent', accent.value);
+            r.setProperty('--accent-hover', accent.hover);
+
+            // Swap logo images
+            const logoFile = isDark ? '/favicon.svg' : '/favicon-light.svg';
+            document.querySelectorAll('img[alt="Logo"]').forEach(img => img.src = logoFile);
+            const faviconLink = document.querySelector('link[rel="icon"]');
+            if (faviconLink) faviconLink.href = logoFile;
+        })();
+
+    </script>
 </body>
+
 </html>

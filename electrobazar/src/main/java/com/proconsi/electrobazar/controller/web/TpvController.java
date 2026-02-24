@@ -1,9 +1,7 @@
 package com.proconsi.electrobazar.controller.web;
 
 import com.proconsi.electrobazar.model.*;
-import com.proconsi.electrobazar.service.CategoryService;
-import com.proconsi.electrobazar.service.ProductService;
-import com.proconsi.electrobazar.service.SaleService;
+import com.proconsi.electrobazar.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,6 +19,9 @@ public class TpvController {
     private final ProductService productService;
     private final CategoryService categoryService;
     private final SaleService saleService;
+    private final CustomerService customerService;
+    private final CashRegisterService cashRegisterService;
+    private final PdfReportService pdfReportService;
 
     @GetMapping
     public String index(
@@ -44,18 +45,38 @@ public class TpvController {
         model.addAttribute("search", search);
         model.addAttribute("totalToday", saleService.sumTotalToday());
         model.addAttribute("countToday", saleService.countToday());
+        model.addAttribute("todayRegister", cashRegisterService.getTodayRegister());
 
         return "tpv/index";
     }
 
     @PostMapping("/sale")
     public String processSale(
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) String customerName,
+            @RequestParam(required = false) String customerType,
             @RequestParam List<Long> productIds,
             @RequestParam List<Integer> quantities,
             @RequestParam PaymentMethod paymentMethod,
             @RequestParam(required = false) String notes,
             RedirectAttributes redirectAttributes) {
 
+        // Procesar cliente
+        Customer customer = null;
+        if (customerId != null) {
+            customer = customerService.findById(customerId);
+        } else if (customerName != null && !customerName.isBlank()) {
+            // Crear cliente rápido
+            Customer.CustomerType type = customerType != null && customerType.equals("COMPANY")
+                    ? Customer.CustomerType.COMPANY
+                    : Customer.CustomerType.INDIVIDUAL;
+            customer = customerService.save(Customer.builder()
+                    .name(customerName)
+                    .type(type)
+                    .build());
+        }
+
+        // Procesar líneas de venta
         List<SaleLine> lines = java.util.stream.IntStream.range(0, productIds.size())
                 .mapToObj(i -> {
                     Product product = productService.findById(productIds.get(i));
@@ -66,10 +87,52 @@ public class TpvController {
                             .build();
                 }).collect(Collectors.toList());
 
-        Sale sale = saleService.createSale(lines, paymentMethod, notes);
+        Sale sale = saleService.createSale(lines, paymentMethod, notes, customer);
+
+        return "redirect:/tpv/receipt/" + sale.getId();
+    }
+
+    @GetMapping("/receipt/{saleId}")
+    public String showReceipt(@PathVariable Long saleId, Model model) {
+        Sale sale = saleService.findById(saleId);
+        model.addAttribute("sale", sale);
+        return "tpv/receipt";
+    }
+
+    @GetMapping("/cash-close")
+    public String cashCloseForm(Model model) {
+        model.addAttribute("categories", categoryService.findAllActive());
+        model.addAttribute("totalToday", saleService.sumTotalToday());
+        model.addAttribute("countToday", saleService.countToday());
+        model.addAttribute("todayRegister", cashRegisterService.getTodayRegister());
+        model.addAttribute("cashSalesToday", saleService.sumTotalByPaymentMethodToday(PaymentMethod.CASH));
+        model.addAttribute("cardSalesToday", saleService.sumTotalByPaymentMethodToday(PaymentMethod.CARD));
+        return "tpv/cash-close";
+    }
+
+    @GetMapping("/preferences")
+    public String preferences() {
+        return "tpv/preferences";
+    }
+
+    @PostMapping("/cash-close")
+    public String processCashClose(
+            @RequestParam String closingBalance,
+            @RequestParam(required = false) String notes,
+            RedirectAttributes redirectAttributes) {
+
+        // Convertir closingBalance, reemplazando coma por punto si es necesario
+        String normalizedBalance = closingBalance.replace(",", ".");
+        java.math.BigDecimal closingBalanceDecimal = new java.math.BigDecimal(normalizedBalance);
+
+        CashRegister register = cashRegisterService.closeCashRegister(closingBalanceDecimal, notes);
+
+        // Generar el PDF del cierre
+        java.io.File pdfFile = pdfReportService.generateCashCloseReport(register);
 
         redirectAttributes.addFlashAttribute("successMessage",
-                "Venta #" + sale.getId() + " registrada. Total: " + sale.getTotalAmount() + "€");
+                "Cierre de caja realizado. Diferencia: " + register.getDifference() + "€. PDF guardado en: "
+                        + pdfFile.getAbsolutePath());
 
         return "redirect:/tpv";
     }

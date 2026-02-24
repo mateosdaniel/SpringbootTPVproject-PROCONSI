@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Reporte Cierre de Caja</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 20mm;
+
+            @bottom-center {
+                content: "Página " counter(page) " de " counter(pages);
+                font-family: 'Helvetica', Arial, sans-serif;
+                font-size: 9pt;
+                color: #7f8c8d;
+            }
+        }
+
+        body {
+            font-family: 'Helvetica', Arial, sans-serif;
+            color: #2c3e50;
+            line-height: 1.5;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #34495e;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #f39c12;
+            margin: 0;
+            font-size: 24pt;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            margin: 5px 0 0 0;
+            color: #7f8c8d;
+            font-size: 10pt;
+        }
+
+        .info-section {
+            width: 100%;
+            margin-bottom: 25px;
+        }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .info-table td {
+            padding: 5px;
+            vertical-align: top;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #34495e;
+            width: 150px;
+        }
+
+        .card {
+            background-color: #f8f9fa;
+            border: 1px solid #ecf0f1;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            color: #2c3e50;
+            font-size: 14pt;
+            font-weight: bold;
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 5px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .data-table th {
+            background-color: #ecf0f1;
+            color: #34495e;
+            font-weight: bold;
+        }
+
+        .data-table .amount {
+            text-align: right;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+        }
+
+        .total-row {
+            background-color: #e8f4f8;
+            font-weight: bold;
+        }
+
+        .total-row td {
+            border-top: 2px solid #3498db;
+        }
+
+        .difference-positive {
+            color: #27ae60;
+        }
+
+        .difference-negative {
+            color: #c0392b;
+        }
+
+        .difference-neutral {
+            color: #2c3e50;
+        }
+
+        .notes-section {
+            background-color: #fffcdc;
+            border-left: 4px solid #f1c40f;
+            padding: 15px;
+            margin-top: 20px;
+            font-style: italic;
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 9pt;
+            color: #95a5a6;
+            border-top: 1px solid #ecf0f1;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>ElectroBazar TPV</h1>
+        <p>Reporte de Cierre de Caja Diario</p>
+    </div>
+
+    <div class="info-section">
+        <table class="info-table">
+            <tr>
+                <td class="info-label">ID de Registro:</td>
+                <td th:text="${register.id}">12345</td>
+                <td class="info-label">Fecha de Cierre:</td>
+                <td th:text="${#temporals.format(register.closedAt, 'dd/MM/yyyy HH:mm')}">01/01/2023 20:30</td>
+            </tr>
+            <tr>
+                <td class="info-label">Fecha del Día:</td>
+                <td th:text="${#temporals.format(register.registerDate, 'dd/MM/yyyy')}">01/01/2023</td>
+                <td class="info-label">Estado:</td>
+                <td style="color: #27ae60; font-weight: bold;">CERRADO</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2 class="card-title">Resumen de Ventas</h2>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Concepto</th>
+                    <th class="amount">Importe (€)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Fondo de Caja (Apertura)</td>
+                    <td class="amount"
+                        th:text="${#numbers.formatDecimal(register.openingBalance, 1, 'POINT', 2, 'COMMA')} + ' €'">0,00
+                        €</td>
+                </tr>
+                <tr>
+                    <td>Ventas en Efectivo</td>
+                    <td class="amount"
+                        th:text="${#numbers.formatDecimal(register.cashSales, 1, 'POINT', 2, 'COMMA')} + ' €'">0,00 €
+                    </td>
+                </tr>
+                <tr>
+                    <td>Ventas con Tarjeta</td>
+                    <td class="amount"
+                        th:text="${#numbers.formatDecimal(register.cardSales, 1, 'POINT', 2, 'COMMA')} + ' €'">0,00 €
+                    </td>
+                </tr>
+                <tr class="total-row">
+                    <td>Total Ventas del Día</td>
+                    <td class="amount"
+                        th:text="${#numbers.formatDecimal(register.totalSales, 1, 'POINT', 2, 'COMMA')} + ' €'">0,00 €
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2 class="card-title">Arqueo de Caja (Efectivo)</h2>
+        <table class="data-table">
+            <tbody>
+                <tr>
+                    <td>Saldo Teórico (Apertura + Ventas Efectivo)</td>
+                    <td class="amount"
+                        th:text="${#numbers.formatDecimal(register.openingBalance + register.cashSales, 1, 'POINT', 2, 'COMMA')} + ' €'">
+                        0,00 €</td>
+                </tr>
+                <tr>
+                    <td>Saldo Contado (Real en Cajón)</td>
+                    <td class="amount"
+                        th:text="${#numbers.formatDecimal(register.closingBalance, 1, 'POINT', 2, 'COMMA')} + ' €'">0,00
+                        €</td>
+                </tr>
+                <tr class="total-row">
+                    <td>Diferencia (Descuadre)</td>
+                    <td class="amount"
+                        th:classappend="${register.difference < 0 ? 'difference-negative' : (register.difference > 0 ? 'difference-positive' : 'difference-neutral')}"
+                        th:text="${(register.difference > 0 ? '+' : '') + #numbers.formatDecimal(register.difference, 1, 'POINT', 2, 'COMMA')} + ' €'">
+                        0,00 €
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div th:if="${register.notes != null and !register.notes.isEmpty()}" class="notes-section">
+        <strong>Observaciones del Cierre:</strong><br />
+        <span th:text="${register.notes}">Sin observaciones.</span>
+    </div>
+
+    <div class="footer">
+        Este documento es un comprobante interno generado automáticamente por el sistema ElectroBazar TPV.<br />
+        Generado el <span th:text="${#calendars.format(#calendars.createNow(), 'dd/MM/yyyy HH:mm:ss')}"></span>
+    </div>
+
+</body>
+
+</html>
