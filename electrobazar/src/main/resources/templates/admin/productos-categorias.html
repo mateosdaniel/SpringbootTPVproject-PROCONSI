@@ -708,24 +708,31 @@
 
         // Apply theme
         (function () {
-            let prefs = JSON.parse(localStorage.getItem('tpv-prefs') || '{}');
-            const isDark = prefs.mode !== 'light';
-            const accentColors = [
-                { value: '#f5a623', hover: '#e09400' }, { value: '#3b82f6', hover: '#2563eb' },
-                { value: '#22c55e', hover: '#16a34a' }, { value: '#ef4444', hover: '#dc2626' },
-                { value: '#a855f7', hover: '#9333ea' }, { value: '#ec4899', hover: '#db2777' },
-                { value: '#06b6d4', hover: '#0891b2' }
-            ];
-            const darkP = [{ primary: '#1a1a2e', secondary: '#16213e', border: '#1e2d45', muted: '#8892a4', text: '#e8eaf0' }];
-            const lightP = [{ primary: '#f6f6f6', secondary: '#ffffff', border: '#c8c8c8', muted: '#6b7280', text: '#1e293b' }];
+            const isDark = prefs.mode === 'dark';
+            let currentAccentIdx = isDark ? (prefs.darkAccent || 6) : (prefs.lightAccent || 0);
+            if (currentAccentIdx >= accentColors.length) currentAccentIdx = 0;
+            const currentPrimaryIdx = isDark ? (prefs.darkPrimaryIdx || 0) : (prefs.lightPrimaryIdx || 0);
 
-            const accent = accentColors[isDark ? (prefs.darkAccent || 6) : (prefs.lightAccent || 0)];
-            const p = isDark ? darkP[0] : lightP[0];
+            const accent = accentColors[currentAccentIdx] || accentColors[isDark ? 6 : 0];
+            const palette = isDark ? darkP : lightP;
+            const p = palette[currentPrimaryIdx] || palette[isDark ? 0 : 1];
+
             const r = document.documentElement.style;
-            r.setProperty('--primary', p.primary); r.setProperty('--secondary', p.secondary);
-            r.setProperty('--border', p.border); r.setProperty('--text-muted', p.muted);
-            r.setProperty('--text-main', p.text); r.setProperty('--accent', accent.value);
+            r.setProperty('--primary', p.primary);
+            r.setProperty('--secondary', p.secondary);
+            r.setProperty('--surface', p.surface);
+            if (isDark) {
+                r.setProperty('--border', p.border);
+                r.setProperty('--text-muted', p.muted);
+                r.setProperty('--text-main', p.text);
+            } else {
+                r.setProperty('--border', lightFixed.border);
+                r.setProperty('--text-muted', lightFixed.muted);
+                r.setProperty('--text-main', lightFixed.text);
+            }
+            r.setProperty('--accent', accent.value);
             r.setProperty('--accent-hover', accent.hover);
+
             const logo = isDark ? '/favicon.svg' : '/favicon-light.svg';
             document.querySelectorAll('img[alt="Logo"]').forEach(img => img.src = logo);
         })();

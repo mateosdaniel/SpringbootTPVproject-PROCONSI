@@ -396,22 +396,21 @@
             ];
 
             const darkPrimaries = [
-                { name: 'Medianoche', primary: '#1a1a2e', secondary: '#16213e', border: '#1e2d45', muted: '#8892a4', text: '#e8eaf0' },
-                { name: 'Negro total', primary: '#000000', secondary: '#111111', border: '#222222', muted: '#777777', text: '#e0e0e0' },
-                { name: 'Carbón', primary: '#1c1c1c', secondary: '#2a2a2a', border: '#3a3a3a', muted: '#888888', text: '#e8e8e8' },
+                { name: 'Medianoche', primary: '#1a1a2e', secondary: '#16213e', surface: '#0f3460', border: '#1e2d45', muted: '#8892a4', text: '#e8eaf0' },
+                { name: 'Negro total', primary: '#000000', secondary: '#111111', surface: '#0a0a0a', border: '#222222', muted: '#777777', text: '#e0e0e0' },
+                { name: 'Carbón', primary: '#1c1c1c', secondary: '#2a2a2a', surface: '#222222', border: '#3a3a3a', muted: '#888888', text: '#e8e8e8' },
             ];
 
             const lightPrimaries = [
-                { name: 'Blanco total', primary: '#f6f6f6', secondary: '#ffffff' },
-                { name: 'Blanco hueso', primary: '#fbf9f6', secondary: '#fdfdfc' },
-                { name: 'Gris perla', primary: '#f0f4f8', secondary: '#ffffff' },
+                { name: 'Blanco total', primary: '#f6f6f6', secondary: '#ffffff', surface: '#e2e8f0' },
+                { name: 'Blanco hueso', primary: '#fbf9f6', secondary: '#fdfdfc', surface: '#e9e7e2' },
+                { name: 'Gris perla', primary: '#f0f4f8', secondary: '#ffffff', surface: '#dae3ed' },
             ];
 
-            // Fixed light-mode colors (only --primary changes with tone)
             const lightFixed = {
-                border: '#c8c8c8',
-                muted: '#6b7280',
-                text: '#1e293b'
+                border: '#cbd5e1',
+                muted: '#636b7a',
+                text: '#0f172a'
             };
 
             // ── State ──
@@ -457,6 +456,7 @@
 
                 root.setProperty('--primary', p.primary);
                 root.setProperty('--secondary', p.secondary);
+                root.setProperty('--surface', p.surface);
                 if (isDark) {
                     root.setProperty('--border', p.border);
                     root.setProperty('--text-muted', p.muted);

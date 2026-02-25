@@ -1822,16 +1822,16 @@
                 { value: '#06b6d4', hover: '#0891b2' }
             ];
             const darkP = [
-                { primary: '#1a1a2e', secondary: '#16213e', border: '#1e2d45', muted: '#8892a4', text: '#e8eaf0' },
-                { primary: '#000000', secondary: '#111111', border: '#222222', muted: '#777777', text: '#e0e0e0' },
-                { primary: '#1c1c1c', secondary: '#2a2a2a', border: '#3a3a3a', muted: '#888888', text: '#e8e8e8' },
+                { primary: '#1a1a2e', secondary: '#16213e', surface: '#0f3460', border: '#1e2d45', muted: '#8892a4', text: '#e8eaf0' },
+                { primary: '#000000', secondary: '#111111', surface: '#0a0a0a', border: '#222222', muted: '#777777', text: '#e0e0e0' },
+                { primary: '#1c1c1c', secondary: '#2a2a2a', surface: '#222222', border: '#3a3a3a', muted: '#888888', text: '#e8e8e8' },
             ];
             const lightP = [
-                { primary: '#f6f6f6', secondary: '#ffffff' },
-                { primary: '#fbf9f6', secondary: '#fdfdfc' },
-                { primary: '#f0f4f8', secondary: '#ffffff' },
+                { primary: '#f6f6f6', secondary: '#ffffff', surface: '#e2e8f0' },
+                { primary: '#fbf9f6', secondary: '#fdfdfc', surface: '#e9e7e2' },
+                { primary: '#f0f4f8', secondary: '#ffffff', surface: '#dae3ed' },
             ];
-            const lightFixed = { border: '#c8c8c8', muted: '#6b7280', text: '#1e293b' };
+            const lightFixed = { border: '#cbd5e1', muted: '#636b7a', text: '#0f172a' };
 
             const defaultPrefs = {
                 mode: 'dark',
@@ -1860,6 +1860,7 @@
             const r = document.documentElement.style;
             r.setProperty('--primary', p.primary);
             r.setProperty('--secondary', p.secondary);
+            r.setProperty('--surface', p.surface);
             if (isDark) {
                 r.setProperty('--border', p.border);
                 r.setProperty('--text-muted', p.muted);

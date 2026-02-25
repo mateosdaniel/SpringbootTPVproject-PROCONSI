@@ -19,6 +19,7 @@
             --text-muted: #8892a4;
             --text-main: #e8eaf0;
             --border: #1e2d45;
+            --surface: #0f3460;
         }
 
         body {
@@ -39,7 +40,7 @@
         }
 
         .card-header {
-            background: rgba(245, 166, 35, 0.12);
+            background: var(--surface);
             border-color: var(--border);
         }
 
@@ -251,24 +252,69 @@
 
         // ── Apply saved theme ──
         (function () {
-            var a = [{ value: '#f5a623', hover: '#e09400' }, { value: '#3b82f6', hover: '#2563eb' }, { value: '#22c55e', hover: '#16a34a' }, { value: '#ef4444', hover: '#dc2626' }, { value: '#a855f7', hover: '#9333ea' }, { value: '#ec4899', hover: '#db2777' }, { value: '#06b6d4', hover: '#0891b2' }];
-            var d = [{ primary: '#1a1a2e', secondary: '#16213e', border: '#1e2d45', muted: '#8892a4', text: '#e8eaf0' }, { primary: '#000000', secondary: '#111111', border: '#222222', muted: '#777777', text: '#e0e0e0' }, { primary: '#1c1c1c', secondary: '#2a2a2a', border: '#3a3a3a', muted: '#888888', text: '#e8e8e8' }, { primary: '#0d1b2a', secondary: '#1b2838', border: '#1e3a50', muted: '#6e8898', text: '#d4e4f0' }, { primary: '#1a2e1a', secondary: '#1e3a1e', border: '#2d4a2d', muted: '#7a9a7a', text: '#d8ecd8' }];
-            var l = [{ primary: '#f0f0f0', secondary: '#f8f8f8' }, { primary: '#e0d8cf', secondary: '#ede6dd' }, { primary: '#ccdcf0', secondary: '#dae7fa' }, { primary: '#e5dec8', secondary: '#f2ecd9' }, { primary: '#c8e6d4', secondary: '#daf2e3' }, { primary: '#dccce6', secondary: '#e9daf2' }];
-            var lf = { border: '#c8c8c8', muted: '#6b7280', text: '#1e293b' };
-            var df = { mode: 'dark', lightAccent: 0, lightPrimaryIdx: 1, darkAccent: 6, darkPrimaryIdx: 0 };
-            var p = JSON.parse(localStorage.getItem('tpv-prefs') || 'null');
-            if (!p || p.accent !== undefined) p = Object.assign({}, df, p ? { mode: p.mode } : {});
-            var isDark = p.mode === 'dark';
-            var cIdx = isDark ? p.darkAccent : p.lightAccent;
-            if (cIdx >= a.length) cIdx = 0;
-            var pIdx = isDark ? p.darkPrimaryIdx : p.lightPrimaryIdx;
-            var ac = a[cIdx] || a[isDark ? 6 : 0], pal = isDark ? d : l, t = pal[pIdx] || pal[isDark ? 0 : 1], r = document.documentElement.style;
-            r.setProperty('--primary', t.primary); r.setProperty('--secondary', t.secondary); r.setProperty('--accent', ac.value); r.setProperty('--accent-hover', ac.hover);
-            if (isDark) { r.setProperty('--border', t.border); r.setProperty('--text-muted', t.muted); r.setProperty('--text-main', t.text); }
-            else { r.setProperty('--border', lf.border); r.setProperty('--text-muted', lf.muted); r.setProperty('--text-main', lf.text); }
-            var logo = isDark ? '/favicon.svg' : '/favicon-light.svg';
-            document.querySelectorAll('img[alt="Logo"]').forEach(function (i) { i.src = logo; });
-            var fl = document.querySelector('link[rel="icon"]'); if (fl) fl.href = logo;
+            const accentColors = [
+                { value: '#f5a623', hover: '#e09400' },
+                { value: '#3b82f6', hover: '#2563eb' },
+                { value: '#22c55e', hover: '#16a34a' },
+                { value: '#ef4444', hover: '#dc2626' },
+                { value: '#a855f7', hover: '#9333ea' },
+                { value: '#ec4899', hover: '#db2777' },
+                { value: '#06b6d4', hover: '#0891b2' }
+            ];
+            const darkP = [
+                { primary: '#1a1a2e', secondary: '#16213e', surface: '#0f3460', border: '#1e2d45', muted: '#8892a4', text: '#e8eaf0' },
+                { primary: '#000000', secondary: '#111111', surface: '#0a0a0a', border: '#222222', muted: '#777777', text: '#e0e0e0' },
+                { primary: '#1c1c1c', secondary: '#2a2a2a', surface: '#222222', border: '#3a3a3a', muted: '#888888', text: '#e8e8e8' },
+            ];
+            const lightP = [
+                { primary: '#f6f6f6', secondary: '#ffffff', surface: '#e2e8f0' },
+                { primary: '#fbf9f6', secondary: '#fdfdfc', surface: '#e9e7e2' },
+                { primary: '#f0f4f8', secondary: '#ffffff', surface: '#dae3ed' },
+            ];
+            const lightFixed = { border: '#cbd5e1', muted: '#636b7a', text: '#0f172a' };
+
+            const defaultPrefs = {
+                mode: 'dark',
+                lightAccent: 0, lightPrimaryIdx: 0,
+                darkAccent: 6, darkPrimaryIdx: 0
+            };
+
+            let prefs = JSON.parse(localStorage.getItem('tpv-prefs') || 'null');
+            if (prefs && prefs.darkPrimaryIdx >= darkP.length) prefs.darkPrimaryIdx = 0;
+            if (prefs && prefs.lightPrimaryIdx >= lightP.length) prefs.lightPrimaryIdx = 0;
+
+            if (!prefs || prefs.accent !== undefined) {
+                prefs = { ...defaultPrefs, mode: prefs ? prefs.mode : 'dark' };
+            }
+
+            const isDark = prefs.mode === 'dark';
+            let currentAccentIdx = isDark ? prefs.darkAccent : prefs.lightAccent;
+            if (currentAccentIdx >= accentColors.length) currentAccentIdx = 0;
+            const currentPrimaryIdx = isDark ? prefs.darkPrimaryIdx : prefs.lightPrimaryIdx;
+
+            const accent = accentColors[currentAccentIdx] || accentColors[isDark ? 6 : 0];
+            const palette = isDark ? darkP : lightP;
+            const p = palette[currentPrimaryIdx] || palette[isDark ? 0 : 1];
+
+            const r = document.documentElement.style;
+            r.setProperty('--primary', p.primary);
+            r.setProperty('--secondary', p.secondary);
+            r.setProperty('--surface', p.surface);
+            if (isDark) {
+                r.setProperty('--border', p.border);
+                r.setProperty('--text-muted', p.muted);
+                r.setProperty('--text-main', p.text);
+            } else {
+                r.setProperty('--border', lightFixed.border);
+                r.setProperty('--text-muted', lightFixed.muted);
+                r.setProperty('--text-main', lightFixed.text);
+            }
+            r.setProperty('--accent', accent.value);
+            r.setProperty('--accent-hover', accent.hover);
+
+            const logo = isDark ? '/favicon.svg' : '/favicon-light.svg';
+            document.querySelectorAll('img[alt="Logo"], img[alt="Logo ElectroBazar"]').forEach(function (i) { i.src = logo; });
+            const fl = document.querySelector('link[rel="icon"]'); if (fl) fl.href = logo;
         })();
     </script>
 </body>
