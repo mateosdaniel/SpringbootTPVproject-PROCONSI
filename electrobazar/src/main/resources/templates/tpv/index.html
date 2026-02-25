@@ -1025,67 +1025,63 @@
 <body>
 
     <!-- ── HEADER ── -->
-    <header class="tpv-header">
-        <div class="d-flex align-items-center gap-2">
-            <div class="tpv-logo d-flex align-items-center gap-1"><img th:src="@{/favicon.svg}" alt="Logo" width="28"
-                    height="28" style="border-radius:6px;">Electro<span>Bazar</span></div>
-            <div class="d-flex align-items-center gap-3 ms-auto" style="margin-right: 1.5rem;">
-                <div class="worker-info d-flex align-items-center gap-2"
-                    style="background: var(--surface); padding: 0.4rem 0.8rem; border-radius: 10px; border: 1px solid var(--border);">
-                    <i class="bi bi-person-circle text-accent"></i>
-                    <span style="font-size: 0.85rem; font-weight: 600;"
-                        th:text="${session.worker.username}">Trabajador</span>
-                </div>
+    <header class="tpv-header d-flex align-items-center justify-content-between px-3">
+        <!-- Izquierda: Logo y Trabajador -->
+        <div class="d-flex align-items-center gap-3">
+            <div class="tpv-logo d-flex align-items-center gap-1">
+                <img th:src="@{/favicon.svg}" alt="Logo" width="28" height="28" style="border-radius:6px;">
+                Electro<span>Bazar</span>
+            </div>
 
-                <div th:if="${session.worker.permissions.contains('MANAGE_PRODUCTS_TPV') or session.worker.permissions.contains('ADMIN_ACCESS')}"
-                    class="d-flex gap-2">
-                    <button class="btn-action-tpv" onclick="window.location.href='/admin'"
-                        title="Añadir/Quitar Productos">
-                        <i class="bi bi-plus-circle"></i>
-                    </button>
-                </div>
+            <div class="worker-info d-flex align-items-center gap-2"
+                style="background: var(--surface); padding: 0.4rem 0.8rem; border-radius: 10px; border: 1px solid var(--border);">
+                <i class="bi bi-person-circle text-accent"></i>
+                <span style="font-size: 0.85rem; font-weight: 600;"
+                    th:text="${session.worker.username}">Trabajador</span>
+            </div>
+        </div>
 
-                <button class="admin-lock-btn" id="adminLockBtn" title="Administración">
-                    <i class="bi bi-shield-lock"></i>
+        <!-- Centro: Buscador -->
+        <div class="header-search d-flex gap-2" style="max-width: 400px; width: 100%;">
+            <i class="bi bi-search btn-search" id="searchIcon"></i>
+            <input type="text" id="searchInput" class="form-control" placeholder="Buscar producto..."
+                autocomplete="off">
+        </div>
+
+        <!-- Derecha: Acciones y Menú -->
+        <div class="d-flex align-items-center gap-3">
+            <!-- Stats (solo con permiso) -->
+            <th:block th:if="${session.worker.permissions.contains('CASH_CLOSE')}">
+                <div class="header-stats d-flex gap-3"
+                    style="border-right: 1px solid var(--border); padding-right: 1rem;">
+                    <div>Ventas hoy <br><strong th:text="${countToday}">0</strong></div>
+                    <div>Total hoy <br><strong
+                            th:text="${#numbers.formatDecimal(totalToday, 1, 2)} + '€'">0.00€</strong></div>
+                </div>
+                <a th:href="@{/tpv/cash-close}" class="btn-cash-close"
+                    style="background: var(--accent); color: var(--primary); padding: 0.5rem 1rem; border-radius: 10px; text-decoration: none; font-weight: 700; border: none; display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; font-size: 0.82rem; letter-spacing: 0.3px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); transition: all 0.2s ease;">
+                    <i class="bi bi-cash-register"></i> Cierre de caja
+                </a>
+            </th:block>
+
+            <button class="admin-lock-btn" id="adminLockBtn" title="Administración">
+                <i class="bi bi-shield-lock"></i>
+            </button>
+
+            <div class="menu-wrapper">
+                <button class="hamburger-btn" id="hamburgerBtn" title="Menú">
+                    <i class="bi bi-list"></i>
                 </button>
-            </div>
-
-            <!-- Buscador -->
-            <div class="header-search d-flex gap-2">
-                <i class="bi bi-search btn-search" id="searchIcon"></i>
-                <input type="text" id="searchInput" class="form-control" placeholder="Buscar producto..."
-                    autocomplete="off">
-            </div>
-
-            <!-- Botón Cierre de Caja + Menú -->
-            <div class="d-flex align-items-center gap-3">
-                <!-- Stats del día y Botón Cierre de Caja (solo con permiso) -->
-                <th:block th:if="${session.worker.permissions.contains('CASH_CLOSE')}">
-                    <div class="header-stats"
-                        style="border-right: 1px solid var(--border); padding-right: 1rem; margin-right: 0.25rem;">
-                        <div>Ventas hoy <br><strong th:text="${countToday}">0</strong></div>
-                        <div>Total hoy <br><strong
-                                th:text="${#numbers.formatDecimal(totalToday, 1, 2)} + '€'">0.00€</strong>
-                        </div>
-                    </div>
-                    <a th:href="@{/tpv/cash-close}"
-                        style="background: var(--accent); color: var(--primary); padding: 0.5rem 1rem; border-radius: 10px; text-decoration: none; font-weight: 700; border: none; display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; font-size: 0.82rem; letter-spacing: 0.3px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); transition: all 0.2s ease;"
-                        onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 18px rgba(0,0,0,0.28)'"
-                        onmouseout="this.style.transform='';this.style.boxShadow='0 2px 10px rgba(0,0,0,0.2)'">
-                        <i class="bi bi-cash-register" style="line-height:1;flex-shrink:0;"></i> Cierre de caja
+                <div class="menu-dropdown" id="menuDropdown">
+                    <a class="menu-item" href="/tpv/preferences" style="text-decoration:none;">
+                        <i class="bi bi-gear"></i> Preferencias
                     </a>
-                </th:block>
-                <div class="menu-wrapper">
-                    <button class="hamburger-btn" id="hamburgerBtn" title="Menú">
-                        <i class="bi bi-list"></i>
-                    </button>
-                    <div class="menu-dropdown" id="menuDropdown">
-                        <a class="menu-item" href="/tpv/preferences" style="text-decoration:none;">
-                            <i class="bi bi-gear"></i> Preferencias
-                        </a>
-                    </div>
+                    <a class="menu-item" href="/logout" style="text-decoration:none; color: var(--text-muted);">
+                        <i class="bi bi-person-x"></i> Cambiar usuario
+                    </a>
                 </div>
             </div>
+        </div>
     </header>
 
     <!-- ── BODY ── -->
