@@ -4,473 +4,428 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ticket - ElectroBazar</title>
+    <title>Ticket de Venta — ElectroBazar</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --primary: #1a1a2e;
-            --secondary: #16213e;
-            --accent: #f5a623;
-            --accent-hover: #e09400;
-            --surface: #0f3460;
-            --success: #2ecc71;
-            --danger: #e74c3c;
-            --text-muted: #8892a4;
-            --text-main: #e8eaf0;
-            --border: #1e2d45;
-        }
-
+        /* ── Page shell (app-chrome, not the ticket) ── */
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
             font-family: 'Barlow', sans-serif;
-            background: var(--primary);
-            color: var(--text-main);
+            background: #f0f0f0;
             min-height: 100vh;
-            padding: 2rem;
-        }
-
-        .receipt-container {
-            max-width: 420px;
-            margin: 0 auto;
-        }
-
-        .receipt {
-            background: var(--secondary);
-            border: 2px solid var(--accent);
-            border-radius: 15px;
-            padding: 2rem 1.5rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            page-break-inside: avoid;
-        }
-
-        .receipt-header {
-            text-align: center;
-            margin-bottom: 1.5rem;
-            border-bottom: 1px dashed var(--text-muted);
-            padding-bottom: 1.5rem;
-        }
-
-        .receipt-logo {
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--accent);
-            margin-bottom: 0.5rem;
-            letter-spacing: 1px;
-        }
-
-        .receipt-logo span {
-            color: var(--text-main);
-        }
-
-        .receipt-title {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 0.5rem;
-        }
-
-        .receipt-date {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-bottom: 0.25rem;
-        }
-
-        .receipt-number {
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--accent);
-        }
-
-        .receipt-customer {
-            background: rgba(245, 166, 35, 0.08);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            font-size: 0.85rem;
-        }
-
-        .receipt-customer-label {
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-size: 0.75rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .receipt-customer-name {
-            color: var(--text-main);
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .receipt-customer-type {
-            color: var(--accent);
-            font-size: 0.8rem;
-        }
-
-        .receipt-items {
-            margin-bottom: 1.5rem;
-        }
-
-        .receipt-item {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.75rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.9rem;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
         }
 
-        .receipt-item:last-child {
-            border-bottom: none;
+        .page-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #888;
+            margin-bottom: 1.5rem;
+        }
+
+        /* ── Ticket paper ── */
+        .ticket-wrap {
+            width: 100%;
+            max-width: 380px;
+            position: relative;
+        }
+
+        /* Serrated top edge */
+        .ticket-wrap::before {
+            content: '';
+            display: block;
+            height: 12px;
+            background:
+                radial-gradient(circle at 50% 0, transparent 6px, #fff 6px) repeat-x;
+            background-size: 18px 12px;
+        }
+
+        .ticket {
+            background: #fff;
+            padding: 1.5rem 1.75rem;
+            color: #1a1a1a;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        /* Serrated bottom edge */
+        .ticket-wrap::after {
+            content: '';
+            display: block;
+            height: 12px;
+            background:
+                radial-gradient(circle at 50% 100%, transparent 6px, #fff 6px) repeat-x;
+            background-size: 18px 12px;
+            transform: scaleY(-1);
+        }
+
+        /* ── Header ── */
+        .t-header {
+            text-align: center;
+            padding-bottom: 1rem;
             margin-bottom: 1rem;
-            padding-bottom: 0;
+            border-bottom: 1px dashed #aaa;
         }
 
-        .receipt-item-name {
-            flex: 1;
-            color: var(--text-main);
-            font-weight: 500;
+        .t-brand {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #111;
         }
 
-        .receipt-item-qty {
-            color: var(--text-muted);
-            margin: 0 0.75rem;
+        .t-brand span {
+            color: #555;
+            font-weight: 400;
+        }
+
+        .t-subtitle {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #888;
+            margin-top: 0.2rem;
+        }
+
+        .t-meta {
+            font-size: 0.78rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        /* ── Customer block ── */
+        .t-customer {
+            background: #f7f7f7;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 0.6rem 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 0.82rem;
+        }
+
+        .t-customer-label {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #999;
+            margin-bottom: 0.15rem;
+        }
+
+        .t-customer-name {
+            font-weight: 600;
+            color: #222;
+        }
+
+        .t-customer-type {
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        /* ── Items ── */
+        .t-items {
+            margin-bottom: 1rem;
+        }
+
+        .t-item {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 0.5rem;
+            padding: 0.4rem 0;
+            border-bottom: 1px dotted #ddd;
             font-size: 0.85rem;
         }
 
-        .receipt-item-price {
-            color: var(--accent);
+        .t-item:last-child {
+            border-bottom: none;
+        }
+
+        .t-item-name {
+            flex: 1;
+            color: #222;
+        }
+
+        .t-item-qty {
+            font-size: 0.75rem;
+            color: #888;
+            white-space: nowrap;
+        }
+
+        .t-item-price {
             font-weight: 600;
+            color: #222;
+            white-space: nowrap;
             min-width: 60px;
             text-align: right;
         }
 
-        .receipt-divider {
-            border-bottom: 1px dashed var(--text-muted);
-            margin: 1rem 0;
+        /* ── Divider ── */
+        .t-divider {
+            border: none;
+            border-top: 1px dashed #bbb;
+            margin: 0.75rem 0;
         }
 
-        .receipt-summary {
+        /* ── Totals ── */
+        .t-summary {
+            font-size: 0.82rem;
+            color: #666;
             display: flex;
             justify-content: space-between;
-            margin-bottom: 0.75rem;
-            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
         }
 
-        .receipt-summary-label {
-            color: var(--text-muted);
-        }
-
-        .receipt-total {
+        .t-total {
             display: flex;
             justify-content: space-between;
             align-items: baseline;
-            margin-bottom: 1.5rem;
-            padding-top: 1rem;
-            border-top: 2px solid var(--accent);
+            margin-top: 0.6rem;
+            padding-top: 0.6rem;
+            border-top: 2px solid #222;
         }
 
-        .receipt-total-label {
-            font-size: 1rem;
-            color: var(--text-main);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .receipt-total-amount {
-            font-family: 'Barlow Condensed', sans-serif;
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--accent);
-        }
-
-        .receipt-payment {
-            background: rgba(245, 166, 35, 0.1);
-            border: 1px solid rgba(245, 166, 35, 0.3);
-            border-radius: 8px;
-            padding: 0.75rem;
-            margin-bottom: 1.5rem;
+        .t-total-label {
             font-size: 0.85rem;
-            text-align: center;
-        }
-
-        .receipt-payment-method {
-            color: var(--accent);
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            color: #111;
         }
 
-        .receipt-payment-label {
-            color: var(--text-muted);
-            font-size: 0.75rem;
-            margin-top: 0.25rem;
+        .t-total-amount {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #111;
+            letter-spacing: -0.5px;
         }
 
-        .receipt-footer {
+        /* ── Payment ── */
+        .t-payment {
             text-align: center;
-            padding-top: 1rem;
-            border-top: 1px dashed var(--text-muted);
+            margin: 1rem 0;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.78rem;
+        }
+
+        .t-payment-method {
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.88rem;
+        }
+
+        .t-payment-detail {
+            color: #777;
+            margin-top: 0.15rem;
+        }
+
+        /* ── Footer ── */
+        .t-footer {
+            text-align: center;
+            padding-top: 0.75rem;
+            margin-top: 0.75rem;
+            border-top: 1px dashed #aaa;
+            font-size: 0.75rem;
+            color: #999;
+            line-height: 1.6;
+        }
+
+        .t-footer strong {
+            color: #555;
             font-size: 0.8rem;
-            color: var(--text-muted);
         }
 
-        .receipt-thanks {
-            font-weight: 600;
-            color: var(--accent);
-            margin-bottom: 0.5rem;
+        /* Barcode decorative lines */
+        .t-barcode {
+            margin: 0.75rem auto 0;
+            width: 120px;
+            height: 28px;
+            background: repeating-linear-gradient(90deg,
+                    #333 0, #333 2px,
+                    transparent 2px, transparent 4px,
+                    #333 4px, #333 5px,
+                    transparent 5px, transparent 8px,
+                    #555 8px, #555 10px,
+                    transparent 10px, transparent 13px);
+            opacity: 0.3;
         }
 
-        .buttons-container {
+        /* ── Action buttons (screen only) ── */
+        .btn-row {
             display: flex;
-            gap: 1rem;
-            margin-top: 2rem;
+            gap: 0.75rem;
+            margin-top: 1.75rem;
             justify-content: center;
+            width: 100%;
+            max-width: 380px;
         }
 
-        .btn-print {
-            background: var(--accent);
-            color: var(--primary);
+        .btn-primary-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.65rem 1.25rem;
+            background: #1a1a1a;
+            color: #fff;
             border: none;
-            padding: 0.75rem 1.5rem;
             border-radius: 8px;
+            font-size: 0.88rem;
             font-weight: 600;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
             text-decoration: none;
-            transition: all 0.15s;
+            transition: background 0.15s;
         }
 
-        .btn-print:hover {
-            background: var(--accent-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(245, 166, 35, 0.35);
-            color: var(--primary);
+        .btn-primary-action:hover {
+            background: #333;
+            color: #fff;
         }
 
-        .btn-back {
+        .btn-secondary-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.65rem 1.25rem;
             background: transparent;
-            color: var(--text-muted);
-            border: 1px solid var(--border);
-            padding: 0.75rem 1.5rem;
+            color: #555;
+            border: 1px solid #ccc;
             border-radius: 8px;
+            font-size: 0.88rem;
             font-weight: 600;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
             text-decoration: none;
             transition: all 0.15s;
         }
 
-        .btn-back:hover {
-            background: var(--secondary);
-            border-color: var(--text-muted);
-            color: var(--text-main);
+        .btn-secondary-action:hover {
+            background: #f5f5f5;
+            color: #222;
+            border-color: #999;
         }
 
+        /* ── Print styles ── */
         @media print {
             body {
                 background: #fff;
-                color: #000;
+                padding: 0;
             }
 
-            .buttons-container {
+            .btn-row {
                 display: none;
             }
 
-            .receipt {
-                background: #fff;
-                border: 1px solid #ddd;
-                color: #000;
-                box-shadow: none;
-                padding: 1rem;
+            .page-title {
+                display: none;
             }
 
-            .receipt-logo {
-                color: #000;
+            .ticket-wrap::before,
+            .ticket-wrap::after {
+                display: none;
             }
 
-            .receipt-logo span {
-                color: #000;
-            }
-
-            .receipt-number,
-            .receipt-total-amount {
-                color: #000;
-            }
-
-            .receipt-customer {
-                background: #f5f5f5;
-                border: 1px solid #ddd;
-            }
-
-            .receipt-item-price,
-            .receipt-total-amount,
-            .receipt-payment-method {
-                color: #000;
-            }
-
-            .receipt-divider,
-            .receipt-footer {
-                border-color: #ccc;
-            }
-
-            .receipt-customer-type,
-            .receipt-item-qty,
-            .receipt-summary-label {
-                color: #666;
-            }
-
-            .receipt-thanks {
-                color: #000;
-            }
-        }
-
-        @media (max-width: 480px) {
-            body {
-                padding: 1rem;
-            }
-
-            .receipt {
-                padding: 1.5rem 1rem;
-            }
-
-            .buttons-container {
-                flex-direction: column;
-            }
-
-            .btn-print,
-            .btn-back {
-                width: 100%;
-                justify-content: center;
+            .ticket {
+                padding: 0.5rem;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="receipt-container">
-        <!-- Recibo -->
-        <div class="receipt" id="receipt">
-            <!-- Encabezado -->
-            <div class="receipt-header">
-                <div class="receipt-logo">Electro<span>Bazar</span></div>
-                <div class="receipt-title">Ticket de Venta</div>
-                <div class="receipt-date"
-                    th:text="${'Fecha: ' + #temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm')}">
-                    Fecha: 24/02/2026 14:30
+    <div class="page-title"><i class="bi bi-receipt"></i> Ticket de Venta</div>
+
+    <div class="ticket-wrap">
+        <div class="ticket">
+            <!-- Header -->
+            <div class="t-header">
+                <div class="t-brand">Electro<span>Bazar</span></div>
+                <div class="t-subtitle">Ticket de venta</div>
+                <div class="t-meta"
+                    th:text="${'Nº ' + sale.id + ' · ' + #temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm')}">
+                    Nº 1001 · 25/02/2026 14:30
                 </div>
             </div>
 
-            <!-- Cliente -->
-            <div th:if="${sale.customer != null}" class="receipt-customer">
-                <div class="receipt-customer-label">Cliente</div>
-                <div class="receipt-customer-name" th:text="${sale.customer.name}">
-                    Eduardo García Pérez
-                </div>
-                <div class="receipt-customer-type"
-                    th:text="${sale.customer.type.name() == 'COMPANY' ? 'Empresa' : 'Particular'}">
-                    Particular
-                </div>
+            <!-- Customer -->
+            <div th:if="${sale.customer != null}" class="t-customer">
+                <div class="t-customer-label">Cliente</div>
+                <div class="t-customer-name" th:text="${sale.customer.name}">Eduardo García</div>
+                <div class="t-customer-type"
+                    th:text="${sale.customer.type.name() == 'COMPANY' ? 'Empresa' : 'Particular'}">Particular</div>
             </div>
 
-            <!-- Productos -->
-            <div class="receipt-items">
-                <div th:each="line : ${sale.lines}" class="receipt-item">
-                    <span class="receipt-item-name" th:text="${line.product.name}">
-                        Producto
-                    </span>
-                    <span class="receipt-item-qty">
-                        <span th:text="${line.quantity}">1</span>x
-                    </span>
-                    <span class="receipt-item-price" th:text="${#numbers.formatDecimal(line.subtotal, 1, 2)} + '€'">
-                        20.00€
-                    </span>
+            <!-- Items -->
+            <div class="t-items">
+                <div th:each="line : ${sale.lines}" class="t-item">
+                    <span class="t-item-name" th:text="${line.product.name}">Producto</span>
+                    <span class="t-item-qty" th:text="${line.quantity} + ' ud.'">1 ud.</span>
+                    <span class="t-item-price" th:text="${#numbers.formatDecimal(line.subtotal, 1, 2)} + ' €'">0.00
+                        €</span>
                 </div>
             </div>
 
-            <!-- Divisor -->
-            <div class="receipt-divider"></div>
+            <hr class="t-divider">
 
-            <!-- Total -->
-            <div class="receipt-total">
-                <span class="receipt-total-label">Total</span>
-                <span class="receipt-total-amount" th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2)} + '€'">
-                    0.00€
-                </span>
+            <!-- Totals -->
+            <div class="t-summary">
+                <span>Base imponible (aprox.)</span>
+                <span th:text="${#numbers.formatDecimal(sale.totalAmount / 1.21, 1, 2)} + ' €'">0.00 €</span>
+            </div>
+            <div class="t-summary">
+                <span>IVA 21% (aprox.)</span>
+                <span
+                    th:text="${#numbers.formatDecimal(sale.totalAmount - (sale.totalAmount / 1.21), 1, 2)} + ' €'">0.00
+                    €</span>
             </div>
 
-            <!-- Método de pago -->
-            <div class="receipt-payment">
-                <div class="receipt-payment-method"
-                    th:text="${sale.paymentMethod.name() == 'CASH' ? 'PAGO EN EFECTIVO' : 'PAGO CON TARJETA'}">
-                    PAGO EN EFECTIVO
+            <div class="t-total">
+                <span class="t-total-label">Total</span>
+                <span class="t-total-amount" th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2)} + ' €'">0.00
+                    €</span>
+            </div>
+
+            <!-- Payment -->
+            <div class="t-payment">
+                <div class="t-payment-method"
+                    th:text="${sale.paymentMethod.name() == 'CASH' ? '💵 Efectivo' : '💳 Tarjeta'}">Efectivo</div>
+                <div class="t-payment-detail">
+                    Importe abonado: <strong th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2)} + ' €'">0.00
+                        €</strong>
                 </div>
-                <div class="receipt-payment-label">
-                    Importe pagado: <span th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2)} + '€'">0.00€</span>
-                </div>
             </div>
 
-            <!-- Pie -->
-            <div class="receipt-footer">
-                <div class="receipt-thanks">¡Gracias por su compra!</div>
-                <p style="margin: 0.5rem 0;">ElectroBazar S.L.</p>
-                <p style="margin: 0; color: #666;">Vuelve pronto</p>
+            <!-- Footer -->
+            <div class="t-footer">
+                <strong>¡Gracias por su compra!</strong><br>
+                ElectroBazar S.L. · C/ Exemple, 12, Madrid<br>
+                Vuelva pronto — conserve este ticket
+                <div class="t-barcode"></div>
             </div>
-        </div>
-
-        <!-- Botones -->
-        <div class="buttons-container">
-            <button class="btn-print" onclick="window.print()">
-                <i class="bi bi-printer"></i> Imprimir Ticket
-            </button>
-            <a href="/tpv" class="btn-back">
-                <i class="bi bi-arrow-left"></i> Volver al TPV
-            </a>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // ── Apply saved theme ──
-        (function () {
-            var a = [{ value: '#f5a623', hover: '#e09400' }, { value: '#3b82f6', hover: '#2563eb' }, { value: '#22c55e', hover: '#16a34a' }, { value: '#ef4444', hover: '#dc2626' }, { value: '#a855f7', hover: '#9333ea' }, { value: '#ec4899', hover: '#db2777' }, { value: '#06b6d4', hover: '#0891b2' }];
-            var d = [{ primary: '#1a1a2e', secondary: '#16213e', border: '#1e2d45', muted: '#8892a4', text: '#e8eaf0' }, { primary: '#000000', secondary: '#111111', border: '#222222', muted: '#777777', text: '#e0e0e0' }, { primary: '#1c1c1c', secondary: '#2a2a2a', border: '#3a3a3a', muted: '#888888', text: '#e8e8e8' }, { primary: '#0d1b2a', secondary: '#1b2838', border: '#1e3a50', muted: '#6e8898', text: '#d4e4f0' }, { primary: '#1a2e1a', secondary: '#1e3a1e', border: '#2d4a2d', muted: '#7a9a7a', text: '#d8ecd8' }];
-            var l = [{ primary: '#f0f0f0', secondary: '#f8f8f8' }, { primary: '#e0d8cf', secondary: '#ede6dd' }, { primary: '#ccdcf0', secondary: '#dae7fa' }, { primary: '#e5dec8', secondary: '#f2ecd9' }, { primary: '#c8e6d4', secondary: '#daf2e3' }, { primary: '#dccce6', secondary: '#e9daf2' }];
-            var lf = { border: '#c8c8c8', muted: '#6b7280', text: '#1e293b' };
-            var df = { mode: 'dark', lightAccent: 0, lightPrimaryIdx: 1, darkAccent: 6, darkPrimaryIdx: 0 };
-            var p = JSON.parse(localStorage.getItem('tpv-prefs') || 'null');
-            if (!p || p.accent !== undefined) p = Object.assign({}, df, p ? { mode: p.mode } : {});
-            var isDark = p.mode === 'dark';
-            var cIdx = isDark ? p.darkAccent : p.lightAccent;
-            if (cIdx >= a.length) cIdx = 0;
-            var pIdx = isDark ? p.darkPrimaryIdx : p.lightPrimaryIdx;
-            var ac = a[cIdx] || a[isDark ? 6 : 0], pal = isDark ? d : l, t = pal[pIdx] || pal[isDark ? 0 : 1], r = document.documentElement.style;
-            r.setProperty('--primary', t.primary); r.setProperty('--secondary', t.secondary); r.setProperty('--accent', ac.value); r.setProperty('--accent-hover', ac.hover);
-            if (isDark) { r.setProperty('--border', t.border); r.setProperty('--text-muted', t.muted); r.setProperty('--text-main', t.text); }
-            else { r.setProperty('--border', lf.border); r.setProperty('--text-muted', lf.muted); r.setProperty('--text-main', lf.text); }
-            var logo = isDark ? '/favicon.svg' : '/favicon-light.svg';
-            document.querySelectorAll('img[alt="Logo"]').forEach(function (i) { i.src = logo; });
-            var fl = document.querySelector('link[rel="icon"]'); if (fl) fl.href = logo;
-        })();
-    </script>
+    <!-- Buttons (screen only) -->
+    <div class="btn-row">
+        <button class="btn-primary-action" onclick="window.print()">
+            <i class="bi bi-printer"></i> Imprimir
+        </button>
+        <a href="/tpv" class="btn-secondary-action">
+            <i class="bi bi-arrow-left"></i> Volver al TPV
+        </a>
+    </div>
 </body>
 
 </html>
