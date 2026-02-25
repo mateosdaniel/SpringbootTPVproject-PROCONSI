@@ -1,6 +1,0 @@
-[build]
-builder = "railpack"
-buildCommand = "chmod +x mvnw && ./mvnw -DskipTests clean package"
-
-[deploy]
-startCommand = "java -Dserver.port=$PORT $JAVA_OPTS -jar target/*.jar"
