@@ -563,6 +563,9 @@
             <button class="btn-back" onclick="openPinModal()">
                 <i class="bi bi-shield-lock"></i> Cambiar PIN
             </button>
+            <a href="/tpv" class="btn-back">
+                <i class="bi bi-arrow-left"></i> Volver al listado
+            </a>
             <a href="/admin/logout" class="btn-back text-danger border-danger">
                 <i class="bi bi-box-arrow-right"></i> Cerrar sesión
             </a>
@@ -659,7 +662,14 @@
         <div id="productsView" style="display: none;">
             <!-- PANEL: Productos -->
             <div class="panel-header">
-                <span class="panel-title"><i class="bi bi-box-seam me-2"></i>Gestión de Productos</span>
+                <span class="panel-title">
+                    <button class="btn-icon me-2"
+                        onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
+                        title="Volver al Panel">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <i class="bi bi-box-seam me-2"></i>Gestión de Productos
+                </span>
                 <div>
                     <input type="file" id="csvFileInput" accept=".csv" style="display: none;"
                         onchange="uploadCsvFile(this)">
@@ -738,7 +748,14 @@
 
             <!-- PANEL: Categorías -->
             <div class="panel-header mt-4">
-                <span class="panel-title"><i class="bi bi-tags me-2"></i>Gestión de Categorías</span>
+                <span class="panel-title">
+                    <button class="btn-icon me-2"
+                        onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
+                        title="Volver al Panel">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <i class="bi bi-tags me-2"></i>Gestión de Categorías
+                </span>
                 <button class="btn-nuevo"
                     style="background:var(--surface);color:var(--text-main);border-color:var(--border);"
                     onclick="openCategoryModal()">
@@ -791,7 +808,14 @@
         <!-- 2. INVOICES VIEW (Hidden by default) -->
         <div id="invoicesView" style="display: none;">
             <div class="panel-header">
-                <span class="panel-title"><i class="bi bi-receipt me-2"></i>Listado de Facturas y Ventas</span>
+                <span class="panel-title">
+                    <button class="btn-icon me-2"
+                        onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
+                        title="Volver al Panel">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <i class="bi bi-receipt me-2"></i>Listado de Facturas y Ventas
+                </span>
             </div>
 
             <div class="admin-table-wrap">
@@ -852,7 +876,14 @@
         <!-- 3. CASH CLOSES VIEW (Hidden by default) -->
         <div id="cashCloseView" style="display: none;">
             <div class="panel-header">
-                <span class="panel-title"><i class="bi bi-cash-stack me-2"></i>Listado de Cierres de Caja</span>
+                <span class="panel-title">
+                    <button class="btn-icon me-2"
+                        onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
+                        title="Volver al Panel">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <i class="bi bi-cash-stack me-2"></i>Listado de Cierres de Caja
+                </span>
             </div>
 
             <div class="admin-table-wrap">
@@ -907,7 +938,14 @@
         <!-- 4. WORKERS VIEW -->
         <div id="workersView" style="display:none">
             <div class="panel-header">
-                <span class="panel-title"><i class="bi bi-people me-2"></i>Gestión de Trabajadores</span>
+                <span class="panel-title">
+                    <button class="btn-icon me-2"
+                        onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
+                        title="Volver al Panel">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <i class="bi bi-people me-2"></i>Gestión de Trabajadores
+                </span>
                 <button class="btn-nuevo" onclick="openWorkerModal()">
                     <i class="bi bi-plus-lg"></i> Nuevo Trabajador
                 </button>
