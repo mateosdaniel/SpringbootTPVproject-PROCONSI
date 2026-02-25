@@ -26,9 +26,6 @@ public class Product {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
-    @Column(length = 100)
-    private String barcode;
-
     @Column(nullable = false)
     @Builder.Default
     private Integer stock = 0;

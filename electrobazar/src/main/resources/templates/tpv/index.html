@@ -829,6 +829,176 @@
             background: var(--text-muted);
         }
 
+        /* ── ADMIN LOCK BUTTON ── */
+        .worker-info {
+            color: var(--text-main);
+            font-family: 'Barlow', sans-serif;
+            transition: all 0.2s ease;
+        }
+
+        .btn-action-tpv {
+            background: var(--surface);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 0.4rem 0.8rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-action-tpv:hover {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: var(--primary);
+            box-shadow: 0 4px 15px rgba(245, 166, 35, 0.2);
+        }
+
+        .admin-lock-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .admin-lock-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(245, 166, 35, 0.08);
+        }
+
+        /* ── PIN MODAL ── */
+        .pin-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .pin-overlay.open {
+            display: flex;
+        }
+
+        .pin-panel {
+            background: var(--secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 320px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            box-shadow: 0 16px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .pin-panel h4 {
+            margin: 0 0 0.3rem;
+            color: var(--text-main);
+            font-size: 1.15rem;
+        }
+
+        .pin-panel p {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .pin-input {
+            width: 100%;
+            padding: 0.75rem;
+            text-align: center;
+            font-size: 1.8rem;
+            font-family: 'Barlow Condensed', sans-serif;
+            letter-spacing: 12px;
+            background: var(--primary);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-main);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .pin-input:focus {
+            border-color: var(--accent);
+        }
+
+        .pin-input.error {
+            border-color: var(--danger);
+            animation: pinShake 0.4s;
+        }
+
+        @keyframes pinShake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20%,
+            60% {
+                transform: translateX(-8px);
+            }
+
+            40%,
+            80% {
+                transform: translateX(8px);
+            }
+        }
+
+        .pin-btn {
+            width: 100%;
+            padding: 0.7rem;
+            margin-top: 1rem;
+            background: var(--accent);
+            border: none;
+            border-radius: 10px;
+            color: var(--primary);
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-transform: uppercase;
+        }
+
+        .pin-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .pin-cancel {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            margin-top: 0.75rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: 'Barlow', sans-serif;
+        }
+
+        .pin-cancel:hover {
+            color: var(--danger);
+        }
+
+        .pin-error-msg {
+            color: var(--danger);
+            font-size: 0.82rem;
+            margin-top: 0.5rem;
+            min-height: 1.2em;
+        }
+
         /* ── ALERT SUCCESS ── */
         .alert-tpv {
             position: fixed;
@@ -856,42 +1026,63 @@
 
     <!-- ── HEADER ── -->
     <header class="tpv-header">
-        <div class="tpv-logo d-flex align-items-center gap-1"><img th:src="@{/favicon.svg}" alt="Logo" width="28"
-                height="28" style="border-radius:6px;">Electro<span>Bazar</span></div>
-
-        <!-- Buscador -->
-        <div class="header-search d-flex gap-2">
-            <i class="bi bi-search btn-search" id="searchIcon"></i>
-            <input type="text" id="searchInput" class="form-control" placeholder="Buscar producto..."
-                autocomplete="off">
-        </div>
-
-        <!-- Botón Cierre de Caja + Menú -->
-        <div class="d-flex align-items-center gap-3">
-            <!-- Stats del día -->
-            <div class="header-stats"
-                style="border-right: 1px solid var(--border); padding-right: 1rem; margin-right: 0.25rem;">
-                <div>Ventas hoy <br><strong th:text="${countToday}">0</strong></div>
-                <div>Total hoy <br><strong th:text="${#numbers.formatDecimal(totalToday, 1, 2)} + '€'">0.00€</strong>
+        <div class="d-flex align-items-center gap-2">
+            <div class="tpv-logo d-flex align-items-center gap-1"><img th:src="@{/favicon.svg}" alt="Logo" width="28"
+                    height="28" style="border-radius:6px;">Electro<span>Bazar</span></div>
+            <div class="d-flex align-items-center gap-3 ms-auto" style="margin-right: 1.5rem;">
+                <div class="worker-info d-flex align-items-center gap-2"
+                    style="background: var(--surface); padding: 0.4rem 0.8rem; border-radius: 10px; border: 1px solid var(--border);">
+                    <i class="bi bi-person-circle text-accent"></i>
+                    <span style="font-size: 0.85rem; font-weight: 600;"
+                        th:text="${session.worker.username}">Trabajador</span>
                 </div>
-            </div>
-            <a th:href="@{/tpv/cash-close}"
-                style="background: var(--accent); color: var(--primary); padding: 0.5rem 1rem; border-radius: 10px; text-decoration: none; font-weight: 700; border: none; display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; font-size: 0.82rem; letter-spacing: 0.3px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); transition: all 0.2s ease;"
-                onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 18px rgba(0,0,0,0.28)'"
-                onmouseout="this.style.transform='';this.style.boxShadow='0 2px 10px rgba(0,0,0,0.2)'">
-                <i class="bi bi-cash-register" style="line-height:1;flex-shrink:0;"></i> Cierre de caja
-            </a>
-            <div class="menu-wrapper">
-                <button class="hamburger-btn" id="hamburgerBtn" title="Menú">
-                    <i class="bi bi-list"></i>
+
+                <div th:if="${session.worker.permissions.contains('MANAGE_PRODUCTS_TPV')}" class="d-flex gap-2">
+                    <button class="btn-action-tpv" onclick="window.location.href='/admin'"
+                        title="Añadir/Quitar Productos">
+                        <i class="bi bi-plus-circle"></i>
+                    </button>
+                </div>
+
+                <button class="admin-lock-btn" id="adminLockBtn" title="Administración">
+                    <i class="bi bi-shield-lock"></i>
                 </button>
-                <div class="menu-dropdown" id="menuDropdown">
-                    <a class="menu-item" href="/tpv/preferences" style="text-decoration:none;">
-                        <i class="bi bi-gear"></i> Preferencias
-                    </a>
+            </div>
+
+            <!-- Buscador -->
+            <div class="header-search d-flex gap-2">
+                <i class="bi bi-search btn-search" id="searchIcon"></i>
+                <input type="text" id="searchInput" class="form-control" placeholder="Buscar producto..."
+                    autocomplete="off">
+            </div>
+
+            <!-- Botón Cierre de Caja + Menú -->
+            <div class="d-flex align-items-center gap-3">
+                <!-- Stats del día -->
+                <div class="header-stats"
+                    style="border-right: 1px solid var(--border); padding-right: 1rem; margin-right: 0.25rem;">
+                    <div>Ventas hoy <br><strong th:text="${countToday}">0</strong></div>
+                    <div>Total hoy <br><strong
+                            th:text="${#numbers.formatDecimal(totalToday, 1, 2)} + '€'">0.00€</strong>
+                    </div>
+                </div>
+                <a th:href="@{/tpv/cash-close}"
+                    style="background: var(--accent); color: var(--primary); padding: 0.5rem 1rem; border-radius: 10px; text-decoration: none; font-weight: 700; border: none; display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; font-size: 0.82rem; letter-spacing: 0.3px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); transition: all 0.2s ease;"
+                    onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 18px rgba(0,0,0,0.28)'"
+                    onmouseout="this.style.transform='';this.style.boxShadow='0 2px 10px rgba(0,0,0,0.2)'">
+                    <i class="bi bi-cash-register" style="line-height:1;flex-shrink:0;"></i> Cierre de caja
+                </a>
+                <div class="menu-wrapper">
+                    <button class="hamburger-btn" id="hamburgerBtn" title="Menú">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <div class="menu-dropdown" id="menuDropdown">
+                        <a class="menu-item" href="/tpv/preferences" style="text-decoration:none;">
+                            <i class="bi bi-gear"></i> Preferencias
+                        </a>
+                    </div>
                 </div>
             </div>
-        </div>
     </header>
 
     <!-- ── BODY ── -->
@@ -1001,38 +1192,135 @@
 
     </div>
 
-    <!-- Modal de Cliente -->
+    <!-- Modal de Finalizar Venta -->
     <div class="modal fade" id="customerModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content"
                 style="background: var(--secondary); color: var(--text-main); border-color: var(--border);">
                 <div class="modal-header" style="border-color: var(--border);">
-                    <h5 class="modal-title">Datos del Cliente</h5>
+                    <h5 class="modal-title"><i class="bi bi-cart-check me-2"></i>Finalizar Venta</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"
                         style="filter: var(--close-filter, invert(1));"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Nombre completo</label>
-                        <input type="text" id="customerNameField" class="form-control"
-                            style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="requestInvoiceToggle"
+                            onchange="toggleInvoiceSection()">
+                        <label class="form-check-label fw-bold" for="requestInvoiceToggle">Solicita Factura</label>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Tipo de cliente</label>
-                        <select id="customerTypeField" class="form-select"
-                            style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
-                            <option value="INDIVIDUAL">Particular</option>
-                            <option value="COMPANY">Empresa</option>
-                        </select>
+
+                    <div id="invoiceSection" style="display: none;">
+                        <ul class="nav nav-tabs mb-3" id="invoiceTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="search-tab" data-bs-toggle="tab"
+                                    data-bs-target="#search-pane" type="button" role="tab"
+                                    style="color: var(--text-main);">Buscar Cliente</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="new-tab" data-bs-toggle="tab" data-bs-target="#new-pane"
+                                    type="button" role="tab" style="color: var(--text-main);">Crear Nuevo</button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" id="invoiceTabsContent">
+                            <!-- Tab: Buscar Cliente -->
+                            <div class="tab-pane fade show active" id="search-pane" role="tabpanel">
+                                <div class="mb-3">
+                                    <label class="form-label">Seleccionar cliente existente</label>
+                                    <select id="existingCustomerSelect" class="form-select"
+                                        style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
+                                        <option value="">Cargando clientes...</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Tab: Crear Nuevo Cliente -->
+                            <div class="tab-pane fade" id="new-pane" role="tabpanel">
+                                <div class="mb-3">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="newCustomerType"
+                                            id="typeIndividual" value="INDIVIDUAL" checked
+                                            onchange="toggleCustomerType()">
+                                        <label class="form-check-label" for="typeIndividual">Particular</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="newCustomerType"
+                                            id="typeCompany" value="COMPANY" onchange="toggleCustomerType()">
+                                        <label class="form-check-label" for="typeCompany">Empresa</label>
+                                    </div>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label" id="lblCustomerName">Nombre y Apellidos <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" id="newCustomerName" class="form-control"
+                                            style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label" id="lblCustomerTaxId">NIF/NIE <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" id="newCustomerTaxId" class="form-control"
+                                            style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label">Dirección (Calle, Número...) <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" id="newCustomerAddress" class="form-control"
+                                            style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label class="form-label">Población / Ciudad <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" id="newCustomerCity" class="form-control"
+                                            style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Código Postal <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" id="newCustomerPostalCode" class="form-control"
+                                            style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Email (Opcional)</label>
+                                        <input type="email" id="newCustomerEmail" class="form-control"
+                                            style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Teléfono (Opcional)</label>
+                                        <input type="text" id="newCustomerPhone" class="form-control"
+                                            style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                <!-- Alerta de validación interna del modal -->
+                <div id="modalAlert" class="alert alert-danger mx-3" style="display:none;" role="alert"></div>
+
                 <div class="modal-footer" style="border-color: var(--border);">
                     <button type="button" class="btn" data-bs-dismiss="modal"
                         style="background: var(--primary); border-color: var(--border); color: var(--text-main);">Cancelar</button>
-                    <button type="button" class="btn" style="background: var(--accent); color: var(--primary);"
-                        onclick="submitSaleWithCustomer()">Cobrar</button>
+                    <button type="button" class="btn" id="btnConfirmSale"
+                        style="background: var(--accent); color: var(--primary);"
+                        onclick="processSaleWithInvoiceValidation()">Cobrar <span id="cobrarAmount"
+                            class="fw-bold fs-5 ms-2"></span></button>
                 </div>
             </div>
+        </div>
+    </div>
+
+
+    <!-- ── PIN MODAL ── -->
+    <div class="pin-overlay" id="pinOverlay">
+        <div class="pin-panel">
+            <h4><i class="bi bi-shield-lock" style="color:var(--accent);margin-right:0.4rem"></i>Administración</h4>
+            <p>Introduce el PIN de acceso</p>
+            <input type="password" class="pin-input" id="pinInput" maxlength="10" autocomplete="off"
+                inputmode="numeric">
+            <div class="pin-error-msg" id="pinError"></div>
+            <button class="pin-btn" id="pinSubmit"><i class="bi bi-unlock me-1"></i>Acceder</button>
+            <button class="pin-cancel" id="pinCancel">Cancelar</button>
         </div>
     </div>
 
@@ -1195,20 +1483,116 @@
             document.getElementById('saleForm').submit();
         }
 
+        let invoiceModalInstance;
+
         function openCustomerModal() {
             if (Object.keys(ticket).length === 0) return;
-            const modal = new bootstrap.Modal(document.getElementById('customerModal'));
-            modal.show();
+
+            // Populate amounts
+            document.getElementById('cobrarAmount').textContent = document.getElementById('ticketTotal').textContent;
+
+            // Reset modal state
+            document.getElementById('requestInvoiceToggle').checked = false;
+            document.getElementById('invoiceSection').style.display = 'none';
+            document.getElementById('modalAlert').style.display = 'none';
+
+            // Fetch existing customers
+            fetch('/api/customers')
+                .then(r => r.json())
+                .then(customers => {
+                    const select = document.getElementById('existingCustomerSelect');
+                    select.innerHTML = '<option value="">-- Seleccionar cliente --</option>';
+                    customers.forEach(c => {
+                        select.innerHTML += `<option value="${c.id}">${c.name} - ${c.taxId || 'Sin NIF'}</option>`;
+                    });
+                })
+                .catch(err => console.error('Error fetching customers', err));
+
+            invoiceModalInstance = new bootstrap.Modal(document.getElementById('customerModal'));
+            invoiceModalInstance.show();
         }
 
-        function submitSaleWithCustomer() {
-            const customerName = document.getElementById('customerNameField').value.trim();
-            const customerType = document.getElementById('customerTypeField').value;
+        function toggleInvoiceSection() {
+            const isChecked = document.getElementById('requestInvoiceToggle').checked;
+            document.getElementById('invoiceSection').style.display = isChecked ? 'block' : 'none';
+        }
 
-            document.getElementById('customerNameInput').value = customerName;
-            document.getElementById('customerTypeInput').value = customerType;
+        function toggleCustomerType() {
+            const isCompany = document.getElementById('typeCompany').checked;
+            document.getElementById('lblCustomerName').innerHTML = isCompany ? 'Razón Social <span class="text-danger">*</span>' : 'Nombre y Apellidos <span class="text-danger">*</span>';
+            document.getElementById('lblCustomerTaxId').innerHTML = isCompany ? 'CIF <span class="text-danger">*</span>' : 'NIF/NIE <span class="text-danger">*</span>';
+        }
 
-            document.getElementById('saleForm').submit();
+        function showError(msg) {
+            const alert = document.getElementById('modalAlert');
+            alert.textContent = msg;
+            alert.style.display = 'block';
+            setTimeout(() => alert.style.display = 'none', 4000);
+        }
+
+        function processSaleWithInvoiceValidation() {
+            const wantsInvoice = document.getElementById('requestInvoiceToggle').checked;
+            const saleForm = document.getElementById('saleForm');
+            const customerIdInput = document.getElementById('customerIdInput');
+
+            // Limpiar datos previos
+            customerIdInput.value = '';
+
+            if (!wantsInvoice) {
+                // Cobro simplificado sin cliente
+                saleForm.submit();
+                return;
+            }
+
+            const searchTabActive = document.getElementById('search-tab').classList.contains('active');
+
+            if (searchTabActive) {
+                // Cliente Existente
+                const selectedId = document.getElementById('existingCustomerSelect').value;
+                if (!selectedId) {
+                    showError('Por favor, selecciona un cliente o crea uno nuevo.');
+                    return;
+                }
+                customerIdInput.value = selectedId;
+                saleForm.submit();
+            } else {
+                // Crear Nuevo Cliente
+                const type = document.querySelector('input[name="newCustomerType"]:checked').value;
+                const name = document.getElementById('newCustomerName').value.trim();
+                const taxId = document.getElementById('newCustomerTaxId').value.trim();
+                const address = document.getElementById('newCustomerAddress').value.trim();
+                const city = document.getElementById('newCustomerCity').value.trim();
+                const postalCode = document.getElementById('newCustomerPostalCode').value.trim();
+                const email = document.getElementById('newCustomerEmail').value.trim();
+                const phone = document.getElementById('newCustomerPhone').value.trim();
+
+                // Validación básica para ambos (Particular o Empresa)
+                if (!name || !taxId || !address || !city || !postalCode) {
+                    showError('Por favor, rellena todos los campos obligatorios (*).');
+                    return;
+                }
+
+                const newCustomer = { name, taxId, address, city, postalCode, email, phone, type, active: true };
+
+                fetch('/api/customers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newCustomer)
+                })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Error al crear el cliente');
+                        return response.json();
+                    })
+                    .then(savedCustomer => {
+                        // Cliente creado con éxito
+                        customerIdInput.value = savedCustomer.id;
+                        saleForm.submit();
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        showError('Hubo un problema al crear el cliente. Revisa los datos.');
+                    });
+            }
         }
 
         function escapeHtml(str) {
@@ -1368,26 +1752,25 @@
                 { primary: '#1a1a2e', secondary: '#16213e', border: '#1e2d45', muted: '#8892a4', text: '#e8eaf0' },
                 { primary: '#000000', secondary: '#111111', border: '#222222', muted: '#777777', text: '#e0e0e0' },
                 { primary: '#1c1c1c', secondary: '#2a2a2a', border: '#3a3a3a', muted: '#888888', text: '#e8e8e8' },
-                { primary: '#0d1b2a', secondary: '#1b2838', border: '#1e3a50', muted: '#6e8898', text: '#d4e4f0' },
-                { primary: '#1a2e1a', secondary: '#1e3a1e', border: '#2d4a2d', muted: '#7a9a7a', text: '#d8ecd8' },
             ];
             const lightP = [
-                { primary: '#f0f0f0', secondary: '#f8f8f8' },
-                { primary: '#e0d8cf', secondary: '#ede6dd' },
-                { primary: '#ccdcf0', secondary: '#dae7fa' },
-                { primary: '#e5dec8', secondary: '#f2ecd9' },
-                { primary: '#c8e6d4', secondary: '#daf2e3' },
-                { primary: '#dccce6', secondary: '#e9daf2' },
+                { primary: '#f6f6f6', secondary: '#ffffff' },
+                { primary: '#fbf9f6', secondary: '#fdfdfc' },
+                { primary: '#f0f4f8', secondary: '#ffffff' },
             ];
             const lightFixed = { border: '#c8c8c8', muted: '#6b7280', text: '#1e293b' };
 
             const defaultPrefs = {
                 mode: 'dark',
-                lightAccent: 0, lightPrimaryIdx: 1, // Naranja, Mármol
-                darkAccent: 6, darkPrimaryIdx: 0    // Celeste, Medianoche
+                lightAccent: 0, lightPrimaryIdx: 0,
+                darkAccent: 6, darkPrimaryIdx: 0
             };
 
             let prefs = JSON.parse(localStorage.getItem('tpv-prefs') || 'null');
+            // Check out of bounds
+            if (prefs && prefs.darkPrimaryIdx >= darkP.length) prefs.darkPrimaryIdx = 0;
+            if (prefs && prefs.lightPrimaryIdx >= lightP.length) prefs.lightPrimaryIdx = 0;
+
             if (!prefs || prefs.accent !== undefined) {
                 prefs = { ...defaultPrefs, mode: prefs ? prefs.mode : 'dark' };
             }
@@ -1423,6 +1806,60 @@
             document.querySelectorAll('img[alt="Logo"]').forEach(img => img.src = logoFile);
             const faviconLink = document.querySelector('link[rel="icon"]');
             if (faviconLink) faviconLink.href = logoFile;
+        })();
+
+        // ── Admin PIN Login ──
+        (function () {
+            const overlay = document.getElementById('pinOverlay');
+            const input = document.getElementById('pinInput');
+            const error = document.getElementById('pinError');
+            const btn = document.getElementById('adminLockBtn');
+
+            btn.addEventListener('click', () => {
+                input.value = '';
+                error.textContent = '';
+                input.classList.remove('error');
+                overlay.classList.add('open');
+                setTimeout(() => input.focus(), 100);
+            });
+
+            document.getElementById('pinCancel').addEventListener('click', () => {
+                overlay.classList.remove('open');
+            });
+
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) overlay.classList.remove('open');
+            });
+
+            function submitPin() {
+                const pin = input.value.trim();
+                if (!pin) { input.focus(); return; }
+
+                fetch('/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin })
+                }).then(r => {
+                    if (r.ok) {
+                        window.location.href = '/admin';
+                    } else {
+                        input.classList.remove('error');
+                        void input.offsetWidth; // force reflow for re-trigger
+                        input.classList.add('error');
+                        error.textContent = 'PIN incorrecto';
+                        input.value = '';
+                        input.focus();
+                    }
+                }).catch(() => {
+                    error.textContent = 'Error de conexión';
+                });
+            }
+
+            document.getElementById('pinSubmit').addEventListener('click', submitPin);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') submitPin();
+                if (e.key === 'Escape') overlay.classList.remove('open');
+            });
         })();
 
     </script>

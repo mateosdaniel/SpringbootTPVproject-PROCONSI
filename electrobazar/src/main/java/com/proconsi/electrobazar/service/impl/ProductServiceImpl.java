@@ -1,6 +1,5 @@
 package com.proconsi.electrobazar.service.impl;
 
-import com.proconsi.electrobazar.exception.DuplicateResourceException;
 import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import com.proconsi.electrobazar.model.Product;
 import com.proconsi.electrobazar.repository.ProductRepository;
@@ -38,6 +37,12 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<Product> findAllWithCategory() {
+        return productRepository.findAllWithCategory();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<Product> findByCategory(Long categoryId) {
         return productRepository.findByCategoryIdAndActiveTrueOrderByNameAsc(categoryId);
     }
@@ -56,20 +61,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Product findByBarcode(String barcode) {
-        return productRepository.findByBarcodeAndActiveTrue(barcode)
-                .orElseThrow(
-                        () -> new ResourceNotFoundException("Producto no encontrado con código de barras: " + barcode));
-    }
-
-    @Override
     public Product save(Product product) {
-        if (product.getBarcode() != null && !product.getBarcode().isBlank()
-                && productRepository.existsByBarcodeAndIdNot(product.getBarcode(), -1L)) {
-            throw new DuplicateResourceException(
-                    "Ya existe un producto con el código de barras: " + product.getBarcode());
-        }
         return productRepository.save(product);
     }
 
@@ -77,17 +69,11 @@ public class ProductServiceImpl implements ProductService {
     public Product update(Long id, Product updated) {
         Product existing = findById(id);
 
-        if (updated.getBarcode() != null && !updated.getBarcode().isBlank()
-                && productRepository.existsByBarcodeAndIdNot(updated.getBarcode(), id)) {
-            throw new DuplicateResourceException(
-                    "Ya existe un producto con el código de barras: " + updated.getBarcode());
-        }
-
         existing.setName(updated.getName());
         existing.setDescription(updated.getDescription());
         existing.setPrice(updated.getPrice());
-        existing.setBarcode(updated.getBarcode());
         existing.setActive(updated.getActive());
+        existing.setImageUrl(updated.getImageUrl());
         existing.setCategory(updated.getCategory());
         // Stock es gestionado únicamente a través de métodos específicos de stock
         // no se actualiza en el método update
@@ -110,7 +96,7 @@ public class ProductServiceImpl implements ProductService {
             // TPV
             // Solo imprimimos un aviso en log
             System.err.println("Aviso: Stock insuficiente para el producto " + product.getName() +
-                    " (" + product.getBarcode() + "). Disponible: " + product.getStock() + ", solicitado: " + quantity
+                    ". Disponible: " + product.getStock() + ", solicitado: " + quantity
                     + ". Forzando venta.");
         }
         product.setStock(product.getStock() - quantity);

@@ -3,6 +3,7 @@ package com.proconsi.electrobazar.controller.web;
 import com.proconsi.electrobazar.model.*;
 import com.proconsi.electrobazar.service.*;
 import lombok.RequiredArgsConstructor;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +28,12 @@ public class TpvController {
     public String index(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String search,
+            HttpSession session,
             Model model) {
+
+        if (session.getAttribute("worker") == null) {
+            return "redirect:/login";
+        }
 
         model.addAttribute("categories", categoryService.findAllActive());
         model.addAttribute("selectedCategoryId", categoryId);
@@ -59,15 +65,21 @@ public class TpvController {
             @RequestParam List<Integer> quantities,
             @RequestParam PaymentMethod paymentMethod,
             @RequestParam(required = false) String notes,
+            HttpSession session,
             RedirectAttributes redirectAttributes) {
+
+        if (session.getAttribute("worker") == null) {
+            return "redirect:/login";
+        }
 
         // Procesar cliente
         Customer customer = null;
         if (customerId != null) {
             customer = customerService.findById(customerId);
         } else if (customerName != null && !customerName.isBlank()) {
-            // Crear cliente rápido
-            Customer.CustomerType type = customerType != null && customerType.equals("COMPANY")
+            // Crear cliente rápido (fallback for legacy or simplified non-invoice flow with
+            // name)
+            Customer.CustomerType type = (customerType != null && customerType.equals("COMPANY"))
                     ? Customer.CustomerType.COMPANY
                     : Customer.CustomerType.INDIVIDUAL;
             customer = customerService.save(Customer.builder()
@@ -89,18 +101,35 @@ public class TpvController {
 
         Sale sale = saleService.createSale(lines, paymentMethod, notes, customer);
 
+        if (customer != null) {
+            try {
+                java.io.File pdfFile = pdfReportService.generateInvoiceReport(sale);
+                redirectAttributes.addFlashAttribute("successMessage",
+                        "Factura generada y guardada en: " + pdfFile.getAbsolutePath());
+            } catch (Exception e) {
+                redirectAttributes.addFlashAttribute("errorMessage",
+                        "Venta completada pero hubo un error al generar el PDF de la factura.");
+            }
+        }
+
         return "redirect:/tpv/receipt/" + sale.getId();
     }
 
     @GetMapping("/receipt/{saleId}")
-    public String showReceipt(@PathVariable Long saleId, Model model) {
+    public String showReceipt(@PathVariable Long saleId, HttpSession session, Model model) {
+        if (session.getAttribute("worker") == null) {
+            return "redirect:/login";
+        }
         Sale sale = saleService.findById(saleId);
         model.addAttribute("sale", sale);
         return "tpv/receipt";
     }
 
     @GetMapping("/cash-close")
-    public String cashCloseForm(Model model) {
+    public String cashCloseForm(HttpSession session, Model model) {
+        if (session.getAttribute("worker") == null) {
+            return "redirect:/login";
+        }
         model.addAttribute("categories", categoryService.findAllActive());
         model.addAttribute("totalToday", saleService.sumTotalToday());
         model.addAttribute("countToday", saleService.countToday());
@@ -111,7 +140,10 @@ public class TpvController {
     }
 
     @GetMapping("/preferences")
-    public String preferences() {
+    public String preferences(HttpSession session) {
+        if (session.getAttribute("worker") == null) {
+            return "redirect:/login";
+        }
         return "tpv/preferences";
     }
 
@@ -119,7 +151,12 @@ public class TpvController {
     public String processCashClose(
             @RequestParam String closingBalance,
             @RequestParam(required = false) String notes,
+            HttpSession session,
             RedirectAttributes redirectAttributes) {
+
+        if (session.getAttribute("worker") == null) {
+            return "redirect:/login";
+        }
 
         // Convertir closingBalance, reemplazando coma por punto si es necesario
         String normalizedBalance = closingBalance.replace(",", ".");

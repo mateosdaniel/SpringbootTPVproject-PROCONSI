@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Factura y Ticket Simplificado</title>
+    <style>
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #1a1a2e;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            margin: 0;
+            color: #1a1a2e;
+        }
+
+        .header p {
+            margin: 5px 0 0 0;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .info-section {
+            display: table;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+        .info-col {
+            display: table-cell;
+            width: 50%;
+        }
+
+        .info-col h3 {
+            margin-top: 0;
+            color: #1a1a2e;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+        .info-col p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        table.items {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        table.items th,
+        table.items td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        table.items th {
+            background-color: #f3f4f6;
+            color: #1a1a2e;
+            font-weight: bold;
+        }
+
+        table.items td.text-right,
+        table.items th.text-right {
+            text-align: right;
+        }
+
+        .totals {
+            width: 40%;
+            float: right;
+            border-collapse: collapse;
+        }
+
+        .totals td {
+            padding: 8px 10px;
+            font-size: 14px;
+        }
+
+        .totals td.label {
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .totals td.amount {
+            text-align: right;
+        }
+
+        .totals tr.total td {
+            font-size: 18px;
+            font-weight: bold;
+            border-top: 2px solid #1a1a2e;
+        }
+
+        .footer {
+            clear: both;
+            margin-top: 50px;
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+
+        .clearfix::after {
+            content: "";
+            clear: both;
+            display: table;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>ElectroBazar</h1>
+        <p>C/ Exemple, 12, 28001 Madrid - CIF: B12345678</p>
+        <p>Teléfono: 91 123 45 67 - Email: info@electrobazar.com</p>
+    </div>
+
+    <div class="info-section">
+        <div class="info-col" style="padding-right: 20px;">
+            <h3>Detalles de Emisión</h3>
+            <!-- Mostrar "Factura" o "Ticket Simplificado" dependiendo si hay cliente asignado o no -->
+            <p><strong>Documento:</strong> <span
+                    th:text="${sale.customer != null ? 'FACTURA' : 'TICKET SIMPLIFICADO'}">FACTURA</span></p>
+            <p><strong>Nº Referencia:</strong> <span th:text="${sale.id}">10001</span></p>
+            <p><strong>Fecha emisión:</strong> <span
+                    th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm:ss')}">01/01/2026 10:00:00</span></p>
+            <p><strong>Método de pago:</strong> <span
+                    th:text="${sale.paymentMethod == T(com.proconsi.electrobazar.model.PaymentMethod).CASH ? 'Efectivo' : 'Tarjeta'}">Efectivo</span>
+            </p>
+        </div>
+        <div class="info-col" th:if="${sale.customer != null}">
+            <h3>Datos del Cliente</h3>
+            <p><strong
+                    th:text="${sale.customer.type.name() == 'COMPANY' ? 'Razón Social:' : 'Nombre:'}">Nombre:</strong>
+                <span th:text="${sale.customer.name}">Cliente Demo</span></p>
+            <p><strong th:text="${sale.customer.type.name() == 'COMPANY' ? 'CIF:' : 'NIF:'}">NIF/CIF:</strong> <span
+                    th:text="${sale.customer.taxId}">12345678A</span></p>
+            <p><strong>Dirección:</strong> <span
+                    th:text="${sale.customer.address} + ' ' + ${sale.customer.city} + ' ' + ${sale.customer.postalCode}">Calle
+                    Falsa 123</span></p>
+            <p th:if="${sale.customer.email != null and !sale.customer.email.isEmpty()}"><strong>Email:</strong> <span
+                    th:text="${sale.customer.email}">correo@ejemplo.com</span></p>
+            <p th:if="${sale.customer.phone != null and !sale.customer.phone.isEmpty()}"><strong>Teléfono:</strong>
+                <span th:text="${sale.customer.phone}">600100200</span></p>
+        </div>
+    </div>
+
+    <!-- Tabla de artículos -->
+    <table class="items">
+        <thead>
+            <tr>
+                <th>Concepto</th>
+                <th class="text-right">Precio Unit. (IVA inc.)</th>
+                <th class="text-right">Cantidad</th>
+                <th class="text-right">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="line : ${sale.lines}">
+                <td th:text="${line.product.name}">Producto Ejemplo</td>
+                <td class="text-right" th:text="${#numbers.formatDecimal(line.unitPrice, 1, 2, 'POINT')} + ' €'">10.00 €
+                </td>
+                <td class="text-right" th:text="${line.quantity}">2</td>
+                <td class="text-right"
+                    th:text="${#numbers.formatDecimal(line.unitPrice * line.quantity, 1, 2, 'POINT')} + ' €'">20.00 €
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="clearfix">
+        <table class="totals">
+            <!-- Asumiendo IVA general fijo del 21% aplicable extraido del monto base para simple visualización corporativa -->
+            <tr>
+                <td class="label">Base Imponible (aprox):</td>
+                <!-- (Total / 1.21) -> rounded -->
+                <td class="amount" th:text="${#numbers.formatDecimal(sale.totalAmount / 1.21, 1, 2, 'POINT')} + ' €'">
+                    X.XX €</td>
+            </tr>
+            <tr>
+                <td class="label">IVA (21% aprox):</td>
+                <!-- (Total - Base Imponible) -> rounded -->
+                <td class="amount"
+                    th:text="${#numbers.formatDecimal(sale.totalAmount - (sale.totalAmount / 1.21), 1, 2, 'POINT')} + ' €'">
+                    X.XX €</td>
+            </tr>
+            <tr class="total">
+                <td class="label">TOTAL A PAGAR:</td>
+                <td class="amount" th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2, 'POINT')} + ' €'">XX.XX €
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        ElectroBazar S.L - Registro Mercantil de Madrid Tomo 1, Folio 1, Hoja 1<br>
+        Documento generado automáticamente a través de la interfaz TPV el <span
+            th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm:ss')}"></span>.
+    </div>
+
+</body>
+
+</html>

@@ -38,11 +38,6 @@ public class ProductApiRestController {
         return ResponseEntity.ok(productService.search(name));
     }
 
-    @GetMapping("/barcode/{barcode}")
-    public ResponseEntity<Product> getByBarcode(@PathVariable String barcode) {
-        return ResponseEntity.ok(productService.findByBarcode(barcode));
-    }
-
     @PostMapping
     public ResponseEntity<Product> create(@RequestBody Product product) {
         if (product.getCategory() != null && product.getCategory().getId() != null) {

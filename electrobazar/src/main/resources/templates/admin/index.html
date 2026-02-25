@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administración — ElectroBazar</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a1a2e;
+            --secondary: #16213e;
+            --accent: #f5a623;
+            --accent-hover: #e09400;
+            --surface: #0f3460;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --text-muted: #8892a4;
+            --text-main: #e8eaf0;
+            --border: #1e2d45;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Barlow', sans-serif;
+            background: var(--primary);
+            color: var(--text-main);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+        }
+
+        /* ── Sidebar ── */
+        .admin-sidebar {
+            width: 260px;
+            background: var(--secondary);
+            border-right: 2px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            padding: 1.5rem 1rem;
+        }
+
+        .admin-logo {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 1px;
+            text-decoration: none;
+            text-align: center;
+            margin-bottom: 2rem;
+            display: block;
+        }
+
+        .admin-logo span {
+            color: var(--text-main);
+        }
+
+        /* Nav menu inside sidebar */
+        .sidebar-nav {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .nav-link.sidebar-menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1rem;
+            color: var(--text-muted);
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            cursor: pointer;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+        }
+
+        .nav-link.sidebar-menu-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-link.sidebar-menu-btn.active {
+            color: var(--accent);
+            background: rgba(245, 166, 35, 0.1);
+            border-color: rgba(245, 166, 35, 0.2);
+            font-weight: 600;
+        }
+
+        /* Sidebar bottom actions */
+        .sidebar-footer {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .btn-back {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 0.6rem 0.9rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-family: inherit;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+
+        .btn-back:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        /* ── Content ── */
+        .admin-body {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1400px;
+            overflow-y: auto;
+            position: relative;
+            background: var(--primary);
+        }
+
+        /* ── Tabs ── */
+        .nav-tabs {
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-tabs .nav-link {
+            color: var(--text-muted);
+            border: none;
+            border-bottom: 2px solid transparent;
+            padding: 0.65rem 1.25rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: -2px;
+            background: transparent;
+            transition: color 0.15s, border-color 0.15s;
+        }
+
+        .nav-tabs .nav-link:hover {
+            color: var(--text-main);
+        }
+
+        .nav-tabs .nav-link.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+            background: transparent;
+        }
+
+        .nav-tabs .nav-link i {
+            margin-right: 0.4rem;
+        }
+
+        /* ── Panel header ── */
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .panel-title {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+        }
+
+        /* ── Table ── */
+        .admin-table-wrap {
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            background: var(--secondary);
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+
+        .admin-table thead tr {
+            background: var(--surface);
+        }
+
+        .admin-table thead th {
+            padding: 0.75rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            border: none;
+            white-space: nowrap;
+        }
+
+        .admin-table tbody tr {
+            border-top: 1px solid var(--border);
+            transition: background 0.1s;
+        }
+
+        .admin-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .admin-table tbody td {
+            padding: 0.7rem 1rem;
+            color: var(--text-main);
+            vertical-align: middle;
+            border: none;
+        }
+
+        .thumb {
+            width: 44px;
+            height: 44px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .thumb-placeholder {
+            width: 44px;
+            height: 44px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+        }
+
+        .badge-active {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .badge-active.yes {
+            background: rgba(46, 204, 113, 0.18);
+            color: #2ecc71;
+        }
+
+        .badge-active.no {
+            background: rgba(231, 76, 60, 0.18);
+            color: #e74c3c;
+        }
+
+        /* ── Action buttons ── */
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 7px;
+            border: 1px solid var(--border);
+            background: var(--primary);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-decoration: none;
+        }
+
+        .btn-icon:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-icon.danger:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        /* ── "Nuevo" button ── */
+        .btn-nuevo {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: none;
+            background: var(--accent);
+            color: var(--primary);
+            font-family: inherit;
+            font-size: 0.88rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+        }
+
+        .btn-nuevo:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        /* ── Modals ── */
+        .modal-content {
+            background: var(--secondary);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            color: var(--text-main);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.25rem;
+        }
+
+        .modal-header .modal-title {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-main);
+        }
+
+        .btn-close {
+            filter: invert(1) opacity(0.5);
+        }
+
+        .btn-close:hover {
+            filter: invert(1) opacity(1);
+        }
+
+        .modal-footer {
+            border-top: 1px solid var(--border);
+        }
+
+        .form-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+        }
+
+        .form-control,
+        .form-select {
+            background: var(--primary);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            background: var(--primary);
+            border-color: var(--accent);
+            color: var(--text-main);
+            box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.2);
+        }
+
+        .form-control::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-select option {
+            background: var(--secondary);
+        }
+
+        .form-check-input:checked {
+            background-color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .btn-save {
+            background: var(--accent);
+            border: none;
+            color: var(--primary);
+            font-family: inherit;
+            font-weight: 700;
+            padding: 0.5rem 1.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.15s;
+        }
+
+        .btn-save:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-cancel {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-family: inherit;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.15s;
+        }
+
+        .btn-cancel:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        /* Image preview */
+        #imgPreview {
+            max-width: 100%;
+            max-height: 120px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-top: 0.5rem;
+            display: none;
+            object-fit: cover;
+        }
+
+        /* Toast */
+        .toast-container {
+            z-index: 1100;
+        }
+
+        .toast-custom {
+            background: var(--secondary);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            border-radius: 10px;
+            min-width: 280px;
+        }
+
+        .toast-custom.success {
+            border-left: 3px solid var(--success);
+        }
+
+        .toast-custom.error {
+            border-left: 3px solid var(--danger);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ── Sidebar ── -->
+    <aside class="admin-sidebar">
+        <!-- Logo -->
+        <a href="/tpv" class="admin-logo">Electro<span>Bazar</span> <small
+                style="font-size:0.75rem;color:var(--text-muted);font-weight:400;display:block;">Admin</small></a>
+
+        <!-- Main Nav -->
+        <nav class="sidebar-nav">
+            <button class="nav-link sidebar-menu-btn active" onclick="switchView('productsView', this)">
+                <i class="bi bi-box-seam"></i> Productos y Categorías
+            </button>
+            <button class="nav-link sidebar-menu-btn" onclick="switchView('invoicesView', this)">
+                <i class="bi bi-receipt"></i> Listado de Facturas
+            </button>
+            <button class="nav-link sidebar-menu-btn" onclick="switchView('cashCloseView', this)">
+                <i class="bi bi-cash-stack"></i> Listado de Cierres de caja
+            </button>
+            <button class="nav-link sidebar-menu-btn" onclick="switchView('workersView', this)">
+                <i class="bi bi-people"></i> Gestión de Trabajadores
+            </button>
+        </nav>
+
+        <!-- Footer Actions -->
+        <div class="sidebar-footer">
+            <button class="btn-back" onclick="openPinModal()">
+                <i class="bi bi-shield-lock"></i> Cambiar PIN
+            </button>
+            <a href="/admin/logout" class="btn-back text-danger border-danger">
+                <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+            </a>
+        </div>
+    </aside>
+
+    <!-- ── Toast ── -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="toastMsg" class="toast toast-custom" role="alert" aria-live="assertive" aria-atomic="true"
+            data-bs-delay="3000">
+            <div class="d-flex align-items-center p-3 gap-3">
+                <i id="toastIcon" class="bi fs-5"></i>
+                <span id="toastText" class="flex-grow-1 fw-600"></span>
+                <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── PIN Change Modal ── -->
+    <div class="modal fade" id="pinModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content"
+                style="background:var(--secondary);color:var(--text-main);border-color:var(--border);">
+                <div class="modal-header" style="border-color:var(--border);">
+                    <h5 class="modal-title"><i class="bi bi-shield-lock me-2"></i>Cambiar PIN</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">PIN actual</label>
+                        <input type="password" class="form-control" id="oldPin" maxlength="10" autocomplete="off"
+                            inputmode="numeric">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nuevo PIN</label>
+                        <input type="password" class="form-control" id="newPin" maxlength="10" autocomplete="off"
+                            inputmode="numeric">
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-color:var(--border);">
+                    <button type="button" class="btn btn-cancel" data-bs-dismiss="modal"
+                        style="flex:1">Cancelar</button>
+                    <button type="button" class="btn btn-save" onclick="changePin()" style="flex:1">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ── Body ── -->
+    <div class="admin-body">
+
+
+        <!-- ════ CONTENT VIEWS ════ -->
+
+        <!-- 1. PRODUCTS & CATEGORIES VIEW -->
+        <div id="productsView">
+            <!-- PANEL: Productos -->
+            <div class="panel-header">
+                <span class="panel-title"><i class="bi bi-box-seam me-2"></i>Gestión de Productos</span>
+                <div>
+                    <input type="file" id="csvFileInput" accept=".csv" style="display: none;"
+                        onchange="uploadCsvFile(this)">
+                    <button class="btn-nuevo" onclick="document.getElementById('csvFileInput').click()"
+                        style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border); margin-right: 0.5rem;">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> Importar CSV
+                    </button>
+                    <button class="btn-nuevo" onclick="openProductModal()">
+                        <i class="bi bi-plus-lg"></i> Nuevo Producto
+                    </button>
+                </div>
+            </div>
+
+            <div class="admin-table-wrap mb-5">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Imagen</th>
+                            <th>Nombre</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th>Categoría</th>
+                            <th>Activo</th>
+                            <th style="text-align:right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="p : ${products}">
+                            <td>
+                                <img th:if="${p.imageUrl != null && !#strings.isEmpty(p.imageUrl)}"
+                                    th:src="${p.imageUrl}" class="thumb" alt="">
+                                <div th:unless="${p.imageUrl != null && !#strings.isEmpty(p.imageUrl)}"
+                                    class="thumb-placeholder"><i class="bi bi-image"></i></div>
+                            </td>
+                            <td>
+                                <strong th:text="${p.name}"></strong>
+                                <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px"
+                                    th:if="${p.description != null}" th:text="${#strings.abbreviate(p.description,60)}">
+                                </div>
+                            </td>
+                            <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--accent)"
+                                th:text="${#numbers.formatDecimal(p.price,1,2)} + ' €'"></td>
+
+                            <td th:text="${p.stock}"></td>
+                            <td>
+                                <span th:if="${p.category != null}" th:text="${p.category.name}"
+                                    style="font-size:0.82rem;padding:0.2rem 0.5rem;border-radius:6px;background:var(--surface);color:var(--text-muted)"></span>
+                                <span th:unless="${p.category != null}" style="color:var(--text-muted)">—</span>
+                            </td>
+                            <td>
+                                <span class="badge-active" th:classappend="${p.active} ? 'yes' : 'no'"
+                                    th:text="${p.active} ? 'Sí' : 'No'"></span>
+                            </td>
+                            <td style="text-align:right">
+                                <div style="display:flex;gap:0.4rem;justify-content:flex-end">
+                                    <button class="btn-icon" title="Editar" th:onclick="|openProductModal(${p.id})|">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn-icon danger" title="Eliminar (soft delete)" th:data-id="${p.id}"
+                                        th:data-name="${p.name}"
+                                        onclick="deleteProduct(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(products)}">
+                            <td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted)">
+                                No hay productos registrados. <a href="javascript:void(0)" onclick="openProductModal()"
+                                    style="color:var(--accent)">Crear el primero</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- PANEL: Categorías -->
+            <div class="panel-header mt-4">
+                <span class="panel-title"><i class="bi bi-tags me-2"></i>Gestión de Categorías</span>
+                <button class="btn-nuevo"
+                    style="background:var(--surface);color:var(--text-main);border-color:var(--border);"
+                    onclick="openCategoryModal()">
+                    <i class="bi bi-plus-lg"></i> Nueva Categoría
+                </button>
+            </div>
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Activa</th>
+                            <th style="text-align:right;width:120px">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="c : ${categories}">
+                            <td style="color:var(--text-muted);font-weight:600" th:text="${'#'+c.id}"></td>
+                            <td><strong th:text="${c.name}"></strong></td>
+                            <td th:text="${c.description ?: '—'}"></td>
+                            <td>
+                                <span class="badge-active" th:classappend="${c.active} ? 'yes' : 'no'"
+                                    th:text="${c.active} ? 'Sí' : 'No'"></span>
+                            </td>
+                            <td style="text-align:right">
+                                <div style="display:flex;gap:0.4rem;justify-content:flex-end">
+                                    <button class="btn-icon" title="Editar" th:onclick="|openCategoryModal(${c.id})|">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn-icon danger" title="Eliminar" th:data-id="${c.id}"
+                                        th:data-name="${c.name}"
+                                        onclick="deleteCategory(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(categories)}">
+                            <td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted)">No hay
+                                categorías.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 2. INVOICES VIEW (Hidden by default) -->
+        <div id="invoicesView" style="display: none;">
+            <div class="panel-header">
+                <span class="panel-title"><i class="bi bi-receipt me-2"></i>Listado de Facturas y Ventas</span>
+            </div>
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID Venta</th>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Cliente / NIF</th>
+                            <th>Método Pago</th>
+                            <th>Total</th>
+                            <th style="text-align:right">Descargar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="sale : ${sales}">
+                            <td style="color:var(--text-muted);font-weight:600" th:text="${'#'+sale.id}"></td>
+                            <td th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
+                            <td>
+                                <span class="badge-active" th:classappend="${sale.customer != null} ? 'yes' : 'no'"
+                                    th:text="${sale.customer != null} ? 'Factura' : 'Ticket'"></span>
+                            </td>
+                            <td>
+                                <div th:if="${sale.customer != null}">
+                                    <strong th:text="${sale.customer.name}"></strong>
+                                    <div style="font-size:0.75rem;color:var(--text-muted)"
+                                        th:text="${sale.customer.taxId}"></div>
+                                </div>
+                                <span th:unless="${sale.customer != null}" style="color:var(--text-muted)">—
+                                    Consumidor Final —</span>
+                            </td>
+                            <td>
+                                <i th:class="${sale.paymentMethod == T(com.proconsi.electrobazar.model.PaymentMethod).CASH ? 'bi bi-cash' : 'bi bi-credit-card'}"
+                                    style="margin-right:0.3rem"></i>
+                                <span
+                                    th:text="${sale.paymentMethod == T(com.proconsi.electrobazar.model.PaymentMethod).CASH ? 'Efectivo' : 'Tarjeta'}"></span>
+                            </td>
+                            <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--text-main)"
+                                th:text="${#numbers.formatDecimal(sale.totalAmount,1,2)} + ' €'"></td>
+                            <td style="text-align:right">
+                                <a th:href="@{/admin/download/invoice/{id}(id=${sale.id})}" target="_blank"
+                                    class="btn-icon" title="Descargar PDF" style="text-decoration: none;">
+                                    <i class="bi bi-file-earmark-pdf" style="color:#e74c3c;"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(sales)}">
+                            <td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted)">
+                                No hay ventas registradas en el periodo especificado.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. CASH CLOSES VIEW (Hidden by default) -->
+        <div id="cashCloseView" style="display: none;">
+            <div class="panel-header">
+                <span class="panel-title"><i class="bi bi-cash-stack me-2"></i>Listado de Cierres de Caja</span>
+            </div>
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Apertura</th>
+                            <th>Cierre</th>
+                            <th>Total Calculado</th>
+                            <th>Total Declarado</th>
+                            <th>Diferencia</th>
+                            <th style="text-align:right">Descargar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="register : ${cashRegisters}">
+                            <td style="color:var(--text-muted);font-weight:600" th:text="${'#'+register.id}"></td>
+                            <td th:text="${#temporals.format(register.openedAt, 'dd/MM/yyyy HH:mm')}"></td>
+                            <td th:text="${#temporals.format(register.closedAt, 'dd/MM/yyyy HH:mm')}"></td>
+
+                            <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;"
+                                th:text="${#numbers.formatDecimal(register.calculatedTotal,1,2)} + ' €'"></td>
+
+                            <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;"
+                                th:text="${#numbers.formatDecimal(register.actualTotal,1,2)} + ' €'"></td>
+
+                            <td>
+                                <span th:if="${register.difference == 0}" class="badge-active yes">Cuadrado (0.00
+                                    €)</span>
+                                <span th:if="${register.difference != 0}" class="badge-active no"
+                                    th:text="${#numbers.formatDecimal(register.difference, 1, 2)} + ' €'"></span>
+                            </td>
+
+                            <td style="text-align:right">
+                                <a th:href="@{/admin/download/cash-close/{id}(id=${register.id})}" target="_blank"
+                                    class="btn-icon" title="Descargar PDF" style="text-decoration: none;">
+                                    <i class="bi bi-file-earmark-pdf" style="color:#e74c3c;"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(cashRegisters)}">
+                            <td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted)">
+                                No hay cierres de caja registrados histórico.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 4. WORKERS VIEW -->
+        <div id="workersView" style="display:none">
+            <div class="panel-header">
+                <span class="panel-title"><i class="bi bi-people me-2"></i>Gestión de Trabajadores</span>
+                <button class="btn-nuevo" onclick="openWorkerModal()">
+                    <i class="bi bi-plus-lg"></i> Nuevo Trabajador
+                </button>
+            </div>
+
+            <div class="admin-table-wrap mb-5">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre de usuario</th>
+                            <th>Estado</th>
+                            <th>Permisos</th>
+                            <th style="text-align:right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="w : ${workers}">
+                            <td><strong th:text="${w.username}"></strong></td>
+                            <td>
+                                <span th:if="${w.active}" class="badge bg-success">Activo</span>
+                                <span th:unless="${w.active}" class="badge bg-danger">Inactivo</span>
+                            </td>
+                            <td>
+                                <span th:each="perm : ${w.permissions}" class="badge bg-secondary me-1"
+                                    th:text="${perm}"></span>
+                                <span th:if="${#lists.isEmpty(w.permissions)}" class="text-muted small">Sin
+                                    permisos</span>
+                            </td>
+                            <td style="text-align:right">
+                                <button class="btn-action"
+                                    th:onclick="openWorkerModal([[${w.id}]], [[${w.username}]], [[${w.active}]], [[${w.permissions}]])">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn-action btn-action-delete"
+                                    th:onclick="'deleteWorker(' + ${w.id} + ')'">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(workers)}">
+                            <td colspan="4" class="text-center py-4 text-muted">No hay trabajadores registrados</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div><!-- /admin-body -->
+
+
+    <!-- ════════════════════════════════
+     MODAL — PRODUCTO
+════════════════════════════════ -->
+    <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productModalLabel">Producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="productForm" novalidate>
+                        <input type="hidden" id="productId">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label" for="productName">Nombre *</label>
+                                <input type="text" class="form-control" id="productName" required
+                                    placeholder="Nombre del producto">
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label" for="productDescription">Descripción</label>
+                                <textarea class="form-control" id="productDescription" rows="2"
+                                    placeholder="Descripción opcional"></textarea>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="productPrice">Precio (€) *</label>
+                                <input type="number" class="form-control" id="productPrice" step="0.01" min="0" required
+                                    placeholder="0.00">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="productStock">Stock</label>
+                                <input type="number" class="form-control" id="productStock" min="0" placeholder="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="productCategory">Categoría</label>
+                                <select class="form-select" id="productCategory">
+                                    <option value="">— Sin categoría —</option>
+                                    <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"></option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="productImageUrl">URL de imagen (Cloudinary)</label>
+                                <input type="url" class="form-control" id="productImageUrl"
+                                    placeholder="https://res.cloudinary.com/..." oninput="previewImage(this.value)">
+                                <img id="imgPreview" src="" alt="Vista previa">
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="productActive" checked>
+                                    <label class="form-check-label" for="productActive">Producto activo</label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn-save" onclick="saveProduct()"><i
+                            class="bi bi-check-lg me-1"></i>Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ════════════════════════════════
+     MODAL — CATEGORÍA
+════════════════════════════════ -->
+    <div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="categoryModalLabel">Categoría</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="categoryForm" novalidate>
+                        <input type="hidden" id="categoryId">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label" for="categoryName">Nombre *</label>
+                                <input type="text" class="form-control" id="categoryName" required
+                                    placeholder="Nombre de la categoría">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="categoryDescription">Descripción</label>
+                                <textarea class="form-control" id="categoryDescription" rows="2"
+                                    placeholder="Descripción opcional"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="categoryActive" checked>
+                                    <label class="form-check-label" for="categoryActive">Categoría activa</label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn-save" onclick="saveCategory()"><i
+                            class="bi bi-check-lg me-1"></i>Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ════════════════════════════════
+     MODAL — TRABAJADOR
+════════════════════════════════ -->
+    <div class="modal fade" id="workerModal" tabindex="-1" aria-labelledby="workerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content"
+                style="background:var(--secondary);color:var(--text-main);border-color:var(--border);">
+                <div class="modal-header" style="border-color:var(--border);">
+                    <h5 class="modal-title" id="workerModalLabel">Trabajador</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="workerForm" novalidate>
+                        <input type="hidden" id="workerId">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Nombre de usuario *</label>
+                                <input type="text" class="form-control" id="workerUsername" required
+                                    placeholder="Ej: juan_tpv">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Contraseña *</label>
+                                <input type="text" class="form-control" id="workerPassword" required
+                                    placeholder="••••••••">
+                                <small class="text-muted">Se muestra en texto plano para gestión del dueño.</small>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="workerActive" checked>
+                                    <label class="form-check-label" for="workerActive">Trabajador activo</label>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Permisos</label>
+                                <div class="p-3 rounded"
+                                    style="background:var(--primary); border:1px solid var(--border)">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" value="MANAGE_PRODUCTS_TPV"
+                                            id="permProd">
+                                        <label class="form-check-label" for="permProd">Gestionar productos en
+                                            TPV</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="CASH_CLOSE"
+                                            id="permCash">
+                                        <label class="form-check-label" for="permCash">Realizar cierres de caja</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="border-color:var(--border);">
+                    <button type="button" class="btn btn-cancel" data-bs-dismiss="modal"
+                        style="flex:1">Cancelar</button>
+                    <button type="button" class="btn btn-save" onclick="saveWorker()" style="flex:1">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+
+        const productModal = new bootstrap.Modal(document.getElementById('productModal'));
+        const categoryModal = new bootstrap.Modal(document.getElementById('categoryModal'));
+        const workerModal = new bootstrap.Modal(document.getElementById('workerModal'));
+
+        // ── View Switching ────────────────────────────────────────────────────────
+        function switchView(viewId, btnElement) {
+            // Hide all views
+            document.getElementById('productsView').style.display = 'none';
+            document.getElementById('invoicesView').style.display = 'none';
+            document.getElementById('cashCloseView').style.display = 'none';
+            document.getElementById('workersView').style.display = 'none';
+
+            // Show selected view
+            document.getElementById(viewId).style.display = 'block';
+
+            // Update active sidebar button state
+            document.querySelectorAll('.sidebar-menu-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            btnElement.classList.add('active');
+        }
+
+        function showToast(msg, type = 'success') {
+            const el = document.getElementById('toastMsg');
+            const icon = document.getElementById('toastIcon');
+            const text = document.getElementById('toastText');
+            el.classList.remove('success', 'error');
+            el.classList.add(type);
+            icon.className = 'bi fs-5 ' + (type === 'success' ? 'bi-check-circle text-success' : 'bi-exclamation-circle text-danger');
+            text.textContent = msg;
+            bootstrap.Toast.getOrCreateInstance(el).show();
+        }
+
+        function previewImage(url) {
+            const img = document.getElementById('imgPreview');
+            if (url && url.substring(0, 4) === 'http') {
+                img.src = url;
+                img.style.display = 'block';
+                img.onerror = null; // Remove onerror when a valid image is set
+            } else {
+                img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 100 100"><rect fill="%231a1a2e" width="100" height="100"/><text fill="%238892a4" font-family="sans-serif" font-size="20" x="50" y="55" text-anchor="middle">Sin imagen</text></svg>';
+                img.style.display = 'block';
+                img.onerror = null; // No need for onerror on a data URL
+            }
+        }
+
+        // ── Admin PIN Change ─────────────────────────────────────────────────────
+
+        const pinModal = new bootstrap.Modal(document.getElementById('pinModal'));
+
+        function openPinModal() {
+            document.getElementById('oldPin').value = '';
+            document.getElementById('newPin').value = '';
+            pinModal.show();
+        }
+
+        function changePin() {
+            const oldPin = document.getElementById('oldPin').value.trim();
+            const newPin = document.getElementById('newPin').value.trim();
+
+            if (!oldPin || !newPin) {
+                showToast('Rellena ambos campos', 'error');
+                return;
+            }
+
+            fetch('/admin/change-pin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ oldPin, newPin })
+            })
+                .then(async r => {
+                    if (r.ok) {
+                        pinModal.hide();
+                        showToast('PIN cambiado correctamente');
+                    } else {
+                        const data = await r.json();
+                        showToast(data.message || 'Error al cambiar PIN', 'error');
+                    }
+                })
+                .catch(() => showToast('Error de red', 'error'));
+        }
+
+        // ── Product CRUD ─────────────────────────────────────────────────────────
+
+        function openProductModal(id) {
+            document.getElementById('productId').value = '';
+            document.getElementById('productName').value = '';
+            document.getElementById('productDescription').value = '';
+            document.getElementById('productPrice').value = '';
+            document.getElementById('productStock').value = '0';
+            document.getElementById('productCategory').value = '';
+            document.getElementById('productImageUrl').value = '';
+            document.getElementById('productActive').checked = true;
+            document.getElementById('productModalLabel').textContent = id ? 'Editar Producto' : 'Nuevo Producto';
+
+            previewImage(null); // Set placeholder by default
+
+            if (id) {
+                fetch('/api/products/' + id)
+                    .then(r => r.json())
+                    .then(p => {
+                        document.getElementById('productId').value = p.id;
+                        document.getElementById('productName').value = p.name || '';
+                        document.getElementById('productDescription').value = p.description || '';
+                        document.getElementById('productPrice').value = p.price || '';
+                        document.getElementById('productStock').value = p.stock ?? 0;
+                        document.getElementById('productCategory').value = p.category ? p.category.id : '';
+                        document.getElementById('productImageUrl').value = p.imageUrl || '';
+                        document.getElementById('productActive').checked = p.active !== false;
+                        previewImage(p.imageUrl);
+                    })
+                    .catch(() => showToast('Error al cargar el producto', 'error'));
+            }
+
+            productModal.show();
+        }
+
+        function saveProduct() {
+            const name = document.getElementById('productName').value.trim();
+            const price = document.getElementById('productPrice').value;
+            if (!name || !price) { showToast('Nombre y precio son obligatorios', 'error'); return; }
+
+            const id = document.getElementById('productId').value;
+            const catId = document.getElementById('productCategory').value;
+
+            const body = {
+                name: name,
+                description: document.getElementById('productDescription').value.trim() || null,
+                price: parseFloat(price),
+                stock: parseInt(document.getElementById('productStock').value) || 0,
+                active: document.getElementById('productActive').checked,
+                imageUrl: document.getElementById('productImageUrl').value.trim() || null,
+                category: catId ? { id: parseInt(catId) } : null
+            };
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? '/api/products/' + id : '/api/products';
+
+            fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                .then(r => {
+                    if (!r.ok) throw new Error();
+                    productModal.hide();
+                    showToast(id ? 'Producto actualizado correctamente' : 'Producto creado correctamente');
+                    setTimeout(() => location.reload(), 900);
+                })
+                .catch(() => showToast('Error al guardar el producto', 'error'));
+        }
+
+        function deleteProduct(id, name) {
+            if (!confirm('¿Eliminar (desactivar) el producto "' + name + '"?')) return;
+            fetch('/api/products/' + id, { method: 'DELETE' })
+                .then(r => {
+                    if (!r.ok) throw new Error();
+                    showToast('Producto "' + name + '" desactivado');
+                    setTimeout(() => location.reload(), 900);
+                })
+                .catch(() => showToast('Error al eliminar el producto', 'error'));
+        }
+
+
+        // ── Category CRUD ─────────────────────────────────────────────────────────
+
+        function openCategoryModal(id) {
+            document.getElementById('categoryId').value = '';
+            document.getElementById('categoryName').value = '';
+            document.getElementById('categoryDescription').value = '';
+            document.getElementById('categoryActive').checked = true;
+            document.getElementById('categoryModalLabel').textContent = id ? 'Editar Categoría' : 'Nueva Categoría';
+
+            if (id) {
+                fetch('/api/categories/' + id)
+                    .then(r => r.json())
+                    .then(c => {
+                        document.getElementById('categoryId').value = c.id;
+                        document.getElementById('categoryName').value = c.name || '';
+                        document.getElementById('categoryDescription').value = c.description || '';
+                        document.getElementById('categoryActive').checked = c.active !== false;
+                    })
+                    .catch(() => showToast('Error al cargar la categoría', 'error'));
+            }
+
+            categoryModal.show();
+        }
+
+        function saveCategory() {
+            const name = document.getElementById('categoryName').value.trim();
+            if (!name) { showToast('El nombre es obligatorio', 'error'); return; }
+
+            const id = document.getElementById('categoryId').value;
+            const body = {
+                name: name,
+                description: document.getElementById('categoryDescription').value.trim() || null,
+                active: document.getElementById('categoryActive').checked
+            };
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? '/api/categories/' + id : '/api/categories';
+
+            fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                .then(r => {
+                    if (!r.ok) return r.text().then(t => { throw new Error(t); });
+                    categoryModal.hide();
+                    showToast(id ? 'Categoría actualizada correctamente' : 'Categoría creada correctamente');
+                    setTimeout(() => location.reload(), 900);
+                })
+                .catch(e => {
+                    const msg = e.message.includes('Ya existe') ? e.message : 'Error al guardar la categoría';
+                    showToast(msg, 'error');
+                });
+        }
+
+        function deleteCategory(id, name) {
+            if (!confirm('¿Desactivar la categoría "' + name + '"?')) return;
+            fetch('/api/categories/' + id, { method: 'DELETE' })
+                .then(r => {
+                    if (!r.ok) throw new Error();
+                    showToast('Categoría "' + name + '" desactivada');
+                    setTimeout(() => location.reload(), 900);
+                })
+                .catch(() => showToast('Error al desactivar la categoría', 'error'));
+        }
+
+        // ── Importar Productos y Categorías por CSV ──
+        function uploadCsvFile(input) {
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Mostrar un indicador de carga visual simple
+            showToast('Subiendo archivo...', 'success');
+
+            fetch('/admin/upload-csv', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok) {
+                        showToast(data.message, 'success');
+                        setTimeout(() => location.reload(), 2000);
+                    } else {
+                        showToast(data.message || 'Error al procesar el archivo.', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error uploading CSV:', error);
+                    showToast('Error de red al subir el archivo.', 'error');
+                })
+                .finally(() => {
+                    // Limpiar el input para permitir volver a seleccionar el mismo archivo si hubo error
+                    input.value = '';
+                });
+        }
+
+        // ── Apply saved theme from preferences page ──
+        (function () {
+            const accentColors = [
+                { value: '#f5a623', hover: '#e09400' },
+                { value: '#3b82f6', hover: '#2563eb' },
+                { value: '#22c55e', hover: '#16a34a' },
+                { value: '#ef4444', hover: '#dc2626' },
+                { value: '#a855f7', hover: '#9333ea' },
+                { value: '#ec4899', hover: '#db2777' },
+                { value: '#06b6d4', hover: '#0891b2' }
+            ];
+            const darkP = [
+                { primary: '#1a1a2e', secondary: '#16213e', border: '#1e2d45', muted: '#8892a4', text: '#e8eaf0' },
+                { primary: '#000000', secondary: '#111111', border: '#222222', muted: '#777777', text: '#e0e0e0' },
+                { primary: '#1c1c1c', secondary: '#2a2a2a', border: '#3a3a3a', muted: '#888888', text: '#e8e8e8' },
+            ];
+            const lightP = [
+                { primary: '#f6f6f6', secondary: '#ffffff' },
+                { primary: '#fbf9f6', secondary: '#fdfdfc' },
+                { primary: '#f0f4f8', secondary: '#ffffff' },
+            ];
+            const lightFixed = { border: '#c8c8c8', muted: '#6b7280', text: '#1e293b' };
+
+            const defaultPrefs = {
+                mode: 'dark',
+                lightAccent: 0, lightPrimaryIdx: 0,
+                darkAccent: 6, darkPrimaryIdx: 0
+            };
+
+            let prefs = JSON.parse(localStorage.getItem('tpv-prefs') || 'null');
+            // check out of bounds
+            if (prefs && prefs.darkPrimaryIdx >= darkP.length) prefs.darkPrimaryIdx = 0;
+            if (prefs && prefs.lightPrimaryIdx >= lightP.length) prefs.lightPrimaryIdx = 0;
+
+            if (!prefs || prefs.accent !== undefined) {
+                prefs = { ...defaultPrefs, mode: prefs ? prefs.mode : 'dark' };
+            }
+
+            const isDark = prefs.mode === 'dark';
+            let currentAccentIdx = isDark ? prefs.darkAccent : prefs.lightAccent;
+            if (currentAccentIdx >= accentColors.length) currentAccentIdx = 0;
+            const currentPrimaryIdx = isDark ? prefs.darkPrimaryIdx : prefs.lightPrimaryIdx;
+
+            const accent = accentColors[currentAccentIdx] || accentColors[isDark ? 6 : 0];
+            const palette = isDark ? darkP : lightP;
+            const p = palette[currentPrimaryIdx] || palette[isDark ? 0 : 1];
+
+            const r = document.documentElement.style;
+            r.setProperty('--primary', p.primary);
+            r.setProperty('--secondary', p.secondary);
+            if (isDark) {
+                r.setProperty('--border', p.border);
+                r.setProperty('--text-muted', p.muted);
+                r.setProperty('--text-main', p.text);
+            } else {
+                r.setProperty('--border', lightFixed.border);
+                r.setProperty('--text-muted', lightFixed.muted);
+                r.setProperty('--text-main', lightFixed.text);
+            }
+            r.setProperty('--accent', accent.value);
+            r.setProperty('--accent-hover', accent.hover);
+
+            // Swap logo images
+            const logoFile = isDark ? '/favicon.svg' : '/favicon-light.svg';
+            document.querySelectorAll('img[alt="Logo"]').forEach(img => img.src = logoFile);
+            const faviconLink = document.querySelector('link[rel="icon"]');
+            if (faviconLink) faviconLink.href = logoFile;
+        })();
+
+        // ── Worker Management ────────────────────────────────────────────────────────
+        function openWorkerModal(id, username, active, permissions) {
+            document.getElementById('workerForm').reset();
+            document.getElementById('workerId').value = id || '';
+            document.getElementById('workerUsername').value = username || '';
+            document.getElementById('workerActive').checked = active !== false;
+
+            // Permissions
+            const perms = permissions || [];
+            document.getElementById('permProd').checked = perms.includes('MANAGE_PRODUCTS_TPV');
+            document.getElementById('permCash').checked = perms.includes('CASH_CLOSE');
+
+            workerModal.show();
+        }
+
+        async function saveWorker() {
+            const id = document.getElementById('workerId').value;
+            const username = document.getElementById('workerUsername').value;
+            const password = document.getElementById('workerPassword').value;
+            const active = document.getElementById('workerActive').checked;
+
+            const permissions = [];
+            if (document.getElementById('permProd').checked) permissions.push('MANAGE_PRODUCTS_TPV');
+            if (document.getElementById('permCash').checked) permissions.push('CASH_CLOSE');
+
+            if (!username) { showToast('El nombre de usuario es obligatorio', 'error'); return; }
+            if (!id && !password) { showToast('La contraseña es obligatoria para nuevos trabajadores', 'error'); return; }
+
+            const worker = { id: id ? parseInt(id) : null, username, password, active, permissions };
+
+            try {
+                const res = await fetch('/admin/workers/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(worker)
+                });
+                if (res.ok) {
+                    showToast('Trabajador guardado con éxito');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast('Error al guardar trabajador', 'error');
+                }
+            } catch (e) {
+                showToast('Error de red', 'error');
+            }
+        }
+
+        async function deleteWorker(id) {
+            if (!confirm('¿Seguro que quieres eliminar a este trabajador?')) return;
+            try {
+                const res = await fetch(`/admin/workers/delete/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showToast('Trabajador eliminado');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast('Error al eliminar', 'error');
+                }
+            } catch (e) {
+                showToast('Error de red', 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>

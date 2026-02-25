@@ -399,17 +399,12 @@
                 { name: 'Medianoche', primary: '#1a1a2e', secondary: '#16213e', border: '#1e2d45', muted: '#8892a4', text: '#e8eaf0' },
                 { name: 'Negro total', primary: '#000000', secondary: '#111111', border: '#222222', muted: '#777777', text: '#e0e0e0' },
                 { name: 'Carbón', primary: '#1c1c1c', secondary: '#2a2a2a', border: '#3a3a3a', muted: '#888888', text: '#e8e8e8' },
-                { name: 'Oceánico', primary: '#0d1b2a', secondary: '#1b2838', border: '#1e3a50', muted: '#6e8898', text: '#d4e4f0' },
-                { name: 'Bosque', primary: '#1a2e1a', secondary: '#1e3a1e', border: '#2d4a2d', muted: '#7a9a7a', text: '#d8ecd8' },
             ];
 
             const lightPrimaries = [
-                { name: 'Blanco puro', primary: '#f0f0f0', secondary: '#f8f8f8' },
-                { name: 'Mármol', primary: '#e0d8cf', secondary: '#ede6dd' },
-                { name: 'Celeste', primary: '#ccdcf0', secondary: '#dae7fa' },
-                { name: 'Vainilla', primary: '#e5dec8', secondary: '#f2ecd9' },
-                { name: 'Menta', primary: '#c8e6d4', secondary: '#daf2e3' },
-                { name: 'Lavanda', primary: '#dccce6', secondary: '#e9daf2' },
+                { name: 'Blanco total', primary: '#f6f6f6', secondary: '#ffffff' },
+                { name: 'Blanco hueso', primary: '#fbf9f6', secondary: '#fdfdfc' },
+                { name: 'Gris perla', primary: '#f0f4f8', secondary: '#ffffff' },
             ];
 
             // Fixed light-mode colors (only --primary changes with tone)
@@ -422,11 +417,15 @@
             // ── State ──
             const defaultPrefs = {
                 mode: 'dark',
-                lightAccent: 0, lightPrimaryIdx: 1, // Naranja, Mármol
-                darkAccent: 6, darkPrimaryIdx: 0    // Celeste, Medianoche
+                lightAccent: 0, lightPrimaryIdx: 0,
+                darkAccent: 6, darkPrimaryIdx: 0
             };
 
             let prefs = JSON.parse(localStorage.getItem('tpv-prefs') || 'null');
+            // If the user's previously saved index is now out of bounds due to array shrinkage, reset to 0
+            if (prefs && prefs.darkPrimaryIdx >= darkPrimaries.length) prefs.darkPrimaryIdx = 0;
+            if (prefs && prefs.lightPrimaryIdx >= lightPrimaries.length) prefs.lightPrimaryIdx = 0;
+
             if (!prefs || prefs.accent !== undefined) {
                 // Initialize or migrate from old
                 prefs = { ...defaultPrefs, mode: prefs ? prefs.mode : 'dark' };

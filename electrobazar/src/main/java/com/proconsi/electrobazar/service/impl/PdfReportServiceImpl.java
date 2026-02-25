@@ -69,4 +69,52 @@ public class PdfReportServiceImpl implements PdfReportService {
             throw new RuntimeException("Error generating PDF report: " + e.getMessage(), e);
         }
     }
+
+    private static final String INVOICE_PDF_DIRECTORY = "facturas";
+
+    @Override
+    public File generateInvoiceReport(com.proconsi.electrobazar.model.Sale sale) {
+        try {
+            // 1. Prepare Thymeleaf context with variables
+            Context context = new Context();
+            context.setVariable("sale", sale);
+
+            // 2. Process HTML template
+            String htmlContent = templateEngine.process("reports/invoice-report", context);
+
+            // 3. Ensure target directory exists
+            File dir = new File(INVOICE_PDF_DIRECTORY);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+
+            // 4. Generate filename based on date and ID
+            String dateStr = sale.getCreatedAt() != null
+                    ? sale.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+                    : "UnknownDate";
+            String filename = String.format("Factura_%s_ID%d.pdf", dateStr, sale.getId());
+            File outputFile = new File(dir, filename);
+
+            // 5. Convert HTML to PDF using OpenHTMLToPDF
+            try (OutputStream os = new FileOutputStream(outputFile)) {
+                PdfRendererBuilder builder = new PdfRendererBuilder();
+
+                // Allow fallback to generic font families if needed
+                builder.useFastMode();
+
+                // The base URI is needed for resolving relative resources (images, css) if any
+                // are added later
+                builder.withHtmlContent(htmlContent, "classpath:/templates/");
+                builder.toStream(os);
+                builder.run();
+            }
+
+            log.info("Invoice PDF report generated successfully at: {}", outputFile.getAbsolutePath());
+            return outputFile;
+
+        } catch (Exception e) {
+            log.error("Error generating invoice PDF report for Sale ID " + sale.getId(), e);
+            throw new RuntimeException("Error generating PDF report: " + e.getMessage(), e);
+        }
+    }
 }
