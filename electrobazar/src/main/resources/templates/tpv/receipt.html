@@ -399,8 +399,8 @@
 
             <!-- Payment -->
             <div class="t-payment">
-                <div class="t-payment-method"
-                    th:text="${sale.paymentMethod.name() == 'CASH' ? '💵 Efectivo' : '💳 Tarjeta'}">Efectivo</div>
+                <div class="t-payment-method" th:text="${sale.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}">
+                    Efectivo</div>
                 <div class="t-payment-detail">
                     Importe abonado: <strong th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2)} + ' €'">0.00
                         €</strong>
