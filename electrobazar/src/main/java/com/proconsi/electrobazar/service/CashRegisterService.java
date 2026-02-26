@@ -14,5 +14,7 @@ public interface CashRegisterService {
     CashRegister closeCashRegister(BigDecimal closingBalance, String notes,
             com.proconsi.electrobazar.model.Worker worker);
 
-    CashRegister getTodayRegister();
+    java.util.Optional<CashRegister> getOpenRegister();
+
+    CashRegister openCashRegister(BigDecimal openingBalance, com.proconsi.electrobazar.model.Worker worker);
 }

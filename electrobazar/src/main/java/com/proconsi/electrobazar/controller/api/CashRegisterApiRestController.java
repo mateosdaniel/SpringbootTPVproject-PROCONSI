@@ -28,9 +28,11 @@ public class CashRegisterApiRestController {
         return ResponseEntity.ok(cashRegisterService.findAllClosed());
     }
 
-    @GetMapping("/today")
-    public ResponseEntity<CashRegister> getToday() {
-        return ResponseEntity.ok(cashRegisterService.getTodayRegister());
+    @GetMapping("/open")
+    public ResponseEntity<CashRegister> getOpen() {
+        return cashRegisterService.getOpenRegister()
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.noContent().build());
     }
 
     @GetMapping("/{id}/ticket")

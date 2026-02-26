@@ -5,6 +5,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class ElectrobazarApplication {
+	@jakarta.annotation.PostConstruct
+	public void init() {
+		java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Europe/Madrid"));
+	}
 
 	public static void main(String[] args) {
 		SpringApplication.run(ElectrobazarApplication.class, args);

@@ -73,7 +73,7 @@ public class CashRegisterServiceImpl implements CashRegisterService {
                 register.setCardSales(cardSales);
                 register.setTotalSales(totalSales);
                 register.setClosingBalance(closingBalance);
-                register.setDifference(closingBalance.subtract(register.getOpeningBalance().add(totalSales)));
+                register.setDifference(closingBalance.subtract(register.getOpeningBalance().add(cashSales)));
                 register.setNotes(notes);
                 register.setClosedAt(LocalDateTime.now());
                 register.setClosed(true);
@@ -81,41 +81,30 @@ public class CashRegisterServiceImpl implements CashRegisterService {
 
                 CashRegister closedRegister = cashRegisterRepository.save(register);
 
-                // Crear automáticamente un nuevo registro abierto para poder continuar
-                // vendiendo
+                return closedRegister;
+        }
+
+        @Override
+        public java.util.Optional<CashRegister> getOpenRegister() {
+                return cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc();
+        }
+
+        @Override
+        public CashRegister openCashRegister(BigDecimal openingBalance, com.proconsi.electrobazar.model.Worker worker) {
+                if (getOpenRegister().isPresent()) {
+                        throw new IllegalStateException("Ya hay una caja abierta");
+                }
                 CashRegister newRegister = CashRegister.builder()
-                                .registerDate(today)
-                                .openingBalance(closingBalance)
+                                .registerDate(LocalDate.now())
+                                .openingBalance(openingBalance)
                                 .openingTime(LocalDateTime.now())
                                 .cashSales(BigDecimal.ZERO)
                                 .cardSales(BigDecimal.ZERO)
                                 .totalSales(BigDecimal.ZERO)
                                 .closed(false)
-                                .worker(worker) // El mismo trabajador abre el nuevo turno por defecto
+                                .worker(worker)
                                 .build();
-                cashRegisterRepository.save(newRegister);
-
-                return closedRegister;
+                return cashRegisterRepository.save(newRegister);
         }
 
-        @Override
-        public CashRegister getTodayRegister() {
-                LocalDate today = LocalDate.now();
-
-                // Buscar registro abierto de hoy
-                return cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc()
-                                .orElseGet(() -> {
-                                        // Si no existe, crear uno nuevo para hoy
-                                        CashRegister newRegister = CashRegister.builder()
-                                                        .registerDate(today)
-                                                        .openingBalance(BigDecimal.ZERO)
-                                                        .openingTime(LocalDateTime.now())
-                                                        .cashSales(BigDecimal.ZERO)
-                                                        .cardSales(BigDecimal.ZERO)
-                                                        .totalSales(BigDecimal.ZERO)
-                                                        .closed(false)
-                                                        .build();
-                                        return cashRegisterRepository.save(newRegister);
-                                });
-        }
 }

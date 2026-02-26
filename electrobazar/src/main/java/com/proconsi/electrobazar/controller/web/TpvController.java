@@ -47,11 +47,16 @@ public class TpvController {
             products = productService.findAllActiveWithCategory();
         }
 
+        java.util.Optional<CashRegister> openRegisterOpt = cashRegisterService.getOpenRegister();
+        if (openRegisterOpt.isEmpty()) {
+            return "redirect:/tpv/open-register";
+        }
+
         model.addAttribute("products", products);
         model.addAttribute("search", search);
         model.addAttribute("totalToday", saleService.sumTotalToday());
         model.addAttribute("countToday", saleService.countToday());
-        model.addAttribute("todayRegister", cashRegisterService.getTodayRegister());
+        model.addAttribute("todayRegister", openRegisterOpt.get());
 
         return "tpv/index";
     }
@@ -136,12 +141,21 @@ public class TpvController {
             return "redirect:/tpv";
         }
 
+        java.util.Optional<CashRegister> openRegisterOpt = cashRegisterService.getOpenRegister();
+        if (openRegisterOpt.isEmpty()) {
+            return "redirect:/tpv/open-register";
+        }
+
+        java.math.BigDecimal cashSalesToday = saleService.sumTotalByPaymentMethodToday(PaymentMethod.CASH);
+        java.math.BigDecimal expectedCashInDrawer = openRegisterOpt.get().getOpeningBalance().add(cashSalesToday);
+
         model.addAttribute("categories", categoryService.findAllActive());
         model.addAttribute("totalToday", saleService.sumTotalToday());
         model.addAttribute("countToday", saleService.countToday());
-        model.addAttribute("todayRegister", cashRegisterService.getTodayRegister());
-        model.addAttribute("cashSalesToday", saleService.sumTotalByPaymentMethodToday(PaymentMethod.CASH));
+        model.addAttribute("todayRegister", openRegisterOpt.get());
+        model.addAttribute("cashSalesToday", cashSalesToday);
         model.addAttribute("cardSalesToday", saleService.sumTotalByPaymentMethodToday(PaymentMethod.CARD));
+        model.addAttribute("expectedCashInDrawer", expectedCashInDrawer);
         return "tpv/cash-close";
     }
 
@@ -151,6 +165,36 @@ public class TpvController {
             return "redirect:/login";
         }
         return "tpv/preferences";
+    }
+
+    @GetMapping("/open-register")
+    public String openRegisterForm(HttpSession session) {
+        if (session.getAttribute("worker") == null)
+            return "redirect:/login";
+        if (cashRegisterService.getOpenRegister().isPresent()) {
+            return "redirect:/tpv";
+        }
+        return "tpv/open-register";
+    }
+
+    @PostMapping("/open-register")
+    public String processOpenRegister(
+            @RequestParam String openingBalance,
+            HttpSession session) {
+        Worker worker = (Worker) session.getAttribute("worker");
+        if (worker == null)
+            return "redirect:/login";
+
+        String normalizedBalance = openingBalance.replace(",", ".");
+        java.math.BigDecimal openingBalanceDecimal;
+        try {
+            openingBalanceDecimal = new java.math.BigDecimal(normalizedBalance);
+        } catch (NumberFormatException e) {
+            openingBalanceDecimal = java.math.BigDecimal.ZERO;
+        }
+
+        cashRegisterService.openCashRegister(openingBalanceDecimal, worker);
+        return "redirect:/tpv";
     }
 
     @PostMapping("/cash-close")
