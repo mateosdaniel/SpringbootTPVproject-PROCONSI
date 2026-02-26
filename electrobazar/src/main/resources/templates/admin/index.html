@@ -344,6 +344,8 @@
             border: 1px solid var(--border);
             overflow: hidden;
             background: var(--secondary);
+            position: relative;
+            z-index: 1;
         }
 
         .admin-table {
@@ -844,15 +846,15 @@
                     </button>
                     <i class="bi bi-box-seam me-2"></i>Gestión de Productos
                 </span>
-                <div>
+                <div class="d-flex gap-2 flex-wrap" style="position: relative; z-index: 10;">
                     <input type="file" id="csvFileInput" accept=".csv" style="display: none;"
                         onchange="uploadCsvFile(this)">
                     <button class="btn-nuevo" onclick="document.getElementById('csvFileInput').click()"
-                        style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border); margin-right: 0.5rem;">
+                        style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border);">
                         <i class="bi bi-file-earmark-spreadsheet"></i> Importar CSV
                     </button>
                     <button class="btn-nuevo" onclick="filterLowStock()" id="btnFilterLowStock"
-                        style="background: rgba(231, 76, 60, 0.1); color: var(--danger); border: 1px solid rgba(231, 76, 60, 0.2); margin-right: 0.5rem;">
+                        style="background: rgba(231, 76, 60, 0.1); color: var(--danger); border: 1px solid rgba(231, 76, 60, 0.2);">
                         <i class="bi bi-filter"></i> Stock Bajo
                     </button>
                     <button class="btn-nuevo" onclick="openProductModal()">
@@ -907,7 +909,8 @@
                             </td>
                             <td style="text-align:right">
                                 <div style="display:flex;gap:0.4rem;justify-content:flex-end">
-                                    <button class="btn-icon" title="Editar" th:onclick="|openProductModal(${p.id})|">
+                                    <button class="btn-icon" title="Editar" th:data-id="${p.id}"
+                                        onclick="openProductModal(this.getAttribute('data-id'))">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <button class="btn-icon danger" title="Eliminar (soft delete)" th:data-id="${p.id}"
@@ -967,7 +970,8 @@
                             </td>
                             <td style="text-align:right">
                                 <div style="display:flex;gap:0.4rem;justify-content:flex-end">
-                                    <button class="btn-icon" title="Editar" th:onclick="|openCategoryModal(${c.id})|">
+                                    <button class="btn-icon" title="Editar" th:data-id="${c.id}"
+                                        onclick="openCategoryModal(this.getAttribute('data-id'))">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <button class="btn-icon danger" title="Eliminar" th:data-id="${c.id}"
@@ -1089,14 +1093,15 @@
                     <tbody>
                         <tr th:each="register : ${cashRegisters}">
                             <td style="color:var(--text-muted);font-weight:600" th:text="${'#'+register.id}"></td>
-                            <td th:text="${#temporals.format(register.openedAt, 'dd/MM/yyyy HH:mm')}"></td>
+                            <td th:text="${#temporals.format(register.openingTime, 'dd/MM/yyyy HH:mm')}"></td>
                             <td th:text="${#temporals.format(register.closedAt, 'dd/MM/yyyy HH:mm')}"></td>
 
                             <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;"
-                                th:text="${#numbers.formatDecimal(register.calculatedTotal,1,2)} + ' €'"></td>
+                                th:text="${#numbers.formatDecimal(register.openingBalance + register.totalSales,1,2)} + ' €'">
+                            </td>
 
                             <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;"
-                                th:text="${#numbers.formatDecimal(register.actualTotal,1,2)} + ' €'"></td>
+                                th:text="${#numbers.formatDecimal(register.closingBalance,1,2)} + ' €'"></td>
 
                             <td>
                                 <span th:if="${register.difference == 0}" class="badge-active yes">Cuadrado (0.00
@@ -1166,12 +1171,13 @@
                                     permisos</span>
                             </td>
                             <td style="text-align:right">
-                                <button class="btn-action"
-                                    th:onclick="openWorkerModal([[${w.id}]], [[${w.username}]], [[${w.active}]], [[${w.permissions}]])">
+                                <button class="btn-action" th:data-id="${w.id}" th:data-username="${w.username}"
+                                    th:data-active="${w.active}" th:data-permissions="${w.permissions}"
+                                    onclick="openWorkerModal(this.getAttribute('data-id'), this.getAttribute('data-username'), this.getAttribute('data-active') === 'true', this.getAttribute('data-permissions'))">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <button class="btn-action btn-action-delete"
-                                    th:onclick="'deleteWorker(' + ${w.id} + ')'">
+                                <button class="btn-action btn-action-delete" th:data-id="${w.id}"
+                                    onclick="deleteWorker(this.getAttribute('data-id'))">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </td>
@@ -1183,180 +1189,183 @@
                 </table>
             </div>
         </div>
-    </div>
 
-    <!-- 5. ANALYTICS VIEW -->
-    <div id="analyticsView" style="display:none">
-        <div class="panel-header mb-4">
-            <span class="panel-title">
-                <button class="btn-icon me-2"
-                    onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
-                    title="Volver al Panel">
-                    <i class="bi bi-arrow-left"></i>
+        <!-- 5. ANALYTICS VIEW -->
+        <div id="analyticsView" style="display:none">
+            <div class="panel-header mb-4">
+                <span class="panel-title">
+                    <button class="btn-icon me-2"
+                        onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
+                        title="Volver al Panel">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <i class="bi bi-graph-up me-2"></i>Análisis de Negocio
+                </span>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-icon"><i class="bi bi-currency-euro"></i></div>
+                        <div class="stats-data">
+                            <div class="stats-value" id="statTodayRevenue">0.00 €</div>
+                            <div class="stats-label">Ventas Hoy</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-icon"><i class="bi bi-cart-check"></i></div>
+                        <div class="stats-data">
+                            <div class="stats-value" id="statTodaySales">0</div>
+                            <div class="stats-label">Pedidos Hoy</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card">
+                        <div class="stats-icon"><i class="bi bi-box-seam"></i></div>
+                        <div class="stats-data">
+                            <div class="stats-value" id="statTopProduct">—</div>
+                            <div class="stats-label">Top Producto</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card"
+                        onclick="switchView('productsView', document.querySelector('[onclick*=\'productsView\']'))"
+                        style="cursor:pointer">
+                        <div class="stats-icon"><i class="bi bi-exclamation-triangle text-danger"></i></div>
+                        <div class="stats-data">
+                            <div class="stats-value" id="statLowStock">0</div>
+                            <div class="stats-label">Stock Bajo</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-8">
+                    <div class="chart-container-p">
+                        <h6 class="mb-4 fw-bold"><i class="bi bi-graph-up me-2"></i>Tendencia de Ventas (Últimos 7 días)
+                        </h6>
+                        <canvas id="salesChart" height="120"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="chart-container-p">
+                        <h6 class="mb-4 fw-bold"><i class="bi bi-pie-chart me-2"></i>Ventas por Categoría</h6>
+                        <canvas id="categoryChart" height="250"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. CRM VIEW -->
+        <div id="crmView" style="display:none">
+            <div class="panel-header">
+                <span class="panel-title">
+                    <button class="btn-icon me-2"
+                        onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
+                        title="Volver al Panel">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <i class="bi bi-person-badge me-2"></i>Gestión de Clientes (CRM)
+                </span>
+                <button class="btn-nuevo">
+                    <i class="bi bi-plus-lg"></i> Nuevo Cliente
                 </button>
-                <i class="bi bi-graph-up me-2"></i>Análisis de Negocio
-            </span>
+            </div>
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>NIF/TaxID</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                            <th>Ciudad</th>
+                            <th>Tipo</th>
+                            <th style="text-align:right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="c : ${customers}">
+                            <td><strong th:text="${c.name}"></strong></td>
+                            <td th:text="${c.taxId ?: '—'}"></td>
+                            <td th:text="${c.email ?: '—'}"></td>
+                            <td th:text="${c.phone ?: '—'}"></td>
+                            <td th:text="${c.city ?: '—'}"></td>
+                            <td>
+                                <span class="badge"
+                                    th:classappend="${c.type.name() == 'COMPANY'} ? 'bg-primary' : 'bg-secondary'"
+                                    th:text="${c.type}"></span>
+                            </td>
+                            <td style="text-align:right">
+                                <button class="btn-icon"><i class="bi bi-pencil"></i></button>
+                                <button class="btn-icon danger"><i class="bi bi-trash"></i></button>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(customers)}">
+                            <td colspan="7" class="text-center py-4 text-muted">No hay clientes registrados</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <div class="row g-4 mb-4">
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="stats-icon"><i class="bi bi-currency-euro"></i></div>
-                    <div class="stats-data">
-                        <div class="stats-value" id="statTodayRevenue">0.00 €</div>
-                        <div class="stats-label">Ventas Hoy</div>
+        <!-- 7. ACTIVITY LOG VIEW -->
+        <div id="activityView" style="display:none">
+            <div class="panel-header mb-4">
+                <span class="panel-title">
+                    <button class="btn-icon me-2"
+                        onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
+                        title="Volver al Panel">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <i class="bi bi-clock-history me-2"></i>Registro de Actividad Reciente
+                </span>
+            </div>
+
+            <div class="activity-feed">
+                <div class="activity-item">
+                    <div class="activity-icon"><i class="bi bi-plus-circle text-success"></i></div>
+                    <div class="activity-content">
+                        <div class="activity-text"><strong>Admin</strong> ha añadido un nuevo producto: <em>Smartwatch
+                                Ultra
+                                X</em></div>
+                        <div class="activity-time">Hace 12 minutos</div>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon"><i class="bi bi-cart-check text-primary"></i></div>
+                    <div class="activity-content">
+                        <div class="activity-text">Venta realizada por <strong>Juan</strong>: #2045 (Total: 450.00 €)
+                        </div>
+                        <div class="activity-time">Hace 45 minutos</div>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon"><i class="bi bi-pencil text-warning"></i></div>
+                    <div class="activity-content">
+                        <div class="activity-text"><strong>Admin</strong> ha actualizado el precio de <em>Auriculares
+                                Noise
+                                Cancel</em></div>
+                        <div class="activity-time">Hoy a las 11:20</div>
+                    </div>
+                </div>
+                <div class="activity-item">
+                    <div class="activity-icon"><i class="bi bi-cash-stack text-info"></i></div>
+                    <div class="activity-content">
+                        <div class="activity-text">Cierre de caja #122 completado por <strong>María</strong> con
+                            descuadre
+                            de 0.00 €</div>
+                        <div class="activity-time">Ayer a las 21:05</div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="stats-icon"><i class="bi bi-cart-check"></i></div>
-                    <div class="stats-data">
-                        <div class="stats-value" id="statTodaySales">0</div>
-                        <div class="stats-label">Pedidos Hoy</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="stats-icon"><i class="bi bi-box-seam"></i></div>
-                    <div class="stats-data">
-                        <div class="stats-value" id="statTopProduct">—</div>
-                        <div class="stats-label">Top Producto</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stats-card"
-                    onclick="switchView('productsView', document.querySelector('[onclick*=\'productsView\']'))"
-                    style="cursor:pointer">
-                    <div class="stats-icon"><i class="bi bi-exclamation-triangle text-danger"></i></div>
-                    <div class="stats-data">
-                        <div class="stats-value" id="statLowStock">0</div>
-                        <div class="stats-label">Stock Bajo</div>
-                    </div>
-                </div>
-            </div>
         </div>
-
-        <div class="row g-4">
-            <div class="col-md-8">
-                <div class="chart-container-p">
-                    <h6 class="mb-4 fw-bold"><i class="bi bi-graph-up me-2"></i>Tendencia de Ventas (Últimos 7 días)
-                    </h6>
-                    <canvas id="salesChart" height="120"></canvas>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="chart-container-p">
-                    <h6 class="mb-4 fw-bold"><i class="bi bi-pie-chart me-2"></i>Ventas por Categoría</h6>
-                    <canvas id="categoryChart" height="250"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 6. CRM VIEW -->
-    <div id="crmView" style="display:none">
-        <div class="panel-header">
-            <span class="panel-title">
-                <button class="btn-icon me-2"
-                    onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
-                    title="Volver al Panel">
-                    <i class="bi bi-arrow-left"></i>
-                </button>
-                <i class="bi bi-person-badge me-2"></i>Gestión de Clientes (CRM)
-            </span>
-            <button class="btn-nuevo">
-                <i class="bi bi-plus-lg"></i> Nuevo Cliente
-            </button>
-        </div>
-
-        <div class="admin-table-wrap">
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>NIF/TaxID</th>
-                        <th>Email</th>
-                        <th>Teléfono</th>
-                        <th>Ciudad</th>
-                        <th>Tipo</th>
-                        <th style="text-align:right">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr th:each="c : ${customers}">
-                        <td><strong th:text="${c.name}"></strong></td>
-                        <td th:text="${c.taxId ?: '—'}"></td>
-                        <td th:text="${c.email ?: '—'}"></td>
-                        <td th:text="${c.phone ?: '—'}"></td>
-                        <td th:text="${c.city ?: '—'}"></td>
-                        <td>
-                            <span class="badge"
-                                th:classappend="${c.type.name() == 'COMPANY'} ? 'bg-primary' : 'bg-secondary'"
-                                th:text="${c.type}"></span>
-                        </td>
-                        <td style="text-align:right">
-                            <button class="btn-icon"><i class="bi bi-pencil"></i></button>
-                            <button class="btn-icon danger"><i class="bi bi-trash"></i></button>
-                        </td>
-                    </tr>
-                    <tr th:if="${#lists.isEmpty(customers)}">
-                        <td colspan="7" class="text-center py-4 text-muted">No hay clientes registrados</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- 7. ACTIVITY LOG VIEW -->
-    <div id="activityView" style="display:none">
-        <div class="panel-header mb-4">
-            <span class="panel-title">
-                <button class="btn-icon me-2"
-                    onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
-                    title="Volver al Panel">
-                    <i class="bi bi-arrow-left"></i>
-                </button>
-                <i class="bi bi-clock-history me-2"></i>Registro de Actividad Reciente
-            </span>
-        </div>
-
-        <div class="activity-feed">
-            <div class="activity-item">
-                <div class="activity-icon"><i class="bi bi-plus-circle text-success"></i></div>
-                <div class="activity-content">
-                    <div class="activity-text"><strong>Admin</strong> ha añadido un nuevo producto: <em>Smartwatch Ultra
-                            X</em></div>
-                    <div class="activity-time">Hace 12 minutos</div>
-                </div>
-            </div>
-            <div class="activity-item">
-                <div class="activity-icon"><i class="bi bi-cart-check text-primary"></i></div>
-                <div class="activity-content">
-                    <div class="activity-text">Venta realizada por <strong>Juan</strong>: #2045 (Total: 450.00 €)</div>
-                    <div class="activity-time">Hace 45 minutos</div>
-                </div>
-            </div>
-            <div class="activity-item">
-                <div class="activity-icon"><i class="bi bi-pencil text-warning"></i></div>
-                <div class="activity-content">
-                    <div class="activity-text"><strong>Admin</strong> ha actualizado el precio de <em>Auriculares Noise
-                            Cancel</em></div>
-                    <div class="activity-time">Hoy a las 11:20</div>
-                </div>
-            </div>
-            <div class="activity-item">
-                <div class="activity-icon"><i class="bi bi-cash-stack text-info"></i></div>
-                <div class="activity-content">
-                    <div class="activity-text">Cierre de caja #122 completado por <strong>María</strong> con descuadre
-                        de 0.00 €</div>
-                    <div class="activity-time">Ayer a las 21:05</div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     </div><!-- /admin-body -->
 
@@ -1542,14 +1551,13 @@
 
 
     </div> <!-- /.admin-body -->
-    </div> <!-- /body flex container (sidebar + body) -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
 
-        const productModal = new bootstrap.Modal(document.getElementById('productModal'));
-        const categoryModal = new bootstrap.Modal(document.getElementById('categoryModal'));
-        const workerModal = new bootstrap.Modal(document.getElementById('workerModal'));
+        var productModal = new bootstrap.Modal(document.getElementById('productModal'));
+        var categoryModal = new bootstrap.Modal(document.getElementById('categoryModal'));
+        var workerModal = new bootstrap.Modal(document.getElementById('workerModal'));
 
         // ── View Switching ────────────────────────────────────────────────────────
         function switchView(viewId, btnElement) {
@@ -1567,7 +1575,7 @@
             document.getElementById(viewId).style.display = 'block';
 
             // Update active sidebar button state
-            document.querySelectorAll('.sidebar-menu-btn').forEach(btn => {
+            document.querySelectorAll('.sidebar-menu-btn').forEach(function (btn) {
                 btn.classList.remove('active');
             });
             if (btnElement) btnElement.classList.add('active');
@@ -1578,10 +1586,11 @@
             }
         }
 
-        function showToast(msg, type = 'success') {
-            const el = document.getElementById('toastMsg');
-            const icon = document.getElementById('toastIcon');
-            const text = document.getElementById('toastText');
+        function showToast(msg, type) {
+            if (!type) type = 'success';
+            var el = document.getElementById('toastMsg');
+            var icon = document.getElementById('toastIcon');
+            var text = document.getElementById('toastText');
             el.classList.remove('success', 'error');
             el.classList.add(type);
             icon.className = 'bi fs-5 ' + (type === 'success' ? 'bi-check-circle text-success' : 'bi-exclamation-circle text-danger');
@@ -1604,7 +1613,7 @@
 
         // ── Admin PIN Change ─────────────────────────────────────────────────────
 
-        const pinModal = new bootstrap.Modal(document.getElementById('pinModal'));
+        var pinModal = new bootstrap.Modal(document.getElementById('pinModal'));
 
         function openPinModal() {
             document.getElementById('oldPin').value = '';
@@ -1613,8 +1622,8 @@
         }
 
         function changePin() {
-            const oldPin = document.getElementById('oldPin').value.trim();
-            const newPin = document.getElementById('newPin').value.trim();
+            var oldPin = document.getElementById('oldPin').value.trim();
+            var newPin = document.getElementById('newPin').value.trim();
 
             if (!oldPin || !newPin) {
                 showToast('Rellena ambos campos', 'error');
@@ -1624,18 +1633,19 @@
             fetch('/admin/change-pin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ oldPin, newPin })
+                body: JSON.stringify({ oldPin: oldPin, newPin: newPin })
             })
-                .then(async r => {
+                .then(function (r) {
                     if (r.ok) {
                         pinModal.hide();
                         showToast('PIN cambiado correctamente');
                     } else {
-                        const data = await r.json();
-                        showToast(data.message || 'Error al cambiar PIN', 'error');
+                        r.json().then(function (data) {
+                            showToast(data.message || 'Error al cambiar PIN', 'error');
+                        });
                     }
                 })
-                .catch(() => showToast('Error de red', 'error'));
+                .catch(function () { showToast('Error de red', 'error'); });
         }
 
         // ── Product CRUD ─────────────────────────────────────────────────────────
@@ -1655,19 +1665,19 @@
 
             if (id) {
                 fetch('/api/products/' + id)
-                    .then(r => r.json())
-                    .then(p => {
+                    .then(function (r) { return r.json(); })
+                    .then(function (p) {
                         document.getElementById('productId').value = p.id;
                         document.getElementById('productName').value = p.name || '';
                         document.getElementById('productDescription').value = p.description || '';
                         document.getElementById('productPrice').value = p.price || '';
-                        document.getElementById('productStock').value = p.stock ?? 0;
+                        document.getElementById('productStock').value = (p.stock !== undefined && p.stock !== null) ? p.stock : 0;
                         document.getElementById('productCategory').value = p.category ? p.category.id : '';
                         document.getElementById('productImageUrl').value = p.imageUrl || '';
                         document.getElementById('productActive').checked = p.active !== false;
                         previewImage(p.imageUrl);
                     })
-                    .catch(() => showToast('Error al cargar el producto', 'error'));
+                    .catch(function () { showToast('Error al cargar el producto', 'error'); });
             }
 
             productModal.show();
@@ -1678,8 +1688,8 @@
             const price = document.getElementById('productPrice').value;
             if (!name || !price) { showToast('Nombre y precio son obligatorios', 'error'); return; }
 
-            const id = document.getElementById('productId').value;
-            const catId = document.getElementById('productCategory').value;
+            var id = document.getElementById('productId').value;
+            var catId = document.getElementById('productCategory').value;
 
             const body = {
                 name: name,
@@ -1691,28 +1701,28 @@
                 category: catId ? { id: parseInt(catId) } : null
             };
 
-            const method = id ? 'PUT' : 'POST';
-            const url = id ? '/api/products/' + id : '/api/products';
+            var method = id ? 'PUT' : 'POST';
+            var url = id ? '/api/products/' + id : '/api/products';
 
-            fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-                .then(r => {
+            fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                .then(function (r) {
                     if (!r.ok) throw new Error();
                     productModal.hide();
                     showToast(id ? 'Producto actualizado correctamente' : 'Producto creado correctamente');
-                    setTimeout(() => location.reload(), 900);
+                    setTimeout(function () { location.reload(); }, 900);
                 })
-                .catch(() => showToast('Error al guardar el producto', 'error'));
+                .catch(function () { showToast('Error al guardar el producto', 'error'); });
         }
 
         function deleteProduct(id, name) {
             if (!confirm('¿Eliminar (desactivar) el producto "' + name + '"?')) return;
             fetch('/api/products/' + id, { method: 'DELETE' })
-                .then(r => {
+                .then(function (r) {
                     if (!r.ok) throw new Error();
                     showToast('Producto "' + name + '" desactivado');
-                    setTimeout(() => location.reload(), 900);
+                    setTimeout(function () { location.reload(); }, 900);
                 })
-                .catch(() => showToast('Error al eliminar el producto', 'error'));
+                .catch(function () { showToast('Error al eliminar el producto', 'error'); });
         }
 
 
@@ -1727,14 +1737,14 @@
 
             if (id) {
                 fetch('/api/categories/' + id)
-                    .then(r => r.json())
-                    .then(c => {
+                    .then(function (r) { return r.json(); })
+                    .then(function (c) {
                         document.getElementById('categoryId').value = c.id;
                         document.getElementById('categoryName').value = c.name || '';
                         document.getElementById('categoryDescription').value = c.description || '';
                         document.getElementById('categoryActive').checked = c.active !== false;
                     })
-                    .catch(() => showToast('Error al cargar la categoría', 'error'));
+                    .catch(function () { showToast('Error al cargar la categoría', 'error'); });
             }
 
             categoryModal.show();
@@ -1751,18 +1761,18 @@
                 active: document.getElementById('categoryActive').checked
             };
 
-            const method = id ? 'PUT' : 'POST';
-            const url = id ? '/api/categories/' + id : '/api/categories';
+            var method = id ? 'PUT' : 'POST';
+            var url = id ? '/api/categories/' + id : '/api/categories';
 
-            fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-                .then(r => {
-                    if (!r.ok) return r.text().then(t => { throw new Error(t); });
+            fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                .then(function (r) {
+                    if (!r.ok) return r.text().then(function (t) { throw new Error(t); });
                     categoryModal.hide();
                     showToast(id ? 'Categoría actualizada correctamente' : 'Categoría creada correctamente');
-                    setTimeout(() => location.reload(), 900);
+                    setTimeout(function () { location.reload(); }, 900);
                 })
-                .catch(e => {
-                    const msg = e.message.includes('Ya existe') ? e.message : 'Error al guardar la categoría';
+                .catch(function (e) {
+                    var msg = e.message.indexOf('Ya existe') !== -1 ? e.message : 'Error al guardar la categoría';
                     showToast(msg, 'error');
                 });
         }
@@ -1770,19 +1780,19 @@
         function deleteCategory(id, name) {
             if (!confirm('¿Desactivar la categoría "' + name + '"?')) return;
             fetch('/api/categories/' + id, { method: 'DELETE' })
-                .then(r => {
+                .then(function (r) {
                     if (!r.ok) throw new Error();
                     showToast('Categoría "' + name + '" desactivada');
-                    setTimeout(() => location.reload(), 900);
+                    setTimeout(function () { location.reload(); }, 900);
                 })
-                .catch(() => showToast('Error al desactivar la categoría', 'error'));
+                .catch(function () { showToast('Error al desactivar la categoría', 'error'); });
         }
 
         // ── Importar Productos y Categorías por CSV ──
         function uploadCsvFile(input) {
             if (!input.files || input.files.length === 0) return;
-            const file = input.files[0];
-            const formData = new FormData();
+            var file = input.files[0];
+            var formData = new FormData();
             formData.append('file', file);
 
             // Mostrar un indicador de carga visual simple
@@ -1792,16 +1802,16 @@
                 method: 'POST',
                 body: formData
             })
-                .then(response => response.json())
-                .then(data => {
+                .then(function (response) { return response.json(); })
+                .then(function (data) {
                     if (data.ok) {
                         showToast(data.message, 'success');
-                        setTimeout(() => location.reload(), 2000);
+                        setTimeout(function () { location.reload(); }, 2000);
                     } else {
                         showToast(data.message || 'Error al procesar el archivo.', 'error');
                     }
                 })
-                .catch(error => {
+                .catch(function (error) {
                     console.error('Error uploading CSV:', error);
                     showToast('Error de red al subir el archivo.', 'error');
                 })
@@ -1817,12 +1827,12 @@
         function initCharts() {
             // Data injected via Thymeleaf from the model
             /*[# th:if="${sales != null or products != null}"]*/
-            const salesDataRaw = /*[[${sales}]]*/[];
-            const productsDataRaw = /*[[${products}]]*/[];
+            var salesDataRaw = /*[[${sales}]]*/[];
+            var productsDataRaw = /*[[${products}]]*/[];
             /*[/]*/
 
-            const now = new Date();
-            const todayStr = now.toISOString().split('T')[0];
+            var now = new Date();
+            var todayStr = now.toISOString().split('T')[0];
 
             // 1. Stats Calculation
             let todayRevenue = 0;
@@ -1830,8 +1840,8 @@
             const productSalesCount = {};
             let lowStockCount = 0;
 
-            salesDataRaw.forEach(sale => {
-                const saleDate = sale.createdAt ? sale.createdAt.split('T')[0] : '';
+            salesDataRaw.forEach(function (sale) {
+                var saleDate = sale.createdAt ? sale.createdAt.split('T')[0] : '';
                 if (saleDate === todayStr) {
                     todayRevenue += sale.totalAmount || 0;
                     todaySalesCount++;
@@ -1839,14 +1849,14 @@
 
                 // Track product counts if lines are available
                 if (sale.lines) {
-                    sale.lines.forEach(line => {
-                        const pName = line.productName || 'Producto';
+                    sale.lines.forEach(function (line) {
+                        var pName = line.productName || 'Producto';
                         productSalesCount[pName] = (productSalesCount[pName] || 0) + line.quantity;
                     });
                 }
             });
 
-            productsDataRaw.forEach(p => {
+            productsDataRaw.forEach(function (p) {
                 if (p.stock < 5) lowStockCount++;
             });
 
@@ -1867,21 +1877,21 @@
             document.getElementById('statLowStock').textContent = lowStockCount;
 
             // 2. Sales Trend Chart (Last 7 Days)
-            const days = [];
-            const revenuePerDay = [];
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date();
+            var days = [];
+            var revenuePerDay = [];
+            for (var i = 6; i >= 0; i--) {
+                var d = new Date();
                 d.setDate(d.getDate() - i);
-                const dStr = d.toISOString().split('T')[0];
+                var dStr = d.toISOString().split('T')[0];
                 days.push(d.toLocaleDateString('es-ES', { weekday: 'short' }));
 
-                const total = salesDataRaw.reduce((sum, s) => {
+                var total = salesDataRaw.reduce(function (sum, s) {
                     return (s.createdAt && s.createdAt.split('T')[0] === dStr) ? sum + (s.totalAmount || 0) : sum;
                 }, 0);
                 revenuePerDay.push(total);
             }
 
-            const ctxSales = document.getElementById('salesChart').getContext('2d');
+            var ctxSales = document.getElementById('salesChart').getContext('2d');
             if (salesChart) salesChart.destroy();
             salesChart = new Chart(ctxSales, {
                 type: 'line',
@@ -1907,16 +1917,16 @@
             });
 
             // 3. Category Distribution Chart
-            const catSummary = {};
-            productsDataRaw.forEach(p => {
-                const catName = p.category ? p.category.name : 'Sin Categoría';
+            var catSummary = {};
+            productsDataRaw.forEach(function (p) {
+                var catName = p.category ? p.category.name : 'Sin Categoría';
                 catSummary[catName] = (catSummary[catName] || 0) + 1;
             });
 
-            const catLabels = Object.keys(catSummary);
-            const catData = Object.values(catSummary);
+            var catLabels = Object.keys(catSummary);
+            var catData = Object.values(catSummary);
 
-            const ctxCat = document.getElementById('categoryChart').getContext('2d');
+            var ctxCat = document.getElementById('categoryChart').getContext('2d');
             if (categoryChart) categoryChart.destroy();
             categoryChart = new Chart(ctxCat, {
                 type: 'doughnut',
@@ -1948,7 +1958,7 @@
             document.getElementById('workerActive').checked = active !== false;
 
             // Ajustar etiqueta de contraseña según si editamos o creamos
-            const pwdLabel = document.getElementById('workerPasswordLabel');
+            var pwdLabel = document.getElementById('workerPasswordLabel');
             if (id) {
                 pwdLabel.innerHTML = 'Contraseña <small class="text-muted font-normal">(opcional, blanco para mantener)</small>';
             } else {
@@ -1956,21 +1966,21 @@
             }
 
             // Permissions
-            const perms = permissions || [];
-            document.getElementById('permProd').checked = perms.includes('MANAGE_PRODUCTS_TPV');
-            document.getElementById('permCash').checked = perms.includes('CASH_CLOSE');
-            document.getElementById('permAdmin').checked = perms.includes('ADMIN_ACCESS');
+            var perms = permissions || [];
+            document.getElementById('permProd').checked = perms.indexOf('MANAGE_PRODUCTS_TPV') !== -1;
+            document.getElementById('permCash').checked = perms.indexOf('CASH_CLOSE') !== -1;
+            document.getElementById('permAdmin').checked = perms.indexOf('ADMIN_ACCESS') !== -1;
 
             workerModal.show();
         }
 
-        async function saveWorker() {
-            const id = document.getElementById('workerId').value;
-            const username = document.getElementById('workerUsername').value;
-            const password = document.getElementById('workerPassword').value;
-            const active = document.getElementById('workerActive').checked;
+        function saveWorker() {
+            var id = document.getElementById('workerId').value;
+            var username = document.getElementById('workerUsername').value;
+            var password = document.getElementById('workerPassword').value;
+            var active = document.getElementById('workerActive').checked;
 
-            const permissions = [];
+            var permissions = [];
             if (document.getElementById('permProd').checked) permissions.push('MANAGE_PRODUCTS_TPV');
             if (document.getElementById('permCash').checked) permissions.push('CASH_CLOSE');
             if (document.getElementById('permAdmin').checked) permissions.push('ADMIN_ACCESS');
@@ -1978,38 +1988,37 @@
             if (!username) { showToast('El nombre de usuario es obligatorio', 'error'); return; }
             if (!id && !password) { showToast('La contraseña es obligatoria para nuevos trabajadores', 'error'); return; }
 
-            const worker = { id: id ? parseInt(id) : null, username, password, active, permissions };
+            var worker = { id: id ? parseInt(id) : null, username: username, password: password, active: active, permissions: permissions };
 
-            try {
-                const res = await fetch('/admin/workers/save', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(worker)
-                });
+            fetch('/admin/workers/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(worker)
+            }).then(function (res) {
                 if (res.ok) {
                     showToast('Trabajador guardado con éxito');
-                    setTimeout(() => location.reload(), 1000);
+                    setTimeout(function () { location.reload(); }, 1000);
                 } else {
                     showToast('Error al guardar trabajador', 'error');
                 }
-            } catch (e) {
+            }).catch(function () {
                 showToast('Error de red', 'error');
-            }
+            });
         }
 
-        async function deleteWorker(id) {
+        function deleteWorker(id) {
             if (!confirm('¿Seguro que quieres eliminar a este trabajador?')) return;
-            try {
-                const res = await fetch(`/admin/workers/delete/${id}`, { method: 'DELETE' });
-                if (res.ok) {
-                    showToast('Trabajador eliminado');
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showToast('Error al eliminar', 'error');
-                }
-            } catch (e) {
-                showToast('Error de red', 'error');
-            }
+            fetch('/admin/workers/delete/' + id, { method: 'DELETE' })
+                .then(function (res) {
+                    if (res.ok) {
+                        showToast('Trabajador eliminado');
+                        setTimeout(function () { location.reload(); }, 1000);
+                    } else {
+                        showToast('Error al eliminar', 'error');
+                    }
+                }).catch(function () {
+                    showToast('Error de red', 'error');
+                });
         }
 
         // ── Filter Low Stock ──
@@ -2019,8 +2028,8 @@
             showingLowStockOnly = !showingLowStockOnly;
 
             const rows = document.querySelectorAll('#productsView tbody tr:not(.empty-row)');
-            rows.forEach(row => {
-                const stockBadge = row.querySelector('.badge-stock-low');
+            rows.forEach(function (row) {
+                var stockBadge = row.querySelector('.badge-stock-low');
                 if (showingLowStockOnly) {
                     row.style.display = stockBadge ? '' : 'none';
                 } else {

@@ -176,6 +176,8 @@
             overflow: hidden;
             background: var(--secondary);
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 1;
         }
 
         .admin-table {
@@ -447,7 +449,7 @@
                         <input type="file" id="csvFileInput" accept=".csv" style="display: none;"
                             onchange="uploadCsvFile(this)">
                         <button class="btn-nuevo" onclick="document.getElementById('csvFileInput').click()"
-                            style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border); margin-right: 0.5rem;">
+                            style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border);">
                             <i class="bi bi-file-earmark-spreadsheet"></i> Importar CSV
                         </button>
                         <button class="btn-nuevo" onclick="openProductModal()">
@@ -496,11 +498,14 @@
                                 </td>
                                 <td style="text-align:right">
                                     <div class="d-flex gap-1 justify-content-end">
-                                        <button class="btn-icon" th:onclick="|openProductModal(${p.id})|"><i
-                                                class="bi bi-pencil"></i></button>
-                                        <button class="btn-icon danger"
-                                            th:onclick="|deleteProduct(${p.id}, '${#strings.escapeJavaScript(p.name)}')|"><i
-                                                class="bi bi-trash"></i></button>
+                                        <button class="btn-icon" th:data-id="${p.id}"
+                                            onclick="openProductModal(this.getAttribute('data-id'))">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn-icon danger" th:data-id="${p.id}" th:data-name="${p.name}"
+                                            onclick="deleteProduct(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -543,11 +548,14 @@
                                 </td>
                                 <td style="text-align:right">
                                     <div class="d-flex gap-1 justify-content-end">
-                                        <button class="btn-icon" th:onclick="|openCategoryModal(${c.id})|"><i
-                                                class="bi bi-pencil"></i></button>
-                                        <button class="btn-icon danger"
-                                            th:onclick="|deleteCategory(${c.id}, '${#strings.escapeJavaScript(c.name)}')|"><i
-                                                class="bi bi-trash"></i></button>
+                                        <button class="btn-icon" th:data-id="${c.id}"
+                                            onclick="openCategoryModal(this.getAttribute('data-id'))">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn-icon danger" th:data-id="${c.id}" th:data-name="${c.name}"
+                                            onclick="deleteCategory(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -673,10 +681,9 @@
 
         function previewImage(url) {
             const img = document.getElementById('imgPreview');
-            img.src = url || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%231a1a2e" width="100" height="100"/><text fill="%238892a4" font-size="12" x="50" y="55" text-anchor="middle">Sin imagen</text></svg>';
-            img.style.display = 'block';
+            img.src = url || '';
+            img.style.display = url ? 'block' : 'none';
         }
-
         function openProductModal(id) {
             document.getElementById('productId').value = '';
             document.getElementById('productName').value = '';
@@ -691,13 +698,13 @@
 
             if (id) {
                 fetch('/api/products/' + id)
-                    .then(r => r.json())
-                    .then(p => {
+                    .then(function (r) { return r.json(); })
+                    .then(function (p) {
                         document.getElementById('productId').value = p.id;
                         document.getElementById('productName').value = p.name || '';
                         document.getElementById('productDescription').value = p.description || '';
                         document.getElementById('productPrice').value = p.price || '';
-                        document.getElementById('productStock').value = p.stock ?? 0;
+                        document.getElementById('productStock').value = (p.stock !== undefined && p.stock !== null) ? p.stock : 0;
                         document.getElementById('productCategory').value = p.category ? p.category.id : '';
                         document.getElementById('productImageUrl').value = p.imageUrl || '';
                         document.getElementById('productActive').checked = p.active !== false;
@@ -726,14 +733,14 @@
                 method: id ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
-            }).then(r => {
+            }).then(function (r) {
                 if (r.ok) { location.reload(); } else { showToast('Error al guardar', 'error'); }
             });
         }
 
         function deleteProduct(id, name) {
-            if (confirm(`¿Desactivar "${name}"?`)) {
-                fetch('/api/products/' + id, { method: 'DELETE' }).then(r => {
+            if (confirm('¿Desactivar "' + name + '"?')) {
+                fetch('/api/products/' + id, { method: 'DELETE' }).then(function (r) {
                     if (r.ok) location.reload(); else showToast('Error al eliminar', 'error');
                 });
             }
@@ -747,7 +754,7 @@
             document.getElementById('categoryModalLabel').textContent = id ? 'Editar Categoría' : 'Nueva Categoría';
 
             if (id) {
-                fetch('/api/categories/' + id).then(r => r.json()).then(c => {
+                fetch('/api/categories/' + id).then(function (r) { return r.json(); }).then(function (c) {
                     document.getElementById('categoryId').value = c.id;
                     document.getElementById('categoryName').value = c.name || '';
                     document.getElementById('categoryDescription').value = c.description || '';
@@ -767,49 +774,48 @@
                 method: id ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
-            }).then(r => {
+            }).then(function (r) {
                 if (r.ok) location.reload(); else showToast('Error al guardar', 'error');
             });
         }
 
         function deleteCategory(id, name) {
-            if (confirm(`¿Desactivar "${name}"?`)) {
-                fetch('/api/categories/' + id, { method: 'DELETE' }).then(r => {
+            if (confirm('¿Desactivar "' + name + '"?')) {
+                fetch('/api/categories/' + id, { method: 'DELETE' }).then(function (r) {
                     if (r.ok) location.reload(); else showToast('Error al eliminar', 'error');
                 });
             }
         }
 
         function uploadCsvFile(input) {
-            if (!input.files?.length) return;
-            const formData = new FormData();
+            if (!input.files || input.files.length === 0) return;
+            var formData = new FormData();
             formData.append('file', input.files[0]);
             showToast('Subiendo archivo...', 'success');
 
             fetch('/admin/upload-csv', { method: 'POST', body: formData })
-                .then(r => {
+                .then(function (r) {
                     if (!r.ok) throw new Error('HTTP ' + r.status);
                     return r.json();
                 })
-                .then(data => {
+                .then(function (data) {
                     if (data.ok) {
                         showToast(data.message || 'CSV importado correctamente');
-                        setTimeout(() => location.reload(), 2000);
+                        setTimeout(function () { location.reload(); }, 2000);
                     } else {
                         showToast(data.message || 'Error al procesar el CSV', 'error');
                     }
                 })
-                .catch(err => {
+                .catch(function (err) {
                     console.error('Error CSV upload:', err);
                     showToast('Error al subir el archivo: ' + err.message, 'error');
                 })
-                .finally(() => { input.value = ''; });
+                .finally(function () { input.value = ''; });
         }
 
         // Tema aplicado en el <head> para evitar parpadeo de colores.
 
     </script>
-    </div> <!-- /.admin-body -->
 
 </body>
 
