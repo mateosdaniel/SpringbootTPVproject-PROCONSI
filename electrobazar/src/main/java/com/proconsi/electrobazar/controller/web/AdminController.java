@@ -116,16 +116,19 @@ public class AdminController {
             String dateStr = sale.getCreatedAt() != null
                     ? sale.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
                     : "UnknownDate";
-            String filename = String.format("Factura_%s_ID%d.pdf", dateStr, id);
+            String filename = String.format("Factura_Ticket_%d_%s.pdf", id, dateStr);
             java.io.File file = new java.io.File("facturas", filename);
 
-            if (!file.exists()) {
-                // Generar factura al vuelo si no existe
+            if (!file.exists() || file.length() == 0) {
+                // Generar factura al vuelo si no existe o estí vacía
                 file = pdfReportService.generateInvoiceReport(sale);
             }
 
-            if (file == null || !file.exists())
+            if (file == null || !file.exists() || file.length() == 0) {
+                if (file != null && file.exists())
+                    file.delete(); // Limpiar si fallí generaciín
                 return org.springframework.http.ResponseEntity.notFound().build();
+            }
 
             org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(file.toURI());
             return org.springframework.http.ResponseEntity.ok()
@@ -155,13 +158,16 @@ public class AdminController {
             String filename = String.format("Cierre_Caja_%s_ID%d.pdf", dateStr, id);
             java.io.File file = new java.io.File("cierres_de_caja", filename);
 
-            if (!file.exists()) {
-                // Generar cierre al vuelo si no existe
+            if (!file.exists() || file.length() == 0) {
+                // Generar cierre al vuelo si no existe o estí vacía
                 file = pdfReportService.generateCashCloseReport(register);
             }
 
-            if (file == null || !file.exists())
+            if (file == null || !file.exists() || file.length() == 0) {
+                if (file != null && file.exists())
+                    file.delete(); // Limpiar si fallí generaciín
                 return org.springframework.http.ResponseEntity.notFound().build();
+            }
 
             org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(file.toURI());
             return org.springframework.http.ResponseEntity.ok()

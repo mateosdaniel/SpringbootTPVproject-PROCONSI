@@ -15,6 +15,10 @@ import java.util.Optional;
 @Repository
 public interface SaleRepository extends JpaRepository<Sale, Long> {
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = { "lines", "lines.product", "customer",
+            "worker" })
+    java.util.Optional<Sale> findById(Long id);
+
     // Ventas en un rango de fechas (para informes / cierre de caja)
     List<Sale> findByCreatedAtBetweenOrderByCreatedAtDesc(LocalDateTime from, LocalDateTime to);
 
@@ -28,7 +32,8 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
 
     // Total por método de pago en un rango de fechas
     @Query("SELECT COALESCE(SUM(s.totalAmount), 0) FROM Sale s WHERE s.createdAt BETWEEN :from AND :to AND s.paymentMethod = :method")
-    Optional<BigDecimal> sumTotalBetweenByPaymentMethod(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to, @Param("method") PaymentMethod method);
+    Optional<BigDecimal> sumTotalBetweenByPaymentMethod(@Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to, @Param("method") PaymentMethod method);
 
     // Número de ventas hoy
     @Query("SELECT COUNT(s) FROM Sale s WHERE DATE(s.createdAt) = CURRENT_DATE")

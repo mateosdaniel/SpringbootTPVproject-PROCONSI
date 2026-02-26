@@ -51,17 +51,18 @@ public class PdfReportServiceImpl implements PdfReportService {
             try (OutputStream os = new FileOutputStream(outputFile)) {
                 PdfRendererBuilder builder = new PdfRendererBuilder();
 
-                // Allow fallback to generic font families if needed
-                builder.useFastMode();
+                // builder.useFastMode(); // Removed for better compatibility
 
                 // The base URI is needed for resolving relative resources (images, css) if any
                 // are added later
                 builder.withHtmlContent(htmlContent, "classpath:/templates/");
                 builder.toStream(os);
                 builder.run();
+                os.flush();
             }
 
-            log.info("PDF report generated successfully at: {}", outputFile.getAbsolutePath());
+            log.info("PDF report generated successfully at: {} (Size: {} bytes)",
+                    outputFile.getAbsolutePath(), outputFile.length());
             return outputFile;
 
         } catch (Exception e) {
@@ -99,17 +100,18 @@ public class PdfReportServiceImpl implements PdfReportService {
             try (OutputStream os = new FileOutputStream(outputFile)) {
                 PdfRendererBuilder builder = new PdfRendererBuilder();
 
-                // Allow fallback to generic font families if needed
-                builder.useFastMode();
+                // builder.useFastMode(); // Removed for better compatibility
 
                 // The base URI is needed for resolving relative resources (images, css) if any
                 // are added later
                 builder.withHtmlContent(htmlContent, "classpath:/templates/");
                 builder.toStream(os);
                 builder.run();
+                os.flush();
             }
 
-            log.info("Invoice PDF report generated successfully at: {}", outputFile.getAbsolutePath());
+            log.info("Invoice PDF report generated successfully at: {} (Size: {} bytes)",
+                    outputFile.getAbsolutePath(), outputFile.length());
             return outputFile;
 
         } catch (Exception e) {

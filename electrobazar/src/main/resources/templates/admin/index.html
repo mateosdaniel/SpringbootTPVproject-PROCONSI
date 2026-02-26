@@ -1039,10 +1039,9 @@
                                 <span th:text="${sale.worker != null ? sale.worker.username : 'Sistema'}">—</span>
                             </td>
                             <td>
-                                <i th:class="${sale.paymentMethod == T(com.proconsi.electrobazar.model.PaymentMethod).CASH ? 'bi bi-cash' : 'bi bi-credit-card'}"
+                                <i th:class="${sale.paymentMethod.name() == 'CASH' ? 'bi bi-cash' : 'bi bi-credit-card'}"
                                     style="margin-right:0.3rem"></i>
-                                <span
-                                    th:text="${sale.paymentMethod == T(com.proconsi.electrobazar.model.PaymentMethod).CASH ? 'Efectivo' : 'Tarjeta'}"></span>
+                                <span th:text="${sale.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}"></span>
                             </td>
                             <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--text-main)"
                                 th:text="${#numbers.formatDecimal(sale.totalAmount,1,2)} + ' €'"></td>
