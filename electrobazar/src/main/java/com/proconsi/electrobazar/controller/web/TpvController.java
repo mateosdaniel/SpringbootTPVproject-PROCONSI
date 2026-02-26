@@ -99,7 +99,8 @@ public class TpvController {
                             .build();
                 }).collect(Collectors.toList());
 
-        Sale sale = saleService.createSale(lines, paymentMethod, notes, customer);
+        Worker worker = (Worker) session.getAttribute("worker");
+        Sale sale = saleService.createSale(lines, paymentMethod, notes, customer, worker);
 
         if (customer != null) {
             try {
@@ -171,7 +172,7 @@ public class TpvController {
         String normalizedBalance = closingBalance.replace(",", ".");
         java.math.BigDecimal closingBalanceDecimal = new java.math.BigDecimal(normalizedBalance);
 
-        CashRegister register = cashRegisterService.closeCashRegister(closingBalanceDecimal, notes);
+        CashRegister register = cashRegisterService.closeCashRegister(closingBalanceDecimal, notes, worker);
 
         // Generar el PDF del cierre
         java.io.File pdfFile = pdfReportService.generateCashCloseReport(register);

@@ -945,6 +945,7 @@
                             <th>Fecha</th>
                             <th>Tipo</th>
                             <th>Cliente / NIF</th>
+                            <th>Atendido por</th>
                             <th>Método Pago</th>
                             <th>Total</th>
                             <th style="text-align:right">Descargar</th>
@@ -966,6 +967,9 @@
                                 </div>
                                 <span th:unless="${sale.customer != null}" style="color:var(--text-muted)">—
                                     Consumidor Final —</span>
+                            </td>
+                            <td style="font-weight: 500;">
+                                <span th:text="${sale.worker != null ? sale.worker.username : 'Sistema'}">—</span>
                             </td>
                             <td>
                                 <i th:class="${sale.paymentMethod == T(com.proconsi.electrobazar.model.PaymentMethod).CASH ? 'bi bi-cash' : 'bi bi-credit-card'}"
@@ -1015,6 +1019,7 @@
                             <th>Total Calculado</th>
                             <th>Total Declarado</th>
                             <th>Diferencia</th>
+                            <th>Atendido por</th>
                             <th style="text-align:right">Descargar</th>
                         </tr>
                     </thead>
@@ -1035,6 +1040,10 @@
                                     €)</span>
                                 <span th:if="${register.difference != 0}" class="badge-active no"
                                     th:text="${#numbers.formatDecimal(register.difference, 1, 2)} + ' €'"></span>
+                            </td>
+                            <td style="font-weight: 500;">
+                                <span
+                                    th:text="${register.worker != null ? register.worker.username : 'Sistema'}">—</span>
                             </td>
 
                             <td style="text-align:right">

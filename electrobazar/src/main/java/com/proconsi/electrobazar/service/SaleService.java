@@ -11,11 +11,20 @@ import java.util.List;
 
 public interface SaleService {
     Sale findById(Long id);
+
     List<Sale> findToday();
+
     List<Sale> findBetween(LocalDateTime from, LocalDateTime to);
-    Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes);
-    Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, Customer customer);
+
+    Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes,
+            com.proconsi.electrobazar.model.Worker worker);
+
+    Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, Customer customer,
+            com.proconsi.electrobazar.model.Worker worker);
+
     BigDecimal sumTotalToday();
+
     long countToday();
+
     BigDecimal sumTotalByPaymentMethodToday(PaymentMethod paymentMethod);
 }

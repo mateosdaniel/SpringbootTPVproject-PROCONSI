@@ -353,8 +353,10 @@
             <div class="t-header">
                 <div class="t-brand">Electro<span>Bazar</span></div>
                 <div class="t-subtitle">Ticket de venta</div>
-                <div class="t-meta" th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm')}">
-                    25/02/2026 14:30
+                <div class="t-meta">
+                    <div th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm')}">25/02/2026 14:30</div>
+                    <div style="margin-top: 0.2rem;">Le atendió: <strong
+                            th:text="${sale.worker != null ? sale.worker.username : 'Sistema'}">Admin</strong></div>
                 </div>
             </div>
 

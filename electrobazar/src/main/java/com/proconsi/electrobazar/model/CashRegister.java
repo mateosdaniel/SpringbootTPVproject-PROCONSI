@@ -8,7 +8,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "cash_registers")
-@Getter @Setter
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -56,6 +57,10 @@ public class CashRegister {
     @Column(nullable = false)
     @Builder.Default
     private Boolean closed = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "worker_id")
+    private Worker worker;
 
     @PrePersist
     public void prePersist() {

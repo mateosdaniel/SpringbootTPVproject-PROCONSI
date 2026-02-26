@@ -6,8 +6,13 @@ import java.util.List;
 
 public interface CashRegisterService {
     CashRegister findById(Long id);
+
     List<CashRegister> findAllClosed();
+
     CashRegister findTodayIfClosed();
-    CashRegister closeCashRegister(BigDecimal closingBalance, String notes);
+
+    CashRegister closeCashRegister(BigDecimal closingBalance, String notes,
+            com.proconsi.electrobazar.model.Worker worker);
+
     CashRegister getTodayRegister();
 }

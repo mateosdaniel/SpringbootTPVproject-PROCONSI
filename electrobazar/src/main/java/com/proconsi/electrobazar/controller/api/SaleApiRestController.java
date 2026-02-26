@@ -33,15 +33,18 @@ public class SaleApiRestController {
 
     // El body que espera:
     // {
-    //   "paymentMethod": "CASH",
-    //   "notes": "opcional",
-    //   "lines": [
-    //     { "product": { "id": 1 }, "quantity": 2 },
-    //     { "product": { "id": 3 }, "quantity": 1 }
-    //   ]
+    // "paymentMethod": "CASH",
+    // "notes": "opcional",
+    // "lines": [
+    // { "product": { "id": 1 }, "quantity": 2 },
+    // { "product": { "id": 3 }, "quantity": 1 }
+    // ]
     // }
     @PostMapping
-    public ResponseEntity<Sale> create(@RequestBody Sale sale) {
+    public ResponseEntity<Sale> create(@RequestBody Sale sale, jakarta.servlet.http.HttpSession session) {
+        com.proconsi.electrobazar.model.Worker worker = (com.proconsi.electrobazar.model.Worker) session
+                .getAttribute("worker");
+
         List<SaleLine> lines = sale.getLines().stream().map(line -> {
             Product product = productService.findById(line.getProduct().getId());
             return SaleLine.builder()
@@ -51,7 +54,7 @@ public class SaleApiRestController {
                     .build();
         }).collect(Collectors.toList());
 
-        Sale saved = saleService.createSale(lines, sale.getPaymentMethod(), sale.getNotes());
+        Sale saved = saleService.createSale(lines, sale.getPaymentMethod(), sale.getNotes(), worker);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 }

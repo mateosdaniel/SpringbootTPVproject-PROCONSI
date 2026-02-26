@@ -46,12 +46,14 @@ public class SaleServiceImpl implements SaleService {
     }
 
     @Override
-    public Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes) {
-        return createSale(lines, paymentMethod, notes, null);
+    public Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes,
+            com.proconsi.electrobazar.model.Worker worker) {
+        return createSale(lines, paymentMethod, notes, null, worker);
     }
 
     @Override
-    public Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, com.proconsi.electrobazar.model.Customer customer) {
+    public Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes,
+            com.proconsi.electrobazar.model.Customer customer, com.proconsi.electrobazar.model.Worker worker) {
         if (lines == null || lines.isEmpty()) {
             throw new IllegalArgumentException("Una venta debe tener al menos un producto.");
         }
@@ -75,6 +77,7 @@ public class SaleServiceImpl implements SaleService {
                 .totalAmount(total)
                 .notes(notes)
                 .customer(customer)
+                .worker(worker)
                 .lines(lines)
                 .build();
 
@@ -92,7 +95,7 @@ public class SaleServiceImpl implements SaleService {
                 .filter(cr -> cr.getOpeningTime() != null)
                 .map(cr -> cr.getOpeningTime())
                 .orElse(today.atStartOfDay());
-        
+
         LocalDateTime endOfDay = today.atStartOfDay().plusDays(1).minusNanos(1);
         return saleRepository.sumTotalBetween(startTime, endOfDay);
     }
@@ -105,7 +108,7 @@ public class SaleServiceImpl implements SaleService {
                 .filter(cr -> cr.getOpeningTime() != null)
                 .map(cr -> cr.getOpeningTime())
                 .orElse(today.atStartOfDay());
-        
+
         LocalDateTime endOfDay = today.atStartOfDay().plusDays(1).minusNanos(1);
         return saleRepository.countByCreatedAtBetween(startTime, endOfDay);
     }
@@ -118,7 +121,7 @@ public class SaleServiceImpl implements SaleService {
                 .filter(cr -> cr.getOpeningTime() != null)
                 .map(cr -> cr.getOpeningTime())
                 .orElse(today.atStartOfDay());
-        
+
         LocalDateTime endOfDay = today.atStartOfDay().plusDays(1).minusNanos(1);
         return saleRepository.sumTotalBetweenByPaymentMethod(startTime, endOfDay, paymentMethod)
                 .orElse(BigDecimal.ZERO);

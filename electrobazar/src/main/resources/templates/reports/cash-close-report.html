@@ -171,6 +171,10 @@
                 <td class="info-label">Estado:</td>
                 <td style="color: #27ae60; font-weight: bold;">CERRADO</td>
             </tr>
+            <tr>
+                <td class="info-label">Le atendió:</td>
+                <td colspan="3" th:text="${register.worker != null ? register.worker.username : 'Sistema'}">Admin</td>
+            </tr>
         </table>
     </div>
 

@@ -260,7 +260,11 @@
                 <div class="party-detail">
                     CIF: B12345678<br>
                     C/ Exemple, 12, 28001 Madrid<br>
-                    Tel: 91 123 45 67
+                    Tel: 91 123 45 67<br>
+                    <div style="margin-top: 6px; font-weight: bold; color: #333;">
+                        Le atendió: <span
+                            th:text="${sale.worker != null ? sale.worker.username : 'Sistema'}">Admin</span>
+                    </div>
                 </div>
             </td>
             <td th:if="${sale.customer != null}">

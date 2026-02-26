@@ -9,7 +9,8 @@ import java.util.List;
 
 @Entity
 @Table(name = "sales")
-@Getter @Setter
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -25,6 +26,10 @@ public class Sale {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
     private Customer customer;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "worker_id")
+    private Worker worker;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

@@ -35,8 +35,11 @@ public class CashRegisterApiRestController {
     @PostMapping("/close")
     public ResponseEntity<CashRegister> closeCashRegister(
             @RequestParam BigDecimal closingBalance,
-            @RequestParam(required = false) String notes) {
+            @RequestParam(required = false) String notes,
+            jakarta.servlet.http.HttpSession session) {
+        com.proconsi.electrobazar.model.Worker worker = (com.proconsi.electrobazar.model.Worker) session
+                .getAttribute("worker");
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(cashRegisterService.closeCashRegister(closingBalance, notes));
+                .body(cashRegisterService.closeCashRegister(closingBalance, notes, worker));
     }
 }

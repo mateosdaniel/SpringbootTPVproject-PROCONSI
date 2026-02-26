@@ -1258,24 +1258,25 @@
                 </div>
                 <div class="modal-body">
                     <!-- Invoice Toggle Card -->
-                    <div class="invoice-toggle-card mb-4" id="invoiceToggleCard" onclick="toggleInvoiceCard()">
-                        <div class="d-flex align-items-center justify-content-between p-3 rounded"
-                            style="border: 2px solid var(--border); background: var(--primary); cursor: pointer; transition: all 0.2s;">
+                    <div class="invoice-toggle-card mb-4" id="invoiceToggleCard">
+                        <label class="d-flex align-items-center justify-content-between p-3 rounded w-100 m-0"
+                            for="requestInvoiceToggle"
+                            style="border: 2px solid var(--border); background: var(--primary); cursor: pointer; transition: all 0.2s; box-sizing: border-box;">
                             <div class="d-flex align-items-center gap-3">
                                 <div class="icon-circle"
                                     style="width: 48px; height: 48px; border-radius: 50%; background: var(--secondary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--text-muted); transition: all 0.2s;">
                                     <i class="bi bi-receipt-cutoff"></i>
                                 </div>
-                                <div>
+                                <div class="text-start">
                                     <h6 class="mb-0 fw-bold" style="color: var(--text-main);">Solicitar Factura</h6>
                                     <small style="color: var(--text-muted);">Añadir datos del cliente a la venta</small>
                                 </div>
                             </div>
                             <div class="form-check form-switch fs-4 mb-0">
                                 <input class="form-check-input mt-0" type="checkbox" id="requestInvoiceToggle"
-                                    style="cursor: pointer;">
+                                    style="cursor: pointer;" onchange="toggleInvoiceCard()">
                             </div>
-                        </div>
+                        </label>
                     </div>
 
                     <div id="invoiceSection" style="display: none; animation: fadeIn 0.3s ease;">
@@ -1609,11 +1610,9 @@
             const card = document.getElementById('invoiceToggleCard').firstElementChild;
             const iconCircle = card.querySelector('.icon-circle');
 
-            // Si override no es undefined, forzamos ese estado, si no, lo invertimos
-            if (override !== undefined) {
+            // Solo forzamos el estado si override es un booleano estricto (al abrir/cerrar modal)
+            if (typeof override === 'boolean') {
                 checkbox.checked = override;
-            } else {
-                checkbox.checked = !checkbox.checked;
             }
 
             const isChecked = checkbox.checked;
@@ -1621,7 +1620,7 @@
             // Actualizar UI de la tarjeta
             if (isChecked) {
                 card.style.borderColor = 'var(--accent)';
-                card.style.background = 'rgba(245, 166, 35, 0.05)';
+                card.style.background = 'rgba(100, 100, 100, 0.1)'; // Fondo sutil para no desentonar
                 iconCircle.style.background = 'var(--accent)';
                 iconCircle.style.color = 'var(--primary)';
             } else {

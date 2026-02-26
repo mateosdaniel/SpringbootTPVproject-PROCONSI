@@ -45,7 +45,8 @@ public class CashRegisterServiceImpl implements CashRegisterService {
         }
 
         @Override
-        public CashRegister closeCashRegister(BigDecimal closingBalance, String notes) {
+        public CashRegister closeCashRegister(BigDecimal closingBalance, String notes,
+                        com.proconsi.electrobazar.model.Worker worker) {
                 LocalDate today = LocalDate.now();
 
                 // Obtener registro abierto actual
@@ -76,6 +77,7 @@ public class CashRegisterServiceImpl implements CashRegisterService {
                 register.setNotes(notes);
                 register.setClosedAt(LocalDateTime.now());
                 register.setClosed(true);
+                register.setWorker(worker); // Asignar trabajador que realiza el cierre
 
                 CashRegister closedRegister = cashRegisterRepository.save(register);
 
@@ -89,6 +91,7 @@ public class CashRegisterServiceImpl implements CashRegisterService {
                                 .cardSales(BigDecimal.ZERO)
                                 .totalSales(BigDecimal.ZERO)
                                 .closed(false)
+                                .worker(worker) // El mismo trabajador abre el nuevo turno por defecto
                                 .build();
                 cashRegisterRepository.save(newRegister);
 

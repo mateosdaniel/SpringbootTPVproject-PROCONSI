@@ -44,7 +44,7 @@ public class PdfReportServiceImpl implements PdfReportService {
             String dateStr = register.getClosedAt() != null
                     ? register.getClosedAt().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
                     : "UnknownDate";
-            String filename = String.format("Cierre_Caja_%s_ID%d.pdf", dateStr, register.getId());
+            String filename = String.format("Cierre_Caja_%d_%s.pdf", register.getId(), dateStr);
             File outputFile = new File(dir, filename);
 
             // 5. Convert HTML to PDF using OpenHTMLToPDF
@@ -92,7 +92,7 @@ public class PdfReportServiceImpl implements PdfReportService {
             String dateStr = sale.getCreatedAt() != null
                     ? sale.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
                     : "UnknownDate";
-            String filename = String.format("Factura_%s_ID%d.pdf", dateStr, sale.getId());
+            String filename = String.format("Factura_Ticket_%d_%s.pdf", sale.getId(), dateStr);
             File outputFile = new File(dir, filename);
 
             // 5. Convert HTML to PDF using OpenHTMLToPDF
