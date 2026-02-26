@@ -1,0 +1,115 @@
+﻿        :root {
+            --primary: #1a1a2e;
+            --secondary: #16213e;
+            --accent: #f5a623;
+            --accent-hover: #e09400;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --text-muted: #8892a4;
+            --text-main: #e8eaf0;
+            --border: #1e2d45;
+            --surface: #0f3460;
+        }
+
+        body {
+            background: var(--primary);
+            color: var(--text-main);
+            font-family: 'Barlow', sans-serif;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+        }
+
+        .card {
+            background: var(--secondary);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+        }
+
+        .card-header {
+            background: var(--surface);
+            border-color: var(--border);
+        }
+
+        .form-control {
+            background: var(--primary);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .form-control:focus {
+            background: var(--primary);
+            border-color: var(--accent);
+            color: var(--text-main);
+            box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.2);
+        }
+
+        .form-label {
+            color: var(--text-main);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border: none;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            color: var(--primary);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        .btn-secondary:hover {
+            background: var(--secondary);
+            color: var(--text-main);
+            border-color: var(--text-muted);
+        }
+
+        .stat-box {
+            background: var(--primary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .text-danger-custom {
+            color: var(--danger);
+        }
+
+        .text-success-custom {
+            color: var(--success);
+        }
+
+        .input-group-text {
+            background: var(--secondary);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        .card-title {
+            color: var(--text-main);
+        }
