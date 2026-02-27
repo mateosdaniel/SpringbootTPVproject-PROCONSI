@@ -231,7 +231,7 @@ public class TpvController {
         java.io.File pdfFile = pdfReportService.generateCashCloseReport(register);
 
         redirectAttributes.addFlashAttribute("successMessage",
-                "Cierre de caja realizado. Diferencia: " + register.getDifference() + "€. PDF guardado en: "
+                "Cierre de caja realizado. Diferencia: " + register.getDifference() + "\u20AC. PDF guardado en: "
                         + pdfFile.getAbsolutePath());
 
         return "redirect:/tpv";

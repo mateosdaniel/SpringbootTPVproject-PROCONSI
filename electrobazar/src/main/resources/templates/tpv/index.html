@@ -46,7 +46,7 @@
                 { name: 'Ceniza', primary: '#eef2f7', secondary: '#e4e9f0', surface: '#d8e0ea' },
             ];
             const lightFixed = { border: '#dae1e7', muted: '#64748b', text: '#0f172a' };
-            const defaultPrefs = { mode: 'dark', lightAccent: 1, lightPrimaryIdx: 0, darkAccent: 7, darkPrimaryIdx: 0 };
+            const defaultPrefs = { mode: 'light', lightAccent: 0, lightPrimaryIdx: 0, darkAccent: 7, darkPrimaryIdx: 0 };
 
             let prefs = JSON.parse(localStorage.getItem('tpv-prefs') || 'null');
             if (prefs && prefs.darkPrimaryIdx >= darkP.length) prefs.darkPrimaryIdx = 0;
@@ -200,7 +200,7 @@
                     style="border-right: 1px solid var(--border); padding-right: 1rem;">
                     <div>Ventas hoy <br><strong th:text="${countToday}">0</strong></div>
                     <div>Total hoy <br><strong
-                            th:text="${#numbers.formatDecimal(totalToday, 1, 2)} + '€'">0.00€</strong></div>
+                            th:text="${#numbers.formatDecimal(totalToday, 1, 2)} + '&euro;'">0.00&euro;</strong></div>
                 </div>
                 <a th:href="@{/tpv/cash-close}" class="btn-cash-close"
                     style="background: var(--accent); color: var(--primary); padding: 0.5rem 1rem; border-radius: 10px; text-decoration: none; font-weight: 700; border: none; display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; font-size: 0.82rem; letter-spacing: 0.3px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); transition: all 0.2s ease;">
@@ -274,7 +274,8 @@
                     </div>
                     <div class="product-info">
                         <div class="product-name" th:text="${product.name}">Nombre producto</div>
-                        <div class="product-price" th:text="${#numbers.formatDecimal(product.price, 1, 2)} + '€'">0.00€
+                        <div class="product-price" th:text="${#numbers.formatDecimal(product.price, 1, 2)} + '&euro;'">
+                            0.00&euro;
                         </div>
                         <div class="product-category-badge"
                             th:text="${product.category != null ? product.category.name : ''}"></div>
@@ -300,7 +301,7 @@
             <div class="ticket-footer">
                 <div class="ticket-total-row">
                     <span class="ticket-total-label">Total</span>
-                    <span class="ticket-total-amount" id="ticketTotal">0.00€</span>
+                    <span class="ticket-total-amount" id="ticketTotal">0.00&euro;</span>
                 </div>
 
                 <!-- Selector método de pago -->
@@ -355,11 +356,11 @@
                                 min="0"
                                 style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
                             <span class="input-group-text bg-primary text-secondary"
-                                style="border-color: var(--border); color:var(--text-muted)">€</span>
+                                style="border-color: var(--border); color:var(--text-muted)">&euro;</span>
                         </div>
                         <div class="mt-2 d-flex justify-content-between align-items-center">
                             <small class="text-muted">Cambio a devolver:</small>
-                            <span id="changeAmount" class="fw-bold fs-5 text-success">0.00€</span>
+                            <span id="changeAmount" class="fw-bold fs-5 text-success">0.00&euro;</span>
                         </div>
                     </div>
 

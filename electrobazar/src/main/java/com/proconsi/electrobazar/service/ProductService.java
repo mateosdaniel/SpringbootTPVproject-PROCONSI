@@ -24,6 +24,8 @@ public interface ProductService {
 
     void delete(Long id);
 
+    void hardDeleteProduct(Long id);
+
     // Stock management
     void decreaseStock(Long productId, Integer quantity);
 

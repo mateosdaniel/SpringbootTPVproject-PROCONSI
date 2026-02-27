@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administración — ElectroBazar</title>
+    <title>Administraci&oacute;n &mdash; ElectroBazar</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/icons/favicon.svg}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -45,7 +45,7 @@
                 { name: 'Ceniza', primary: '#eef2f7', secondary: '#e4e9f0', surface: '#d8e0ea' },
             ];
             const lightFixed = { border: '#dae1e7', muted: '#64748b', text: '#0f172a' };
-            const defaultPrefs = { mode: 'dark', lightAccent: 1, lightPrimaryIdx: 0, darkAccent: 7, darkPrimaryIdx: 0 };
+            const defaultPrefs = { mode: 'light', lightAccent: 0, lightPrimaryIdx: 0, darkAccent: 7, darkPrimaryIdx: 0 };
 
             let prefs = JSON.parse(localStorage.getItem('tpv-prefs') || 'null');
             if (prefs && prefs.darkPrimaryIdx >= darkP.length) prefs.darkPrimaryIdx = 0;
@@ -249,7 +249,7 @@
     <div class="admin-body">
 
 
-        <!-- â•â•â•â• CONTENT VIEWS â•â•â•â• -->
+        <!-- ---- CONTENT VIEWS ---- -->
 
         <!-- 0. DASHBOARD LANDING VIEW -->
         <div id="dashboardView">
@@ -387,7 +387,7 @@
                                         </div>
                                     </td>
                                     <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--accent)"
-                                        th:text="${#numbers.formatDecimal(p.price,1,2)} + ' €'"></td>
+                                        th:text="${#numbers.formatDecimal(p.price,1,2)} + ' &euro;'"></td>
                                     <td>
                                         <span th:text="${p.stock}"
                                             th:classappend="${p.stock < 5} ? 'fw-bold text-danger' : ''">0</span>
@@ -537,7 +537,7 @@
                                 <span th:text="${sale.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}"></span>
                             </td>
                             <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--text-main)"
-                                th:text="${#numbers.formatDecimal(sale.totalAmount,1,2)} + ' €'"></td>
+                                th:text="${#numbers.formatDecimal(sale.totalAmount,1,2)} + ' &euro;'"></td>
                             <td style="text-align:right">
                                 <a th:href="@{/admin/download/invoice/{id}(id=${sale.id})}" target="_blank"
                                     class="btn-icon" title="Descargar PDF" style="text-decoration: none;">
@@ -589,19 +589,19 @@
                             <td th:text="${#temporals.format(register.closedAt, 'dd/MM/yyyy HH:mm')}"></td>
 
                             <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;"
-                                th:text="${#numbers.formatDecimal(register.openingBalance + register.totalSales,1,2)} + ' €'">
+                                th:text="${#numbers.formatDecimal(register.openingBalance + register.totalSales,1,2)} + ' &euro;'">
                             </td>
 
                             <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;"
-                                th:text="${#numbers.formatDecimal(register.closingBalance,1,2)} + ' €'"></td>
+                                th:text="${#numbers.formatDecimal(register.closingBalance,1,2)} + ' &euro;'"></td>
 
                             <td>
                                 <span th:if="${register.difference == 0}" class="badge-active yes">Cuadrado (0.00
-                                    €)</span>
+                                    &euro;)</span>
                                 <span th:if="${register.difference > 0}" class="badge-active yes"
-                                    th:text="'+' + ${#numbers.formatDecimal(register.difference, 1, 2)} + ' €'"></span>
+                                    th:text="'+' + ${#numbers.formatDecimal(register.difference, 1, 2)} + ' &euro;'"></span>
                                 <span th:if="${register.difference < 0}" class="badge-active no"
-                                    th:text="${#numbers.formatDecimal(register.difference, 1, 2)} + ' €'"></span>
+                                    th:text="${#numbers.formatDecimal(register.difference, 1, 2)} + ' &euro;'"></span>
                             </td>
                             <td style="font-weight: 500;">
                                 <span
@@ -702,7 +702,7 @@
                     <div class="stats-card">
                         <div class="stats-icon"><i class="bi bi-currency-euro"></i></div>
                         <div class="stats-data">
-                            <div class="stats-value" id="statTodayRevenue">0.00 €</div>
+                            <div class="stats-value" id="statTodayRevenue">0.00 &euro;</div>
                             <div class="stats-label">Ventas Hoy</div>
                         </div>
                     </div>
@@ -865,7 +865,7 @@
                                     placeholder="Descripción opcional"></textarea>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label" for="productPrice">Precio (€) *</label>
+                                <label class="form-label" for="productPrice">Precio (&euro;) *</label>
                                 <input type="number" class="form-control" id="productPrice" step="0.01" min="0" required
                                     placeholder="0.00">
                             </div>

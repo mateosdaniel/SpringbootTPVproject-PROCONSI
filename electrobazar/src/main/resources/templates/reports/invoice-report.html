@@ -299,31 +299,35 @@
         <tbody>
             <tr th:each="line : ${sale.lines}">
                 <td class="name" th:text="${line.product.name}">Producto</td>
-                <td class="r" th:text="${#numbers.formatDecimal(line.unitPrice, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+                <td class="r" th:text="${#numbers.formatDecimal(line.unitPrice, 1, 2, 'POINT')} + ' &euro;'">0.00 &euro;
+                </td>
                 <td class="r" th:text="${line.quantity}">1</td>
-                <td class="r" th:text="${#numbers.formatDecimal(line.unitPrice * line.quantity, 1, 2, 'POINT')} + ' €'">
-                    0.00 €</td>
+                <td class="r"
+                    th:text="${#numbers.formatDecimal(line.unitPrice * line.quantity, 1, 2, 'POINT')} + ' &euro;'">
+                    0.00 &euro;</td>
             </tr>
         </tbody>
     </table>
 
-    <!-- â•â• TOTALS â•â• -->
+    <!-- â•â• TOTALS â•â• -->
     <div class="totals-wrap">
         <table class="totals-table">
             <tr>
                 <td class="lbl">Base imponible (aprox.):</td>
-                <td class="amt" th:text="${#numbers.formatDecimal(sale.totalAmount / 1.21, 1, 2, 'POINT')} + ' €'">0.00
-                    €</td>
+                <td class="amt" th:text="${#numbers.formatDecimal(sale.totalAmount / 1.21, 1, 2, 'POINT')} + ' &euro;'">
+                    0.00
+                    &euro;</td>
             </tr>
             <tr>
                 <td class="lbl">IVA 21% (aprox.):</td>
                 <td class="amt"
-                    th:text="${#numbers.formatDecimal(sale.totalAmount - (sale.totalAmount / 1.21), 1, 2, 'POINT')} + ' €'">
-                    0.00 €</td>
+                    th:text="${#numbers.formatDecimal(sale.totalAmount - (sale.totalAmount / 1.21), 1, 2, 'POINT')} + ' &euro;'">
+                    0.00 &euro;</td>
             </tr>
             <tr class="grand">
                 <td class="lbl">TOTAL A PAGAR:</td>
-                <td class="amt" th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+                <td class="amt" th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2, 'POINT')} + ' &euro;'">0.00
+                    &euro;</td>
             </tr>
         </table>
     </div>
@@ -333,14 +337,15 @@
         Forma de pago:
         <strong th:text="${sale.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta bancaria'}">Efectivo</strong>
         <span th:if="${sale.receivedAmount != null}">
-            — Entregado: <strong th:text="${#numbers.formatDecimal(sale.receivedAmount, 1, 2, 'POINT')} + ' €'">0.00
-                €</strong>
-            — Cambio: <strong th:text="${#numbers.formatDecimal(sale.changeAmount, 1, 2, 'POINT')} + ' €'">0.00
-                €</strong>
+            — Entregado: <strong
+                th:text="${#numbers.formatDecimal(sale.receivedAmount, 1, 2, 'POINT')} + ' &euro;'">0.00
+                &euro;</strong>
+            — Cambio: <strong th:text="${#numbers.formatDecimal(sale.changeAmount, 1, 2, 'POINT')} + ' &euro;'">0.00
+                &euro;</strong>
         </span>
     </div>
 
-    <!-- â•â• FOOTER â•â• -->
+    <!-- â•â• FOOTER â•â• -->
     <div class="footer">
         ElectroBazar S.L. — Registro Mercantil de Madrid, Tomo 1, Folio 1, Hoja M-1 · CIF: B12345678<br />
         Documento generado automáticamente el

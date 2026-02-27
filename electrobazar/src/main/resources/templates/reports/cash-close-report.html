@@ -184,32 +184,36 @@
             <thead>
                 <tr>
                     <th>Concepto</th>
-                    <th class="amount">Importe (€)</th>
+                    <th class="amount">Importe (&euro;)</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td>Fondo de Caja (Apertura)</td>
                     <td class="amount"
-                        th:text="${#numbers.formatDecimal(register.openingBalance, 1, 'POINT', 2, 'COMMA')} + ' €'">0,00
-                        €</td>
+                        th:text="${#numbers.formatDecimal(register.openingBalance, 1, 'POINT', 2, 'COMMA')} + ' &euro;'">
+                        0,00
+                        &euro;</td>
                 </tr>
                 <tr>
                     <td>Ventas en Efectivo</td>
                     <td class="amount"
-                        th:text="${#numbers.formatDecimal(register.cashSales, 1, 'POINT', 2, 'COMMA')} + ' €'">0,00 €
+                        th:text="${#numbers.formatDecimal(register.cashSales, 1, 'POINT', 2, 'COMMA')} + ' &euro;'">0,00
+                        &euro;
                     </td>
                 </tr>
                 <tr>
                     <td>Ventas con Tarjeta</td>
                     <td class="amount"
-                        th:text="${#numbers.formatDecimal(register.cardSales, 1, 'POINT', 2, 'COMMA')} + ' €'">0,00 €
+                        th:text="${#numbers.formatDecimal(register.cardSales, 1, 'POINT', 2, 'COMMA')} + ' &euro;'">0,00
+                        &euro;
                     </td>
                 </tr>
                 <tr class="total-row">
                     <td>Total Ventas del Día</td>
                     <td class="amount"
-                        th:text="${#numbers.formatDecimal(register.totalSales, 1, 'POINT', 2, 'COMMA')} + ' €'">0,00 €
+                        th:text="${#numbers.formatDecimal(register.totalSales, 1, 'POINT', 2, 'COMMA')} + ' &euro;'">
+                        0,00 &euro;
                     </td>
                 </tr>
             </tbody>
@@ -222,22 +226,21 @@
             <tbody>
                 <tr>
                     <td>Saldo Teórico (Apertura + Ventas Efectivo)</td>
-                    <td class="amount"
-                        th:text="${#numbers.formatDecimal(register.openingBalance + register.cashSales, 1, 'POINT', 2, 'COMMA')} + ' €'">
-                        0,00 €</td>
+                    <td class="amount" 0,00 &euro;</td>
                 </tr>
                 <tr>
                     <td>Saldo Contado (Real en Cajón)</td>
                     <td class="amount"
-                        th:text="${#numbers.formatDecimal(register.closingBalance, 1, 'POINT', 2, 'COMMA')} + ' €'">0,00
-                        €</td>
+                        th:text="${#numbers.formatDecimal(register.closingBalance, 1, 'POINT', 2, 'COMMA')} + ' &euro;'">
+                        0,00
+                        &euro;</td>
                 </tr>
                 <tr class="total-row">
                     <td>Diferencia (Descuadre)</td>
                     <td class="amount"
                         th:classappend="${register.difference < 0 ? 'difference-negative' : (register.difference > 0 ? 'difference-positive' : 'difference-neutral')}"
-                        th:text="${(register.difference > 0 ? '+' : '') + #numbers.formatDecimal(register.difference, 1, 'POINT', 2, 'COMMA')} + ' €'">
-                        0,00 €
+                        th:text="${(register.difference > 0 ? '+' : '') + #numbers.formatDecimal(register.difference, 1, 'POINT', 2, 'COMMA')} + ' &euro;'">
+                        0,00 &euro;
                     </td>
                 </tr>
             </tbody>

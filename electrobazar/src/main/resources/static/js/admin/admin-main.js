@@ -162,12 +162,23 @@ function saveProduct() {
 }
 
 function deleteProduct(id, name) {
-    if (!confirm('¿Eliminar (desactivar) el producto "' + name + '"?')) return;
-    fetch('/api/products/' + id, { method: 'DELETE' })
+    if (!confirm('¿Seguro que quieres eliminar definitivamente el producto "' + name + '"?')) return;
+
+    fetch('/admin/products/' + id + '/hard', { method: 'DELETE' })
         .then(function (r) {
+            if (r.status === 409) {
+                return r.text().then(function (msg) { showToast(msg, 'error'); });
+            }
             if (!r.ok) throw new Error();
-            showToast('Producto "' + name + '" desactivado');
-            setTimeout(function () { location.reload(); }, 900);
+
+            showToast('Producto "' + name + '" eliminado definitivamente');
+
+            // Remove row from DOM
+            var btn = document.querySelector('button.danger[data-id="' + id + '"]');
+            if (btn) {
+                var row = btn.closest('tr');
+                if (row) row.remove();
+            }
         })
         .catch(function () { showToast('Error al eliminar el producto', 'error'); });
 }

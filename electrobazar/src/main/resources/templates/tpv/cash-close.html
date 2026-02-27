@@ -43,7 +43,7 @@
                 { name: 'Ceniza', primary: '#eef2f7', secondary: '#e4e9f0', surface: '#d8e0ea' },
             ];
             const lightFixed = { border: '#dae1e7', muted: '#64748b', text: '#0f172a' };
-            const defaultPrefs = { mode: 'dark', lightAccent: 1, lightPrimaryIdx: 0, darkAccent: 7, darkPrimaryIdx: 0 };
+            const defaultPrefs = { mode: 'light', lightAccent: 0, lightPrimaryIdx: 0, darkAccent: 7, darkPrimaryIdx: 0 };
 
             let prefs = JSON.parse(localStorage.getItem('tpv-prefs') || 'null');
             if (prefs && prefs.darkPrimaryIdx >= darkP.length) prefs.darkPrimaryIdx = 0;
@@ -175,19 +175,22 @@
             <div class="col-md-6">
                 <div class="stat-box">
                     <div class="stat-label">Total hoy</div>
-                    <div class="stat-value" th:text="${#numbers.formatDecimal(totalToday, 1, 2)} + '€'">0.00€</div>
+                    <div class="stat-value" th:text="${#numbers.formatDecimal(totalToday, 1, 2)} + '&euro;'">0.00&euro;
+                    </div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="stat-box">
                     <div class="stat-label">Pagos en efectivo</div>
-                    <div class="stat-value" th:text="${#numbers.formatDecimal(cashSalesToday, 1, 2)} + '€'">0.00€</div>
+                    <div class="stat-value" th:text="${#numbers.formatDecimal(cashSalesToday, 1, 2)} + '&euro;'">
+                        0.00&euro;</div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="stat-box">
                     <div class="stat-label">Pagos con tarjeta</div>
-                    <div class="stat-value" th:text="${#numbers.formatDecimal(cardSalesToday, 1, 2)} + '€'">0.00€</div>
+                    <div class="stat-value" th:text="${#numbers.formatDecimal(cardSalesToday, 1, 2)} + '&euro;'">
+                        0.00&euro;</div>
                 </div>
             </div>
         </div>
@@ -206,7 +209,7 @@
                         <div class="input-group">
                             <input type="number" id="closingBalance" name="closingBalance" class="form-control"
                                 placeholder="0.00" step="0.01" min="0" required>
-                            <span class="input-group-text">€</span>
+                            <span class="input-group-text">&euro;</span>
                         </div>
                         <small class="text-muted">Cantidad total de dinero en físico en la caja</small>
                     </div>
@@ -222,9 +225,9 @@
                         style="background: rgba(52,152,219,0.1); border-color: #3498db; color: #3498db;">
                         <small>
                             <strong>Teoría:</strong> <span id="theoryAmount"
-                                th:text="${#numbers.formatDecimal(expectedCashInDrawer, 1, 2)} + '€'">0.00€</span><br>
-                            <strong>Real:</strong> <span id="realAmount">0.00€</span><br>
-                            <strong>Diferencia:</strong> <span id="diffAmount">0.00€</span>
+                                th:text="${#numbers.formatDecimal(expectedCashInDrawer, 1, 2)} + '&euro;'">0.00&euro;</span><br>
+                            <strong>Real:</strong> <span id="realAmount">0.00&euro;</span><br>
+                            <strong>Diferencia:</strong> <span id="diffAmount">0.00&euro;</span>
                         </small>
                     </div>
 

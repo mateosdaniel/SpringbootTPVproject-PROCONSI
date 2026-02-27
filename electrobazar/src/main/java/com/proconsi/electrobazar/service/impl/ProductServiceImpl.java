@@ -112,15 +112,23 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public void hardDeleteProduct(Long id) {
+        Product product = findById(id);
+        productRepository.deleteById(id);
+
+        activityLogService.logActivity(
+                "ELIMINAR_PRODUCTO_HARD",
+                "Producto eliminado definitivamente: " + product.getName(),
+                "Admin",
+                "PRODUCT",
+                id);
+    }
+
+    @Override
     public void decreaseStock(Long productId, Integer quantity) {
         Product product = findById(productId);
         if (product.getStock() < quantity) {
-            // Se permite el cobro aunque no haya stock, habiendo avisado al usuario en el
-            // TPV
-            // Solo imprimimos un aviso en log
-            System.err.println("Aviso: Stock insuficiente para el producto " + product.getName() +
-                    ". Disponible: " + product.getStock() + ", solicitado: " + quantity
-                    + ". Forzando venta.");
+            throw new IllegalStateException("Stock insuficiente");
         }
         product.setStock(product.getStock() - quantity);
         productRepository.save(product);

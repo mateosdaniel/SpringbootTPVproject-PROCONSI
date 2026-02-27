@@ -9,9 +9,8 @@ function addToTicket(card) {
 
     var currentQty = ticket[id] ? ticket[id].quantity : 0;
     if (currentQty + 1 > stock) {
-        if (!confirm(`El producto "${name}" no tiene stock suficiente. Disponible: ${stock}. ¿Deseas añadirlo de todas formas?`)) {
-            return;
-        }
+        showToast("Stock insuficiente para este producto", 'warning');
+        return;
     }
 
     if (ticket[id]) {
@@ -31,9 +30,8 @@ function changeQty(id, delta) {
     var newQty = ticket[id].quantity + delta;
 
     if (delta > 0 && newQty > ticket[id].stock) {
-        if (!confirm(`El producto "${ticket[id].name}" no tiene stock suficiente. Disponible: ${ticket[id].stock}. ¿Deseas añadirlo de todas formas?`)) {
-            return;
-        }
+        showToast("Stock insuficiente para este producto", 'warning');
+        return;
     }
 
     ticket[id].quantity = newQty;
@@ -62,10 +60,9 @@ function editQty(el, id) {
         var val = parseInt(input.value);
         if (val && val > 0) {
             if (val > ticket[id].stock) {
-                if (!confirm('El producto "' + ticket[id].name + '" no tiene stock suficiente. Disponible: ' + ticket[id].stock + '. ¿Deseas aplicar esta cantidad de todas formas?')) {
-                    renderTicket();
-                    return;
-                }
+                showToast("Stock insuficiente para este producto", 'warning');
+                renderTicket();
+                return;
             }
             ticket[id].quantity = val;
         }
@@ -263,6 +260,50 @@ function showError(msg) {
     alert.textContent = msg;
     alert.style.display = 'block';
     setTimeout(function () { alert.style.display = 'none'; }, 4000);
+}
+
+function showToast(message, type = 'warning') {
+    var container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        container.style.zIndex = '9999';
+        document.body.appendChild(container);
+    }
+
+    var toast = document.createElement('div');
+    toast.className = 'toast align-items-center text-white border-0 show';
+    toast.role = 'alert';
+    toast.ariaLive = 'assertive';
+    toast.ariaAtomic = 'true';
+    toast.style.display = 'block';
+    toast.style.marginBottom = '0.75rem';
+    toast.style.boxShadow = '0 0.5rem 1rem rgba(0, 0, 0, 0.15)';
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s ease-in-out';
+    toast.style.backgroundColor = type === 'warning' ? 'var(--danger)' : 'var(--success)';
+    toast.style.borderRadius = '10px';
+
+    toast.innerHTML =
+        '<div class="d-flex">' +
+        '<div class="toast-body d-flex align-items-center gap-2">' +
+        '<i class="bi ' + (type === 'warning' ? 'bi-exclamation-octagon' : 'bi-check-circle') + ' fs-5"></i>' +
+        '<span>' + escapeHtml(message) + '</span>' +
+        '</div>' +
+        '<button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.parentElement.parentElement.remove()"></button>' +
+        '</div>';
+
+    container.appendChild(toast);
+
+    // Fade in
+    setTimeout(function () { toast.style.opacity = '1'; }, 10);
+
+    // Fade out and remove
+    setTimeout(function () {
+        toast.style.opacity = '0';
+        setTimeout(function () { if (toast.parentNode) toast.remove(); }, 300);
+    }, 4000);
 }
 
 function processSaleWithInvoiceValidation() {

@@ -46,7 +46,7 @@
                 { name: 'Ceniza', primary: '#eef2f7', secondary: '#e4e9f0', surface: '#d8e0ea' },
             ];
             const lightFixed = { border: '#dae1e7', muted: '#64748b', text: '#0f172a' };
-            const defaultPrefs = { mode: 'dark', lightAccent: 1, lightPrimaryIdx: 0, darkAccent: 7, darkPrimaryIdx: 0 };
+            const defaultPrefs = { mode: 'light', lightAccent: 0, lightPrimaryIdx: 0, darkAccent: 7, darkPrimaryIdx: 0 };
 
             let prefs = JSON.parse(localStorage.getItem('tpv-prefs') || 'null');
             if (prefs && prefs.darkPrimaryIdx >= darkP.length) prefs.darkPrimaryIdx = 0;

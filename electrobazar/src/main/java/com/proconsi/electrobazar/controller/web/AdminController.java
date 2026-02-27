@@ -100,6 +100,23 @@ public class AdminController {
         }
     }
 
+    @DeleteMapping("/admin/products/{id}/hard")
+    @ResponseBody
+    public org.springframework.http.ResponseEntity<?> hardDeleteProduct(@PathVariable Long id, HttpSession session) {
+        if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
+            return org.springframework.http.ResponseEntity.status(401).build();
+        }
+        try {
+            productService.hardDeleteProduct(id);
+            return org.springframework.http.ResponseEntity.ok().build();
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            return org.springframework.http.ResponseEntity.status(409)
+                    .body("No se puede eliminar: el producto tiene ventas asociadas");
+        } catch (Exception e) {
+            return org.springframework.http.ResponseEntity.status(500).body("Error al eliminar el producto");
+        }
+    }
+
     @GetMapping("/admin/download/invoice/{id}")
     public org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> downloadInvoicePdf(
             @org.springframework.web.bind.annotation.PathVariable Long id, HttpSession session) {
