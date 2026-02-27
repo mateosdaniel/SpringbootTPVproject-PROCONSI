@@ -3,6 +3,7 @@ package com.proconsi.electrobazar.service.impl;
 import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import com.proconsi.electrobazar.model.Customer;
 import com.proconsi.electrobazar.repository.CustomerRepository;
+import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.CustomerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.util.List;
 public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
+    private final ActivityLogService activityLogService;
 
     @Override
     @Transactional(readOnly = true)
@@ -38,7 +40,14 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public Customer save(Customer customer) {
-        return customerRepository.save(customer);
+        Customer saved = customerRepository.save(customer);
+        activityLogService.logActivity(
+                "CREAR_CLIENTE",
+                "Nuevo cliente registrado: " + saved.getName(),
+                "Admin",
+                "CUSTOMER",
+                saved.getId());
+        return saved;
     }
 
     @Override
@@ -55,7 +64,14 @@ public class CustomerServiceImpl implements CustomerService {
         existing.setType(updated.getType());
         existing.setActive(updated.getActive());
 
-        return customerRepository.save(existing);
+        Customer saved = customerRepository.save(existing);
+        activityLogService.logActivity(
+                "ACTUALIZAR_CLIENTE",
+                "Cliente actualizado: " + saved.getName(),
+                "Admin",
+                "CUSTOMER",
+                saved.getId());
+        return saved;
     }
 
     @Override
@@ -63,6 +79,13 @@ public class CustomerServiceImpl implements CustomerService {
         Customer customer = findById(id);
         customer.setActive(false);
         customerRepository.save(customer);
+
+        activityLogService.logActivity(
+                "ELIMINAR_CLIENTE",
+                "Cliente eliminado/desactivado: " + customer.getName(),
+                "Admin",
+                "CUSTOMER",
+                customer.getId());
     }
 
     @Override

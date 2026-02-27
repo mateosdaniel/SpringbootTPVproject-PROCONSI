@@ -25,7 +25,7 @@
             flex-direction: column;
         }
 
-        /* â”€â”€ Header â”€â”€ */
+        /* ── Header ── */
         .management-header {
             background: var(--secondary);
             border-bottom: 2px solid var(--border);
@@ -53,7 +53,7 @@
             color: var(--text-main);
         }
 
-        /* â”€â”€ Body â”€â”€ */
+        /* ── Body ── */
         .admin-body {
             flex: 1;
             padding: 2rem;
@@ -62,7 +62,7 @@
             width: 100%;
         }
 
-        /* â”€â”€ Tabs â”€â”€ */
+        /* ── Tabs ── */
         .nav-tabs {
             border-bottom: 2px solid var(--border);
             margin-bottom: 1.5rem;
@@ -90,7 +90,7 @@
             border-bottom-color: var(--accent);
         }
 
-        /* â”€â”€ Table â”€â”€ */
+        /* ── Table ── */
         .admin-table-wrap {
             border-radius: 12px;
             border: 1px solid var(--border);
@@ -230,7 +230,7 @@
             transform: translateY(-1px);
         }
 
-        /* â”€â”€ Modals â”€â”€ */
+        /* ── Modals ── */
         .modal-content {
             background: var(--secondary);
             border: 1px solid var(--border);

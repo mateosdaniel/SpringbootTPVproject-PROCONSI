@@ -5,6 +5,7 @@ import com.proconsi.electrobazar.model.CashRegister;
 import com.proconsi.electrobazar.model.PaymentMethod;
 import com.proconsi.electrobazar.repository.CashRegisterRepository;
 import com.proconsi.electrobazar.repository.SaleRepository;
+import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.CashRegisterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ public class CashRegisterServiceImpl implements CashRegisterService {
 
         private final CashRegisterRepository cashRegisterRepository;
         private final SaleRepository saleRepository;
+        private final ActivityLogService activityLogService;
 
         @Override
         @Transactional(readOnly = true)
@@ -80,6 +82,14 @@ public class CashRegisterServiceImpl implements CashRegisterService {
                 register.setWorker(worker); // Asignar trabajador que realiza el cierre
 
                 CashRegister closedRegister = cashRegisterRepository.save(register);
+                String username = worker != null ? worker.getUsername() : "Anónimo";
+                String difTxt = closedRegister.getDifference().setScale(2, java.math.RoundingMode.HALF_UP) + " \u20ac";
+                activityLogService.logActivity(
+                                "CIERRE_CAJA",
+                                "Cierre de caja completado por " + username + " con descuadre de " + difTxt,
+                                username,
+                                "CASH_REGISTER",
+                                closedRegister.getId());
 
                 return closedRegister;
         }
@@ -104,7 +114,17 @@ public class CashRegisterServiceImpl implements CashRegisterService {
                                 .closed(false)
                                 .worker(worker)
                                 .build();
-                return cashRegisterRepository.save(newRegister);
+                CashRegister saved = cashRegisterRepository.save(newRegister);
+                String username = worker != null ? worker.getUsername() : "Anónimo";
+                activityLogService.logActivity(
+                                "APERTURA_CAJA",
+                                "Apertura de caja realizada por " + username + " con saldo inicial de "
+                                                + openingBalance.setScale(2, java.math.RoundingMode.HALF_UP)
+                                                + " \u20ac",
+                                username,
+                                "CASH_REGISTER",
+                                saved.getId());
+                return saved;
         }
 
 }

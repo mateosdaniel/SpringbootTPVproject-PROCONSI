@@ -1,15 +1,15 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="UTF-8" />
     <title>Factura — ElectroBazar</title>
     <style>
-        /* ══════════════════════════════════════════
+        /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
            ElectroBazar — Plantilla de Factura A4
            Diseño profesional para PDF (openhtmltopdf)
            Sin flexbox — usa table-layout para compatibilidad
-           ══════════════════════════════════════════ */
+           â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
         * {
             box-sizing: border-box;
@@ -225,7 +225,7 @@
 
 <body>
 
-    <!-- ══ HEADER ══ -->
+    <!-- â•â• HEADER â•â• -->
     <div class="header-bar">
         <table class="header-table">
             <tr>
@@ -251,7 +251,7 @@
         </table>
     </div>
 
-    <!-- ══ PARTIES ══ -->
+    <!-- â•â• PARTIES â•â• -->
     <table class="parties-table">
         <tr>
             <td>
@@ -286,7 +286,7 @@
         </tr>
     </table>
 
-    <!-- ══ ITEMS ══ -->
+    <!-- â•â• ITEMS â•â• -->
     <table class="items-table">
         <thead>
             <tr>
@@ -307,7 +307,7 @@
         </tbody>
     </table>
 
-    <!-- ══ TOTALS ══ -->
+    <!-- â•â• TOTALS â•â• -->
     <div class="totals-wrap">
         <table class="totals-table">
             <tr>
@@ -332,9 +332,15 @@
     <div class="payment-line">
         Forma de pago:
         <strong th:text="${sale.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta bancaria'}">Efectivo</strong>
+        <span th:if="${sale.receivedAmount != null}">
+            — Entregado: <strong th:text="${#numbers.formatDecimal(sale.receivedAmount, 1, 2, 'POINT')} + ' €'">0.00
+                €</strong>
+            — Cambio: <strong th:text="${#numbers.formatDecimal(sale.changeAmount, 1, 2, 'POINT')} + ' €'">0.00
+                €</strong>
+        </span>
     </div>
 
-    <!-- ══ FOOTER ══ -->
+    <!-- â•â• FOOTER â•â• -->
     <div class="footer">
         ElectroBazar S.L. — Registro Mercantil de Madrid, Tomo 1, Folio 1, Hoja M-1 · CIF: B12345678<br />
         Documento generado automáticamente el

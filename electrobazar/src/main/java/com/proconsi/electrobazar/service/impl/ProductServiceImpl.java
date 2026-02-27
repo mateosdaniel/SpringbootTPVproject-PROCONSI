@@ -3,6 +3,7 @@ package com.proconsi.electrobazar.service.impl;
 import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import com.proconsi.electrobazar.model.Product;
 import com.proconsi.electrobazar.repository.ProductRepository;
+import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.util.List;
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
+    private final ActivityLogService activityLogService;
 
     @Override
     @Transactional(readOnly = true)
@@ -62,7 +64,14 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Product save(Product product) {
-        return productRepository.save(product);
+        Product saved = productRepository.save(product);
+        activityLogService.logActivity(
+                "CREAR_PRODUCTO",
+                "Nuevo producto añadido: " + saved.getName(),
+                "Admin",
+                "PRODUCT",
+                saved.getId());
+        return saved;
     }
 
     @Override
@@ -78,7 +87,14 @@ public class ProductServiceImpl implements ProductService {
         // Stock es gestionado únicamente a través de métodos específicos de stock
         // no se actualiza en el método update
 
-        return productRepository.save(existing);
+        Product saved = productRepository.save(existing);
+        activityLogService.logActivity(
+                "ACTUALIZAR_PRODUCTO",
+                "Producto actualizado: " + saved.getName(),
+                "Admin",
+                "PRODUCT",
+                saved.getId());
+        return saved;
     }
 
     @Override
@@ -86,6 +102,13 @@ public class ProductServiceImpl implements ProductService {
         Product product = findById(id);
         product.setActive(false);
         productRepository.save(product);
+
+        activityLogService.logActivity(
+                "ELIMINAR_PRODUCTO",
+                "Producto dado de baja: " + product.getName(),
+                "Admin",
+                "PRODUCT",
+                product.getId());
     }
 
     @Override

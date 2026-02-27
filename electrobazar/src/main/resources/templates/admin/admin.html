@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 
 <head>
@@ -15,7 +15,17 @@
     <script>
         // Apply theme before render to avoid flash
         (function () {
+            function hexToRgb(hex) {
+                let r = 0, g = 0, b = 0;
+                if (hex.length === 7) {
+                    r = parseInt(hex.slice(1, 3), 16);
+                    g = parseInt(hex.slice(3, 5), 16);
+                    b = parseInt(hex.slice(5, 7), 16);
+                }
+                return r + ", " + g + ", " + b;
+            }
             const accentColors = [
+                { value: '#ffffff', hover: '#e0e0e0' },
                 { value: '#f5a623', hover: '#e09400' },
                 { value: '#3b82f6', hover: '#2563eb' },
                 { value: '#22c55e', hover: '#16a34a' },
@@ -25,53 +35,116 @@
                 { value: '#06b6d4', hover: '#0891b2' }
             ];
             const darkP = [
-                { primary: '#1a1a2e', secondary: '#16213e', surface: '#0f3460', border: '#1e2d45', muted: '#8892a4', text: '#e8eaf0' },
-                { primary: '#000000', secondary: '#111111', surface: '#0a0a0a', border: '#222222', muted: '#777777', text: '#e0e0e0' },
-                { primary: '#1c1c1c', secondary: '#2a2a2a', surface: '#222222', border: '#3a3a3a', muted: '#888888', text: '#e8e8e8' },
+                { primary: '#151525', secondary: '#1e1e35', surface: '#252545', border: '#2c2c4d', muted: '#8892a4', text: '#e8eaf0' },
+                { primary: '#000000', secondary: '#0c0c0c', surface: '#161616', border: '#222222', muted: '#777777', text: '#e0e0e0' },
+                { primary: '#121212', secondary: '#1a1a1a', surface: '#242424', border: '#2d2d2d', muted: '#888888', text: '#e8e8e8' },
             ];
             const lightP = [
-                { primary: '#f6f6f6', secondary: '#ffffff', surface: '#e2e8f0' },
-                { primary: '#fbf9f6', secondary: '#fdfdfc', surface: '#e9e7e2' },
-                { primary: '#f0f4f8', secondary: '#ffffff', surface: '#dae3ed' },
+                { name: 'Blanco Puro', primary: '#ffffff', secondary: '#f8fafc', surface: '#f1f5f9' },
+                { name: 'Arena', primary: '#f5edc5', secondary: '#faf3e0', surface: '#f0e6c8' },
+                { name: 'Ceniza', primary: '#eef2f7', secondary: '#e4e9f0', surface: '#d8e0ea' },
             ];
-            const lightFixed = { border: '#cbd5e1', muted: '#636b7a', text: '#0f172a' };
-            const defaultPrefs = { mode: 'dark', lightAccent: 0, lightPrimaryIdx: 0, darkAccent: 6, darkPrimaryIdx: 0 };
+            const lightFixed = { border: '#dae1e7', muted: '#64748b', text: '#0f172a' };
+            const defaultPrefs = { mode: 'dark', lightAccent: 1, lightPrimaryIdx: 0, darkAccent: 7, darkPrimaryIdx: 0 };
 
             let prefs = JSON.parse(localStorage.getItem('tpv-prefs') || 'null');
             if (prefs && prefs.darkPrimaryIdx >= darkP.length) prefs.darkPrimaryIdx = 0;
             if (prefs && prefs.lightPrimaryIdx >= lightP.length) prefs.lightPrimaryIdx = 0;
-            if (!prefs || prefs.accent !== undefined) prefs = { ...defaultPrefs, mode: prefs ? prefs.mode : 'dark' };
+            if (!prefs || prefs.accent !== undefined) {
+                prefs = { ...defaultPrefs, mode: prefs ? prefs.mode : 'dark' };
+                localStorage.setItem('tpv-prefs', JSON.stringify(prefs));
+            }
 
             const isDark = prefs.mode === 'dark';
             let currentAccentIdx = isDark ? prefs.darkAccent : prefs.lightAccent;
             if (currentAccentIdx >= accentColors.length) currentAccentIdx = 0;
             const currentPrimaryIdx = isDark ? prefs.darkPrimaryIdx : prefs.lightPrimaryIdx;
 
-            const accent = accentColors[currentAccentIdx] || accentColors[isDark ? 6 : 0];
+            const accent = accentColors[currentAccentIdx] || accentColors[isDark ? 7 : 1];
             const palette = isDark ? darkP : lightP;
-            const p = palette[currentPrimaryIdx] || palette[isDark ? 0 : 1];
+            const p = palette[currentPrimaryIdx] || palette[0];
 
-            const r = document.documentElement.style;
-            r.setProperty('--primary', p.primary);
-            r.setProperty('--secondary', p.secondary);
-            r.setProperty('--surface', p.surface);
-            if (isDark) {
-                r.setProperty('--border', p.border);
-                r.setProperty('--text-muted', p.muted);
-                r.setProperty('--text-main', p.text);
-            } else {
-                r.setProperty('--border', lightFixed.border);
-                r.setProperty('--text-muted', lightFixed.muted);
-                r.setProperty('--text-main', lightFixed.text);
+            let accentValue = accent.value;
+            let accentHover = accent.hover;
+            if (currentAccentIdx === 0) {
+                accentValue = isDark ? '#ffffff' : '#000000';
+                accentHover = isDark ? '#e0e0e0' : '#333333';
             }
-            r.setProperty('--accent', accent.value);
-            r.setProperty('--accent-hover', accent.hover);
 
-            const logoFile = isDark ? '/icons/favicon.svg' : '/icons/favicon-light.svg';
+            const rStyles = document.documentElement.style;
+            rStyles.setProperty('--primary', p.primary);
+            rStyles.setProperty('--secondary', p.secondary);
+            rStyles.setProperty('--surface', p.surface);
+            if (isDark) {
+                rStyles.setProperty('--border', p.border);
+                rStyles.setProperty('--text-muted', p.muted);
+                rStyles.setProperty('--text-main', p.text);
+                rStyles.setProperty('--close-filter', 'invert(1)');
+            } else {
+                rStyles.setProperty('--border', lightFixed.border);
+                rStyles.setProperty('--text-muted', lightFixed.muted);
+                rStyles.setProperty('--text-main', lightFixed.text);
+                rStyles.setProperty('--close-filter', 'none');
+            }
+
+            if (currentAccentIdx === 0) {
+                if (isDark && p.primary === '#000000') rStyles.setProperty('--border', '#222222');
+                if (!isDark && p.primary === '#ffffff') rStyles.setProperty('--border', '#e0e0e0');
+            }
+
+            rStyles.setProperty('--accent', accentValue);
+            rStyles.setProperty('--accent-hover', accentHover);
+            rStyles.setProperty('--accent-rgb', hexToRgb(accentValue));
+
+            let logoFile = isDark ? '/icons/favicon.svg' : '/icons/favicon-light.svg';
             document.addEventListener('DOMContentLoaded', () => {
-                document.querySelectorAll('img[alt="Logo"]').forEach(img => img.src = logoFile);
+                document.querySelectorAll('img[alt="Logo"], img[alt="Logo ElectroBazar"]').forEach(img => img.src = logoFile);
                 const faviconLink = document.querySelector('link[rel="icon"]');
                 if (faviconLink) faviconLink.href = logoFile;
+            });
+
+            // Live-sync: re-apply theme when preferences change in another tab/window
+            window.addEventListener('storage', function (e) {
+                if (e.key !== 'tpv-prefs' || !e.newValue) return;
+                const p2 = JSON.parse(e.newValue);
+                const isDark2 = p2.mode === 'dark';
+                let accentIdx2 = isDark2 ? p2.darkAccent : p2.lightAccent;
+                if (accentIdx2 >= accentColors.length) accentIdx2 = 0;
+                const primaryIdx2 = isDark2 ? p2.darkPrimaryIdx : p2.lightPrimaryIdx;
+                const palette2 = isDark2 ? darkP : lightP;
+                const pal2 = palette2[primaryIdx2] || palette2[0];
+                let accentVal2 = accentColors[accentIdx2] ? accentColors[accentIdx2].value : accentColors[0].value;
+                let accentHov2 = accentColors[accentIdx2] ? accentColors[accentIdx2].hover : accentColors[0].hover;
+                if (accentIdx2 === 0) {
+                    accentVal2 = isDark2 ? '#ffffff' : '#000000';
+                    accentHov2 = isDark2 ? '#e0e0e0' : '#333333';
+                }
+                const rs = document.documentElement.style;
+                rs.setProperty('--primary', pal2.primary);
+                rs.setProperty('--secondary', pal2.secondary);
+                rs.setProperty('--surface', pal2.surface);
+                if (isDark2) {
+                    rs.setProperty('--border', pal2.border);
+                    rs.setProperty('--text-muted', pal2.muted);
+                    rs.setProperty('--text-main', pal2.text);
+                    rs.setProperty('--close-filter', 'invert(1)');
+                } else {
+                    rs.setProperty('--border', lightFixed.border);
+                    rs.setProperty('--text-muted', lightFixed.muted);
+                    rs.setProperty('--text-main', lightFixed.text);
+                    rs.setProperty('--close-filter', 'none');
+                }
+                if (accentIdx2 === 0) {
+                    if (isDark2 && pal2.primary === '#000000') rs.setProperty('--border', '#222222');
+                    if (!isDark2 && pal2.primary === '#ffffff') rs.setProperty('--border', '#e0e0e0');
+                }
+                rs.setProperty('--accent', accentVal2);
+                rs.setProperty('--accent-hover', accentHov2);
+                rs.setProperty('--accent-rgb', hexToRgb(accentVal2));
+                const logoFile2 = isDark2 ? '/icons/favicon.svg' : '/icons/favicon-light.svg';
+                document.querySelectorAll('img[alt="Logo"], img[alt="Logo ElectroBazar"]').forEach(function (img) { img.src = logoFile2; });
+                const faviconLink2 = document.querySelector('link[rel="icon"]');
+                if (faviconLink2) faviconLink2.href = logoFile2;
             });
         })();
     </script>
@@ -176,7 +249,7 @@
     <div class="admin-body">
 
 
-        <!-- ════ CONTENT VIEWS ════ -->
+        <!-- â•â•â•â• CONTENT VIEWS â•â•â•â• -->
 
         <!-- 0. DASHBOARD LANDING VIEW -->
         <div id="dashboardView">
@@ -238,7 +311,7 @@
 
         <!-- 1. PRODUCTS & CATEGORIES VIEW -->
         <div id="productsView" style="display: none;">
-            <!-- PANEL: Productos -->
+            <!-- PANEL: Gestión de Inventario -->
             <div class="panel-header">
                 <span class="panel-title">
                     <button class="btn-icon me-2"
@@ -246,7 +319,7 @@
                         title="Volver al Panel">
                         <i class="bi bi-arrow-left"></i>
                     </button>
-                    <i class="bi bi-box-seam me-2"></i>Gestión de Productos
+                    <i class="bi bi-box-seam me-2"></i>Gestión de Inventario
                 </span>
                 <div class="d-flex gap-2 flex-wrap" style="position: relative; z-index: 10;">
                     <input type="file" id="csvFileInput" accept=".csv" style="display: none;"
@@ -265,131 +338,149 @@
                 </div>
             </div>
 
-            <div class="admin-table-wrap mb-5">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>Imagen</th>
-                            <th>Nombre</th>
-                            <th>Precio</th>
-                            <th>Stock</th>
-                            <th>Categoría</th>
-                            <th>Activo</th>
-                            <th style="text-align:right">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="p : ${products}">
-                            <td>
-                                <img th:if="${p.imageUrl != null && !#strings.isEmpty(p.imageUrl)}"
-                                    th:src="${p.imageUrl}" class="thumb" alt="">
-                                <div th:unless="${p.imageUrl != null && !#strings.isEmpty(p.imageUrl)}"
-                                    class="thumb-placeholder"><i class="bi bi-image"></i></div>
-                            </td>
-                            <td>
-                                <strong th:text="${p.name}"></strong>
-                                <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px"
-                                    th:if="${p.description != null}" th:text="${#strings.abbreviate(p.description,60)}">
-                                </div>
-                            </td>
-                            <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--accent)"
-                                th:text="${#numbers.formatDecimal(p.price,1,2)} + ' €'"></td>
-
-                            <td>
-                                <span th:text="${p.stock}"
-                                    th:classappend="${p.stock < 5} ? 'fw-bold text-danger' : ''">0</span>
-                                <span th:if="${p.stock < 5}" class="badge-stock-low ms-1">Stock Bajo</span>
-                            </td>
-                            <td>
-                                <span th:if="${p.category != null}" th:text="${p.category.name}"
-                                    style="font-size:0.82rem;padding:0.2rem 0.5rem;border-radius:6px;background:var(--surface);color:var(--text-muted)"></span>
-                                <span th:unless="${p.category != null}" style="color:var(--text-muted)">—</span>
-                            </td>
-                            <td>
-                                <span class="badge-active" th:classappend="${p.active} ? 'yes' : 'no'"
-                                    th:text="${p.active} ? 'Sí' : 'No'"></span>
-                            </td>
-                            <td style="text-align:right">
-                                <div style="display:flex;gap:0.4rem;justify-content:flex-end">
-                                    <button class="btn-icon" title="Editar" th:data-id="${p.id}"
-                                        onclick="openProductModal(this.getAttribute('data-id'))">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button class="btn-icon danger" title="Eliminar (soft delete)" th:data-id="${p.id}"
-                                        th:data-name="${p.name}"
-                                        onclick="deleteProduct(this.getAttribute('data-id'), this.getAttribute('data-name'))">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr th:if="${#lists.isEmpty(products)}">
-                            <td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted)">
-                                No hay productos registrados. <a href="javascript:void(0)" onclick="openProductModal()"
-                                    style="color:var(--accent)">Crear el primero</a>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- PANEL: Categorías -->
-            <div class="panel-header mt-4">
-                <span class="panel-title">
-                    <button class="btn-icon me-2"
-                        onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
-                        title="Volver al Panel">
-                        <i class="bi bi-arrow-left"></i>
+            <ul class="nav nav-tabs mt-3 mb-0" id="mgmtTabs" role="tablist" style="border-color: var(--border);">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="products-tab" data-bs-toggle="tab"
+                        data-bs-target="#products-pane" type="button" role="tab"
+                        style="color: var(--text-muted); border-color: var(--border);">
+                        <i class="bi bi-box-seam me-1"></i> Productos
                     </button>
-                    <i class="bi bi-tags me-2"></i>Gestión de Categorías
-                </span>
-                <button class="btn-nuevo"
-                    style="background:var(--surface);color:var(--text-main);border-color:var(--border);"
-                    onclick="openCategoryModal()">
-                    <i class="bi bi-plus-lg"></i> Nueva Categoría
-                </button>
-            </div>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories-pane"
+                        type="button" role="tab" style="color: var(--text-muted); border-color: var(--border);">
+                        <i class="bi bi-tags me-1"></i> Categorías
+                    </button>
+                </li>
+            </ul>
 
-            <div class="admin-table-wrap">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Nombre</th>
-                            <th>Descripción</th>
-                            <th>Activa</th>
-                            <th style="text-align:right;width:120px">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="c : ${categories}">
-                            <td style="color:var(--text-muted);font-weight:600" th:text="${'#'+c.id}"></td>
-                            <td><strong th:text="${c.name}"></strong></td>
-                            <td th:text="${c.description ?: '—'}"></td>
-                            <td>
-                                <span class="badge-active" th:classappend="${c.active} ? 'yes' : 'no'"
-                                    th:text="${c.active} ? 'Sí' : 'No'"></span>
-                            </td>
-                            <td style="text-align:right">
-                                <div style="display:flex;gap:0.4rem;justify-content:flex-end">
-                                    <button class="btn-icon" title="Editar" th:data-id="${c.id}"
-                                        onclick="openCategoryModal(this.getAttribute('data-id'))">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                    <button class="btn-icon danger" title="Eliminar" th:data-id="${c.id}"
-                                        th:data-name="${c.name}"
-                                        onclick="deleteCategory(this.getAttribute('data-id'), this.getAttribute('data-name'))">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr th:if="${#lists.isEmpty(categories)}">
-                            <td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted)">No hay
-                                categorías.</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="tab-content" id="mgmtTabsContent">
+
+                <!-- Tab: Productos -->
+                <div class="tab-pane fade show active" id="products-pane" role="tabpanel">
+                    <div class="admin-table-wrap mt-3">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Imagen</th>
+                                    <th>Nombre</th>
+                                    <th>Precio</th>
+                                    <th>Stock</th>
+                                    <th>Categoría</th>
+                                    <th>Activo</th>
+                                    <th style="text-align:right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="p : ${products}">
+                                    <td>
+                                        <img th:if="${p.imageUrl != null && !#strings.isEmpty(p.imageUrl)}"
+                                            th:src="${p.imageUrl}" class="thumb" alt="">
+                                        <div th:unless="${p.imageUrl != null && !#strings.isEmpty(p.imageUrl)}"
+                                            class="thumb-placeholder"><i class="bi bi-image"></i></div>
+                                    </td>
+                                    <td>
+                                        <strong th:text="${p.name}"></strong>
+                                        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px"
+                                            th:if="${p.description != null}"
+                                            th:text="${#strings.abbreviate(p.description,60)}">
+                                        </div>
+                                    </td>
+                                    <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--accent)"
+                                        th:text="${#numbers.formatDecimal(p.price,1,2)} + ' €'"></td>
+                                    <td>
+                                        <span th:text="${p.stock}"
+                                            th:classappend="${p.stock < 5} ? 'fw-bold text-danger' : ''">0</span>
+                                        <span th:if="${p.stock < 5}" class="badge-stock-low ms-1">Stock Bajo</span>
+                                    </td>
+                                    <td>
+                                        <span th:if="${p.category != null}" th:text="${p.category.name}"
+                                            style="font-size:0.82rem;padding:0.2rem 0.5rem;border-radius:6px;background:var(--surface);color:var(--text-muted)"></span>
+                                        <span th:unless="${p.category != null}" style="color:var(--text-muted)">—</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge-active" th:classappend="${p.active} ? 'yes' : 'no'"
+                                            th:text="${p.active} ? 'Sí' : 'No'"></span>
+                                    </td>
+                                    <td style="text-align:right">
+                                        <div style="display:flex;gap:0.4rem;justify-content:flex-end">
+                                            <button class="btn-icon" title="Editar" th:data-id="${p.id}"
+                                                onclick="openProductModal(this.getAttribute('data-id'))">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn-icon danger" title="Eliminar (soft delete)"
+                                                th:data-id="${p.id}" th:data-name="${p.name}"
+                                                onclick="deleteProduct(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(products)}">
+                                    <td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted)">
+                                        No hay productos registrados. <a href="javascript:void(0)"
+                                            onclick="openProductModal()" style="color:var(--accent)">Crear el
+                                            primero</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab: Categorías -->
+                <div class="tab-pane fade" id="categories-pane" role="tabpanel">
+                    <div class="d-flex justify-content-end mt-3 mb-2">
+                        <button class="btn-nuevo"
+                            style="background:var(--surface);color:var(--text-main);border-color:var(--border);"
+                            onclick="openCategoryModal()">
+                            <i class="bi bi-plus-lg"></i> Nueva Categoría
+                        </button>
+                    </div>
+                    <div class="admin-table-wrap">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Descripción</th>
+                                    <th>Activa</th>
+                                    <th style="text-align:right;width:120px">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="c : ${categories}">
+                                    <td style="color:var(--text-muted);font-weight:600" th:text="${'#'+c.id}"></td>
+                                    <td><strong th:text="${c.name}"></strong></td>
+                                    <td th:text="${c.description ?: '—'}"></td>
+                                    <td>
+                                        <span class="badge-active" th:classappend="${c.active} ? 'yes' : 'no'"
+                                            th:text="${c.active} ? 'Sí' : 'No'"></span>
+                                    </td>
+                                    <td style="text-align:right">
+                                        <div style="display:flex;gap:0.4rem;justify-content:flex-end">
+                                            <button class="btn-icon" title="Editar" th:data-id="${c.id}"
+                                                onclick="openCategoryModal(this.getAttribute('data-id'))">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn-icon danger" title="Eliminar" th:data-id="${c.id}"
+                                                th:data-name="${c.name}"
+                                                onclick="deleteCategory(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(categories)}">
+                                    <td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted)">No
+                                        hay
+                                        categorías.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -507,7 +598,9 @@
                             <td>
                                 <span th:if="${register.difference == 0}" class="badge-active yes">Cuadrado (0.00
                                     €)</span>
-                                <span th:if="${register.difference != 0}" class="badge-active no"
+                                <span th:if="${register.difference > 0}" class="badge-active yes"
+                                    th:text="'+' + ${#numbers.formatDecimal(register.difference, 1, 2)} + ' €'"></span>
+                                <span th:if="${register.difference < 0}" class="badge-active no"
                                     th:text="${#numbers.formatDecimal(register.difference, 1, 2)} + ' €'"></span>
                             </td>
                             <td style="font-weight: 500;">
@@ -673,7 +766,7 @@
                     </button>
                     <i class="bi bi-person-badge me-2"></i>Gestión de Clientes (CRM)
                 </span>
-                <button class="btn-nuevo">
+                <button class="btn-nuevo" onclick="openCustomerModal()">
                     <i class="bi bi-plus-lg"></i> Nuevo Cliente
                 </button>
             </div>
@@ -704,8 +797,17 @@
                                     th:text="${c.type}"></span>
                             </td>
                             <td style="text-align:right">
-                                <button class="btn-icon"><i class="bi bi-pencil"></i></button>
-                                <button class="btn-icon danger"><i class="bi bi-trash"></i></button>
+                                <div style="display:flex;gap:0.4rem;justify-content:flex-end">
+                                    <button class="btn-icon" title="Editar" th:data-id="${c.id}"
+                                        onclick="openCustomerModal(this.getAttribute('data-id'))">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn-icon danger" title="Eliminar" th:data-id="${c.id}"
+                                        th:data-name="${c.name}"
+                                        onclick="deleteCustomer(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(customers)}">
@@ -729,51 +831,17 @@
                 </span>
             </div>
 
-            <div class="activity-feed">
-                <div class="activity-item">
-                    <div class="activity-icon"><i class="bi bi-plus-circle text-success"></i></div>
-                    <div class="activity-content">
-                        <div class="activity-text"><strong>Admin</strong> ha añadido un nuevo producto: <em>Smartwatch
-                                Ultra
-                                X</em></div>
-                        <div class="activity-time">Hace 12 minutos</div>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-icon"><i class="bi bi-cart-check text-primary"></i></div>
-                    <div class="activity-content">
-                        <div class="activity-text">Venta realizada por <strong>Juan</strong>: #2045 (Total: 450.00 €)
-                        </div>
-                        <div class="activity-time">Hace 45 minutos</div>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-icon"><i class="bi bi-pencil text-warning"></i></div>
-                    <div class="activity-content">
-                        <div class="activity-text"><strong>Admin</strong> ha actualizado el precio de <em>Auriculares
-                                Noise
-                                Cancel</em></div>
-                        <div class="activity-time">Hoy a las 11:20</div>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-icon"><i class="bi bi-cash-stack text-info"></i></div>
-                    <div class="activity-content">
-                        <div class="activity-text">Cierre de caja #122 completado por <strong>María</strong> con
-                            descuadre
-                            de 0.00 €</div>
-                        <div class="activity-time">Ayer a las 21:05</div>
-                    </div>
-                </div>
+            <div class="activity-feed" id="activityFeedContainer">
+                <!-- Data loaded via JS -->
             </div>
         </div>
 
     </div><!-- /admin-body -->
 
 
-    <!-- ════════════════════════════════
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      MODAL — PRODUCTO
-════════════════════════════════ -->
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
@@ -837,9 +905,9 @@
     </div>
 
 
-    <!-- ════════════════════════════════
-     MODAL — CATEGORÍA
-════════════════════════════════ -->
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+     MODAL — CATEGORÃA
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -880,9 +948,9 @@
     </div>
 
 
-    <!-- ════════════════════════════════
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      MODAL — TRABAJADOR
-════════════════════════════════ -->
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
     <div class="modal fade" id="workerModal" tabindex="-1" aria-labelledby="workerModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content"
@@ -945,6 +1013,73 @@
                     <button type="button" class="btn btn-cancel" data-bs-dismiss="modal"
                         style="flex:1">Cancelar</button>
                     <button type="button" class="btn btn-save" onclick="saveWorker()" style="flex:1">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="customerModal" tabindex="-1" aria-labelledby="customerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="customerModalLabel">Cliente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="customerForm" novalidate>
+                        <input type="hidden" id="customerId">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label" for="customerName">Nombre / Razón Social *</label>
+                                <input type="text" class="form-control" id="customerName" required
+                                    placeholder="Nombre completo">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="customerTaxId">NIF / CIF</label>
+                                <input type="text" class="form-control" id="customerTaxId" placeholder="12345678X">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="customerEmail">Email</label>
+                                <input type="email" class="form-control" id="customerEmail"
+                                    placeholder="ejemplo@correo.com">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="customerPhone">Teléfono</label>
+                                <input type="tel" class="form-control" id="customerPhone" placeholder="600 000 000">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="customerAddress">Dirección</label>
+                                <input type="text" class="form-control" id="customerAddress"
+                                    placeholder="Calle, número, piso...">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="customerCity">Ciudad</label>
+                                <input type="text" class="form-control" id="customerCity" placeholder="Madrid">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="customerPostalCode">C.P.</label>
+                                <input type="text" class="form-control" id="customerPostalCode" placeholder="28001">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="customerType">Tipo</label>
+                                <select class="form-select" id="customerType">
+                                    <option value="INDIVIDUAL">Particular</option>
+                                    <option value="COMPANY">Empresa</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="customerActive" checked>
+                                    <label class="form-check-label" for="customerActive">Cliente activo</label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-save" onclick="saveCustomer()">
+                        <i class="bi bi-check-lg me-1"></i>Guardar
+                    </button>
                 </div>
             </div>
         </div>

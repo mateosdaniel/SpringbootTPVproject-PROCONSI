@@ -56,7 +56,7 @@ public class AdminController {
         model.addAttribute("workers", workerService.findAll());
         model.addAttribute("customers", customerService.findAll());
 
-        return "admin/index";
+        return "admin/admin";
     }
 
     @PostMapping("/admin/workers/save")

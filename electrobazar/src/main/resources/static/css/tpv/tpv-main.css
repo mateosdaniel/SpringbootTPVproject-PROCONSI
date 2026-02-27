@@ -15,7 +15,7 @@
 
         /* Themes are now applied dynamically via JS */
 
-        /* â”€â”€ Hamburger menu â”€â”€ */
+        /* ── Hamburger menu ── */
         .menu-wrapper {
             position: relative;
         }
@@ -86,7 +86,7 @@
             text-align: center;
         }
 
-        /* â”€â”€ Preferences modal â”€â”€ */
+        /* ── Preferences modal ── */
         .prefs-overlay {
             display: none;
             position: fixed;
@@ -134,7 +134,7 @@
             padding: 0;
         }
 
-        /* â”€â”€ Action Buttons in Header â”€â”€ */
+        /* ── Action Buttons in Header ── */
         .btn-action-tpv {
             height: 36px;
             background: var(--surface);
@@ -295,7 +295,7 @@
             margin: 0;
         }
 
-        /* â”€â”€ HEADER â”€â”€ */
+        /* ── HEADER ── */
         .tpv-header {
             background: var(--secondary);
             border-bottom: 2px solid var(--accent);
@@ -383,14 +383,14 @@
             color: var(--accent);
         }
 
-        /* â”€â”€ LAYOUT â”€â”€ */
+        /* ── LAYOUT ── */
         .tpv-body {
             display: flex;
             margin-top: 56px;
             height: calc(100vh - 56px);
         }
 
-        /* â”€â”€ SIDEBAR CATEGORÃAS â”€â”€ */
+        /* ── SIDEBAR CATEGORÃAS ── */
         .tpv-sidebar {
             width: var(--sidebar-width);
             background: var(--secondary);
@@ -441,7 +441,7 @@
             font-weight: 600;
         }
 
-        /* â”€â”€ GRID PRODUCTOS â”€â”€ */
+        /* ── GRID PRODUCTOS ── */
         .tpv-products {
             flex: 1;
             overflow-y: auto;
@@ -451,15 +451,15 @@
 
         .products-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 0.75rem;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
         }
 
         .product-card {
             background: var(--secondary);
             border: 1px solid var(--border);
-            border-radius: 6px;
-            padding-bottom: 0.75rem;
+            border-radius: 8px;
+            padding-bottom: 1rem;
             cursor: pointer;
             transition: all 0.15s;
             text-align: center;
@@ -493,34 +493,35 @@
 
         .product-image-container {
             width: 100%;
-            height: 110px;
+            aspect-ratio: 1 / 1;
             background: var(--primary);
-            border-top-left-radius: 5px;
-            border-top-right-radius: 5px;
+            border-top-left-radius: 7px;
+            border-top-right-radius: 7px;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
         }
 
         .product-image {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
+            padding: 0.5rem;
         }
 
         .product-info {
-            padding: 0 0.5rem;
+            padding: 0 1rem;
         }
 
         .product-icon {
-            font-size: 2.5rem;
+            font-size: 3.5rem;
             color: var(--text-muted);
         }
 
         .product-name {
-            font-size: 0.82rem;
+            font-size: 0.85rem;
             font-weight: 600;
             color: var(--text-main);
             margin-bottom: 0.35rem;
@@ -532,15 +533,15 @@
 
         .product-price {
             font-family: 'Barlow Condensed', sans-serif;
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             font-weight: 700;
             color: var(--accent);
         }
 
         .product-category-badge {
-            font-size: 0.68rem;
+            font-size: 0.75rem;
             color: var(--text-muted);
-            margin-top: 0.2rem;
+            margin-top: 0.3rem;
         }
 
         .no-products {
@@ -556,7 +557,7 @@
             margin-bottom: 0.75rem;
         }
 
-        /* â”€â”€ TICKET â”€â”€ */
+        /* ── TICKET ── */
         .tpv-ticket {
             width: var(--ticket-width);
             background: var(--secondary);
@@ -730,7 +731,7 @@
             color: var(--danger);
         }
 
-        /* â”€â”€ TICKET FOOTER â”€â”€ */
+        /* ── TICKET FOOTER ── */
         .ticket-footer {
             border-top: 1px solid var(--border);
             padding: 1rem 1.25rem;
@@ -839,12 +840,12 @@
             color: var(--danger);
         }
 
-        /* â”€â”€ TOAST â”€â”€ */
+        /* ── TOAST ── */
         .toast-container {
             z-index: 9999;
         }
 
-        /* â”€â”€ SCROLLBAR â”€â”€ */
+        /* ── SCROLLBAR ── */
         ::-webkit-scrollbar {
             width: 5px;
         }
@@ -862,7 +863,7 @@
             background: var(--text-muted);
         }
 
-        /* â”€â”€ ADMIN LOCK BUTTON â”€â”€ */
+        /* ── ADMIN LOCK BUTTON ── */
         .worker-info {
             color: var(--text-main);
             font-family: 'Barlow', sans-serif;
@@ -910,7 +911,7 @@
             background: rgba(245, 166, 35, 0.08);
         }
 
-        /* â”€â”€ PIN MODAL â”€â”€ */
+        /* ── PIN MODAL ── */
         .pin-overlay {
             display: none;
             position: fixed;
@@ -1032,7 +1033,7 @@
             min-height: 1.2em;
         }
 
-        /* â”€â”€ ALERT SUCCESS â”€â”€ */
+        /* ── ALERT SUCCESS ── */
         .alert-tpv {
             position: fixed;
             top: 68px;

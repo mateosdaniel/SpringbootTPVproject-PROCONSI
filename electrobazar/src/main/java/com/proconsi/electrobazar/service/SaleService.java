@@ -10,21 +10,22 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface SaleService {
-    Sale findById(Long id);
+        Sale findById(Long id);
 
-    List<Sale> findToday();
+        List<Sale> findToday();
 
-    List<Sale> findBetween(LocalDateTime from, LocalDateTime to);
+        List<Sale> findBetween(LocalDateTime from, LocalDateTime to);
 
-    Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes,
-            com.proconsi.electrobazar.model.Worker worker);
+        Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, BigDecimal receivedAmount,
+                        com.proconsi.electrobazar.model.Worker worker);
 
-    Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, Customer customer,
-            com.proconsi.electrobazar.model.Worker worker);
+        Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, BigDecimal receivedAmount,
+                        Customer customer,
+                        com.proconsi.electrobazar.model.Worker worker);
 
-    BigDecimal sumTotalToday();
+        BigDecimal sumTotalToday();
 
-    long countToday();
+        long countToday();
 
-    BigDecimal sumTotalByPaymentMethodToday(PaymentMethod paymentMethod);
+        BigDecimal sumTotalByPaymentMethodToday(PaymentMethod paymentMethod);
 }

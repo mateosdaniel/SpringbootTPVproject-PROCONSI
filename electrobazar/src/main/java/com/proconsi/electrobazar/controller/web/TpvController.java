@@ -70,6 +70,7 @@ public class TpvController {
             @RequestParam List<Integer> quantities,
             @RequestParam PaymentMethod paymentMethod,
             @RequestParam(required = false) String notes,
+            @RequestParam(required = false) String receivedAmount,
             HttpSession session,
             RedirectAttributes redirectAttributes) {
 
@@ -105,7 +106,15 @@ public class TpvController {
                 }).collect(Collectors.toList());
 
         Worker worker = (Worker) session.getAttribute("worker");
-        Sale sale = saleService.createSale(lines, paymentMethod, notes, customer, worker);
+        java.math.BigDecimal receivedAmountDecimal = null;
+        if (paymentMethod == PaymentMethod.CASH && receivedAmount != null && !receivedAmount.isBlank()) {
+            try {
+                receivedAmountDecimal = new java.math.BigDecimal(receivedAmount.replace(",", "."));
+            } catch (NumberFormatException e) {
+                // Ignore parsing error and let it be null
+            }
+        }
+        Sale sale = saleService.createSale(lines, paymentMethod, notes, receivedAmountDecimal, customer, worker);
 
         if (customer != null) {
             try {

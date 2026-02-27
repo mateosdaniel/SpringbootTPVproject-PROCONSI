@@ -38,6 +38,12 @@ public class Sale {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal totalAmount;
 
+    @Column(precision = 10, scale = 2)
+    private BigDecimal receivedAmount;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal changeAmount;
+
     @Column(length = 255)
     private String notes;
 
