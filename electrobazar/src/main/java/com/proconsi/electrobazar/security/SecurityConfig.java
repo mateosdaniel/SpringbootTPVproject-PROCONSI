@@ -22,8 +22,14 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        // login endpoint is public
                         .requestMatchers("/api/workers/login").permitAll()
+                        // allow anybody to GET and POST customers (used by TPV for search and creation)
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/customers/**").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/customers").permitAll()
+                        // admin controllers require explicit authority
                         .requestMatchers("/api/admin/**").hasAuthority("ADMIN_ACCESS")
+                        // the rest of the API needs a valid token/session
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll() // Keep web/UI parts permissive for transition
                 )

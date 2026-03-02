@@ -40,6 +40,14 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public Customer save(Customer customer) {
+        // ensure required defaults as JPA column is not nullable
+        if (customer.getType() == null) {
+            customer.setType(Customer.CustomerType.INDIVIDUAL);
+        }
+        if (customer.getActive() == null) {
+            customer.setActive(true);
+        }
+
         Customer saved = customerRepository.save(customer);
         activityLogService.logActivity(
                 "CREAR_CLIENTE",

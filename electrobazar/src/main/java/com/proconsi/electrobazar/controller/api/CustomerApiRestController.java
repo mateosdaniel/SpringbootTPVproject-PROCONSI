@@ -7,7 +7,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/customers")
@@ -32,13 +34,63 @@ public class CustomerApiRestController {
     }
 
     @PostMapping
-    public ResponseEntity<Customer> create(@RequestBody Customer customer) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(customerService.save(customer));
+    public ResponseEntity<?> create(@RequestBody Customer customer) {
+        try {
+            // apply sensible defaults to avoid NPE or DB constraint violations
+            if (customer.getType() == null) {
+                customer.setType(Customer.CustomerType.INDIVIDUAL);
+            }
+            if (customer.getActive() == null) {
+                customer.setActive(true);
+            }
+
+            // minimal server-side validation so callers realise why a request failed
+            if (customer.getName() == null || customer.getName().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El nombre es obligatorio"));
+            }
+            if (customer.getType() == Customer.CustomerType.COMPANY &&
+                    (customer.getTaxId() == null || customer.getTaxId().trim().isEmpty())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El CIF es obligatorio para empresas"));
+            }
+            Customer saved = customerService.save(customer);
+            return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        } catch (DataIntegrityViolationException dive) {
+            // likely a constraint violation such as duplicate taxId
+            dive.printStackTrace();
+            String msg = dive.getRootCause() != null ? dive.getRootCause().getMessage() : dive.getMessage();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Violación de integridad: " + msg));
+        } catch (Exception e) {
+            // log error and return message to client
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error interno al crear cliente: " + e.getMessage()));
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Customer> update(@PathVariable Long id, @RequestBody Customer customer) {
-        return ResponseEntity.ok(customerService.update(id, customer));
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Customer customer) {
+        try {
+            // ensure id and defaults
+            customer.setId(id);
+            if (customer.getType() == null) {
+                customer.setType(Customer.CustomerType.INDIVIDUAL);
+            }
+            if (customer.getActive() == null) {
+                customer.setActive(true);
+            }
+            Customer updated = customerService.update(id, customer);
+            return ResponseEntity.ok(updated);
+        } catch (DataIntegrityViolationException dive) {
+            dive.printStackTrace();
+            String msg = dive.getRootCause() != null ? dive.getRootCause().getMessage() : dive.getMessage();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Violación de integridad: " + msg));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error interno al actualizar cliente: " + e.getMessage()));
+        }
     }
 
     @DeleteMapping("/{id}")

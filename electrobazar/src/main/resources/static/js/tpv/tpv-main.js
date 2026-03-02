@@ -251,8 +251,30 @@ function toggleInvoiceCard(override) {
 
 function toggleCustomerType() {
     var isCompany = document.getElementById('typeCompany').checked;
-    document.getElementById('lblCustomerName').innerHTML = isCompany ? 'Razón Social <span class="text-danger">*</span>' : 'Nombre y Apellidos <span class="text-danger">*</span>';
-    document.getElementById('lblCustomerTaxId').innerHTML = isCompany ? 'CIF <span class="text-danger">*</span>' : 'NIF/NIE <span class="text-danger">*</span>';
+    var nameLabel = document.getElementById('lblCustomerName');
+    var taxLabel = document.getElementById('lblCustomerTaxId');
+    var taxInput = document.getElementById('newCustomerTaxId');
+
+    // update labels and required marker
+    if (nameLabel) {
+        nameLabel.innerHTML = isCompany
+            ? 'Razón Social <span class="text-danger">*</span>'
+            : 'Nombre y Apellidos <span class="text-danger">*</span>';
+    }
+    if (taxLabel) {
+        taxLabel.innerHTML = isCompany
+            ? 'CIF <span class="text-danger">*</span>'
+            : 'NIF/NIE'; // no asterisk for individual, tax ID optional
+    }
+
+    // browser validation: only require tax id when company
+    if (taxInput) {
+        if (isCompany) {
+            taxInput.setAttribute('required', 'required');
+        } else {
+            taxInput.removeAttribute('required');
+        }
+    }
 }
 
 function showError(msg) {
@@ -362,9 +384,18 @@ function processSaleWithInvoiceValidation() {
         var email = document.getElementById('newCustomerEmail').value.trim();
         var phone = document.getElementById('newCustomerPhone').value.trim();
 
-        // Validación básica para ambos (Particular o Empresa)
-        if (!name || !taxId || !address || !city || !postalCode) {
-            showError('Por favor, rellena todos los campos obligatorios (*).');
+        // Validación básica: sólo _nombre_ siempre, y CIF/NIF sólo cuando sea estrictamente necesario
+        if (!name) {
+            showError('El nombre es obligatorio');
+            return;
+        }
+
+        // en el formulario para factura pedimos todos los datos porque se usan en el PDF,
+        // sin embargo queremos permitir crear clientes rápidos desde el TPV cuando no
+        // se disponga de todos los campos; dejamos el resto como opcionales y
+        // sólo obligamos el taxId cuando se trate de una empresa.
+        if (type === 'COMPANY' && !taxId) {
+            showError('El CIF de la empresa es obligatorio');
             return;
         }
 

@@ -629,6 +629,12 @@ function saveCustomer() {
         active: document.getElementById('customerActive').checked
     };
 
+    // additional validation for company
+    if (body.type === 'COMPANY' && !body.taxId) {
+        showToast('El CIF es obligatorio para empresas', 'error');
+        return;
+    }
+
     const method = id ? 'PUT' : 'POST';
     const url = id ? '/api/customers/' + id : '/api/customers';
 
@@ -638,12 +644,25 @@ function saveCustomer() {
         body: JSON.stringify(body)
     })
         .then(function (r) {
-            if (!r.ok) throw new Error();
+            if (!r.ok) {
+                // try to parse server message
+                return r.json().then(function (data) {
+                    var msg = data && (data.error || data.message) ? data.error || data.message : 'Respuesta inesperada';
+                    throw new Error(msg);
+                }).catch(function () {
+                    throw new Error('Estado HTTP ' + r.status);
+                });
+            }
+            return r.json();
+        })
+        .then(function () {
             customerModal.hide();
             showToast(id ? 'Cliente actualizado correctamente' : 'Cliente creado correctamente');
             setTimeout(function () { location.reload(); }, 900);
         })
-        .catch(function () { showToast('Error al guardar el cliente', 'error'); });
+        .catch(function (e) {
+            showToast('Error al guardar el cliente: ' + (e.message || ''), 'error');
+        });
 }
 
 function deleteCustomer(id, name) {
