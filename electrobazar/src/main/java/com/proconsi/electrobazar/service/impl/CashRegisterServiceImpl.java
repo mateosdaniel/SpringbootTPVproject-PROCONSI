@@ -49,49 +49,73 @@ public class CashRegisterServiceImpl implements CashRegisterService {
         @Override
         public CashRegister closeCashRegister(BigDecimal closingBalance, String notes,
                         com.proconsi.electrobazar.model.Worker worker) {
-                LocalDate today = LocalDate.now();
+                try {
+                        LocalDate today = LocalDate.now();
 
-                // Obtener registro abierto actual
-                CashRegister register = cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc()
-                                .orElse(CashRegister.builder()
-                                                .registerDate(today)
-                                                .openingBalance(BigDecimal.ZERO)
-                                                .build());
+                        // Obtener registro abierto actual
+                        CashRegister register = cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc()
+                                        .orElse(CashRegister.builder()
+                                                        .registerDate(today)
+                                                        .openingBalance(BigDecimal.ZERO)
+                                                        .build());
 
-                // Calcular totales solo desde la apertura de este registro
-                LocalDateTime startTime = register.getOpeningTime() != null ? register.getOpeningTime()
-                                : today.atStartOfDay();
-                LocalDateTime endOfDay = today.plusDays(1).atStartOfDay().minusNanos(1);
+                        // Calcular totales solo desde la apertura de este registro
+                        LocalDateTime startTime = register.getOpeningTime() != null ? register.getOpeningTime()
+                                        : today.atStartOfDay();
+                        LocalDateTime endOfDay = today.plusDays(1).atStartOfDay().minusNanos(1);
 
-                BigDecimal cashSales = saleRepository
-                                .sumTotalBetweenByPaymentMethod(startTime, endOfDay, PaymentMethod.CASH)
-                                .orElse(BigDecimal.ZERO);
-                BigDecimal cardSales = saleRepository
-                                .sumTotalBetweenByPaymentMethod(startTime, endOfDay, PaymentMethod.CARD)
-                                .orElse(BigDecimal.ZERO);
-                BigDecimal totalSales = cashSales.add(cardSales);
+                        BigDecimal cashSales = saleRepository
+                                        .sumTotalBetweenByPaymentMethod(startTime, endOfDay, PaymentMethod.CASH)
+                                        .orElse(BigDecimal.ZERO);
+                        BigDecimal cardSales = saleRepository
+                                        .sumTotalBetweenByPaymentMethod(startTime, endOfDay, PaymentMethod.CARD)
+                                        .orElse(BigDecimal.ZERO);
+                        BigDecimal totalSales = cashSales.add(cardSales);
 
-                register.setCashSales(cashSales);
-                register.setCardSales(cardSales);
-                register.setTotalSales(totalSales);
-                register.setClosingBalance(closingBalance);
-                register.setDifference(closingBalance.subtract(register.getOpeningBalance().add(cashSales)));
-                register.setNotes(notes);
-                register.setClosedAt(LocalDateTime.now());
-                register.setClosed(true);
-                register.setWorker(worker); // Asignar trabajador que realiza el cierre
+                        BigDecimal openingBal = register.getOpeningBalance() != null ? register.getOpeningBalance()
+                                        : BigDecimal.ZERO;
 
-                CashRegister closedRegister = cashRegisterRepository.save(register);
-                String username = worker != null ? worker.getUsername() : "Anónimo";
-                String difTxt = closedRegister.getDifference().setScale(2, java.math.RoundingMode.HALF_UP) + " \u20ac";
-                activityLogService.logActivity(
-                                "CIERRE_CAJA",
-                                "Cierre de caja completado por " + username + " con descuadre de " + difTxt,
-                                username,
-                                "CASH_REGISTER",
-                                closedRegister.getId());
+                        register.setCashSales(cashSales != null ? cashSales : BigDecimal.ZERO);
+                        register.setCardSales(cardSales != null ? cardSales : BigDecimal.ZERO);
+                        register.setTotalSales(totalSales != null ? totalSales : BigDecimal.ZERO);
+                        register.setClosingBalance(closingBalance != null ? closingBalance : BigDecimal.ZERO);
 
-                return closedRegister;
+                        BigDecimal expected = openingBal.add(register.getCashSales());
+                        register.setDifference(register.getClosingBalance().subtract(expected));
+
+                        register.setNotes(notes);
+                        register.setClosedAt(LocalDateTime.now());
+                        register.setClosed(true);
+                        register.setWorker(worker);
+
+                        // Force save and flush to catch DB errors here
+                        CashRegister closedRegister = cashRegisterRepository.saveAndFlush(register);
+
+                        // Safety for logging
+                        try {
+                                String username = (worker != null) ? worker.getUsername() : "Anónimo";
+                                BigDecimal diff = closedRegister.getDifference() != null
+                                                ? closedRegister.getDifference()
+                                                : BigDecimal.ZERO;
+                                String difTxt = diff.setScale(2, java.math.RoundingMode.HALF_UP) + " \u20ac";
+
+                                activityLogService.logActivity(
+                                                "CIERRE_CAJA",
+                                                "Cierre de caja completado por " + username + " con descuadre de "
+                                                                + difTxt,
+                                                username,
+                                                "CASH_REGISTER",
+                                                closedRegister.getId());
+                        } catch (Exception logEx) {
+                                System.err.println("Error creating activity log for cash close: " + logEx.getMessage());
+                        }
+
+                        return closedRegister;
+                } catch (Exception e) {
+                        System.err.println("CRITICAL ERROR IN closeCashRegister: " + e.getMessage());
+                        e.printStackTrace();
+                        throw e;
+                }
         }
 
         @Override

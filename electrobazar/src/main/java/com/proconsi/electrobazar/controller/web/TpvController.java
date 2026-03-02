@@ -234,6 +234,6 @@ public class TpvController {
                 "Cierre de caja realizado. Diferencia: " + register.getDifference() + "\u20AC. PDF guardado en: "
                         + pdfFile.getAbsolutePath());
 
-        return "redirect:/tpv";
+        return "redirect:/tpv/open-register";
     }
 }

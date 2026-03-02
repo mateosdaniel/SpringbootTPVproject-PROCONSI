@@ -91,7 +91,12 @@ public class CashRegisterApiRestController {
             worker = workerService.findById(workerId).orElse(null);
         }
         CashRegister cr = cashRegisterService.closeCashRegister(closingBalance, notes, worker);
-        pdfReportService.generateCashCloseReport(cr);
+        try {
+            pdfReportService.generateCashCloseReport(cr);
+        } catch (Exception e) {
+            // Log error but don't fail the response, as core business logic succeeded
+            System.err.println("Error generating PDF at close: " + e.getMessage());
+        }
         return ResponseEntity.status(HttpStatus.CREATED).body(cr);
     }
 }

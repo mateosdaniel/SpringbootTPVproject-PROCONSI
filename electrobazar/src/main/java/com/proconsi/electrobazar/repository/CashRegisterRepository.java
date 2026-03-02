@@ -10,7 +10,12 @@ import java.util.Optional;
 
 @Repository
 public interface CashRegisterRepository extends JpaRepository<CashRegister, Long> {
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = { "worker" })
     Optional<CashRegister> findByRegisterDateAndClosedTrue(LocalDate registerDate);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = { "worker" })
     List<CashRegister> findByClosedTrueOrderByRegisterDateDesc();
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = { "worker" })
     Optional<CashRegister> findFirstByClosedFalseOrderByRegisterDateDesc();
 }
