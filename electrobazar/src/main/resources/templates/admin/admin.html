@@ -529,14 +529,14 @@
                         <tr th:each="sale : ${sales}" class="invoice-row" th:data-id="${sale.id}"
                             th:data-customer="${sale.customer != null ? sale.customer.name : ''}"
                             th:data-taxid="${sale.customer != null ? sale.customer.taxId : ''}"
-                            th:data-type="${sale.customer != null ? 'factura' : 'ticket'}"
+                            th:data-type="${sale.invoice != null ? 'factura' : 'ticket'}"
                             th:data-method="${sale.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}"
                             th:data-date="${#temporals.format(sale.createdAt, 'yyyy-MM-dd')}">
                             <td style="color:var(--text-muted);font-weight:600" th:text="${'#'+sale.id}"></td>
                             <td th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
                             <td>
-                                <span class="badge-active" th:classappend="${sale.customer != null} ? 'yes' : 'no'"
-                                    th:text="${sale.customer != null} ? 'Factura' : 'Ticket'"></span>
+                                <span class="badge-active" th:classappend="${sale.invoice != null} ? 'yes' : 'no'"
+                                    th:text="${sale.invoice != null} ? 'Factura' : 'Ticket'"></span>
                             </td>
                             <td>
                                 <div th:if="${sale.customer != null}">

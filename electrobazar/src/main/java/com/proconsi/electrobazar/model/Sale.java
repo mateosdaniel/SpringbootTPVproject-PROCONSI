@@ -54,6 +54,9 @@ public class Sale {
     @Builder.Default
     private List<SaleLine> lines = new ArrayList<>();
 
+    @OneToOne(mappedBy = "sale")
+    private Invoice invoice;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();

@@ -181,22 +181,20 @@ public class TpvController {
             byte[] pdfData;
             if (invoice != null) {
                 pdfData = pdfReportService.generateInvoiceReport(sale, invoice);
+                // Guardar PDF directamente en la entidad Invoice
+                String filename = String.format("Factura_%s.pdf", invoice.getInvoiceNumber());
+                invoiceService.savePdf(invoice.getId(), pdfData, filename);
             } else {
                 pdfData = pdfReportService.generateTicketReport(sale, taxBreakdowns, applyRecargo, totalBase, totalVat,
                         totalRecargo);
+                // Guardar PDF en StoredDocument (solo para tickets)
+                String filename = String.format("Ticket_%d.pdf", sale.getId());
+                documentService.store(DocumentType.TICKET, sale.getId(), filename, pdfData);
             }
-
-            DocumentType docType = invoice != null ? DocumentType.INVOICE : DocumentType.TICKET;
-            Long refId = invoice != null ? invoice.getId() : sale.getId();
-            String invoiceLabel = invoice != null ? invoice.getInvoiceNumber() : ("Ticket_" + sale.getId());
-            String dateStr = sale.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            String filename = String.format("Doc_%s_%s.pdf", invoiceLabel, dateStr);
-
-            documentService.store(docType, refId, filename, pdfData);
 
             if (invoice != null) {
                 redirectAttributes.addFlashAttribute("successMessage",
-                        "Factura " + invoice.getInvoiceNumber() + " generada y almacenada.");
+                        "Factura " + invoice.getInvoiceNumber() + " generada.");
             }
         } catch (Exception e) {
             log.error("Error generating/storing PDF for sale " + sale.getId(), e);

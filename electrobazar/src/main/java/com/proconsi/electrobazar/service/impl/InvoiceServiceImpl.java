@@ -77,4 +77,14 @@ public class InvoiceServiceImpl implements InvoiceService {
     public Optional<Invoice> findBySaleId(Long saleId) {
         return invoiceRepository.findBySaleId(saleId);
     }
+
+    @Override
+    @Transactional
+    public void savePdf(Long invoiceId, byte[] pdfData, String filename) {
+        invoiceRepository.findById(invoiceId).ifPresent(inv -> {
+            inv.setPdfData(pdfData);
+            inv.setPdfFilename(filename);
+            invoiceRepository.save(inv);
+        });
+    }
 }

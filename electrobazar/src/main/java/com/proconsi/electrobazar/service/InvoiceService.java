@@ -25,4 +25,13 @@ public interface InvoiceService {
      * @return An Optional containing the Invoice, or empty if none
      */
     Optional<Invoice> findBySaleId(Long saleId);
+
+    /**
+     * Saves the PDF blob and filename into an existing Invoice.
+     *
+     * @param invoiceId The invoice ID
+     * @param pdfData   The PDF bytes
+     * @param filename  The filename
+     */
+    void savePdf(Long invoiceId, byte[] pdfData, String filename);
 }

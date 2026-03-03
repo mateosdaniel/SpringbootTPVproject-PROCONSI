@@ -135,21 +135,41 @@ public class AdminController {
                 return org.springframework.http.ResponseEntity.status(404).body("Venta no encontrada.");
 
             com.proconsi.electrobazar.model.Invoice invoice = invoiceService.findBySaleId(id).orElse(null);
-            com.proconsi.electrobazar.model.DocumentType docType = invoice != null
-                    ? com.proconsi.electrobazar.model.DocumentType.INVOICE
-                    : com.proconsi.electrobazar.model.DocumentType.TICKET;
-            Long refIdForLookup = invoice != null ? invoice.getId() : id;
 
-            java.util.Optional<com.proconsi.electrobazar.model.StoredDocument> storedDoc = documentService
-                    .findByTypeAndReference(docType, refIdForLookup);
+            byte[] pdfData = null;
+            String filename = null;
 
-            if (storedDoc.isEmpty()) {
+            // 1. Intentar sacar de la tabla INVOICES si es una factura
+            if (invoice != null && invoice.getPdfData() != null) {
+                pdfData = invoice.getPdfData();
+                filename = invoice.getPdfFilename();
+            }
+
+            // 2. Si no es factura o no tiene PDF en el registro de factura, buscar en
+            // STORED_DOCUMENTS
+            if (pdfData == null) {
+                com.proconsi.electrobazar.model.DocumentType docType = invoice != null
+                        ? com.proconsi.electrobazar.model.DocumentType.INVOICE
+                        : com.proconsi.electrobazar.model.DocumentType.TICKET;
+                Long refId = invoice != null ? invoice.getId() : id;
+
+                java.util.Optional<com.proconsi.electrobazar.model.StoredDocument> storedDoc = documentService
+                        .findByTypeAndReference(docType, refId);
+
+                if (storedDoc.isPresent()) {
+                    pdfData = storedDoc.get().getData();
+                    filename = storedDoc.get().getFilename();
+                }
+            }
+
+            if (pdfData == null) {
                 return org.springframework.http.ResponseEntity.status(404)
                         .body("El documento PDF no existe en la base de datos.");
             }
 
-            byte[] pdfData = storedDoc.get().getData();
-            String filename = storedDoc.get().getFilename();
+            if (filename == null) {
+                filename = (invoice != null ? "Factura_" + invoice.getInvoiceNumber() : "Ticket_" + id) + ".pdf";
+            }
 
             org.springframework.core.io.Resource resource = new org.springframework.core.io.ByteArrayResource(pdfData);
             return org.springframework.http.ResponseEntity.ok()
@@ -158,6 +178,7 @@ public class AdminController {
                     .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
                     .body(resource);
         } catch (Exception e) {
+            log.error("Error downloading document for sale " + id, e);
             return org.springframework.http.ResponseEntity.internalServerError().build();
         }
     }
