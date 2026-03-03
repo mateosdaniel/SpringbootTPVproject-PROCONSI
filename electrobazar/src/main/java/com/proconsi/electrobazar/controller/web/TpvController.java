@@ -86,6 +86,7 @@ public class TpvController {
             @RequestParam PaymentMethod paymentMethod,
             @RequestParam(required = false) String notes,
             @RequestParam(required = false) String receivedAmount,
+            @RequestParam(required = false, defaultValue = "false") Boolean requestInvoice,
             HttpSession session,
             RedirectAttributes redirectAttributes) {
 
@@ -170,7 +171,9 @@ public class TpvController {
         // Generate and Store PDF in DB
         try {
             Invoice invoice = null;
-            if (customer != null) {
+            // Solo creamos la factura si se solicita explícitamente Y hay un cliente
+            // seleccionado
+            if (Boolean.TRUE.equals(requestInvoice) && customer != null) {
                 invoice = invoiceService.createInvoice(sale);
                 redirectAttributes.addFlashAttribute("invoice", invoice);
             }
@@ -239,6 +242,10 @@ public class TpvController {
             model.addAttribute("totalBase", totalBase);
             model.addAttribute("totalVat", totalVat);
             model.addAttribute("totalRecargo", totalRecargo);
+        }
+
+        if (model.containsAttribute("invoice")) {
+            return "tpv/invoice";
         }
 
         return "tpv/receipt";

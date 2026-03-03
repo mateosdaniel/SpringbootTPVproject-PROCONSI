@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ticket de Venta &mdash; ElectroBazar</title>
+    <title th:text="'Factura ' + ${invoice.invoiceNumber} + ' — ElectroBazar'">Factura — ElectroBazar</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/icons/favicon.svg}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,28 +13,48 @@
 </head>
 
 <body>
-    <div class="page-title"><i class="bi bi-receipt"></i> Ticket de Venta</div>
+    <div class="page-title"><i class="bi bi-file-earmark-check"></i> Factura de Venta</div>
 
     <div class="ticket-wrap">
         <div class="ticket">
             <!-- Header -->
             <div class="t-header">
                 <div class="t-brand">Electro<span>Bazar</span></div>
-                <div class="t-subtitle">Ticket de venta</div>
+                <div class="t-subtitle">Factura Ordinaria</div>
                 <div class="t-meta">
                     <div th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm')}">25/02/2026 14:30</div>
                     <div style="margin-top: 0.2rem;">Le atendi&oacute;: <strong
                             th:text="${sale.worker != null ? sale.worker.username : 'Sistema'}">Admin</strong></div>
-                    <div style="margin-top: 0.2rem;">N&ordm;: <strong th:text="'#' + ${sale.id}">#1</strong></div>
+                    <div style="margin-top: 0.2rem;">N&ordm; Factura: <strong
+                            th:text="${invoice.invoiceNumber}">F-2026-0001</strong></div>
                 </div>
             </div>
 
-            <!-- Customer -->
-            <div th:if="${sale.customer != null}" class="t-customer">
-                <div class="t-customer-label">Cliente</div>
-                <div class="t-customer-name" th:text="${sale.customer.name}">Eduardo Garc&iacute;a</div>
-                <div class="t-customer-type"
-                    th:text="${sale.customer.type.name() == 'COMPANY' ? 'Empresa' : 'Particular'}">Particular</div>
+            <!-- Company Info (Legal) -->
+            <div
+                style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-bottom: 1rem; line-height: 1.4;">
+                ElectroBazar S.L. &middot; CIF: B12345678<br>
+                C/ Exemple, 12, 28001 Madrid<br>
+                Tel: 91 123 45 67
+            </div>
+
+            <!-- Customer Data (Required for Invoice) -->
+            <div class="t-customer"
+                style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 0.6rem 0; margin-bottom: 0.8rem;">
+                <div class="t-customer-label"
+                    style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.2rem;">
+                    Datos del Cliente</div>
+                <div class="t-customer-name" style="font-weight: 700; font-size: 1rem;" th:text="${sale.customer.name}">
+                    Eduardo Garc&iacute;a</div>
+                <div class="t-customer-detail" style="font-size: 0.85rem; color: var(--text-muted);">
+                    <span
+                        th:text="${sale.customer.type.name() == 'COMPANY' ? 'CIF: ' : 'NIF: '} + ${sale.customer.taxId}">NIF:
+                        12345678X</span>
+                    <div th:if="${sale.customer.address != null}" th:text="${sale.customer.address}">Calle Falsa 123
+                    </div>
+                    <div th:if="${sale.customer.city != null}"
+                        th:text="${sale.customer.city} + ' ' + ${sale.customer.postalCode}">Madrid 28001</div>
+                </div>
             </div>
 
             <!-- Items -->
@@ -51,22 +71,14 @@
 
             <hr class="t-divider">
 
-            <!-- Tax Breakdown (accurate, from temporal pricing + RE calculation) -->
+            <!-- Totals Breakdown -->
             <div th:if="${taxBreakdowns != null and !#lists.isEmpty(taxBreakdowns)}">
-                <!-- RE notice badge -->
-                <div th:if="${applyRecargo}"
-                    style="background:rgba(245,166,35,0.15);border:1px solid rgba(245,166,35,0.4);border-radius:6px;padding:0.4rem 0.6rem;margin-bottom:0.5rem;font-size:0.75rem;text-align:center;">
-                    <strong>&#9888; Recargo de Equivalencia aplicado</strong>
-                </div>
-
-                <!-- Per-rate tax detail rows -->
                 <div th:each="bd : ${taxBreakdowns}" class="t-summary"
                     style="font-size:0.78rem;color:var(--text-muted)">
                     <span th:text="'IVA ' + ${#numbers.formatDecimal(bd.vatRate * 100, 1, 0)} + '%'">IVA 21%</span>
                     <span th:text="${#numbers.formatDecimal(bd.baseAmount, 1, 2)} + ' &euro;'">0.00 &euro;</span>
                     <span th:text="${#numbers.formatDecimal(bd.vatAmount, 1, 2)} + ' &euro;'">0.00 &euro;</span>
                 </div>
-                <!-- Totals -->
                 <div class="t-summary"
                     style="font-size:0.78rem;color:var(--text-muted);border-top:1px dashed var(--border);padding-top:0.25rem;margin-top:0.15rem">
                     <span>Base imponible</span>
@@ -82,60 +94,26 @@
                 </div>
             </div>
 
-            <!-- Fallback: exact totals from stored vatRate when no breakdown available -->
-            <div th:unless="${taxBreakdowns != null and !#lists.isEmpty(taxBreakdowns)}">
-                <div class="t-summary">
-                    <span>Base imponible</span>
-                    <span th:text="${#numbers.formatDecimal(
-                        #aggregates.sum(sale.lines.![subtotal / (1 + vatRate)]),
-                        1, 2)} + ' &euro;'">0.00 &euro;</span>
-                </div>
-                <div class="t-summary">
-                    <span>IVA</span>
-                    <span th:text="${#numbers.formatDecimal(
-                        #aggregates.sum(sale.lines.![subtotal - (subtotal / (1 + vatRate))]),
-                        1, 2)} + ' &euro;'">0.00 &euro;</span>
-                </div>
-            </div>
-
             <div class="t-total">
-                <span class="t-total-label">Total</span>
+                <span class="t-total-label">TOTAL FACTURA</span>
                 <span class="t-total-amount"
                     th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2)} + ' &euro;'">0.00 &euro;</span>
             </div>
 
-            <!-- Payment -->
-            <div class="t-payment">
-                <div class="t-payment-method" th:text="${sale.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}">
-                    Efectivo</div>
-                <div class="t-payment-detail" th:if="${sale.receivedAmount == null}">
-                    Importe abonado: <strong
-                        th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2)} + ' &euro;'">0.00 &euro;</strong>
-                </div>
-                <div class="t-payment-detail" th:if="${sale.receivedAmount != null}"
-                    style="display:flex; flex-direction:column; align-items:flex-end;">
-                    <div>Entregado: <strong
-                            th:text="${#numbers.formatDecimal(sale.receivedAmount, 1, 2)} + ' &euro;'">0.00
-                            &euro;</strong></div>
-                    <div>Cambio: <strong th:text="${#numbers.formatDecimal(sale.changeAmount, 1, 2)} + ' &euro;'">0.00
-                            &euro;</strong></div>
-                </div>
-            </div>
-
             <!-- Footer -->
             <div class="t-footer">
-                <strong>&iexcl;Gracias por su compra!</strong><br>
-                ElectroBazar S.L. &middot; C/ Exemple, 12, Madrid<br>
-                Vuelva pronto &mdash; conserve este ticket
+                <strong>Documento con validez legal</strong><br>
+                &iexcl;Gracias por su confianza!<br>
+                ElectroBazar S.L.
                 <div class="t-barcode"></div>
             </div>
         </div>
     </div>
 
-    <!-- Buttons (screen only) -->
+    <!-- Buttons -->
     <div class="btn-row">
         <button class="btn-primary-action" onclick="window.print()">
-            <i class="bi bi-printer"></i> Imprimir
+            <i class="bi bi-printer"></i> Imprimir Factura
         </button>
         <a href="/tpv" class="btn-secondary-action">
             <i class="bi bi-arrow-left"></i> Volver al TPV

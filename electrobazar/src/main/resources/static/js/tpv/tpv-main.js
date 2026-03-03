@@ -335,9 +335,15 @@ function processSaleWithInvoiceValidation() {
     var wantsInvoice = document.getElementById('requestInvoiceToggle').checked;
     var saleForm = document.getElementById('saleForm');
     var customerIdInput = document.getElementById('customerIdInput');
+    var requestInvoiceInput = document.getElementById('requestInvoiceInput');
     var paymentMethod = document.getElementById('paymentMethodInput').value;
     var receivedAmountInput = document.getElementById('receivedAmount');
     var hiddenReceivedAmount = document.getElementById('receivedAmountInput');
+
+    // Sincronizar el flag de factura
+    if (requestInvoiceInput) {
+        requestInvoiceInput.value = wantsInvoice ? 'true' : 'false';
+    }
 
     // Limpiar datos previos
     customerIdInput.value = '';
