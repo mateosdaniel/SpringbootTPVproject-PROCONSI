@@ -45,6 +45,16 @@ public class ProductApiRestController {
         return ResponseEntity.ok(productService.search(name));
     }
 
+    @GetMapping("/filter")
+    public ResponseEntity<List<Product>> filterProducts(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String stock,
+            @RequestParam(required = false) Boolean active) {
+
+        return ResponseEntity.ok(productService.getFilteredProducts(search, category, stock, active));
+    }
+
     @PostMapping
     public ResponseEntity<Product> create(@RequestBody ProductRequest request) {
         Product product = new Product();
@@ -54,7 +64,7 @@ public class ProductApiRestController {
         product.setIvaRate(request.getIvaRate());
         product.setStock(request.getStock() != null ? request.getStock() : 0);
         product.setImageUrl(request.getImageUrl());
-        
+
         if (request.getCategoryId() != null) {
             product.setCategory(categoryService.findById(request.getCategoryId()));
         }
@@ -88,12 +98,18 @@ public class ProductApiRestController {
     }
 
     /**
-     * Returns a list of products for frontend selection UI with current prices and VAT.
+     * Returns a list of products for frontend selection UI with current prices and
+     * VAT.
      *
-     * <p>Each item contains: id, name, currentPrice, currentVat, categoryId, categoryName.
-     * This endpoint is designed for the bulk price update UI.</p>
+     * <p>
+     * Each item contains: id, name, currentPrice, currentVat, categoryId,
+     * categoryName.
+     * This endpoint is designed for the bulk price update UI.
+     * </p>
      *
-     * <p>Example: {@code GET /api/products/selection-list}</p>
+     * <p>
+     * Example: {@code GET /api/products/selection-list}
+     * </p>
      *
      * @return 200 with list of {@link ProductSelectionItem}
      */
@@ -101,12 +117,12 @@ public class ProductApiRestController {
     public ResponseEntity<List<ProductSelectionItem>> getSelectionList() {
         List<Product> products = productService.findAllActiveWithCategory();
         LocalDateTime now = LocalDateTime.now();
-        
+
         List<ProductSelectionItem> selectionItems = products.stream()
                 .map(product -> {
                     BigDecimal currentPrice;
                     BigDecimal currentVat;
-                    
+
                     // Try to get current price from price history
                     var priceEntity = productPriceService.getCurrentPrice(product.getId(), now);
                     if (priceEntity != null) {
@@ -117,18 +133,17 @@ public class ProductApiRestController {
                         currentPrice = product.getPrice();
                         currentVat = product.getIvaRate() != null ? product.getIvaRate() : new BigDecimal("0.21");
                     }
-                    
+
                     return new ProductSelectionItem(
                             product.getId(),
                             product.getName(),
                             currentPrice,
                             currentVat,
                             product.getCategory() != null ? product.getCategory().getId() : null,
-                            product.getCategory() != null ? product.getCategory().getName() : null
-                    );
+                            product.getCategory() != null ? product.getCategory().getName() : null);
                 })
                 .collect(Collectors.toList());
-        
+
         return ResponseEntity.ok(selectionItems);
     }
 }

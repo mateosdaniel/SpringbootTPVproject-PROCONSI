@@ -33,6 +33,14 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<Category> getFilteredCategories(String search) {
+        org.springframework.data.jpa.domain.Specification<Category> spec = com.proconsi.electrobazar.repository.specification.CategorySpecification
+                .filterCategories(search);
+        return categoryRepository.findAll(spec);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Category findById(Long id) {
         return categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con id: " + id));

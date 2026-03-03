@@ -1,0 +1,49 @@
+<!-- fragment: product-filter.html -->
+<div th:fragment="sharedFilterBar" class="filter-bar mb-3 p-3 rounded"
+    style="background: var(--surface); border: 1px solid var(--border);">
+    <div class="row g-2">
+        <!-- Buscador -->
+        <div class="col-md-3">
+            <label class="form-label small text-muted mb-1">Buscar producto</label>
+            <input type="text" id="sharedFilterSearch" class="form-control form-control-sm"
+                placeholder="Nombre, ID o desc..." autocomplete="off" oninput="debounceSharedFilter()">
+        </div>
+        <!-- Select Categoría -->
+        <div class="col-md-2">
+            <label class="form-label small text-muted mb-1">Categoría</label>
+            <select id="sharedFilterCategory" class="form-select form-select-sm" onchange="runSharedBackendFilter()">
+                <option value="">Todas</option>
+                <option th:each="c : ${categories}" th:value="${c.name}" th:text="${c.name}"></option>
+            </select>
+        </div>
+        <!-- Select Stock -->
+        <div class="col-md-2">
+            <label class="form-label small text-muted mb-1">Nivel Stock</label>
+            <select id="sharedFilterStock" class="form-select form-select-sm" onchange="runSharedBackendFilter()">
+                <option value="">Todos</option>
+                <option value="low">Stock Bajo</option>
+                <option value="normal">Suficiente</option>
+            </select>
+        </div>
+        <!-- Select Activo -->
+        <div class="col-md-2">
+            <label class="form-label small text-muted mb-1">Estado</label>
+            <select id="sharedFilterActive" class="form-select form-select-sm" onchange="runSharedBackendFilter()">
+                <option value="">Todos</option>
+                <option value="true">Activos</option>
+                <option value="false">Inactivos</option>
+            </select>
+        </div>
+        <!-- Acciones -->
+        <div class="col-md-3 d-flex align-items-end gap-1">
+            <button class="btn btn-sm btn-outline-danger w-100" onclick="sharedFilterToggleLowStock()"
+                id="btnSharedLowStock">
+                <i class="bi bi-exclamation-triangle me-1"></i> Stock Bajo
+            </button>
+            <button class="btn btn-sm btn-outline-secondary px-3" onclick="resetSharedBackendFilter()"
+                title="Resetear Filtros">
+                <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+        </div>
+    </div>
+</div>

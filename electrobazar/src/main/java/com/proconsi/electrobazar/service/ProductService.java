@@ -16,6 +16,8 @@ public interface ProductService {
 
     List<Product> search(String name);
 
+    List<Product> getFilteredProducts(String search, String category, String stock, Boolean active);
+
     Product findById(Long id);
 
     Product save(Product product);

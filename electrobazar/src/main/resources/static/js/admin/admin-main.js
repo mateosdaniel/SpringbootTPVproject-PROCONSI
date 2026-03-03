@@ -655,32 +655,7 @@ function deleteWorker(id) {
         });
 }
 
-// -- Filter Low Stock --
-let showingLowStockOnly = false;
-function filterLowStock() {
-    const btn = document.getElementById('btnFilterLowStock');
-    showingLowStockOnly = !showingLowStockOnly;
 
-    const rows = document.querySelectorAll('#productsView tbody tr:not(.empty-row)');
-    rows.forEach(function (row) {
-        var stockBadge = row.querySelector('.badge-stock-low');
-        if (showingLowStockOnly) {
-            row.style.display = stockBadge ? '' : 'none';
-        } else {
-            row.style.display = '';
-        }
-    });
-
-    if (showingLowStockOnly) {
-        btn.style.background = 'var(--danger)';
-        btn.style.color = 'white';
-        btn.innerHTML = '<i class="bi bi-x-lg"></i> Quitar Filtro';
-    } else {
-        btn.style.background = 'rgba(231, 76, 60, 0.1)';
-        btn.style.color = 'var(--danger)';
-        btn.innerHTML = '<i class="bi bi-filter"></i> Stock Bajo';
-    }
-}
 
 // -- CRM / Customer Management ------------------------------------------------
 function openCustomerModal(id) {
@@ -1450,17 +1425,13 @@ function resetActivityFilters() {
     filterActivity();
 }
 
-function filterCategories() {
-    const query = document.getElementById('categoryFilterSearch').value.toLowerCase().trim();
-    document.querySelectorAll('.category-row').forEach(row => {
-        const name = (row.getAttribute('data-name') || '').toLowerCase();
-        const desc = (row.getAttribute('data-desc') || '').toLowerCase();
-        row.style.display = (name.includes(query) || desc.includes(query)) ? '' : 'none';
-    });
-}
+// Categories filtering is now powered by shared/inventory-filter.js (runSharedBackendCategoryFilter)
 function resetCategoryFilters() {
-    document.getElementById('categoryFilterSearch').value = '';
-    filterCategories();
+    const srch = document.getElementById('categoryFilterSearch');
+    if (srch) srch.value = '';
+    const globalSearch = document.getElementById('sharedFilterSearch');
+    if (globalSearch) globalSearch.value = '';
+    runSharedBackendCategoryFilter();
 }
 
 function filterFuturePrices() {

@@ -305,7 +305,7 @@
                     </button>
                     <button class="btn btn-outline-secondary btn-sm px-3 py-2"
                         style="background: var(--surface); color: var(--text-main); border-radius: 8px; border: 1px solid var(--border);"
-                        onclick="switchView('productsView'); setTimeout(() => filterLowStock(), 100)">
+                        onclick="switchView('productsView'); setTimeout(() => { const s = document.getElementById('sharedFilterStock'); if(s) { s.value=''; sharedFilterToggleLowStock(); } }, 100)">
                         <i class="bi bi-exclamation-triangle me-1"></i> Ver Stock Bajo
                     </button>
                     <button class="btn btn-outline-secondary btn-sm px-3 py-2"
@@ -413,12 +413,7 @@
                 </div>
 
                 <!-- Centro: Buscador (Matches TPV Header) -->
-                <div class="header-search">
-                    <i class="bi bi-search btn-search"></i>
-                    <input type="text" id="productFilterSearch" class="form-control"
-                        placeholder="Buscar producto por nombre, ID o descripción..." autocomplete="off"
-                        oninput="filterProducts()">
-                </div>
+                <!-- The search input has been moved to the shared filter bar -->
 
                 <div class="d-flex gap-2 flex-wrap" style="position: relative; z-index: 10;">
                     <input type="file" id="csvFileInput" accept=".csv" style="display: none;"
@@ -427,11 +422,6 @@
                         style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border);"
                         title="Importar CSV">
                         <i class="bi bi-file-earmark-spreadsheet"></i>
-                    </button>
-                    <button class="btn-nuevo" onclick="filterLowStock()" id="btnFilterLowStock"
-                        style="background: rgba(231, 76, 60, 0.1); color: var(--danger); border: 1px solid rgba(231, 76, 60, 0.2);"
-                        title="Stock Bajo">
-                        <i class="bi bi-filter"></i>
                     </button>
                     <button class="btn-nuevo" onclick="openProductModal()">
                         <i class="bi bi-plus-lg me-1"></i> Nuevo
@@ -459,44 +449,7 @@
 
                 <!-- Tab: Productos -->
                 <div class="tab-pane fade show active" id="products-pane" role="tabpanel">
-                    <div class="filter-bar mt-3 p-3 rounded"
-                        style="background: var(--surface); border: 1px solid var(--border);">
-                        <div class="row g-2">
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted mb-1">Categoría</label>
-                                <select id="productFilterCategory" class="form-select form-select-sm"
-                                    onchange="filterProducts()">
-                                    <option value="">Todas</option>
-                                    <option th:each="c : ${categories}" th:value="${c.name}" th:text="${c.name}">
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted mb-1">Stock Level</label>
-                                <select id="productFilterStock" class="form-select form-select-sm"
-                                    onchange="filterProducts()">
-                                    <option value="">Todos</option>
-                                    <option value="low">Stock Bajo</option>
-                                    <option value="normal">Suficiente</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted mb-1">Estado</label>
-                                <select id="productFilterActive" class="form-select form-select-sm"
-                                    onchange="filterProducts()">
-                                    <option value="">Todos</option>
-                                    <option value="true">Activos</option>
-                                    <option value="false">Inactivos</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3 d-flex align-items-end">
-                                <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetProductFilters()"
-                                    style="border-color: var(--border); color: var(--text-muted); height: 31px;">
-                                    <i class="bi bi-arrow-clockwise me-1"></i> Limpiar Filtros
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <div th:replace="~{fragments/product-filter :: sharedFilterBar}"></div>
 
                     <div class="admin-table-wrap mt-3">
                         <table class="admin-table" id="productsTable">
@@ -573,13 +526,13 @@
 
                 <!-- Tab: Categorías -->
                 <div class="tab-pane fade" id="categories-pane" role="tabpanel">
-                    <div class="filter-bar mt-3 mb-2 p-3 rounded"
+                    <div class="filter-bar mb-3 p-3 rounded"
                         style="background: var(--surface); border: 1px solid var(--border);">
                         <div class="row g-2">
                             <div class="col-md-10">
                                 <label class="form-label small text-muted mb-1">Buscar categoría</label>
                                 <input type="text" id="categoryFilterSearch" class="form-control form-control-sm"
-                                    placeholder="Nombre o descripción..." oninput="filterCategories()">
+                                    placeholder="Nombre o descripción..." oninput="debounceSharedFilter()">
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
                                 <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetCategoryFilters()">
@@ -987,43 +940,53 @@
                     <i class="bi bi-shield-lock me-2"></i>Gestión de Roles
                 </span>
                 <div class="d-flex gap-2 align-items-center">
-                    <div class="input-group input-group-sm" style="width: 250px;">
-                        <span class="input-group-text bg-surface border-border text-muted"><i
-                                class="bi bi-search"></i></span>
-                        <input type="text" id="roleFilterName" class="form-control" placeholder="Buscar por nombre..."
-                            oninput="filterRoles()">
-                    </div>
-                    <div class="dropdown">
-                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
-                            data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                            Filtrar por Permisos
-                        </button>
-                        <div class="dropdown-menu p-3 bg-surface border-border shadow" style="min-width: 250px;">
-                            <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2">
-                                <span class="fw-bold small">Permisos requeridos</span>
-                                <button class="btn btn-link btn-sm p-0 text-decoration-none x-small"
-                                    onclick="resetRolePermFilters()">Limpiar</button>
-                            </div>
-                            <div class="form-check mb-2">
-                                <input class="form-check-input role-filter-perm" type="checkbox" value="ADMIN_ACCESS"
-                                    id="rf_admin" onchange="filterRoles()">
-                                <label class="form-check-label small" for="rf_admin">ADMIN_ACCESS</label>
-                            </div>
-                            <div class="form-check mb-2">
-                                <input class="form-check-input role-filter-perm" type="checkbox" value="CASH_CLOSE"
-                                    id="rf_cash" onchange="filterRoles()">
-                                <label class="form-check-label small" for="rf_cash">CASH_CLOSE</label>
-                            </div>
-                            <div class="form-check mb-0">
-                                <input class="form-check-input role-filter-perm" type="checkbox"
-                                    value="MANAGE_PRODUCTS_TPV" id="rf_stock" onchange="filterRoles()">
-                                <label class="form-check-label small" for="rf_stock">MANAGE_PRODUCTS_TPV</label>
-                            </div>
-                        </div>
-                    </div>
                     <button class="btn-nuevo" onclick="openRoleModal()">
                         <i class="bi bi-plus-lg"></i> Nuevo Rol
                     </button>
+                </div>
+            </div>
+
+            <div class="filter-bar mb-3 p-3 rounded"
+                style="background: var(--surface); border: 1px solid var(--border);">
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted mb-1">Buscar por nombre</label>
+                        <input type="text" id="roleFilterName" class="form-control form-control-sm"
+                            placeholder="Buscar por nombre..." oninput="filterRoles()">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted mb-1">Permisos requeridos</label>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100" type="button"
+                                data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
+                                style="text-align: left; background: var(--surface); border: 1px solid var(--border);">
+                                Seleccionar Permisos
+                            </button>
+                            <div class="dropdown-menu p-3 bg-surface border-border shadow" style="min-width: 250px;">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input role-filter-perm" type="checkbox"
+                                        value="ADMIN_ACCESS" id="rf_admin" onchange="filterRoles()">
+                                    <label class="form-check-label small" for="rf_admin">ADMIN_ACCESS</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input role-filter-perm" type="checkbox" value="CASH_CLOSE"
+                                        id="rf_cash" onchange="filterRoles()">
+                                    <label class="form-check-label small" for="rf_cash">CASH_CLOSE</label>
+                                </div>
+                                <div class="form-check mb-0">
+                                    <input class="form-check-input role-filter-perm" type="checkbox"
+                                        value="MANAGE_PRODUCTS_TPV" id="rf_stock" onchange="filterRoles()">
+                                    <label class="form-check-label small" for="rf_stock">MANAGE_PRODUCTS_TPV</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button class="btn btn-sm btn-outline-secondary w-100"
+                            onclick="resetRolePermFilters(); document.getElementById('roleFilterName').value=''; filterRoles();">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -1318,14 +1281,24 @@
 
             <!-- Tab: Historial -->
             <div id="preciosTabHistorial" style="display:none">
-                <div class="d-flex gap-2 mb-3">
-                    <select class="form-select" id="historialProductSelect" style="max-width:350px">
-                        <option value="">— Selecciona un producto —</option>
-                        <option th:each="p : ${products}" th:value="${p.id}" th:text="${p.name}"></option>
-                    </select>
-                    <button class="btn-nuevo" onclick="loadPriceHistory()">
-                        <i class="bi bi-search"></i> Ver Historial
-                    </button>
+                <div class="filter-bar mb-3 p-3 rounded"
+                    style="background: var(--surface); border: 1px solid var(--border);">
+                    <div class="row g-2">
+                        <div class="col-md-10">
+                            <label class="form-label small text-muted mb-1">Producto</label>
+                            <select class="form-select form-select-sm" id="historialProductSelect"
+                                onchange="loadPriceHistory()">
+                                <option value="">— Selecciona un producto —</option>
+                                <option th:each="p : ${products}" th:value="${p.id}" th:text="${p.name}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button class="btn btn-sm btn-outline-secondary w-100"
+                                onclick="document.getElementById('historialProductSelect').value=''; loadPriceHistory();">
+                                <i class="bi bi-arrow-counterclockwise"></i> Reset
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="admin-table-wrap">
                     <table class="admin-table">
@@ -1897,6 +1870,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/shared/inventory-filter.js}"></script>
     <script th:src="@{/js/admin/admin-main.js}"></script>
 </body>
 

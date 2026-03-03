@@ -8,7 +8,8 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ProductRepository extends JpaRepository<Product, Long> {
+public interface ProductRepository extends JpaRepository<Product, Long>,
+        org.springframework.data.jpa.repository.JpaSpecificationExecutor<Product> {
 
     // Productos activos para el TPV
     List<Product> findByActiveTrueOrderByNameAsc();

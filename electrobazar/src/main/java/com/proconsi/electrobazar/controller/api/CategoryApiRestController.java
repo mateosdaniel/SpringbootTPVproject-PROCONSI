@@ -21,6 +21,11 @@ public class CategoryApiRestController {
         return ResponseEntity.ok(categoryService.findAllActive());
     }
 
+    @GetMapping("/filter")
+    public ResponseEntity<List<Category>> filterCategories(@RequestParam(required = false) String search) {
+        return ResponseEntity.ok(categoryService.getFilteredCategories(search));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Category> getById(@PathVariable Long id) {
         return ResponseEntity.ok(categoryService.findById(id));

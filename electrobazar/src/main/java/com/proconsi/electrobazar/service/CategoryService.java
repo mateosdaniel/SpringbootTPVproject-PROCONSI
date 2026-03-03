@@ -5,10 +5,18 @@ import java.util.List;
 
 public interface CategoryService {
     List<Category> findAll();
+
+    List<Category> getFilteredCategories(String search);
+
     List<Category> findAllActive();
+
     Category findById(Long id);
+
     Category save(Category category);
+
     Category update(Long id, Category category);
-    void delete(Long id);         // soft delete
-    void hardDelete(Long id);     // borrado real (solo si no tiene productos)
+
+    void delete(Long id); // soft delete
+
+    void hardDelete(Long id); // borrado real (solo si no tiene productos)
 }

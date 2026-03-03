@@ -55,6 +55,14 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<Product> getFilteredProducts(String search, String category, String stock, Boolean active) {
+        org.springframework.data.jpa.domain.Specification<Product> spec = com.proconsi.electrobazar.repository.specification.ProductSpecification
+                .filterProducts(search, category, stock, active);
+        return productRepository.findAll(spec);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Product findById(Long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con id: " + id));
