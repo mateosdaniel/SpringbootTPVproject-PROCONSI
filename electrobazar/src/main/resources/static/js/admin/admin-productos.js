@@ -160,5 +160,4 @@ function uploadCsvFile(input) {
         .finally(function () { input.value = ''; });
 }
 
-// Tema aplicado en el <head> para evitar parpadeo de colores.
 

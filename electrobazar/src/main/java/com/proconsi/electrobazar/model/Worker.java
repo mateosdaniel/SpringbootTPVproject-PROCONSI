@@ -31,7 +31,23 @@ public class Worker {
     @Builder.Default
     private Set<String> permissions = new HashSet<>();
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id")
+    private Role role;
+
     @Column(nullable = false)
     @Builder.Default
     private boolean active = true;
+
+    /**
+     * Returns the effective permissions by combining manual permissions with role permissions.
+     * If a worker has a role, the role's permissions are added to any manual permissions.
+     */
+    public Set<String> getEffectivePermissions() {
+        Set<String> effective = new HashSet<>(this.permissions);
+        if (this.role != null) {
+            effective.addAll(this.role.getPermissions());
+        }
+        return effective;
+    }
 }

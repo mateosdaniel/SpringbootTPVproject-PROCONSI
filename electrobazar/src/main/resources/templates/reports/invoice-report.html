@@ -241,7 +241,8 @@
                     <div class="doc-type" th:text="${sale.customer != null ? 'Factura' : 'Ticket Simplificado'}">Factura
                     </div>
                     <div class="doc-ref">
-                        Ref: <strong th:text="${'#' + sale.id}">#1001</strong><br />
+                        Ref: <strong
+                            th:text="${invoice != null ? invoice.invoiceNumber : ('#' + sale.id)}">#F-2026-0001</strong><br />
                         Fecha: <strong
                             th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy')}">25/02/2026</strong><br />
                         Hora: <strong th:text="${#temporals.format(sale.createdAt, 'HH:mm:ss')}">14:30:00</strong>
@@ -312,16 +313,16 @@
     <div class="totals-wrap">
         <table class="totals-table">
             <tr>
-                <td class="lbl">Base imponible (aprox.):</td>
-                <td class="amt" th:text="${#numbers.formatDecimal(sale.totalAmount / 1.21, 1, 2, 'POINT')} + ' €'">
-                    0.00
-                    €</td>
+                <td class="lbl">Base imponible:</td>
+                <td class="amt" th:text="${#numbers.formatDecimal(
+                        #aggregates.sum(sale.lines.![subtotal / (1 + vatRate)]),
+                        1, 2, 'POINT')} + ' €'">0.00 €</td>
             </tr>
             <tr>
-                <td class="lbl">IVA 21% (aprox.):</td>
-                <td class="amt"
-                    th:text="${#numbers.formatDecimal(sale.totalAmount - (sale.totalAmount / 1.21), 1, 2, 'POINT')} + ' €'">
-                    0.00 €</td>
+                <td class="lbl">IVA:</td>
+                <td class="amt" th:text="${#numbers.formatDecimal(
+                        #aggregates.sum(sale.lines.![subtotal - (subtotal / (1 + vatRate))]),
+                        1, 2, 'POINT')} + ' €'">0.00 €</td>
             </tr>
             <tr class="grand">
                 <td class="lbl">TOTAL A PAGAR:</td>

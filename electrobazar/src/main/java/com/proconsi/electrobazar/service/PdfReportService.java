@@ -1,26 +1,48 @@
 package com.proconsi.electrobazar.service;
 
 import com.proconsi.electrobazar.model.CashRegister;
-
-import java.io.File;
+import com.proconsi.electrobazar.model.Invoice;
+import com.proconsi.electrobazar.model.Sale;
 
 public interface PdfReportService {
 
     /**
      * Generates a PDF report for the given closed cash register
-     * and saves it to the configured directory.
-     * 
+     * and returns the bytes.
+     *
      * @param register The closed CashRegister object
-     * @return The File object representing the generated PDF
+     * @return The PDF data as byte array
      */
-    File generateCashCloseReport(CashRegister register);
+    byte[] generateCashCloseReport(CashRegister register);
 
     /**
-     * Generates a PDF report for the given sale / invoice
-     * and saves it to the configured directory.
-     * 
-     * @param sale The Sale object representing the invoice
-     * @return The File object representing the generated PDF
+     * Generates a PDF invoice report for the given sale and its associated invoice.
+     * The invoice object is passed to the Thymeleaf template to render the
+     * correlative number.
+     *
+     * @param sale    The Sale object
+     * @param invoice The Invoice object (may be null for anonymous ticket-only
+     *                sales)
+     * @return The PDF data as byte array
      */
-    File generateInvoiceReport(com.proconsi.electrobazar.model.Sale sale);
+    byte[] generateInvoiceReport(Sale sale, Invoice invoice);
+
+    /**
+     * Generates a PDF ticket report for the given sale and tax breakdowns.
+     *
+     * @param sale          The Sale object
+     * @param taxBreakdowns List of tax breakdowns
+     * @param applyRecargo  Whether recargo de equivalencia applies
+     * @param totalBase     Total taxable base
+     * @param totalVat      Total vat amount
+     * @param totalRecargo  Total recargo amount
+     * @return The PDF data as byte array
+     */
+    byte[] generateTicketReport(
+            Sale sale,
+            java.util.List<com.proconsi.electrobazar.dto.TaxBreakdown> taxBreakdowns,
+            Boolean applyRecargo,
+            java.math.BigDecimal totalBase,
+            java.math.BigDecimal totalVat,
+            java.math.BigDecimal totalRecargo);
 }

@@ -26,7 +26,7 @@ public class Product {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
-    @Column(nullable = false, columnDefinition = "int default 0 check (stock >= 0)")
+    @Column(nullable = false, columnDefinition = "int default 0")
     @Builder.Default
     private Integer stock = 0;
 
@@ -40,4 +40,8 @@ public class Product {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
+
+    @Column(name = "iva_rate", nullable = false, precision = 5, scale = 4)
+    @Builder.Default
+    private BigDecimal ivaRate = new BigDecimal("0.21");
 }

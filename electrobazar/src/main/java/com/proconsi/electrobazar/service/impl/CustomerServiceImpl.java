@@ -71,6 +71,9 @@ public class CustomerServiceImpl implements CustomerService {
         existing.setPostalCode(updated.getPostalCode());
         existing.setType(updated.getType());
         existing.setActive(updated.getActive());
+        // Persist the Recargo de Equivalencia flag
+        existing.setHasRecargoEquivalencia(
+                updated.getHasRecargoEquivalencia() != null ? updated.getHasRecargoEquivalencia() : false);
 
         Customer saved = customerRepository.save(existing);
         activityLogService.logActivity(

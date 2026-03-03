@@ -20,6 +20,7 @@ public class AdminController {
     private final com.proconsi.electrobazar.service.PdfReportService pdfReportService;
     private final com.proconsi.electrobazar.service.WorkerService workerService;
     private final com.proconsi.electrobazar.service.CustomerService customerService;
+    private final com.proconsi.electrobazar.service.InvoiceService invoiceService;
 
     @GetMapping("/productos-categorias")
     public String productsCategories(Model model, HttpSession session) {
@@ -29,8 +30,8 @@ public class AdminController {
         if (worker == null)
             return "redirect:/login";
 
-        boolean hasPermission = worker.getPermissions().contains("MANAGE_PRODUCTS_TPV") ||
-                worker.getPermissions().contains("ADMIN_ACCESS");
+        boolean hasPermission = worker.getEffectivePermissions().contains("MANAGE_PRODUCTS_TPV") ||
+                worker.getEffectivePermissions().contains("ADMIN_ACCESS");
 
         if (!hasPermission)
             return "redirect:/tpv";
@@ -117,8 +118,10 @@ public class AdminController {
         }
     }
 
+    private final com.proconsi.electrobazar.service.DocumentService documentService;
+
     @GetMapping("/admin/download/invoice/{id}")
-    public org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> downloadInvoicePdf(
+    public org.springframework.http.ResponseEntity<?> downloadInvoicePdf(
             @org.springframework.web.bind.annotation.PathVariable Long id, HttpSession session) {
         if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
             return org.springframework.http.ResponseEntity.status(401).build();
@@ -127,29 +130,30 @@ public class AdminController {
         try {
             com.proconsi.electrobazar.model.Sale sale = saleService.findById(id);
             if (sale == null)
-                return org.springframework.http.ResponseEntity.notFound().build();
+                return org.springframework.http.ResponseEntity.status(404).body("Venta no encontrada.");
 
-            String dateStr = sale.getCreatedAt() != null
-                    ? sale.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-                    : "UnknownDate";
-            String filename = String.format("Factura_Ticket_%d_%s.pdf", id, dateStr);
-            java.io.File file = new java.io.File("facturas", filename);
+            com.proconsi.electrobazar.model.Invoice invoice = invoiceService.findBySaleId(id).orElse(null);
+            com.proconsi.electrobazar.model.DocumentType docType = invoice != null
+                    ? com.proconsi.electrobazar.model.DocumentType.INVOICE
+                    : com.proconsi.electrobazar.model.DocumentType.TICKET;
+            Long refIdForLookup = invoice != null ? invoice.getId() : id;
 
-            if (!file.exists() || file.length() == 0) {
-                // Generar factura al vuelo si no existe o estí vacía
-                file = pdfReportService.generateInvoiceReport(sale);
+            java.util.Optional<com.proconsi.electrobazar.model.StoredDocument> storedDoc = documentService
+                    .findByTypeAndReference(docType, refIdForLookup);
+
+            if (storedDoc.isEmpty()) {
+                return org.springframework.http.ResponseEntity.status(404)
+                        .body("El documento PDF no existe en la base de datos.");
             }
 
-            if (file == null || !file.exists() || file.length() == 0) {
-                if (file != null && file.exists())
-                    file.delete(); // Limpiar si fallí generaciín
-                return org.springframework.http.ResponseEntity.notFound().build();
-            }
+            byte[] pdfData = storedDoc.get().getData();
+            String filename = storedDoc.get().getFilename();
 
-            org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(file.toURI());
+            org.springframework.core.io.Resource resource = new org.springframework.core.io.ByteArrayResource(pdfData);
             return org.springframework.http.ResponseEntity.ok()
                     .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
                             "attachment; filename=\"" + filename + "\"")
+                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
                     .body(resource);
         } catch (Exception e) {
             return org.springframework.http.ResponseEntity.internalServerError().build();
@@ -168,27 +172,30 @@ public class AdminController {
             if (register == null)
                 return org.springframework.http.ResponseEntity.notFound().build();
 
-            String dateStr = register.getClosedAt() != null
-                    ? register.getClosedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-                    : "UnknownDate";
-            String filename = String.format("Cierre_Caja_%s_ID%d.pdf", dateStr, id);
-            java.io.File file = new java.io.File("cierres_de_caja", filename);
+            java.util.Optional<com.proconsi.electrobazar.model.StoredDocument> storedDoc = documentService
+                    .findByTypeAndReference(com.proconsi.electrobazar.model.DocumentType.CASH_CLOSE, id);
 
-            if (!file.exists() || file.length() == 0) {
-                // Generar cierre al vuelo si no existe o estí vacía
-                file = pdfReportService.generateCashCloseReport(register);
+            byte[] pdfData;
+            String filename;
+
+            if (storedDoc.isPresent()) {
+                pdfData = storedDoc.get().getData();
+                filename = storedDoc.get().getFilename();
+            } else {
+                // Regenerate and store if missing
+                pdfData = pdfReportService.generateCashCloseReport(register);
+                String dateStr = register.getClosedAt() != null
+                        ? register.getClosedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+                        : "UnknownDate";
+                filename = String.format("Cierre_Caja_%s_ID%d.pdf", dateStr, id);
+                documentService.store(com.proconsi.electrobazar.model.DocumentType.CASH_CLOSE, id, filename, pdfData);
             }
 
-            if (file == null || !file.exists() || file.length() == 0) {
-                if (file != null && file.exists())
-                    file.delete(); // Limpiar si fallí generaciín
-                return org.springframework.http.ResponseEntity.notFound().build();
-            }
-
-            org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(file.toURI());
+            org.springframework.core.io.Resource resource = new org.springframework.core.io.ByteArrayResource(pdfData);
             return org.springframework.http.ResponseEntity.ok()
                     .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
                             "attachment; filename=\"" + filename + "\"")
+                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
                     .body(resource);
         } catch (Exception e) {
             return org.springframework.http.ResponseEntity.internalServerError().build();

@@ -8,7 +8,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "sale_lines")
-@Getter @Setter
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -32,6 +33,9 @@ public class SaleLine {
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal unitPrice;
+
+    @Column(nullable = false, precision = 5, scale = 4, name = "vat_rate")
+    private BigDecimal vatRate;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal subtotal;

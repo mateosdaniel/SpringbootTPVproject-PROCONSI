@@ -28,6 +28,12 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/categories/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/cash-registers/**").permitAll()
+                        // allow public reads for product prices (catalog display) and RE rate info
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/product-prices/**").permitAll()
+                        // allow activity log access without auth (used by admin UI)
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/activity-log/**").permitAll()
+                        // allow bulk price scheduling without auth (used by admin UI)
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/product-prices/bulk-schedule").permitAll()
                         // allow anybody to GET and POST customers (used by TPV for search and creation)
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/customers/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/customers").permitAll()

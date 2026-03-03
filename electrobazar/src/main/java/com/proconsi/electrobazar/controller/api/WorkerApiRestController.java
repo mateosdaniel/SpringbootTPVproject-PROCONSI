@@ -63,7 +63,7 @@ public class WorkerApiRestController {
 
         if (workerOpt.isPresent()) {
             Worker worker = workerOpt.get();
-            String token = jwtService.generateToken(worker.getUsername(), worker.getId(), worker.getPermissions());
+            String token = jwtService.generateToken(worker.getUsername(), worker.getId(), worker.getEffectivePermissions());
 
             Map<String, Object> response = new HashMap<>();
             response.put("worker", worker);

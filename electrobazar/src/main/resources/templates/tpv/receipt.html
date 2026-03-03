@@ -162,6 +162,7 @@
                     <div th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm')}">25/02/2026 14:30</div>
                     <div style="margin-top: 0.2rem;">Le atendi&oacute;: <strong
                             th:text="${sale.worker != null ? sale.worker.username : 'Sistema'}">Admin</strong></div>
+                    <div style="margin-top: 0.2rem;">N&ordm;: <strong th:text="'#' + ${sale.id}">#1</strong></div>
                 </div>
             </div>
 
@@ -177,6 +178,8 @@
             <div class="t-items">
                 <div th:each="line : ${sale.lines}" class="t-item">
                     <span class="t-item-name" th:text="${line.product.name}">Producto</span>
+                    <span class="t-item-unit"
+                        th:text="${#numbers.formatDecimal(line.unitPrice, 1, 2)} + ' &euro;/ud.'">0.00 &euro;/ud.</span>
                     <span class="t-item-qty" th:text="${line.quantity} + ' ud.'">1 ud.</span>
                     <span class="t-item-price" th:text="${#numbers.formatDecimal(line.subtotal, 1, 2)} + ' &euro;'">0.00
                         &euro;</span>
@@ -185,16 +188,51 @@
 
             <hr class="t-divider">
 
-            <!-- Totals -->
-            <div class="t-summary">
-                <span>Base imponible (aprox.)</span>
-                <span th:text="${#numbers.formatDecimal(sale.totalAmount / 1.21, 1, 2)} + ' &euro;'">0.00 &euro;</span>
+            <!-- Tax Breakdown (accurate, from temporal pricing + RE calculation) -->
+            <div th:if="${taxBreakdowns != null and !#lists.isEmpty(taxBreakdowns)}">
+                <!-- RE notice badge -->
+                <div th:if="${applyRecargo}"
+                    style="background:rgba(245,166,35,0.15);border:1px solid rgba(245,166,35,0.4);border-radius:6px;padding:0.4rem 0.6rem;margin-bottom:0.5rem;font-size:0.75rem;text-align:center;">
+                    <strong>&#9888; Recargo de Equivalencia aplicado</strong>
+                </div>
+
+                <!-- Per-rate tax detail rows -->
+                <div th:each="bd : ${taxBreakdowns}" class="t-summary"
+                    style="font-size:0.78rem;color:var(--text-muted)">
+                    <span th:text="'IVA ' + ${#numbers.formatDecimal(bd.vatRate * 100, 1, 0)} + '%'">IVA 21%</span>
+                    <span th:text="${#numbers.formatDecimal(bd.baseAmount, 1, 2)} + ' &euro;'">0.00 &euro;</span>
+                    <span th:text="${#numbers.formatDecimal(bd.vatAmount, 1, 2)} + ' &euro;'">0.00 &euro;</span>
+                </div>
+                <!-- Totals -->
+                <div class="t-summary"
+                    style="font-size:0.78rem;color:var(--text-muted);border-top:1px dashed var(--border);padding-top:0.25rem;margin-top:0.15rem">
+                    <span>Base imponible</span>
+                    <span th:text="${#numbers.formatDecimal(totalBase, 1, 2)} + ' &euro;'">0.00 &euro;</span>
+                </div>
+                <div class="t-summary" style="font-size:0.78rem;color:var(--text-muted)">
+                    <span>IVA total</span>
+                    <span th:text="${#numbers.formatDecimal(totalVat, 1, 2)} + ' &euro;'">0.00 &euro;</span>
+                </div>
+                <div th:if="${applyRecargo}" class="t-summary" style="font-size:0.78rem;color:var(--text-muted)">
+                    <span>Recargo de Equivalencia</span>
+                    <span th:text="${#numbers.formatDecimal(totalRecargo, 1, 2)} + ' &euro;'">0.00 &euro;</span>
+                </div>
             </div>
-            <div class="t-summary">
-                <span>IVA 21% (aprox.)</span>
-                <span
-                    th:text="${#numbers.formatDecimal(sale.totalAmount - (sale.totalAmount / 1.21), 1, 2)} + ' &euro;'">0.00
-                    &euro;</span>
+
+            <!-- Fallback: exact totals from stored vatRate when no breakdown available -->
+            <div th:unless="${taxBreakdowns != null and !#lists.isEmpty(taxBreakdowns)}">
+                <div class="t-summary">
+                    <span>Base imponible</span>
+                    <span th:text="${#numbers.formatDecimal(
+                        #aggregates.sum(sale.lines.![subtotal / (1 + vatRate)]),
+                        1, 2)} + ' &euro;'">0.00 &euro;</span>
+                </div>
+                <div class="t-summary">
+                    <span>IVA</span>
+                    <span th:text="${#numbers.formatDecimal(
+                        #aggregates.sum(sale.lines.![subtotal - (subtotal / (1 + vatRate))]),
+                        1, 2)} + ' &euro;'">0.00 &euro;</span>
+                </div>
             </div>
 
             <div class="t-total">

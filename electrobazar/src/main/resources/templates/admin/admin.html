@@ -177,11 +177,20 @@
             <button class="nav-link sidebar-menu-btn" onclick="switchView('workersView', this)">
                 <i class="bi bi-people"></i> Gestión de Trabajadores
             </button>
+            <button class="nav-link sidebar-menu-btn" onclick="switchView('rolesView', this)">
+                <i class="bi bi-shield-lock"></i> Gestión de Roles
+            </button>
             <button class="nav-link sidebar-menu-btn" onclick="switchView('analyticsView', this)">
                 <i class="bi bi-graph-up"></i> Análisis de Negocio
             </button>
             <button class="nav-link sidebar-menu-btn" onclick="switchView('crmView', this)">
                 <i class="bi bi-person-badge"></i> Clientes (CRM)
+            </button>
+            <button class="nav-link sidebar-menu-btn" onclick="switchView('preciosTempView', this)">
+                <i class="bi bi-calendar-event"></i> Precios Temporales
+            </button>
+            <button class="nav-link sidebar-menu-btn" onclick="switchView('preciosMasivosView', this)">
+                <i class="bi bi-percent"></i> Precios Masivos
             </button>
             <button class="nav-link sidebar-menu-btn" onclick="switchView('activityView', this)">
                 <i class="bi bi-clock-history"></i> Actividad Reciente
@@ -305,6 +314,20 @@
                     <i class="bi bi-clock-history"></i>
                     <h3>Actividad</h3>
                     <p>Revisa las últimas acciones realizadas en el sistema.</p>
+                </div>
+
+                <div class="dashboard-card"
+                    onclick="switchView('preciosTempView', document.querySelector('[onclick*=\'preciosTempView\']'))">
+                    <i class="bi bi-calendar-event"></i>
+                    <h3>Precios Temporales</h3>
+                    <p>Programa cambios de precio futuros y consulta el historial.</p>
+                </div>
+
+                <div class="dashboard-card"
+                    onclick="switchView('preciosMasivosView', document.querySelector('[onclick*=\'preciosMasivosView\']'))">
+                    <i class="bi bi-percent"></i>
+                    <h3>Precios Masivos</h3>
+                    <p>Aplica incrementos o descuentos a múltiples productos.</p>
                 </div>
             </div>
         </div>
@@ -684,6 +707,44 @@
             </div>
         </div>
 
+        <!-- 4B. ROLES VIEW -->
+        <div id="rolesView" style="display:none">
+            <div class="panel-header">
+                <span class="panel-title">
+                    <button class="btn-icon me-2"
+                        onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
+                        title="Volver al Panel">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <i class="bi bi-shield-lock me-2"></i>Gestión de Roles
+                </span>
+                <button class="btn-nuevo" onclick="openRoleModal()">
+                    <i class="bi bi-plus-lg"></i> Nuevo Rol
+                </button>
+            </div>
+
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Permisos</th>
+                            <th>Trabajadores</th>
+                            <th style="text-align:right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rolesTableBody">
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">
+                                <span class="spinner-border spinner-border-sm me-2"></span>Cargando...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- 5. ANALYTICS VIEW -->
         <div id="analyticsView" style="display:none">
             <div class="panel-header mb-4">
@@ -781,6 +842,7 @@
                             <th>Teléfono</th>
                             <th>Ciudad</th>
                             <th>Tipo</th>
+                            <th title="Recargo de Equivalencia">R.E.</th>
                             <th style="text-align:right">Acciones</th>
                         </tr>
                     </thead>
@@ -795,6 +857,11 @@
                                 <span class="badge"
                                     th:classappend="${c.type.name() == 'COMPANY'} ? 'bg-primary' : 'bg-secondary'"
                                     th:text="${c.type}"></span>
+                            </td>
+                            <td>
+                                <span th:if="${c.hasRecargoEquivalencia}" class="badge bg-warning text-dark"
+                                    title="Sujeto a Recargo de Equivalencia">R.E.</span>
+                                <span th:unless="${c.hasRecargoEquivalencia}" class="text-muted">—</span>
                             </td>
                             <td style="text-align:right">
                                 <div style="display:flex;gap:0.4rem;justify-content:flex-end">
@@ -811,14 +878,191 @@
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(customers)}">
-                            <td colspan="7" class="text-center py-4 text-muted">No hay clientes registrados</td>
+                            <td colspan="8" class="text-center py-4 text-muted">No hay clientes registrados</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- 7. ACTIVITY LOG VIEW -->
+        <!-- 8. PRECIOS TEMPORALES VIEW -->
+        <div id="preciosTempView" style="display:none">
+            <div class="panel-header mb-4">
+                <span class="panel-title">
+                    <button class="btn-icon me-2"
+                        onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
+                        title="Volver al Panel">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <i class="bi bi-calendar-event me-2"></i>Gestión de Precios Temporales
+                </span>
+                <button class="btn-nuevo" onclick="openSchedulePriceModal()">
+                    <i class="bi bi-plus-lg"></i> Programar Precio
+                </button>
+            </div>
+
+            <!-- Info box -->
+            <div class="alert alert-info d-flex align-items-start gap-2 mb-4"
+                style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--text-main)">
+                <i class="bi bi-info-circle-fill text-info mt-1"></i>
+                <div>
+                    <strong>Sistema de Precios Temporales:</strong> Programa cambios de precio futuros para cualquier
+                    producto. Al programar un nuevo precio, el precio actual se cerrará automáticamente un segundo antes
+                    de que entre en vigor el nuevo. El sistema aplica caché para optimizar el rendimiento.
+                </div>
+            </div>
+
+            <!-- Tabs: Precios Futuros / Buscar Historial -->
+            <ul class="nav nav-tabs mb-3" id="preciosTabs">
+                <li class="nav-item">
+                    <button class="nav-link active" id="tabFuturos" onclick="showPreciosTab('futuros')">
+                        <i class="bi bi-clock me-1"></i>Precios Programados
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="tabHistorial" onclick="showPreciosTab('historial')">
+                        <i class="bi bi-search me-1"></i>Historial por Producto
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab: Futuros -->
+            <div id="preciosTabFuturos">
+                <div class="admin-table-wrap">
+                    <table class="admin-table" id="tableFuturesPrices">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Precio (€)</th>
+                                <th>IVA</th>
+                                <th>Inicio</th>
+                                <th>Fin</th>
+                                <th>Etiqueta</th>
+                            </tr>
+                        </thead>
+                        <tbody id="futurePricesBody">
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    <span class="spinner-border spinner-border-sm me-2"></span>Cargando...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab: Historial -->
+            <div id="preciosTabHistorial" style="display:none">
+                <div class="d-flex gap-2 mb-3">
+                    <select class="form-select" id="historialProductSelect" style="max-width:350px">
+                        <option value="">— Selecciona un producto —</option>
+                        <option th:each="p : ${products}" th:value="${p.id}" th:text="${p.name}"></option>
+                    </select>
+                    <button class="btn-nuevo" onclick="loadPriceHistory()">
+                        <i class="bi bi-search"></i> Ver Historial
+                    </button>
+                </div>
+                <div class="admin-table-wrap">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Precio (€)</th>
+                                <th>IVA</th>
+                                <th>Inicio</th>
+                                <th>Fin</th>
+                                <th>Etiqueta</th>
+                                <th>Variación</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="priceHistoryBody">
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">Selecciona un producto para ver su historial de precios.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8B. PRECIOS MASIVOS VIEW -->
+        <div id="preciosMasivosView" style="display:none">
+            <div class="panel-header mb-4">
+                <span class="panel-title">
+                    <button class="btn-icon me-2"
+                        onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
+                        title="Volver al Panel">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <i class="bi bi-percent me-2"></i>Actualización Masiva de Precios
+                </span>
+            </div>
+
+            <!-- Info box -->
+            <div class="alert alert-info d-flex align-items-start gap-2 mb-4"
+                style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--text-main)">
+                <i class="bi bi-info-circle-fill text-info mt-1"></i>
+                <div>
+                    <strong>Precios Masivos:</strong> Selecciona varios productos y aplica un incremento o decremento porcentual a todos ellos. También puedes establecer una fecha futura para que los cambios entren en vigor automáticamente.
+                </div>
+            </div>
+
+            <!-- Form -->
+            <div class="card" style="background:var(--bg-card);border:1px solid var(--border);max-width:700px">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-600">Seleccionar Productos</label>
+                        <div class="d-flex gap-2 mb-2">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="selectAllBulkProducts(true)">Seleccionar Todos</button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="selectAllBulkProducts(false)">Deseleccionar Todos</button>
+                        </div>
+                        <div class="bulk-product-list" id="bulkProductList" style="max-height:250px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:10px">
+                            <div class="text-center text-muted py-3">Cargando productos...</div>
+                        </div>
+                        <small class="text-muted" id="selectedCountLabel">0 productos seleccionados</small>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-600">Tipo de Cambio</label>
+                            <select class="form-select" id="bulkPriceType" onchange="toggleBulkPriceFields()">
+                                <option value="percentage">Porcentaje (%)</option>
+                                <option value="fixed">Cantidad Fija (€)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-600" id="bulkPriceValueLabel">Porcentaje (%)</label>
+                            <input type="number" class="form-control" id="bulkPriceValue" step="0.01" placeholder="Ej: 10 para +10%">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-600">Fecha de Vigencia (opcional)</label>
+                        <input type="datetime-local" class="form-control" id="bulkEffectiveDate">
+                        <small class="text-muted">Dejar vacío para aplicar inmediatamente</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-600">Etiqueta (opcional)</label>
+                        <input type="text" class="form-control" id="bulkLabel" placeholder="Ej: Incremento IPC 2026">
+                    </div>
+
+                    <button class="btn-nuevo" onclick="applyBulkPriceUpdate()">
+                        <i class="bi bi-check-lg"></i> Aplicar Cambio
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div id="bulkResults" class="mt-4" style="display:none">
+                <div class="alert alert-success d-flex align-items-center gap-2">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span id="bulkResultsText"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. ACTIVITY LOG VIEW -->
         <div id="activityView" style="display:none">
             <div class="panel-header mb-4">
                 <span class="panel-title">
@@ -868,6 +1112,15 @@
                                 <label class="form-label" for="productPrice">Precio (&euro;) *</label>
                                 <input type="number" class="form-control" id="productPrice" step="0.01" min="0" required
                                     placeholder="0.00">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="productIvaRate">IVA</label>
+                                <select class="form-select" id="productIvaRate">
+                                    <option value="0.21">21% (General)</option>
+                                    <option value="0.10">10% (Reducido)</option>
+                                    <option value="0.04">4% (Superreducido)</option>
+                                    <option value="0.02">2% (Especial)</option>
+                                </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="productStock">Stock</label>
@@ -951,6 +1204,53 @@
     <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
      MODAL — TRABAJADOR
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <div class="modal fade" id="roleModal" tabindex="-1" aria-labelledby="roleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="background:var(--secondary);color:var(--text-main);border-color:var(--border);">
+                <div class="modal-header" style="border-color:var(--border);">
+                    <h5 class="modal-title" id="roleModalLabel">Rol</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="roleForm" novalidate>
+                        <input type="hidden" id="roleId">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Nombre del rol *</label>
+                                <input type="text" class="form-control" id="roleName" required placeholder="Ej: Cajero, Supervisor">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Descripción</label>
+                                <input type="text" class="form-control" id="roleDescription" placeholder="Descripción opcional del rol">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Permisos</label>
+                                <div class="p-3 rounded" style="background:var(--primary); border:1px solid var(--border)">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" value="MANAGE_PRODUCTS_TPV" id="rolePermProd">
+                                        <label class="form-check-label" for="rolePermProd">Gestionar productos en TPV</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" value="CASH_CLOSE" id="rolePermCash">
+                                        <label class="form-check-label" for="rolePermCash">Realizar cierres de caja</label>
+                                    </div>
+                                    <div class="form-check mt-2" style="border-top: 1px solid var(--border); padding-top: 0.5rem;">
+                                        <input class="form-check-input" type="checkbox" value="ADMIN_ACCESS" id="rolePermAdmin">
+                                        <label class="form-check-label text-danger" for="rolePermAdmin" style="font-weight:700"><i class="bi bi-shield-exclamation me-1"></i>ACCESO TOTAL ADMIN</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="border-color:var(--border);">
+                    <button type="button" class="btn btn-cancel" data-bs-dismiss="modal" style="flex:1">Cancelar</button>
+                    <button type="button" class="btn btn-save" onclick="saveRole()" style="flex:1">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="workerModal" tabindex="-1" aria-labelledby="workerModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content"
@@ -979,6 +1279,13 @@
                                     <input class="form-check-input" type="checkbox" id="workerActive" checked>
                                     <label class="form-check-label" for="workerActive">Trabajador activo</label>
                                 </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Rol</label>
+                                <select class="form-select" id="workerRole" onchange="onWorkerRoleChange()">
+                                    <option value="">Sin rol</option>
+                                </select>
+                                <small class="text-muted">Selecciona un rol para auto-completar permisos, o establece permisos manualmente.</small>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Permisos</label>
@@ -1072,6 +1379,21 @@
                                     <label class="form-check-label" for="customerActive">Cliente activo</label>
                                 </div>
                             </div>
+                            <div class="col-12">
+                                <div class="p-3 rounded" style="background:var(--surface,#f8f9fa);border:1px solid var(--border,#dee2e6)">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="customerRecargoEquivalencia">
+                                        <label class="form-check-label fw-semibold" for="customerRecargoEquivalencia">
+                                            <i class="bi bi-percent me-1 text-warning"></i>
+                                            Sujeto a Recargo de Equivalencia (R.E.)
+                                        </label>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">
+                                        Aplica el recargo de equivalencia español sobre las ventas a este cliente
+                                        (21%→+5,2% | 10%→+1,4% | 4%→+0,5% | 2%→+0,15%).
+                                    </small>
+                                </div>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -1087,6 +1409,71 @@
 
 
     </div> <!-- /.admin-body -->
+
+    <!-- ══════════════════════════════════════════════════════════════
+     MODAL — PROGRAMAR PRECIO TEMPORAL
+    ══════════════════════════════════════════════════════════════ -->
+    <div class="modal fade" id="schedulePriceModal" tabindex="-1" aria-labelledby="schedulePriceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="schedulePriceModalLabel">
+                        <i class="bi bi-calendar-event me-2"></i>Programar Precio Temporal
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="schedulePriceForm" novalidate>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label" for="spProductSelect">Producto *</label>
+                                <select class="form-select" id="spProductSelect" required>
+                                    <option value="">— Selecciona un producto —</option>
+                                    <option th:each="p : ${products}" th:value="${p.id}" th:text="${p.name}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="spPrice">Nuevo Precio (€) *</label>
+                                <input type="number" class="form-control" id="spPrice" step="0.01" min="0.01" required
+                                    placeholder="0.00">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="spVatRate">Tipo de IVA *</label>
+                                <select class="form-select" id="spVatRate" required onchange="updateRecargoPreview()">
+                                    <option value="0.21">21% (General)</option>
+                                    <option value="0.10">10% (Reducido)</option>
+                                    <option value="0.04">4% (Superreducido)</option>
+                                    <option value="0.02">2% (Especial)</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="spStartDate">Fecha de Inicio *</label>
+                                <input type="datetime-local" class="form-control" id="spStartDate" required>
+                                <small class="text-muted">El precio actual se cerrará automáticamente un segundo antes de esta fecha.</small>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="spLabel">Etiqueta (opcional)</label>
+                                <input type="text" class="form-control" id="spLabel"
+                                    placeholder="Ej: Tarifa 2026, Oferta Verano...">
+                            </div>
+                            <div class="col-12">
+                                <div class="p-2 rounded" style="background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.3);font-size:0.8rem">
+                                    <strong><i class="bi bi-percent me-1 text-warning"></i>Recargo de Equivalencia asociado:</strong>
+                                    <span id="spRecargoPreview" class="ms-2 text-muted">21% IVA → +5,2% RE</span>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn-save" onclick="saveScheduledPrice()">
+                        <i class="bi bi-calendar-check me-1"></i>Programar Precio
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script th:src="@{/js/admin/admin-main.js}"></script>

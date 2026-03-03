@@ -52,11 +52,13 @@ public class CashRegisterApiRestController {
     @GetMapping("/{id}/ticket")
     public ResponseEntity<org.springframework.core.io.Resource> getTicket(@PathVariable Long id) {
         CashRegister cr = cashRegisterService.findById(id);
-        java.io.File pdfFile = pdfReportService.generateCashCloseReport(cr);
-        org.springframework.core.io.Resource resource = new org.springframework.core.io.FileSystemResource(pdfFile);
+        byte[] pdfData = pdfReportService.generateCashCloseReport(cr);
+
+        String filename = "Cierre_Caja_" + id + ".pdf";
+        org.springframework.core.io.Resource resource = new org.springframework.core.io.ByteArrayResource(pdfData);
         return ResponseEntity.ok()
                 .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + pdfFile.getName() + "\"")
+                        "attachment; filename=\"" + filename + "\"")
                 .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
                 .body(resource);
     }

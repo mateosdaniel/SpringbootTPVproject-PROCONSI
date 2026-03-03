@@ -43,6 +43,9 @@ public class CustomerApiRestController {
             if (customer.getActive() == null) {
                 customer.setActive(true);
             }
+            if (customer.getHasRecargoEquivalencia() == null) {
+                customer.setHasRecargoEquivalencia(false);
+            }
 
             // minimal server-side validation so callers realise why a request failed
             if (customer.getName() == null || customer.getName().trim().isEmpty()) {
@@ -78,6 +81,9 @@ public class CustomerApiRestController {
             }
             if (customer.getActive() == null) {
                 customer.setActive(true);
+            }
+            if (customer.getHasRecargoEquivalencia() == null) {
+                customer.setHasRecargoEquivalencia(false);
             }
             Customer updated = customerService.update(id, customer);
             return ResponseEntity.ok(updated);

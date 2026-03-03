@@ -81,6 +81,7 @@ public class ProductServiceImpl implements ProductService {
         existing.setActive(updated.getActive());
         existing.setImageUrl(updated.getImageUrl());
         existing.setCategory(updated.getCategory());
+        existing.setIvaRate(updated.getIvaRate());
 
         // El stock se puede actualizar manualmente para corregir errores de datos
         if (updated.getStock() != null && updated.getStock() >= 0) {

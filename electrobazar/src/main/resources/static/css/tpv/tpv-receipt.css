@@ -146,6 +146,12 @@
             color: #222;
         }
 
+        .t-item-unit {
+            font-size: 0.75rem;
+            color: #888;
+            white-space: nowrap;
+        }
+
         .t-item-qty {
             font-size: 0.75rem;
             color: #888;

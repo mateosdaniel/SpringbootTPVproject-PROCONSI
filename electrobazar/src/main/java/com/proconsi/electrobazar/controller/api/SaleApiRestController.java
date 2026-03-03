@@ -22,6 +22,7 @@ public class SaleApiRestController {
     private final com.proconsi.electrobazar.service.CustomerService customerService;
     private final com.proconsi.electrobazar.service.PdfReportService pdfReportService;
     private final com.proconsi.electrobazar.service.WorkerService workerService;
+    private final com.proconsi.electrobazar.service.InvoiceService invoiceService;
 
     @GetMapping
     public ResponseEntity<List<Sale>> getAll() {
@@ -46,11 +47,16 @@ public class SaleApiRestController {
     @GetMapping("/{id}/ticket")
     public ResponseEntity<org.springframework.core.io.Resource> getTicket(@PathVariable Long id) {
         Sale sale = saleService.findById(id);
-        java.io.File pdfFile = pdfReportService.generateInvoiceReport(sale);
-        org.springframework.core.io.Resource resource = new org.springframework.core.io.FileSystemResource(pdfFile);
+        com.proconsi.electrobazar.model.Invoice invoice = invoiceService.findBySaleId(id).orElse(null);
+        byte[] pdfData = pdfReportService.generateInvoiceReport(sale, invoice);
+
+        String invoiceLabel = invoice != null ? invoice.getInvoiceNumber() : ("Ticket_" + id);
+        String filename = "Ticket_" + invoiceLabel + ".pdf";
+
+        org.springframework.core.io.Resource resource = new org.springframework.core.io.ByteArrayResource(pdfData);
         return ResponseEntity.ok()
                 .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + pdfFile.getName() + "\"")
+                        "attachment; filename=\"" + filename + "\"")
                 .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
                 .body(resource);
     }

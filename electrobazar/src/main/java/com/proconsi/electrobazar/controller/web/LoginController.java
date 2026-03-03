@@ -29,7 +29,7 @@ public class LoginController {
             Worker w = worker.get();
             session.setAttribute("worker", w);
             // Si tiene permiso de acceso admin, le damos la sesión de admin
-            if (w.getPermissions().contains("ADMIN_ACCESS")) {
+            if (w.getEffectivePermissions().contains("ADMIN_ACCESS")) {
                 session.setAttribute("admin", true);
             }
             return "redirect:/tpv";

@@ -3,6 +3,10 @@ var productModal = new bootstrap.Modal(document.getElementById('productModal'));
 var categoryModal = new bootstrap.Modal(document.getElementById('categoryModal'));
 var workerModal = new bootstrap.Modal(document.getElementById('workerModal'));
 var customerModal = new bootstrap.Modal(document.getElementById('customerModal'));
+var roleModal = new bootstrap.Modal(document.getElementById('roleModal'));
+
+// Cache for roles
+var rolesCache = null;
 
 // -- View Switching --------------------------------------------------------
 function switchView(viewId, btnElement) {
@@ -14,6 +18,7 @@ function switchView(viewId, btnElement) {
     document.getElementById('workersView').style.display = 'none';
     document.getElementById('analyticsView').style.display = 'none';
     document.getElementById('crmView').style.display = 'none';
+    document.getElementById('preciosTempView').style.display = 'none';
     document.getElementById('activityView').style.display = 'none';
 
     // Show selected view
@@ -30,6 +35,8 @@ function switchView(viewId, btnElement) {
         initCharts();
     } else if (viewId === 'activityView') {
         loadActivityLog();
+    } else if (viewId === 'preciosTempView') {
+        loadFuturePrices();
     }
 }
 
@@ -102,6 +109,7 @@ function openProductModal(id) {
     document.getElementById('productName').value = '';
     document.getElementById('productDescription').value = '';
     document.getElementById('productPrice').value = '';
+    document.getElementById('productIvaRate').value = '0.21';
     document.getElementById('productStock').value = '0';
     document.getElementById('productCategory').value = '';
     document.getElementById('productImageUrl').value = '';
@@ -118,6 +126,7 @@ function openProductModal(id) {
                 document.getElementById('productName').value = p.name || '';
                 document.getElementById('productDescription').value = p.description || '';
                 document.getElementById('productPrice').value = p.price || '';
+                document.getElementById('productIvaRate').value = p.ivaRate ? String(p.ivaRate) : '0.21';
                 document.getElementById('productStock').value = (p.stock !== undefined && p.stock !== null) ? p.stock : 0;
                 document.getElementById('productCategory').value = p.category ? p.category.id : '';
                 document.getElementById('productImageUrl').value = p.imageUrl || '';
@@ -142,6 +151,7 @@ function saveProduct() {
         name: name,
         description: document.getElementById('productDescription').value.trim() || null,
         price: parseFloat(price),
+        ivaRate: parseFloat(document.getElementById('productIvaRate').value),
         stock: parseInt(document.getElementById('productStock').value) || 0,
         active: document.getElementById('productActive').checked,
         imageUrl: document.getElementById('productImageUrl').value.trim() || null,
@@ -286,7 +296,7 @@ function loadActivityLog() {
 
     container.innerHTML = '<div class="text-center p-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div></div>';
 
-    fetch('/api/activity')
+    fetch('/api/activity-log/recent')
         .then(function (res) {
             if (!res.ok) throw new Error('Error de red');
             return res.json();
@@ -591,6 +601,7 @@ function openCustomerModal(id) {
     document.getElementById('customerForm').reset();
     document.getElementById('customerId').value = id || '';
     document.getElementById('customerModalLabel').textContent = id ? 'Editar Cliente' : 'Nuevo Cliente';
+    document.getElementById('customerRecargoEquivalencia').checked = false;
 
     if (id) {
         fetch('/api/customers/' + id)
@@ -606,6 +617,8 @@ function openCustomerModal(id) {
                 document.getElementById('customerPostalCode').value = c.postalCode || '';
                 document.getElementById('customerType').value = c.type || 'INDIVIDUAL';
                 document.getElementById('customerActive').checked = c.active !== false;
+                // Load Recargo de Equivalencia flag
+                document.getElementById('customerRecargoEquivalencia').checked = c.hasRecargoEquivalencia === true;
             })
             .catch(function () { showToast('Error al cargar el cliente', 'error'); });
     }
@@ -626,7 +639,8 @@ function saveCustomer() {
         city: document.getElementById('customerCity').value.trim() || null,
         postalCode: document.getElementById('customerPostalCode').value.trim() || null,
         type: document.getElementById('customerType').value,
-        active: document.getElementById('customerActive').checked
+        active: document.getElementById('customerActive').checked,
+        hasRecargoEquivalencia: document.getElementById('customerRecargoEquivalencia').checked
     };
 
     // additional validation for company
@@ -675,4 +689,318 @@ function deleteCustomer(id, name) {
         })
         .catch(function () { showToast('Error al eliminar el cliente', 'error'); });
 }
+
+// ── Precios Temporales ────────────────────────────────────────────────────────
+
+var schedulePriceModal = new bootstrap.Modal(document.getElementById('schedulePriceModal'));
+
+/** RE rate map matching the server-side RecargoEquivalenciaCalculator */
+var RE_RATE_MAP = {
+    '0.21': '5,2%',
+    '0.10': '1,4%',
+    '0.04': '0,5%',
+    '0.02': '0,15%'
+};
+
+function updateRecargoPreview() {
+    var vatRate = document.getElementById('spVatRate').value;
+    var reRate = RE_RATE_MAP[vatRate] || '—';
+    var vatPct = Math.round(parseFloat(vatRate) * 100) + '%';
+    document.getElementById('spRecargoPreview').textContent = vatPct + ' IVA → +' + reRate + ' RE';
+}
+
+function openSchedulePriceModal() {
+    document.getElementById('schedulePriceForm').reset();
+    // Set default start date to tomorrow at 00:00
+    var tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    var pad = function (n) { return n < 10 ? '0' + n : n; };
+    var dtLocal = tomorrow.getFullYear() + '-' + pad(tomorrow.getMonth() + 1) + '-' + pad(tomorrow.getDate())
+        + 'T' + pad(tomorrow.getHours()) + ':' + pad(tomorrow.getMinutes());
+    document.getElementById('spStartDate').value = dtLocal;
+    // Reset VAT rate to default 21%
+    document.getElementById('spVatRate').value = '0.21';
+    updateRecargoPreview();
+    schedulePriceModal.show();
+}
+
+// Auto-select product's IVA rate when product is selected in schedule price modal
+document.getElementById('spProductSelect').addEventListener('change', function() {
+    var productId = this.value;
+    if (productId) {
+        fetch('/api/products/' + productId)
+            .then(function(r) { return r.json(); })
+            .then(function(p) {
+                if (p.ivaRate) {
+                    document.getElementById('spVatRate').value = String(p.ivaRate);
+                    updateRecargoPreview();
+                }
+            })
+            .catch(function() {});
+    }
+});
+
+function saveScheduledPrice() {
+    var productId = document.getElementById('spProductSelect').value;
+    var price = document.getElementById('spPrice').value;
+    var vatRate = document.getElementById('spVatRate').value;
+    var startDate = document.getElementById('spStartDate').value;
+    var label = document.getElementById('spLabel').value.trim();
+
+    if (!productId) { showToast('Selecciona un producto', 'error'); return; }
+    if (!price || parseFloat(price) <= 0) { showToast('El precio debe ser mayor que 0', 'error'); return; }
+    if (!startDate) { showToast('La fecha de inicio es obligatoria', 'error'); return; }
+
+    // Convert datetime-local value to ISO format expected by the API
+    var isoDate = startDate.replace('T', 'T').substring(0, 19);
+    // Ensure seconds are included
+    if (isoDate.length === 16) isoDate += ':00';
+
+    var body = {
+        price: parseFloat(price),
+        vatRate: parseFloat(vatRate),
+        startDate: isoDate,
+        label: label || null
+    };
+
+    fetch('/api/product-prices/' + productId + '/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    })
+        .then(function (r) {
+            if (!r.ok) {
+                return r.json().then(function (d) {
+                    throw new Error(d.message || d.error || 'Error al programar precio');
+                }).catch(function () { throw new Error('Estado HTTP ' + r.status); });
+            }
+            return r.json();
+        })
+        .then(function (data) {
+            schedulePriceModal.hide();
+            showToast('Precio programado correctamente para ' + (data.productName || 'el producto'));
+            loadFuturePrices();
+        })
+        .catch(function (e) {
+            showToast('Error: ' + (e.message || ''), 'error');
+        });
+}
+
+function loadFuturePrices() {
+    fetch('/api/product-prices/future')
+        .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+        .then(function (prices) {
+            var tbody = document.getElementById('futurePricesBody');
+            if (!prices || prices.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No hay precios programados para el futuro.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = prices.map(function (p) {
+                var vatPct = Math.round(parseFloat(p.vatRate) * 100) + '%';
+                var reRate = RE_RATE_MAP[String(p.vatRate)] || '—';
+                return '<tr>'
+                    + '<td><strong>' + escHtml(p.productName) + '</strong></td>'
+                    + '<td>' + parseFloat(p.price).toFixed(2) + ' &euro;</td>'
+                    + '<td>' + vatPct + ' <small class="text-muted">(+' + reRate + ' RE)</small></td>'
+                    + '<td>' + formatDateTime(p.startDate) + '</td>'
+                    + '<td>' + (p.endDate ? formatDateTime(p.endDate) : '<span class="text-muted">Abierto</span>') + '</td>'
+                    + '<td>' + (p.label ? escHtml(p.label) : '<span class="text-muted">—</span>') + '</td>'
+                    + '</tr>';
+            }).join('');
+        })
+        .catch(function () {
+            document.getElementById('futurePricesBody').innerHTML =
+                '<tr><td colspan="6" class="text-center py-4 text-danger">Error al cargar los precios programados.</td></tr>';
+        });
+}
+
+function loadPriceHistory() {
+    var productId = document.getElementById('historialProductSelect').value;
+    if (!productId) { showToast('Selecciona un producto', 'error'); return; }
+
+    fetch('/api/product-prices/' + productId + '/history')
+        .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+        .then(function (prices) {
+            var tbody = document.getElementById('priceHistoryBody');
+            if (!prices || prices.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No hay historial de precios para este producto.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = prices.map(function (p) {
+                var vatPct = Math.round(parseFloat(p.vatRate) * 100) + '%';
+                var reRate = RE_RATE_MAP[String(p.vatRate)] || '—';
+                var statusBadge = p.currentlyActive
+                    ? '<span class="badge bg-success">Activo</span>'
+                    : (new Date(p.startDate) > new Date()
+                        ? '<span class="badge bg-warning text-dark">Programado</span>'
+                        : '<span class="badge bg-secondary">Expirado</span>');
+                
+                // Calculate price variation display
+                var variationHtml = '<span class="text-muted">—</span>';
+                if (p.priceChange !== null && p.priceChange !== undefined) {
+                    var changeAmount = parseFloat(p.priceChange).toFixed(2);
+                    var changePct = parseFloat(p.priceChangePct).toFixed(2);
+                    if (p.priceChange > 0) {
+                        variationHtml = '<span class="text-success fw-bold">+' + changeAmount + ' € (+' + changePct + '%)</span>';
+                    } else if (p.priceChange < 0) {
+                        variationHtml = '<span class="text-danger fw-bold">' + changeAmount + ' € (' + changePct + '%)</span>';
+                    } else {
+                        variationHtml = '<span class="text-muted">0.00 € (0.00%)</span>';
+                    }
+                }
+                
+                return '<tr>'
+                    + '<td>' + parseFloat(p.price).toFixed(2) + ' &euro;</td>'
+                    + '<td>' + vatPct + ' <small class="text-muted">(+' + reRate + ' RE)</small></td>'
+                    + '<td>' + formatDateTime(p.startDate) + '</td>'
+                    + '<td>' + (p.endDate ? formatDateTime(p.endDate) : '<span class="text-muted">Abierto</span>') + '</td>'
+                    + '<td>' + (p.label ? escHtml(p.label) : '<span class="text-muted">—</span>') + '</td>'
+                    + '<td>' + variationHtml + '</td>'
+                    + '<td>' + statusBadge + '</td>'
+                    + '</tr>';
+            }).join('');
+        })
+        .catch(function () {
+            document.getElementById('priceHistoryBody').innerHTML =
+                '<tr><td colspan="7" class="text-center py-4 text-danger">Error al cargar el historial.</td></tr>';
+        });
+}
+
+function showPreciosTab(tab) {
+    document.getElementById('preciosTabFuturos').style.display = tab === 'futuros' ? 'block' : 'none';
+    document.getElementById('preciosTabHistorial').style.display = tab === 'historial' ? 'block' : 'none';
+    document.getElementById('tabFuturos').classList.toggle('active', tab === 'futuros');
+    document.getElementById('tabHistorial').classList.toggle('active', tab === 'historial');
+}
+
+function formatDateTime(dt) {
+    if (!dt) return '—';
+    try {
+        var d = new Date(dt);
+        return d.toLocaleDateString('es-ES') + ' ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    } catch (e) { return dt; }
+}
+
+function escHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// ── PRECIOS MASIVOS ────────────────────────────────────────────────────────
+var bulkProductsCache = null;
+
+function loadBulkProducts() {
+    if (bulkProductsCache) return bulkProductsCache;
+    
+    fetch('/api/products')
+        .then(function(r) { if (!r.ok) throw new Error(); return r.json(); })
+        .then(function(products) {
+            bulkProductsCache = products;
+            renderBulkProductList(products);
+        })
+        .catch(function() {
+            document.getElementById('bulkProductList').innerHTML = '<div class="text-center text-danger py-3">Error cargando productos</div>';
+        });
+}
+
+function renderBulkProductList(products) {
+    var container = document.getElementById('bulkProductList');
+    if (!products || products.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted py-3">No hay productos disponibles</div>';
+        return;
+    }
+    container.innerHTML = products.map(function(p) {
+        return '<div class="form-check">'
+            + '<input class="form-check-input bulk-product-checkbox" type="checkbox" value="' + p.id + '" id="bulkProd' + p.id + '" onchange="updateBulkSelectedCount()">'
+            + '<label class="form-check-label" for="bulkProd' + p.id + '">' + escHtml(p.name) + ' <small class="text-muted">(' + parseFloat(p.price).toFixed(2) + ' €)</small></label>'
+            + '</div>';
+    }).join('');
+}
+
+function selectAllBulkProducts(select) {
+    var checkboxes = document.querySelectorAll('.bulk-product-checkbox');
+    checkboxes.forEach(function(cb) { cb.checked = select; });
+    updateBulkSelectedCount();
+}
+
+function updateBulkSelectedCount() {
+    var checked = document.querySelectorAll('.bulk-product-checkbox:checked');
+    document.getElementById('selectedCountLabel').textContent = checked.length + ' productos seleccionados';
+}
+
+function toggleBulkPriceFields() {
+    var type = document.getElementById('bulkPriceType').value;
+    document.getElementById('bulkPriceValueLabel').textContent = type === 'percentage' ? 'Porcentaje (%)' : 'Cantidad Fija (€)';
+    document.getElementById('bulkPriceValue').placeholder = type === 'percentage' ? 'Ej: 10 para +10%' : 'Ej: 5 para +5€';
+}
+
+function applyBulkPriceUpdate() {
+    var selectedIds = Array.from(document.querySelectorAll('.bulk-product-checkbox:checked')).map(function(cb) { return parseInt(cb.value); });
+    
+    if (selectedIds.length === 0) {
+        showToast('Selecciona al menos un producto', 'error');
+        return;
+    }
+
+    var priceType = document.getElementById('bulkPriceType').value;
+    var priceValue = parseFloat(document.getElementById('bulkPriceValue').value);
+    
+    if (isNaN(priceValue) || priceValue === 0) {
+        showToast('Introduce un valor de cambio de precio', 'error');
+        return;
+    }
+
+    var effectiveDateInput = document.getElementById('bulkEffectiveDate').value;
+    // If no date selected, default to now (immediate application)
+    var effectiveDate = effectiveDateInput 
+        ? new Date(effectiveDateInput).toISOString().slice(0, 19)
+        : new Date().toISOString().slice(0, 19);
+    var label = document.getElementById('bulkLabel').value.trim();
+
+    var body = {
+        productIds: selectedIds,
+        effectiveDate: effectiveDate,
+        label: label || null
+    };
+
+    if (priceType === 'percentage') {
+        body.percentage = priceValue;
+    } else {
+        body.fixedAmount = priceValue;
+    }
+
+    fetch('/api/product-prices/bulk-schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    })
+    .then(function(r) { 
+        if (!r.ok) throw new Error('Error en la petición'); 
+        return r.json();
+    })
+    .then(function(data) {
+        var count = Array.isArray(data) ? data.length : 1;
+        document.getElementById('bulkResultsText').textContent = 'Se han programado ' + count + ' cambio(s) de precio correctamente.';
+        document.getElementById('bulkResults').style.display = 'block';
+        showToast('Precios actualizados correctamente', 'success');
+        // Reset form
+        selectAllBulkProducts(false);
+        document.getElementById('bulkPriceValue').value = '';
+        document.getElementById('bulkEffectiveDate').value = '';
+        document.getElementById('bulkLabel').value = '';
+    })
+    .catch(function(err) {
+        showToast('Error al aplicar precios masivos: ' + err.message, 'error');
+    });
+}
+
+// Load products when switching to preciosMasivosView
+var originalSwitchView = switchView;
+switchView = function(viewId, btn) {
+    originalSwitchView(viewId, btn);
+    if (viewId === 'preciosMasivosView') {
+        loadBulkProducts();
+    }
+};
 

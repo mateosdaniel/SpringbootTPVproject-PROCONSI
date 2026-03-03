@@ -2,6 +2,7 @@ package com.proconsi.electrobazar.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,4 +34,7 @@ public class Category {
     @OneToMany(mappedBy = "category", fetch = FetchType.LAZY)
     @Builder.Default
     private List<Product> products = new ArrayList<>();
+
+    @Column(name = "iva_rate", precision = 5, scale = 4)
+    private BigDecimal ivaRate;
 }

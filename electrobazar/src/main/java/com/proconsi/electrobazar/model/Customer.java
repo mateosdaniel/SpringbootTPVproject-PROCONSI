@@ -45,6 +45,16 @@ public class Customer {
     @Builder.Default
     private Boolean active = true;
 
+    /**
+     * Indicates whether this customer is subject to the Spanish 'Recargo de Equivalencia' (RE).
+     * RE applies to retailers (autónomos en régimen de recargo de equivalencia) who cannot
+     * deduct input VAT and therefore pay a surcharge on top of the standard VAT rate.
+     * Only applicable to COMPANY type customers operating under this tax regime.
+     */
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean hasRecargoEquivalencia = false;
+
     public enum CustomerType {
         INDIVIDUAL,
         COMPANY

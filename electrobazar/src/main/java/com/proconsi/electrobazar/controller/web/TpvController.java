@@ -1,17 +1,25 @@
 package com.proconsi.electrobazar.controller.web;
 
+import com.proconsi.electrobazar.dto.TaxBreakdown;
 import com.proconsi.electrobazar.model.*;
 import com.proconsi.electrobazar.service.*;
+import com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
+@Slf4j
 @Controller
 @RequestMapping("/tpv")
 @RequiredArgsConstructor
@@ -23,6 +31,11 @@ public class TpvController {
     private final CustomerService customerService;
     private final CashRegisterService cashRegisterService;
     private final PdfReportService pdfReportService;
+    private final ProductPriceService productPriceService;
+    private final RecargoEquivalenciaCalculator recargoCalculator;
+    private final InvoiceService invoiceService;
+    private final ReturnService returnService;
+    private final DocumentService documentService;
 
     @GetMapping
     public String index(
@@ -83,8 +96,6 @@ public class TpvController {
         if (customerId != null) {
             customer = customerService.findById(customerId);
         } else if (customerName != null && !customerName.isBlank()) {
-            // Crear cliente rápido (fallback for legacy or simplified non-invoice flow with
-            // name)
             Customer.CustomerType type = (customerType != null && customerType.equals("COMPANY"))
                     ? Customer.CustomerType.COMPANY
                     : Customer.CustomerType.INDIVIDUAL;
@@ -94,37 +105,98 @@ public class TpvController {
                     .build());
         }
 
-        // Procesar líneas de venta
-        List<SaleLine> lines = java.util.stream.IntStream.range(0, productIds.size())
-                .mapToObj(i -> {
-                    Product product = productService.findById(productIds.get(i));
-                    return SaleLine.builder()
-                            .product(product)
-                            .quantity(quantities.get(i))
-                            .unitPrice(product.getPrice())
-                            .build();
-                }).collect(Collectors.toList());
+        // Determinar si aplica Recargo de Equivalencia
+        boolean applyRecargo = customer != null && Boolean.TRUE.equals(customer.getHasRecargoEquivalencia());
+
+        // Procesar líneas de venta usando el sistema de precios temporales
+        LocalDateTime now = LocalDateTime.now();
+        List<SaleLine> lines = new ArrayList<>();
+        List<TaxBreakdown> taxBreakdowns = new ArrayList<>();
+
+        for (int i = 0; i < productIds.size(); i++) {
+            Product product = productService.findById(productIds.get(i));
+            int qty = quantities.get(i);
+
+            BigDecimal unitPrice;
+            BigDecimal vatRate;
+            ProductPrice activePrice = productPriceService.getCurrentPrice(product.getId(), now);
+            if (activePrice != null) {
+                unitPrice = activePrice.getPrice();
+                vatRate = activePrice.getVatRate();
+            } else {
+                unitPrice = product.getPrice();
+                vatRate = new BigDecimal("0.21"); // Default Spanish standard VAT
+            }
+
+            TaxBreakdown breakdown = recargoCalculator.calculateLineBreakdown(
+                    product.getId(), product.getName(), unitPrice, qty, vatRate, applyRecargo);
+            taxBreakdowns.add(breakdown);
+
+            lines.add(SaleLine.builder()
+                    .product(product)
+                    .quantity(qty)
+                    .unitPrice(unitPrice.setScale(2, RoundingMode.HALF_UP))
+                    .vatRate(vatRate)
+                    .build());
+        }
 
         Worker worker = (Worker) session.getAttribute("worker");
-        java.math.BigDecimal receivedAmountDecimal = null;
+        BigDecimal receivedAmountDecimal = null;
         if (paymentMethod == PaymentMethod.CASH && receivedAmount != null && !receivedAmount.isBlank()) {
             try {
-                receivedAmountDecimal = new java.math.BigDecimal(receivedAmount.replace(",", "."));
+                receivedAmountDecimal = new BigDecimal(receivedAmount.replace(",", "."));
             } catch (NumberFormatException e) {
-                // Ignore parsing error and let it be null
+                // Ignore
             }
         }
         Sale sale = saleService.createSale(lines, paymentMethod, notes, receivedAmountDecimal, customer, worker);
 
-        if (customer != null) {
-            try {
-                java.io.File pdfFile = pdfReportService.generateInvoiceReport(sale);
-                redirectAttributes.addFlashAttribute("successMessage",
-                        "Factura generada y guardada en: " + pdfFile.getAbsolutePath());
-            } catch (Exception e) {
-                redirectAttributes.addFlashAttribute("errorMessage",
-                        "Venta completada pero hubo un error al generar el PDF de la factura.");
+        // Flash attributes for the receipt view
+        redirectAttributes.addFlashAttribute("taxBreakdowns", taxBreakdowns);
+        redirectAttributes.addFlashAttribute("applyRecargo", applyRecargo);
+
+        BigDecimal totalBase = taxBreakdowns.stream().map(TaxBreakdown::getBaseAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalVat = taxBreakdowns.stream().map(TaxBreakdown::getVatAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalRecargo = taxBreakdowns.stream().map(TaxBreakdown::getRecargoAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
+        redirectAttributes.addFlashAttribute("totalBase", totalBase);
+        redirectAttributes.addFlashAttribute("totalVat", totalVat);
+        redirectAttributes.addFlashAttribute("totalRecargo", totalRecargo);
+
+        // Generate and Store PDF in DB
+        try {
+            Invoice invoice = null;
+            if (customer != null) {
+                invoice = invoiceService.createInvoice(sale);
+                redirectAttributes.addFlashAttribute("invoice", invoice);
             }
+
+            byte[] pdfData;
+            if (invoice != null) {
+                pdfData = pdfReportService.generateInvoiceReport(sale, invoice);
+            } else {
+                pdfData = pdfReportService.generateTicketReport(sale, taxBreakdowns, applyRecargo, totalBase, totalVat,
+                        totalRecargo);
+            }
+
+            DocumentType docType = invoice != null ? DocumentType.INVOICE : DocumentType.TICKET;
+            Long refId = invoice != null ? invoice.getId() : sale.getId();
+            String invoiceLabel = invoice != null ? invoice.getInvoiceNumber() : ("Ticket_" + sale.getId());
+            String dateStr = sale.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            String filename = String.format("Doc_%s_%s.pdf", invoiceLabel, dateStr);
+
+            documentService.store(docType, refId, filename, pdfData);
+
+            if (invoice != null) {
+                redirectAttributes.addFlashAttribute("successMessage",
+                        "Factura " + invoice.getInvoiceNumber() + " generada y almacenada.");
+            }
+        } catch (Exception e) {
+            log.error("Error generating/storing PDF for sale " + sale.getId(), e);
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Venta completada pero hubo un error al generar el documento PDF.");
         }
 
         return "redirect:/tpv/receipt/" + sale.getId();
@@ -137,6 +209,36 @@ public class TpvController {
         }
         Sale sale = saleService.findById(saleId);
         model.addAttribute("sale", sale);
+
+        if (!model.containsAttribute("invoice")) {
+            invoiceService.findBySaleId(saleId)
+                    .ifPresent(inv -> model.addAttribute("invoice", inv));
+        }
+
+        if (!model.containsAttribute("taxBreakdowns")) {
+            boolean applyRecargo = sale.getCustomer() != null
+                    && Boolean.TRUE.equals(sale.getCustomer().getHasRecargoEquivalencia());
+            List<TaxBreakdown> breakdowns = new ArrayList<>();
+            for (SaleLine line : sale.getLines()) {
+                BigDecimal vatRate = line.getVatRate() != null ? line.getVatRate() : new BigDecimal("0.21");
+                TaxBreakdown bd = recargoCalculator.calculateLineBreakdown(
+                        line.getProduct().getId(), line.getProduct().getName(),
+                        line.getUnitPrice(), line.getQuantity(), vatRate, applyRecargo);
+                breakdowns.add(bd);
+            }
+            model.addAttribute("taxBreakdowns", breakdowns);
+            model.addAttribute("applyRecargo", applyRecargo);
+            BigDecimal totalBase = breakdowns.stream().map(TaxBreakdown::getBaseAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal totalVat = breakdowns.stream().map(TaxBreakdown::getVatAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal totalRecargo = breakdowns.stream().map(TaxBreakdown::getRecargoAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
+            model.addAttribute("totalBase", totalBase);
+            model.addAttribute("totalVat", totalVat);
+            model.addAttribute("totalRecargo", totalRecargo);
+        }
+
         return "tpv/receipt";
     }
 
@@ -146,7 +248,7 @@ public class TpvController {
         if (worker == null)
             return "redirect:/login";
 
-        if (!worker.getPermissions().contains("CASH_CLOSE")) {
+        if (!worker.getEffectivePermissions().contains("CASH_CLOSE")) {
             return "redirect:/tpv";
         }
 
@@ -217,23 +319,98 @@ public class TpvController {
         if (worker == null)
             return "redirect:/login";
 
-        if (!worker.getPermissions().contains("CASH_CLOSE")) {
+        if (!worker.getEffectivePermissions().contains("CASH_CLOSE")) {
             return "redirect:/tpv";
         }
 
-        // Convertir closingBalance, reemplazando coma por punto si es necesario
         String normalizedBalance = closingBalance.replace(",", ".");
         java.math.BigDecimal closingBalanceDecimal = new java.math.BigDecimal(normalizedBalance);
 
         CashRegister register = cashRegisterService.closeCashRegister(closingBalanceDecimal, notes, worker);
 
-        // Generar el PDF del cierre
-        java.io.File pdfFile = pdfReportService.generateCashCloseReport(register);
+        try {
+            byte[] pdfData = pdfReportService.generateCashCloseReport(register);
+            String dateStr = register.getClosedAt().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            String filename = String.format("Cierre_Caja_%s_ID%d.pdf", dateStr, register.getId());
 
-        redirectAttributes.addFlashAttribute("successMessage",
-                "Cierre de caja realizado. Diferencia: " + register.getDifference() + "\u20AC. PDF guardado en: "
-                        + pdfFile.getAbsolutePath());
+            documentService.store(DocumentType.CASH_CLOSE, register.getId(), filename, pdfData);
+
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Cierre de caja realizado. Diferencia: " + register.getDifference()
+                            + "\u20AC. PDF almacenado en base de datos.");
+        } catch (Exception e) {
+            log.error("Error generating/storing cash close PDF for register " + register.getId(), e);
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Cierre realizado pero hubo un error al generar el documento PDF.");
+        }
 
         return "redirect:/tpv/open-register";
+    }
+
+    @GetMapping("/return/{saleId}")
+    public String showReturnForm(@PathVariable Long saleId, HttpSession session, Model model) {
+        if (session.getAttribute("worker") == null) {
+            return "redirect:/login";
+        }
+        Sale sale = saleService.findById(saleId);
+        model.addAttribute("sale", sale);
+        model.addAttribute("paymentMethods", PaymentMethod.values());
+
+        java.util.Map<Long, Integer> alreadyReturned = new java.util.HashMap<>();
+        for (SaleLine line : sale.getLines()) {
+            int returned = returnService.findByOriginalSaleId(saleId).stream()
+                    .flatMap(r -> r.getLines().stream())
+                    .filter(rl -> rl.getSaleLine().getId().equals(line.getId()))
+                    .mapToInt(com.proconsi.electrobazar.model.ReturnLine::getQuantity)
+                    .sum();
+            alreadyReturned.put(line.getId(), returned);
+        }
+        model.addAttribute("alreadyReturned", alreadyReturned);
+        return "tpv/return-form";
+    }
+
+    @PostMapping("/return")
+    public String processReturn(
+            @RequestParam Long saleId,
+            @RequestParam List<Long> saleLineIds,
+            @RequestParam List<Integer> quantities,
+            @RequestParam(required = false) String reason,
+            @RequestParam PaymentMethod paymentMethod,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
+
+        Worker worker = (Worker) session.getAttribute("worker");
+        if (worker == null) {
+            return "redirect:/login";
+        }
+
+        List<com.proconsi.electrobazar.dto.ReturnLineRequest> lineRequests = new ArrayList<>();
+        for (int i = 0; i < saleLineIds.size(); i++) {
+            lineRequests.add(new com.proconsi.electrobazar.dto.ReturnLineRequest(
+                    saleLineIds.get(i), quantities.get(i)));
+        }
+
+        try {
+            SaleReturn saleReturn = returnService.processReturn(
+                    saleId, lineRequests, reason, paymentMethod, worker);
+            redirectAttributes.addFlashAttribute("saleReturn", saleReturn);
+            return "redirect:/tpv/return-receipt/" + saleReturn.getId();
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/tpv/return/" + saleId;
+        }
+    }
+
+    @GetMapping("/return-receipt/{returnId}")
+    public String showReturnReceipt(@PathVariable Long returnId, HttpSession session, Model model) {
+        if (session.getAttribute("worker") == null) {
+            return "redirect:/login";
+        }
+        if (!model.containsAttribute("saleReturn")) {
+            SaleReturn saleReturn = returnService.findById(returnId)
+                    .orElseThrow(() -> new IllegalArgumentException("Return not found: " + returnId));
+            model.addAttribute("saleReturn", saleReturn);
+        }
+        return "tpv/return-receipt";
     }
 }

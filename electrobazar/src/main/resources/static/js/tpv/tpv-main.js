@@ -86,6 +86,7 @@ function renderTicket() {
     var countEl = document.getElementById('ticketCount');
     var totalEl = document.getElementById('ticketTotal');
     var cobrarBtn = document.getElementById('btnCobrar');
+    var suspenderBtn = document.getElementById('btnSuspender');
     var formLines = document.getElementById('formLines');
 
     var ids = Object.keys(ticket);
@@ -100,6 +101,7 @@ function renderTicket() {
         countEl.textContent = '0';
         totalEl.textContent = '0.00\u20AC';
         cobrarBtn.disabled = true;
+        if (suspenderBtn) { suspenderBtn.disabled = true; suspenderBtn.style.opacity = '0.4'; }
         formLines.innerHTML = '';
         return;
     }
@@ -139,6 +141,7 @@ function renderTicket() {
     countEl.textContent = totalItems;
     totalEl.textContent = totalAmount.toFixed(2) + '\u20AC';
     cobrarBtn.disabled = false;
+    if (suspenderBtn) { suspenderBtn.disabled = false; suspenderBtn.style.opacity = '1'; }
 }
 
 function selectPayment(method) {
@@ -724,3 +727,276 @@ if (searchTab) {
     });
 }
 
+// ── SUSPEND / RESUME SYSTEM ─────────────────────────────────────────────────
+
+var suspendLabelModalInstance = null;
+var suspendedSalesModalInstance = null;
+
+/**
+ * Opens the label-prompt modal before suspending.
+ * The actual suspend happens in confirmSuspend().
+ */
+function openSuspendLabelModal() {
+    if (Object.keys(ticket).length === 0) return;
+    var labelInput = document.getElementById('suspendLabelInput');
+    if (labelInput) labelInput.value = '';
+    suspendLabelModalInstance = new bootstrap.Modal(document.getElementById('suspendLabelModal'));
+    suspendLabelModalInstance.show();
+    setTimeout(function () { if (labelInput) labelInput.focus(); }, 200);
+}
+
+/**
+ * Called by the "Suspender" button inside the label modal.
+ * Serialises the current cart and POSTs it to the API, then clears the cart.
+ */
+function confirmSuspend() {
+    var label = (document.getElementById('suspendLabelInput').value || '').trim();
+
+    var lines = Object.keys(ticket).map(function (id) {
+        return {
+            productId: parseInt(id),
+            quantity: ticket[id].quantity,
+            unitPrice: ticket[id].price
+        };
+    });
+
+    if (lines.length === 0) {
+        if (suspendLabelModalInstance) suspendLabelModalInstance.hide();
+        return;
+    }
+
+    // Disable the button to prevent double-click
+    var confirmBtn = document.getElementById('btnConfirmSuspend');
+    if (confirmBtn) confirmBtn.disabled = true;
+
+    fetch('/tpv/suspended-sales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lines: lines, label: label || null })
+    })
+        .then(function (r) {
+            if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Error al suspender'); });
+            return r.json();
+        })
+        .then(function () {
+            if (suspendLabelModalInstance) suspendLabelModalInstance.hide();
+            clearTicket();
+            loadSuspendedCount();
+            showToast('Venta suspendida correctamente', 'success');
+        })
+        .catch(function (err) {
+            showToast(err.message || 'Error al suspender la venta', 'warning');
+        })
+        .finally(function () {
+            if (confirmBtn) confirmBtn.disabled = false;
+        });
+}
+
+/**
+ * Resumes a suspended sale: POSTs to resume endpoint, then loads
+ * the returned lines back into the JS cart, closing the modal.
+ */
+function resumeSale(id) {
+    var hasItems = Object.keys(ticket).length > 0;
+
+    if (hasItems) {
+        var label = prompt('Etiqueta para la venta actual antes de suspenderla:', 'Venta interrumpida');
+        if (label === null) return; // El usuario canceló el prompt
+
+        // Suspender la venta actual primero, y al terminar reanudar la seleccionada
+        var lines = Object.keys(ticket).map(function (productId) {
+            return {
+                productId: parseInt(productId),
+                quantity: ticket[productId].quantity,
+                unitPrice: ticket[productId].price
+            };
+        });
+
+        fetch('/tpv/suspended-sales', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lines: lines, label: label.trim() || 'Venta interrumpida' })
+        })
+            .then(function (r) {
+                if (!r.ok) throw new Error('Error al suspender la venta actual');
+                return r.json();
+            })
+            .then(function () {
+                clearTicket();
+                loadSuspendedCount();
+                return fetch('/tpv/suspended-sales/' + id + '/resume', { method: 'POST' });
+            })
+            .then(function (r) {
+                if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Error al reabrir'); });
+                return r.json();
+            })
+            .then(function (sale) {
+                (sale.lines || []).forEach(function (line) {
+                    var productId = String(line.productId);
+                    ticket[productId] = {
+                        name: line.productName,
+                        price: parseFloat(line.unitPrice),
+                        quantity: line.quantity,
+                        stock: 999
+                    };
+                });
+                renderTicket();
+                if (suspendedSalesModalInstance) suspendedSalesModalInstance.hide();
+                cleanupModalBackdrop();
+                loadSuspendedCount();
+                showToast('Venta reanudada', 'success');
+            })
+            .catch(function (err) {
+                showToast(err.message || 'Error', 'error');
+            });
+
+        return; // Salir aquí, el resto lo maneja la cadena de promesas
+    }
+
+    // Sin artículos en el ticket, reanudar directamente
+    fetch('/tpv/suspended-sales/' + id + '/resume', { method: 'POST' })
+        .then(function (r) {
+            if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Error al reabrir'); });
+            return r.json();
+        })
+        .then(function (sale) {
+            clearTicket();
+            (sale.lines || []).forEach(function (line) {
+                var productId = String(line.productId);
+                ticket[productId] = {
+                    name: line.productName,
+                    price: parseFloat(line.unitPrice),
+                    quantity: line.quantity,
+                    stock: 999
+                };
+            });
+            renderTicket();
+            if (suspendedSalesModalInstance) suspendedSalesModalInstance.hide();
+            cleanupModalBackdrop();
+            loadSuspendedCount();
+            showToast('Venta reanudada', 'success');
+        })
+        .catch(function (err) {
+            showToast(err.message || 'Error al reanudar la venta', 'warning');
+        });
+}
+
+/**
+ * Cancels a suspended sale (marks it CANCELLED, removes it from the list).
+ */
+function cancelSuspendedSale(id) {
+    if (!confirm('\u00BFEliminar esta venta en espera?')) return;
+    fetch('/tpv/suspended-sales/' + id + '/cancel', { method: 'POST' })
+        .then(function (r) {
+            if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Error al cancelar'); });
+            return r.json();
+        })
+        .then(function () {
+            loadSuspendedCount();
+            if (suspendedSalesModalInstance) suspendedSalesModalInstance.hide();
+            cleanupModalBackdrop();
+            openSuspendedModal(); // refresh the modal list in place
+        })
+        .catch(function (err) {
+            showToast(err.message || 'Error al cancelar la venta', 'warning');
+        });
+}
+
+/**
+ * Fetches count of currently suspended sales and updates the header badge.
+ */
+function loadSuspendedCount() {
+    fetch('/tpv/suspended-sales')
+        .then(function (r) { return r.json(); })
+        .then(function (sales) {
+            var badge = document.getElementById('suspendedBadge');
+            if (!badge) return;
+            var count = Array.isArray(sales) ? sales.length : 0;
+            badge.textContent = count;
+            badge.style.display = count > 0 ? 'block' : 'none';
+        })
+        .catch(function () { /* silently ignore */ });
+}
+
+/**
+ * Opens the "Ventas en espera" modal and renders its list.
+ */
+function openSuspendedModal() {
+    suspendedSalesModalInstance = new bootstrap.Modal(document.getElementById('suspendedSalesModal'));
+    suspendedSalesModalInstance.show();
+
+    var container = document.getElementById('suspendedListContainer');
+    container.innerHTML = '<div style="padding:1.5rem; text-align:center; color:var(--text-muted);"><i class="bi bi-hourglass"></i> Cargando...</div>';
+
+    fetch('/tpv/suspended-sales')
+        .then(function (r) { return r.json(); })
+        .then(function (sales) { renderSuspendedList(sales, container); })
+        .catch(function () {
+            container.innerHTML = '<div style="padding:1.5rem; text-align:center; color:#ef4444;">Error al cargar las ventas en espera.</div>';
+        });
+}
+
+function renderSuspendedList(sales, container) {
+    if (!Array.isArray(sales) || sales.length === 0) {
+        container.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--text-muted);"><i class="bi bi-check-circle" style="font-size:1.5rem;"></i><br>No hay ventas en espera.</div>';
+        return;
+    }
+
+    var html = '<table style="width:100%; border-collapse:collapse; font-size:0.88rem;">';
+    html += '<thead><tr style="border-bottom:1px solid var(--border); color:var(--text-muted); font-size:0.76rem; font-weight:700; text-transform:uppercase;">';
+    html += '<th style="padding:0.6rem 1rem;">Etiqueta</th>';
+    html += '<th style="padding:0.6rem 0.5rem;">Trabajador</th>';
+    html += '<th style="padding:0.6rem 0.5rem;">Fecha y Hora</th>';
+    html += '<th style="padding:0.6rem 0.5rem; text-align:center;">L\u00edneas</th>';
+    html += '<th style="padding:0.6rem 1rem; text-align:right;">Acciones</th>';
+    html += '</tr></thead><tbody>';
+
+    sales.forEach(function (s) {
+        var label = escapeHtml(s.label || 'Sin etiqueta');
+        var workerName = escapeHtml(s.workerUsername || 'Sistema');
+        var createdAt = s.createdAt
+            ? new Date(s.createdAt).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
+            : '?';
+        var lineCount = (s.lines || []).length;
+        html += '<tr style="border-bottom:1px solid var(--border);">';
+        html += '<td style="padding:0.6rem 1rem; font-weight:600;">' + label + '</td>';
+        html += '<td style="padding:0.6rem 0.5rem; color:var(--text-muted);">' + workerName + '</td>';
+        html += '<td style="padding:0.6rem 0.5rem; color:var(--text-muted);">' + createdAt + '</td>';
+        html += '<td style="padding:0.6rem 0.5rem; text-align:center;">' + lineCount + '</td>';
+        html += '<td style="padding:0.6rem 1rem; text-align:right;">';
+        html += '<button onclick="resumeSale(' + s.id + ')" style="margin-right:0.4rem; padding:0.3rem 0.8rem; border-radius:6px; background:var(--accent); color:var(--primary); border:none; font-size:0.82rem; font-weight:700; cursor:pointer;"><i class="bi bi-play-fill"></i> Reabrir</button>';
+        html += '<button onclick="cancelSuspendedSale(' + s.id + ')" style="padding:0.3rem 0.6rem; border-radius:6px; background:var(--surface); color:var(--text-muted); border:1px solid var(--border); font-size:0.82rem; cursor:pointer;"><i class="bi bi-x-lg"></i></button>';
+        html += '</td></tr>';
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+/**
+ * Removes stale Bootstrap modal backdrop(s) and restores body styles
+ * after a modal is programmatically hidden, but only when no other
+ * modal is still visible on screen.
+ */
+function cleanupModalBackdrop() {
+    setTimeout(function () {
+        if (document.querySelector('.modal.show')) return; // another modal is open
+        document.querySelectorAll('.modal-backdrop').forEach(function (el) { el.remove(); });
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    }, 300);
+}
+
+// Load badge count on page load
+loadSuspendedCount();
+
+// Allow Enter key in label modal to confirm suspend
+document.addEventListener('DOMContentLoaded', function () {
+    var labelInput = document.getElementById('suspendLabelInput');
+    if (labelInput) {
+        labelInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); confirmSuspend(); }
+        });
+    }
+});
