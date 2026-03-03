@@ -86,13 +86,14 @@ public class CashRegisterApiRestController {
     public ResponseEntity<CashRegister> closeCashRegister(
             @RequestParam BigDecimal closingBalance,
             @RequestParam(required = false) String notes,
+            @RequestParam(required = false) BigDecimal retainedAmount,
             @RequestHeader(value = "X-Worker-Id", required = false) Long workerId) {
 
         com.proconsi.electrobazar.model.Worker worker = null;
         if (workerId != null) {
             worker = workerService.findById(workerId).orElse(null);
         }
-        CashRegister cr = cashRegisterService.closeCashRegister(closingBalance, notes, worker);
+        CashRegister cr = cashRegisterService.closeCashRegister(closingBalance, notes, worker, retainedAmount);
         try {
             pdfReportService.generateCashCloseReport(cr);
         } catch (Exception e) {

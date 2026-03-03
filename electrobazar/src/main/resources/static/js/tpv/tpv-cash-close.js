@@ -1,32 +1,101 @@
-﻿const theoryAmountText = document.getElementById('theoryAmount').textContent.replace('\u20AC', '').trim();
-// El formato español usa punto como separador de miles y coma como decimal (ej: 1.234,56)
-// Primero eliminamos los puntos de miles, luego reemplazamos la coma decimal por punto
-const theoryAmount = parseFloat(theoryAmountText.replace(/\./g, '').replace(',', '.')) || 0;
-const closingBalanceInput = document.getElementById('closingBalance');
+﻿document.addEventListener('DOMContentLoaded', function () {
+    // ── Get theory amount from the hidden/visible span ──
+    const theoryAmountElem = document.getElementById('theoryAmount');
+    if (!theoryAmountElem) return;
 
-function updateDifference() {
-    const realAmount = parseFloat(closingBalanceInput.value.replace(',', '.')) || 0;
-    const difference = realAmount - theoryAmount;
+    // The span might contain a currency symbol and use localized separators (e.g. "1.234,56€")
+    const theoryAmountText = theoryAmountElem.textContent.replace('€', '').replace('\u20AC', '').trim();
+    const theoryAmount = parseFloat(theoryAmountText.replace(/\./g, '').replace(',', '.')) || 0;
 
-    document.getElementById('realAmount').textContent = realAmount.toFixed(2) + '\u20AC';
+    const closingBalanceInput = document.getElementById('closingBalance');
+    const realAmountDisplay = document.getElementById('realAmount');
     const diffAmountSpan = document.getElementById('diffAmount');
 
-    // Cambiar color y texto según si hay diferencia
-    if (Math.abs(difference) < 0.01) {
-        diffAmountSpan.textContent = '0.00\u20AC';
-        diffAmountSpan.style.color = 'var(--success)';
-    } else if (difference > 0) {
-        diffAmountSpan.textContent = '+' + difference.toFixed(2) + '\u20AC';
-        diffAmountSpan.style.color = 'var(--success)';
-    } else {
-        diffAmountSpan.textContent = difference.toFixed(2) + '\u20AC';
-        diffAmountSpan.style.color = 'var(--danger)';
+    // ── Retain logic elements ──
+    const retainToggle = document.getElementById('retainToggle');
+    const retainBody = document.getElementById('retainBody');
+    const retainCard = document.getElementById('retainCard');
+    const retainInput = document.getElementById('retainInput');
+    const hiddenRetained = document.getElementById('retainedAmount');
+
+    if (retainInput) retainInput._userEdited = false;
+
+    function updateDifference() {
+        if (!closingBalanceInput) return;
+
+        // parseFloat on value is usually safe for type="number"
+        const valueStr = closingBalanceInput.value.replace(',', '.');
+        const realAmount = parseFloat(valueStr) || 0;
+        const difference = realAmount - theoryAmount;
+
+        // Update basic "Real" display
+        if (realAmountDisplay) {
+            realAmountDisplay.textContent = realAmount.toFixed(2) + '€';
+        }
+
+        // Update "Difference" display (FIX: we update textContent/style, NOT innerHTML of parent)
+        if (diffAmountSpan) {
+            const formattedDiff = (difference > 0 ? '+' : '') + difference.toFixed(2) + '€';
+            diffAmountSpan.textContent = formattedDiff;
+
+            if (Math.abs(difference) < 0.01) {
+                diffAmountSpan.textContent = '0.00€';
+                diffAmountSpan.style.color = 'var(--success)';
+            } else if (difference > 0) {
+                diffAmountSpan.style.color = 'var(--success)';
+            } else {
+                diffAmountSpan.style.color = 'var(--danger)';
+            }
+        }
+
+        // Mirror value into retain input only if toggle is on and user has not manually changed it
+        if (retainToggle && retainToggle.checked && retainInput && !retainInput._userEdited) {
+            retainInput.value = realAmount > 0 ? realAmount.toFixed(2) : '';
+        }
     }
-}
 
-closingBalanceInput.addEventListener('input', updateDifference);
-closingBalanceInput.addEventListener('change', updateDifference);
-closingBalanceInput.addEventListener('keyup', updateDifference);
+    if (closingBalanceInput) {
+        // 'input' captures all changes (typing, paste, spinner)
+        closingBalanceInput.addEventListener('input', updateDifference);
+    }
 
-// -- updateDifference is called by event listeners defined above --
-updateDifference();
+    // ── Retain toggle UI logic ──
+    if (retainToggle) {
+        retainToggle.addEventListener('change', function () {
+            if (this.checked) {
+                if (retainBody) retainBody.classList.add('open');
+                if (retainCard) retainCard.classList.add('active');
+
+                // Sync current closing balance to retain input on initial activation
+                if (retainInput && !retainInput._userEdited) {
+                    const currentClosing = parseFloat(closingBalanceInput.value.replace(',', '.')) || 0;
+                    retainInput.value = currentClosing > 0 ? currentClosing.toFixed(2) : '';
+                }
+            } else {
+                if (retainBody) retainBody.classList.remove('open');
+                if (retainCard) retainCard.classList.remove('active');
+            }
+        });
+    }
+
+    if (retainInput) {
+        retainInput.addEventListener('input', () => {
+            retainInput._userEdited = true;
+        });
+    }
+
+    // ── Form Guard: Merge retain value into hidden field ──
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function () {
+            if (retainToggle && retainToggle.checked && retainInput && retainInput.value.trim() !== '') {
+                if (hiddenRetained) hiddenRetained.value = retainInput.value.trim().replace(',', '.');
+            } else {
+                if (hiddenRetained) hiddenRetained.value = '';
+            }
+        });
+    }
+
+    // Initial state
+    updateDifference();
+});

@@ -18,4 +18,7 @@ public interface CashRegisterRepository extends JpaRepository<CashRegister, Long
 
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = { "worker" })
     Optional<CashRegister> findFirstByClosedFalseOrderByRegisterDateDesc();
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = { "worker", "retainedByWorker" })
+    Optional<CashRegister> findFirstByClosedTrueOrderByClosedAtDesc();
 }

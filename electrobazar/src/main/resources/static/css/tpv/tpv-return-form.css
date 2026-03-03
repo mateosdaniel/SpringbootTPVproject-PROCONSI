@@ -1,0 +1,187 @@
+.return-form-wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.return-card {
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.return-card-header {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #fff;
+    padding: 1.2rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.return-card-header i {
+    font-size: 1.4rem;
+}
+
+.return-card-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.return-card-header .ref {
+    font-size: 0.82rem;
+    opacity: 0.85;
+    margin-top: 0.15rem;
+}
+
+.return-body {
+    padding: 1.4rem 1.5rem;
+}
+
+.return-section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 1.2rem 0 0.6rem;
+}
+
+.return-lines-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.return-lines-table th {
+    text-align: left;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.76rem;
+    border-bottom: 1px solid var(--border);
+    padding: 0.4rem 0.5rem;
+}
+
+.return-lines-table td {
+    padding: 0.55rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.return-lines-table tr:last-child td {
+    border-bottom: none;
+}
+
+.qty-input {
+    width: 70px;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text-main);
+    text-align: center;
+    font-size: 0.88rem;
+}
+
+.qty-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.2);
+}
+
+.muted-text {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.fully-returned {
+    opacity: 0.45;
+    font-style: italic;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.35rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-main);
+    font-size: 0.9rem;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.2);
+}
+
+.btn-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.4rem;
+    border-radius: 8px;
+    background: #ef4444;
+    color: #fff;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.18s;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+.btn-cancel {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.2rem;
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    font-size: 0.9rem;
+    text-decoration: none;
+    font-weight: 500;
+    transition: border-color 0.18s;
+}
+
+.btn-cancel:hover {
+    border-color: var(--accent);
+}
+
+.btn-row-return {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+}
+
+.alert-error {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: #ef4444;
+    font-size: 0.88rem;
+    margin-bottom: 1rem;
+}

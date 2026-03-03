@@ -1,0 +1,65 @@
+/* Return-specific overrides — accent the header in red */
+.t-header {
+    border-top: 4px solid #ef4444;
+}
+
+.t-brand span {
+    color: #ef4444;
+}
+
+.t-subtitle {
+    color: #ef4444;
+}
+
+.return-ref-badge {
+    display: inline-block;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-radius: 6px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.8rem;
+    color: #ef4444;
+    font-weight: 700;
+    margin-top: 0.25rem;
+}
+
+.original-ref {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 0.2rem;
+}
+
+.t-type-badge {
+    display: inline-block;
+    padding: 0.15rem 0.55rem;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.t-type-total {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.t-type-partial {
+    background: rgba(var(--accent-rgb), 0.15);
+    color: var(--accent);
+}
+
+.t-refund-method {
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 0.3rem 0.7rem;
+    border-radius: 6px;
+    background: rgba(var(--accent-rgb), 0.1);
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
+    display: inline-block;
+    margin-top: 0.3rem;
+}
+
+.t-total-amount {
+    color: #ef4444 !important;
+}

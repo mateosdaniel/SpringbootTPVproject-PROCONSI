@@ -1,5 +1,6 @@
 package com.proconsi.electrobazar.service.impl;
 
+import com.proconsi.electrobazar.dto.CashRegisterOpenSuggestion;
 import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import com.proconsi.electrobazar.model.CashRegister;
 import com.proconsi.electrobazar.model.PaymentMethod;
@@ -48,7 +49,8 @@ public class CashRegisterServiceImpl implements CashRegisterService {
 
         @Override
         public CashRegister closeCashRegister(BigDecimal closingBalance, String notes,
-                        com.proconsi.electrobazar.model.Worker worker) {
+                        com.proconsi.electrobazar.model.Worker worker,
+                        BigDecimal retainedAmount) {
                 try {
                         LocalDate today = LocalDate.now();
 
@@ -75,18 +77,28 @@ public class CashRegisterServiceImpl implements CashRegisterService {
                         BigDecimal openingBal = register.getOpeningBalance() != null ? register.getOpeningBalance()
                                         : BigDecimal.ZERO;
 
+                        BigDecimal totalWithdrawals = register.getWithdrawals().stream()
+                                        .map(com.proconsi.electrobazar.model.CashWithdrawal::getAmount)
+                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
                         register.setCashSales(cashSales != null ? cashSales : BigDecimal.ZERO);
                         register.setCardSales(cardSales != null ? cardSales : BigDecimal.ZERO);
                         register.setTotalSales(totalSales != null ? totalSales : BigDecimal.ZERO);
                         register.setClosingBalance(closingBalance != null ? closingBalance : BigDecimal.ZERO);
 
-                        BigDecimal expected = openingBal.add(register.getCashSales());
+                        BigDecimal expected = openingBal.add(register.getCashSales()).subtract(totalWithdrawals);
                         register.setDifference(register.getClosingBalance().subtract(expected));
 
                         register.setNotes(notes);
                         register.setClosedAt(LocalDateTime.now());
                         register.setClosed(true);
                         register.setWorker(worker);
+
+                        // Persist retained cash for the next shift if provided
+                        if (retainedAmount != null) {
+                                register.setRetainedForNextShift(retainedAmount);
+                                register.setRetainedByWorker(worker);
+                        }
 
                         // Force save and flush to catch DB errors here
                         CashRegister closedRegister = cashRegisterRepository.saveAndFlush(register);
@@ -99,10 +111,17 @@ public class CashRegisterServiceImpl implements CashRegisterService {
                                                 : BigDecimal.ZERO;
                                 String difTxt = diff.setScale(2, java.math.RoundingMode.HALF_UP) + " \u20ac";
 
+                                String retainedTxt = retainedAmount != null
+                                                ? ". Retenido para siguiente turno: "
+                                                                + retainedAmount.setScale(2,
+                                                                                java.math.RoundingMode.HALF_UP)
+                                                                + " \u20ac"
+                                                : "";
+
                                 activityLogService.logActivity(
                                                 "CIERRE_CAJA",
                                                 "Cierre de caja completado por " + username + " con descuadre de "
-                                                                + difTxt,
+                                                                + difTxt + retainedTxt,
                                                 username,
                                                 "CASH_REGISTER",
                                                 closedRegister.getId());
@@ -149,6 +168,21 @@ public class CashRegisterServiceImpl implements CashRegisterService {
                                 "CASH_REGISTER",
                                 saved.getId());
                 return saved;
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public CashRegisterOpenSuggestion getOpenSuggestion() {
+                return cashRegisterRepository.findFirstByClosedTrueOrderByClosedAtDesc()
+                                .filter(r -> r.getRetainedForNextShift() != null)
+                                .map(r -> CashRegisterOpenSuggestion.builder()
+                                                .hasSuggestion(true)
+                                                .suggestedBalance(r.getRetainedForNextShift())
+                                                .build())
+                                .orElse(CashRegisterOpenSuggestion.builder()
+                                                .hasSuggestion(false)
+                                                .suggestedBalance(null)
+                                                .build());
         }
 
 }

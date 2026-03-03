@@ -1,16 +1,13 @@
 ﻿        :root {
-            --primary: #1a1a2e;
-            --secondary: #16213e;
-            --accent: #f5a623;
-            --accent-rgb: 245, 166, 35;
-            --accent-hover: #e09400;
+            /* ─────────────────────────────────────────────────────────────
+               Colour tokens are injected by fragments/theme :: themeScript.
+               ───────────────────────────────────────────────────────────── */
+
+            /* Semantic aliases not provided by the theme script */
             --success: #2ecc71;
             --danger: #e74c3c;
-            --text-muted: #8892a4;
-            --text-main: #e8eaf0;
-            --border: #1e2d45;
-            --surface: #0f3460;
         }
+
 
         body {
             background: var(--primary);

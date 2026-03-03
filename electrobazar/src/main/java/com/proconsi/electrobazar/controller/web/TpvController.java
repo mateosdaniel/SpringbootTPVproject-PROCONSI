@@ -2,6 +2,7 @@ package com.proconsi.electrobazar.controller.web;
 
 import com.proconsi.electrobazar.dto.TaxBreakdown;
 import com.proconsi.electrobazar.model.*;
+import com.proconsi.electrobazar.model.CashWithdrawal;
 import com.proconsi.electrobazar.service.*;
 import com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class TpvController {
     private final InvoiceService invoiceService;
     private final ReturnService returnService;
     private final DocumentService documentService;
+    private final CashWithdrawalService cashWithdrawalService;
 
     @GetMapping
     public String index(
@@ -257,17 +259,61 @@ public class TpvController {
             return "redirect:/tpv/open-register";
         }
 
+        CashRegister openRegister = openRegisterOpt.get();
         java.math.BigDecimal cashSalesToday = saleService.sumTotalByPaymentMethodToday(PaymentMethod.CASH);
-        java.math.BigDecimal expectedCashInDrawer = openRegisterOpt.get().getOpeningBalance().add(cashSalesToday);
+
+        java.math.BigDecimal totalWithdrawals = cashWithdrawalService.findByRegisterId(openRegister.getId()).stream()
+                .map(CashWithdrawal::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        java.math.BigDecimal expectedCashInDrawer = openRegister.getOpeningBalance()
+                .add(cashSalesToday)
+                .subtract(totalWithdrawals);
 
         model.addAttribute("categories", categoryService.findAllActive());
         model.addAttribute("totalToday", saleService.sumTotalToday());
         model.addAttribute("countToday", saleService.countToday());
-        model.addAttribute("todayRegister", openRegisterOpt.get());
+        model.addAttribute("todayRegister", openRegister);
         model.addAttribute("cashSalesToday", cashSalesToday);
         model.addAttribute("cardSalesToday", saleService.sumTotalByPaymentMethodToday(PaymentMethod.CARD));
+        model.addAttribute("totalWithdrawals", totalWithdrawals);
         model.addAttribute("expectedCashInDrawer", expectedCashInDrawer);
         return "tpv/cash-close";
+    }
+
+    @PostMapping("/withdrawal")
+    public String processWithdrawal(
+            @RequestParam String amount,
+            @RequestParam(required = false) String reason,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
+
+        Worker worker = (Worker) session.getAttribute("worker");
+        if (worker == null)
+            return "redirect:/login";
+
+        if (!worker.getEffectivePermissions().contains("CASH_CLOSE")) {
+            redirectAttributes.addFlashAttribute("errorMessage", "No tiene permiso para realizar retiradas de caja.");
+            return "redirect:/tpv";
+        }
+
+        try {
+            java.util.Optional<CashRegister> openRegister = cashRegisterService.getOpenRegister();
+            if (openRegister.isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", "No hay ninguna caja abierta.");
+                return "redirect:/tpv";
+            }
+
+            BigDecimal amountDecimal = new BigDecimal(amount.replace(",", "."));
+            cashWithdrawalService.withdraw(openRegister.get().getId(), amountDecimal, reason, worker);
+
+            redirectAttributes.addFlashAttribute("successMessage", "Retirada de "
+                    + amountDecimal.setScale(2, RoundingMode.HALF_UP) + " \u20ac realizada correctamente.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Error al procesar la retirada: " + e.getMessage());
+        }
+
+        return "redirect:/tpv";
     }
 
     @GetMapping("/preferences")
@@ -279,12 +325,15 @@ public class TpvController {
     }
 
     @GetMapping("/open-register")
-    public String openRegisterForm(HttpSession session) {
+    public String openRegisterForm(HttpSession session, Model model) {
         if (session.getAttribute("worker") == null)
             return "redirect:/login";
         if (cashRegisterService.getOpenRegister().isPresent()) {
             return "redirect:/tpv";
         }
+        com.proconsi.electrobazar.dto.CashRegisterOpenSuggestion suggestion = cashRegisterService.getOpenSuggestion();
+        model.addAttribute("hasSuggestion", suggestion.isHasSuggestion());
+        model.addAttribute("suggestedOpeningBalance", suggestion.getSuggestedBalance());
         return "tpv/open-register";
     }
 
@@ -312,6 +361,7 @@ public class TpvController {
     public String processCashClose(
             @RequestParam String closingBalance,
             @RequestParam(required = false) String notes,
+            @RequestParam(required = false) String retainedAmount,
             HttpSession session,
             RedirectAttributes redirectAttributes) {
 
@@ -326,7 +376,17 @@ public class TpvController {
         String normalizedBalance = closingBalance.replace(",", ".");
         java.math.BigDecimal closingBalanceDecimal = new java.math.BigDecimal(normalizedBalance);
 
-        CashRegister register = cashRegisterService.closeCashRegister(closingBalanceDecimal, notes, worker);
+        java.math.BigDecimal retainedAmountDecimal = null;
+        if (retainedAmount != null && !retainedAmount.isBlank()) {
+            try {
+                retainedAmountDecimal = new java.math.BigDecimal(retainedAmount.replace(",", "."));
+            } catch (NumberFormatException e) {
+                // Ignore malformed values — treat as no retention
+            }
+        }
+
+        CashRegister register = cashRegisterService.closeCashRegister(
+                closingBalanceDecimal, notes, worker, retainedAmountDecimal);
 
         try {
             byte[] pdfData = pdfReportService.generateCashCloseReport(register);

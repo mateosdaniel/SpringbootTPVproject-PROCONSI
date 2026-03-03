@@ -62,6 +62,17 @@ public class CashRegister {
     @JoinColumn(name = "worker_id")
     private Worker worker;
 
+    @Column(precision = 10, scale = 2, nullable = true)
+    private BigDecimal retainedForNextShift;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "retained_by_worker_id", nullable = true)
+    private Worker retainedByWorker;
+
+    @OneToMany(mappedBy = "cashRegister", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private java.util.List<CashWithdrawal> withdrawals = new java.util.ArrayList<>();
+
     @PrePersist
     public void prePersist() {
         if (this.registerDate == null) {
