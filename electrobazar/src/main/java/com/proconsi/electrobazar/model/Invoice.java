@@ -12,7 +12,11 @@ import java.time.LocalDateTime;
  * in the format F-YYYY-NNNN (e.g. F-2026-0001).
  */
 @Entity
-@Table(name = "invoices")
+@Table(name = "invoices", indexes = {
+        @Index(name = "idx_invoices_sale_id", columnList = "sale_id"),
+        @Index(name = "idx_invoices_number", columnList = "invoice_number"),
+        @Index(name = "idx_invoices_status", columnList = "status")
+})
 @Getter
 @Setter
 @NoArgsConstructor

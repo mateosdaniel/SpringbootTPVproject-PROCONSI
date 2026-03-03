@@ -15,7 +15,9 @@ import java.util.List;
  * the Java keyword 'return'.
  */
 @Entity
-@Table(name = "returns")
+@Table(name = "returns", indexes = {
+        @Index(name = "idx_returns_sale_id", columnList = "sale_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor

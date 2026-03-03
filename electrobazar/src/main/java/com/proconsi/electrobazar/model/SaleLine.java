@@ -7,7 +7,10 @@ import java.math.BigDecimal;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
-@Table(name = "sale_lines")
+@Table(name = "sale_lines", indexes = {
+        @Index(name = "idx_sale_lines_sale_id", columnList = "sale_id"),
+        @Index(name = "idx_sale_lines_product_id", columnList = "product_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor

@@ -4,8 +4,12 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "customers")
-@Getter @Setter
+@Table(name = "customers", indexes = {
+        @Index(name = "idx_customers_tax_id", columnList = "tax_id"),
+        @Index(name = "idx_customers_name", columnList = "name")
+})
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -46,9 +50,12 @@ public class Customer {
     private Boolean active = true;
 
     /**
-     * Indicates whether this customer is subject to the Spanish 'Recargo de Equivalencia' (RE).
-     * RE applies to retailers (autónomos en régimen de recargo de equivalencia) who cannot
-     * deduct input VAT and therefore pay a surcharge on top of the standard VAT rate.
+     * Indicates whether this customer is subject to the Spanish 'Recargo de
+     * Equivalencia' (RE).
+     * RE applies to retailers (autónomos en régimen de recargo de equivalencia) who
+     * cannot
+     * deduct input VAT and therefore pay a surcharge on top of the standard VAT
+     * rate.
      * Only applicable to COMPANY type customers operating under this tax regime.
      */
     @Column(nullable = false)

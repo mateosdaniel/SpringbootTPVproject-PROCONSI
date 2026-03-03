@@ -14,7 +14,10 @@ import java.util.List;
  * or cancelled (discarded without completing a sale).
  */
 @Entity
-@Table(name = "suspended_sales")
+@Table(name = "suspended_sales", indexes = {
+        @Index(name = "idx_suspended_sales_status", columnList = "status"),
+        @Index(name = "idx_suspended_sales_worker_id", columnList = "worker_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor

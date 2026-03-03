@@ -8,15 +8,18 @@ import java.time.LocalDateTime;
 
 /**
  * Represents a temporal price entry for a product (Price History Pattern).
- * A product can have multiple price records over time, each with a validity window
- * defined by startDate and endDate. A null endDate means the price is currently active
+ * A product can have multiple price records over time, each with a validity
+ * window
+ * defined by startDate and endDate. A null endDate means the price is currently
+ * active
  * with no scheduled expiry.
  */
 @Entity
 @Table(name = "product_prices", indexes = {
         @Index(name = "idx_product_prices_product_id", columnList = "product_id"),
         @Index(name = "idx_product_prices_start_date", columnList = "start_date"),
-        @Index(name = "idx_product_prices_end_date", columnList = "end_date")
+        @Index(name = "idx_product_prices_end_date", columnList = "end_date"),
+        @Index(name = "idx_product_prices_lookup", columnList = "product_id, start_date, end_date")
 })
 @Getter
 @Setter
