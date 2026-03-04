@@ -271,7 +271,7 @@
                 <td>
                     <div class="doc-type">Ticket de Venta</div>
                     <div class="doc-ref">
-                        N&ordm;: <strong th:text="'#' + ${sale.id}">#1</strong><br />
+                        Nº: <strong th:text="'#' + ${sale.id}">#1</strong><br />
                         Fecha: <strong
                             th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy')}">25/02/2026</strong><br />
                         Hora: <strong th:text="${#temporals.format(sale.createdAt, 'HH:mm:ss')}">14:30:00</strong><br />
@@ -383,17 +383,17 @@
         Forma de pago:
         <strong th:text="${sale.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta bancaria'}">Efectivo</strong>
         <span th:if="${sale.receivedAmount != null}">
-            &nbsp;&mdash; Entregado:
+            &#160;— Entregado:
             <strong th:text="${#numbers.formatDecimal(sale.receivedAmount, 1, 2, 'POINT')} + ' €'">0.00 €</strong>
-            &nbsp;&mdash; Cambio:
+            &#160;— Cambio:
             <strong th:text="${#numbers.formatDecimal(sale.changeAmount, 1, 2, 'POINT')} + ' €'">0.00 €</strong>
         </span>
     </div>
 
     <!-- ══ FOOTER ══ -->
     <div class="footer">
-        ElectroBazar S.L. &mdash; C/ Exemple, 12, 28001 Madrid &mdash; CIF: B12345678<br />
-        &iexcl;Gracias por su compra! Conserve este ticket como justificante de pago.<br />
+        ElectroBazar S.L. — C/ Exemple, 12, 28001 Madrid — CIF: B12345678<br />
+        ¡Gracias por su compra! Conserve este ticket como justificante de pago.<br />
         Documento generado el
         <span th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm:ss')}"></span>
     </div>
