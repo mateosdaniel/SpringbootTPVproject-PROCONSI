@@ -213,11 +213,17 @@ public class TpvController {
         Sale sale = saleService.findById(saleId);
         model.addAttribute("sale", sale);
 
+        // Resolve invoice (from flash or DB) — must happen before template decision
         if (!model.containsAttribute("invoice")) {
             invoiceService.findBySaleId(saleId)
                     .ifPresent(inv -> model.addAttribute("invoice", inv));
         }
 
+        // Always ensure tax-breakdown variables are in the model.
+        // This runs whether the sale is a ticket OR an invoice, and whether we
+        // came from a redirect (flash attrs present) or a direct URL (page reload).
+        // tpv/invoice.html references totalBase / totalVat / totalRecargo so they
+        // must be populated before we choose the template.
         if (!model.containsAttribute("taxBreakdowns")) {
             boolean applyRecargo = sale.getCustomer() != null
                     && Boolean.TRUE.equals(sale.getCustomer().getHasRecargoEquivalencia());
@@ -242,6 +248,7 @@ public class TpvController {
             model.addAttribute("totalRecargo", totalRecargo);
         }
 
+        // Route to the correct screen template now that the model is fully populated
         if (model.containsAttribute("invoice")) {
             return "tpv/invoice";
         }

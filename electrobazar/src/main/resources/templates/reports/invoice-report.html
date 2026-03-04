@@ -238,11 +238,9 @@
                     </div>
                 </td>
                 <td>
-                    <div class="doc-type" th:text="${sale.customer != null ? 'Factura' : 'Ticket Simplificado'}">Factura
-                    </div>
+                    <div class="doc-type">Factura</div>
                     <div class="doc-ref">
-                        Ref: <strong
-                            th:text="${invoice != null ? invoice.invoiceNumber : ('#' + sale.id)}">#F-2026-0001</strong><br />
+                        N&ordm; Factura: <strong th:text="${invoice.invoiceNumber}">F-2026-0001</strong><br />
                         Fecha: <strong
                             th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy')}">25/02/2026</strong><br />
                         Hora: <strong th:text="${#temporals.format(sale.createdAt, 'HH:mm:ss')}">14:30:00</strong>
@@ -268,7 +266,7 @@
                     </div>
                 </div>
             </td>
-            <td th:if="${sale.customer != null}">
+            <td>
                 <div class="party-label">Cliente</div>
                 <div class="party-name" th:text="${sale.customer.name}">Cliente</div>
                 <div class="party-detail">
@@ -278,11 +276,6 @@
                         th:text="${sale.customer.address + ', ' + (sale.customer.city ?: '') + ' ' + (sale.customer.postalCode ?: '')}"></span><br />
                     <span th:if="${sale.customer.email != null}" th:text="${sale.customer.email}"></span>
                 </div>
-            </td>
-            <td th:unless="${sale.customer != null}">
-                <div class="party-label">Cliente</div>
-                <div class="party-name">Venta al contado</div>
-                <div class="party-detail">Sin datos de cliente registrados</div>
             </td>
         </tr>
     </table>

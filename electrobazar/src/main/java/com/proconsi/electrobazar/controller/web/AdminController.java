@@ -1,5 +1,6 @@
 package com.proconsi.electrobazar.controller.web;
 
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -25,6 +26,7 @@ public class AdminController {
     private final com.proconsi.electrobazar.service.InvoiceService invoiceService;
     private final com.proconsi.electrobazar.service.RoleService roleService;
     private final com.proconsi.electrobazar.service.DocumentService documentService;
+    private final com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator recargoCalculator;
 
     @GetMapping("/productos-categorias")
     public String productsCategories(Model model, HttpSession session) {
@@ -124,6 +126,7 @@ public class AdminController {
     }
 
     @GetMapping("/admin/download/invoice/{id}")
+    @Transactional(readOnly = true)
     public org.springframework.http.ResponseEntity<?> downloadInvoicePdf(
             @org.springframework.web.bind.annotation.PathVariable Long id, HttpSession session) {
         if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
@@ -146,16 +149,13 @@ public class AdminController {
                 filename = invoice.getPdfFilename();
             }
 
-            // 2. Si no es factura o no tiene PDF en el registro de factura, buscar en
-            // STORED_DOCUMENTS
-            if (pdfData == null) {
-                com.proconsi.electrobazar.model.DocumentType docType = invoice != null
-                        ? com.proconsi.electrobazar.model.DocumentType.INVOICE
-                        : com.proconsi.electrobazar.model.DocumentType.TICKET;
-                Long refId = invoice != null ? invoice.getId() : id;
-
+            // 2. Only for tickets: search in STORED_DOCUMENTS.
+            // Invoices are stored directly in Invoice.pdfData (Lookup 1 above);
+            // there is no INVOICE entry in stored_documents, so this lookup
+            // is only meaningful — and only correct — for ticket sales.
+            if (pdfData == null && invoice == null) {
                 java.util.Optional<com.proconsi.electrobazar.model.StoredDocument> storedDoc = documentService
-                        .findByTypeAndReference(docType, refId);
+                        .findByTypeAndReference(com.proconsi.electrobazar.model.DocumentType.TICKET, id);
 
                 if (storedDoc.isPresent()) {
                     pdfData = storedDoc.get().getData();
@@ -163,13 +163,13 @@ public class AdminController {
                 }
             }
 
+            // If neither the Invoice.pdfData column nor the stored_documents table
+            // contains the PDF, the document was never generated or was somehow lost.
+            // Do NOT regenerate on demand — return 404 so the problem is visible.
             if (pdfData == null) {
+                log.warn("PDF not found in database for sale {}. No fallback regeneration.", id);
                 return org.springframework.http.ResponseEntity.status(404)
-                        .body("El documento PDF no existe en la base de datos.");
-            }
-
-            if (filename == null) {
-                filename = (invoice != null ? "Factura_" + invoice.getInvoiceNumber() : "Ticket_" + id) + ".pdf";
+                        .body("El documento PDF no existe en la base de datos para la venta #" + id + ".");
             }
 
             org.springframework.core.io.Resource resource = new org.springframework.core.io.ByteArrayResource(pdfData);

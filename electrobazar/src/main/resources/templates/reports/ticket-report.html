@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Ticket de Venta — ElectroBazar</title>
+    <style>
+        /* ══════════════════════════════════════════════════════════
+           ElectroBazar — Plantilla de Ticket de Venta (PDF)
+           Diseño para PDF (openhtmltopdf)
+           Sin flexbox — usa table-layout para compatibilidad
+           ══════════════════════════════════════════════════════════ */
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 11px;
+            color: #222;
+            background: #fff;
+            padding: 30px 36px;
+        }
+
+        /* ── Header bar ── */
+        .header-bar {
+            width: 100%;
+            border-bottom: 3px solid #111;
+            padding-bottom: 14px;
+            margin-bottom: 20px;
+        }
+
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .header-table td {
+            vertical-align: top;
+            padding: 0;
+        }
+
+        .brand {
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: #111;
+        }
+
+        .brand-light {
+            font-weight: 300;
+            color: #666;
+        }
+
+        .company-info {
+            font-size: 9px;
+            color: #666;
+            line-height: 1.6;
+            margin-top: 4px;
+        }
+
+        .doc-type {
+            text-align: right;
+            font-size: 20px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #111;
+        }
+
+        .doc-ref {
+            text-align: right;
+            font-size: 10px;
+            color: #666;
+            margin-top: 6px;
+            line-height: 1.7;
+        }
+
+        .doc-ref strong {
+            color: #111;
+        }
+
+        /* ── Customer block (only shown when customer exists) ── */
+        .customer-block {
+            width: 100%;
+            margin-bottom: 18px;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+        }
+
+        .customer-label {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+
+        .customer-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: #111;
+            margin-bottom: 2px;
+        }
+
+        .customer-detail {
+            font-size: 10px;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        /* ── Items Table ── */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 18px;
+        }
+
+        .items-table th {
+            background: #111;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 7px 9px;
+            text-align: left;
+        }
+
+        .items-table th.r {
+            text-align: right;
+        }
+
+        .items-table td {
+            padding: 7px 9px;
+            color: #222;
+            border-bottom: 1px solid #eee;
+            font-size: 10.5px;
+        }
+
+        .items-table td.r {
+            text-align: right;
+        }
+
+        .items-table td.name {
+            font-weight: 500;
+        }
+
+        .items-table tbody tr:nth-child(even) td {
+            background: #f8f8f8;
+        }
+
+        /* ── Divider ── */
+        .divider {
+            border: none;
+            border-top: 1px dashed #aaa;
+            margin: 14px 0;
+        }
+
+        /* ── Tax Breakdown ── */
+        .tax-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 6px;
+        }
+
+        .tax-table td {
+            padding: 3px 0;
+            font-size: 9.5px;
+            color: #555;
+        }
+
+        .tax-table td.lbl {
+            text-align: left;
+        }
+
+        .tax-table td.amt {
+            text-align: right;
+        }
+
+        /* ── RE notice ── */
+        .re-notice {
+            border: 1px solid #c8a000;
+            background: #fffae6;
+            padding: 5px 8px;
+            font-size: 9px;
+            font-weight: 700;
+            color: #7a6000;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        /* ── Totals ── */
+        .totals-table {
+            width: 220px;
+            border-collapse: collapse;
+            margin-left: auto;
+            margin-bottom: 18px;
+        }
+
+        .totals-table td {
+            padding: 4px 6px;
+            font-size: 10px;
+            color: #555;
+        }
+
+        .totals-table td.lbl {
+            text-align: right;
+        }
+
+        .totals-table td.amt {
+            text-align: right;
+            min-width: 70px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .totals-table tr.grand td {
+            font-size: 15px;
+            font-weight: 900;
+            color: #111;
+            padding-top: 7px;
+            border-top: 2px solid #111;
+        }
+
+        /* ── Payment ── */
+        .payment-line {
+            font-size: 10px;
+            color: #555;
+            margin-bottom: 20px;
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            display: inline-block;
+        }
+
+        .payment-line strong {
+            color: #111;
+        }
+
+        /* ── Footer ── */
+        .footer {
+            border-top: 1px dashed #aaa;
+            padding-top: 12px;
+            font-size: 8.5px;
+            color: #aaa;
+            line-height: 1.7;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ══ HEADER ══ -->
+    <div class="header-bar">
+        <table class="header-table">
+            <tr>
+                <td>
+                    <div class="brand">Electro<span class="brand-light">Bazar</span></div>
+                    <div class="company-info">
+                        ElectroBazar S.L. · CIF: B12345678<br />
+                        C/ Exemple, 12 · 28001 Madrid<br />
+                        Tel: 91 123 45 67 · info@electrobazar.com
+                    </div>
+                </td>
+                <td>
+                    <div class="doc-type">Ticket de Venta</div>
+                    <div class="doc-ref">
+                        N&ordm;: <strong th:text="'#' + ${sale.id}">#1</strong><br />
+                        Fecha: <strong
+                            th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy')}">25/02/2026</strong><br />
+                        Hora: <strong th:text="${#temporals.format(sale.createdAt, 'HH:mm:ss')}">14:30:00</strong><br />
+                        Atendido por: <strong
+                            th:text="${sale.worker != null ? sale.worker.username : 'Sistema'}">Admin</strong>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- ══ CUSTOMER BLOCK (only if customer is attached) ══ -->
+    <div class="customer-block" th:if="${sale.customer != null}">
+        <div class="customer-label">Cliente</div>
+        <div class="customer-name" th:text="${sale.customer.name}">Cliente</div>
+        <div class="customer-detail">
+            <span th:text="${sale.customer.type.name() == 'COMPANY' ? 'CIF: ' : 'NIF: '}">NIF: </span>
+            <span th:text="${sale.customer.taxId != null ? sale.customer.taxId : '—'}">—</span><br />
+            <span th:if="${sale.customer.address != null}"
+                th:text="${sale.customer.address + ', ' + (sale.customer.city ?: '') + ' ' + (sale.customer.postalCode ?: '')}"></span>
+        </div>
+    </div>
+
+    <!-- ══ ITEMS ══ -->
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>Concepto</th>
+                <th class="r">Precio Unit. (IVA inc.)</th>
+                <th class="r">Cantidad</th>
+                <th class="r">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="line : ${sale.lines}">
+                <td class="name" th:text="${line.product.name}">Producto</td>
+                <td class="r" th:text="${#numbers.formatDecimal(line.unitPrice, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+                <td class="r" th:text="${line.quantity}">1</td>
+                <td class="r" th:text="${#numbers.formatDecimal(line.unitPrice * line.quantity, 1, 2, 'POINT')} + ' €'">
+                    0.00 €</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr class="divider" />
+
+    <!-- ══ TAX BREAKDOWN ══ -->
+    <div th:if="${taxBreakdowns != null and !#lists.isEmpty(taxBreakdowns)}">
+
+        <!-- Recargo de Equivalencia notice -->
+        <div class="re-notice" th:if="${applyRecargo}">
+            &#9888; Recargo de Equivalencia aplicado
+        </div>
+
+        <!-- Per-rate breakdown rows -->
+        <table class="tax-table">
+            <tr th:each="bd : ${taxBreakdowns}">
+                <td class="lbl"
+                    th:text="'IVA ' + ${#numbers.formatDecimal(bd.vatRate * 100, 1, 0)} + '% — Base: ' + ${#numbers.formatDecimal(bd.baseAmount, 1, 2, 'POINT')} + ' €'">
+                    IVA
+                    21% — Base: 0.00 €</td>
+                <td class="amt" th:text="'Cuota: ' + ${#numbers.formatDecimal(bd.vatAmount, 1, 2, 'POINT')} + ' €'">
+                    Cuota:
+                    0.00 €</td>
+            </tr>
+            <tr th:if="${applyRecargo}">
+                <td class="lbl">Recargo de Equivalencia:</td>
+                <td class="amt" th:text="${#numbers.formatDecimal(totalRecargo, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Fallback: computed from stored vatRate when no breakdown available -->
+    <div th:unless="${taxBreakdowns != null and !#lists.isEmpty(taxBreakdowns)}">
+        <table class="tax-table">
+            <tr>
+                <td class="lbl">Base imponible:</td>
+                <td class="amt" th:text="${#numbers.formatDecimal(
+                        #aggregates.sum(sale.lines.![subtotal / (1 + vatRate)]),
+                        1, 2, 'POINT')} + ' €'">0.00 €</td>
+            </tr>
+            <tr>
+                <td class="lbl">IVA:</td>
+                <td class="amt" th:text="${#numbers.formatDecimal(
+                        #aggregates.sum(sale.lines.![subtotal - (subtotal / (1 + vatRate))]),
+                        1, 2, 'POINT')} + ' €'">0.00 €</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- ══ TOTALS ══ -->
+    <table class="totals-table">
+        <tr th:if="${taxBreakdowns != null and !#lists.isEmpty(taxBreakdowns)}">
+            <td class="lbl">Base imponible:</td>
+            <td class="amt" th:text="${#numbers.formatDecimal(totalBase, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+        </tr>
+        <tr th:if="${taxBreakdowns != null and !#lists.isEmpty(taxBreakdowns)}">
+            <td class="lbl">IVA total:</td>
+            <td class="amt" th:text="${#numbers.formatDecimal(totalVat, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+        </tr>
+        <tr class="grand">
+            <td class="lbl">TOTAL:</td>
+            <td class="amt" th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+        </tr>
+    </table>
+
+    <!-- ══ PAYMENT ══ -->
+    <div class="payment-line">
+        Forma de pago:
+        <strong th:text="${sale.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta bancaria'}">Efectivo</strong>
+        <span th:if="${sale.receivedAmount != null}">
+            &nbsp;&mdash; Entregado:
+            <strong th:text="${#numbers.formatDecimal(sale.receivedAmount, 1, 2, 'POINT')} + ' €'">0.00 €</strong>
+            &nbsp;&mdash; Cambio:
+            <strong th:text="${#numbers.formatDecimal(sale.changeAmount, 1, 2, 'POINT')} + ' €'">0.00 €</strong>
+        </span>
+    </div>
+
+    <!-- ══ FOOTER ══ -->
+    <div class="footer">
+        ElectroBazar S.L. &mdash; C/ Exemple, 12, 28001 Madrid &mdash; CIF: B12345678<br />
+        &iexcl;Gracias por su compra! Conserve este ticket como justificante de pago.<br />
+        Documento generado el
+        <span th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm:ss')}"></span>
+    </div>
+
+</body>
+
+</html>

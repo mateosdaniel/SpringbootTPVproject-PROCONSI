@@ -103,7 +103,7 @@ public class PdfReportServiceImpl implements PdfReportService {
             context.setVariable("totalRecargo", totalRecargo);
 
             // 2. Process HTML template
-            String htmlContent = templateEngine.process("tpv/receipt", context);
+            String htmlContent = templateEngine.process("reports/ticket-report", context);
 
             // 3. Convert HTML to PDF using OpenHTMLToPDF in-memory
             try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {

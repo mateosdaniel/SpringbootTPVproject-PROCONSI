@@ -182,6 +182,10 @@
             color: var(--accent);
         }
 
+        .btn-action-tpv#adminLockBtn:hover {
+            color: var(--primary);
+        }
+
         .prefs-close:hover {
             color: var(--danger);
         }
