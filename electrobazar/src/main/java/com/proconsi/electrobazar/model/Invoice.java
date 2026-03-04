@@ -59,13 +59,6 @@ public class Invoice {
     @Builder.Default
     private InvoiceStatus status = InvoiceStatus.ACTIVE;
 
-    @Lob
-    @Column(name = "pdf_data", columnDefinition = "LONGBLOB")
-    private byte[] pdfData;
-
-    @Column(name = "pdf_filename", length = 200)
-    private String pdfFilename;
-
     /**
      * If this invoice was rectified, points to the rectifying invoice.
      * Nullable — only set after a credit note is issued.

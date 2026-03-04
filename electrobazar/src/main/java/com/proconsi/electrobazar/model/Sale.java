@@ -57,6 +57,10 @@ public class Sale {
     @OneToOne(mappedBy = "sale")
     private Invoice invoice;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean applyRecargo = false;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();

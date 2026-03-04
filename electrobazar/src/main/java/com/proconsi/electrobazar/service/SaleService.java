@@ -32,4 +32,12 @@ public interface SaleService {
         BigDecimal sumTotalByPaymentMethodToday(PaymentMethod paymentMethod);
 
         com.proconsi.electrobazar.dto.SaleSummaryResponse getSummaryToday();
+
+        /**
+         * Persists the applyRecargo flag to an existing sale.
+         *
+         * @param saleId       The sale ID
+         * @param applyRecargo Whether RE tax matches for this sale
+         */
+        void saveApplyRecargo(Long saleId, boolean applyRecargo);
 }

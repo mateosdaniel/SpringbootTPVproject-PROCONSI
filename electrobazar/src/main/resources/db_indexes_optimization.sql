@@ -20,8 +20,6 @@ CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
 CREATE INDEX IF NOT EXISTS idx_suspended_sales_status ON suspended_sales(status);
 CREATE INDEX IF NOT EXISTS idx_suspended_sales_worker_id ON suspended_sales(worker_id);
 
--- stored_documents
-CREATE INDEX IF NOT EXISTS idx_doc_type_ref ON stored_documents(document_type, reference_id);
 
 -- returns
 CREATE INDEX IF NOT EXISTS idx_returns_sale_id ON returns(sale_id);

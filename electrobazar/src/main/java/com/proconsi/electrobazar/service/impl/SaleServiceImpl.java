@@ -168,4 +168,13 @@ public class SaleServiceImpl implements SaleService {
         LocalDateTime endOfDay = today.atStartOfDay().plusDays(1).minusNanos(1);
         return saleRepository.getSummaryBetween(startTime, endOfDay);
     }
+
+    @Override
+    @Transactional
+    public void saveApplyRecargo(Long saleId, boolean applyRecargo) {
+        saleRepository.findById(saleId).ifPresent(sale -> {
+            sale.setApplyRecargo(applyRecargo);
+            saleRepository.save(sale);
+        });
+    }
 }

@@ -1,11 +1,11 @@
 package com.proconsi.electrobazar.service.impl;
 
-import com.proconsi.electrobazar.model.Invoice;
 import com.proconsi.electrobazar.model.InvoiceSequence;
 import com.proconsi.electrobazar.model.Sale;
-import com.proconsi.electrobazar.repository.InvoiceRepository;
+import com.proconsi.electrobazar.model.Ticket;
 import com.proconsi.electrobazar.repository.InvoiceSequenceRepository;
-import com.proconsi.electrobazar.service.InvoiceService;
+import com.proconsi.electrobazar.repository.TicketRepository;
+import com.proconsi.electrobazar.service.TicketService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,28 +17,20 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class InvoiceServiceImpl implements InvoiceService {
+public class TicketServiceImpl implements TicketService {
 
-    private static final String DEFAULT_SERIE = "F";
+    private static final String TICKET_SERIE = "T";
 
-    private final InvoiceRepository invoiceRepository;
+    private final TicketRepository ticketRepository;
     private final InvoiceSequenceRepository invoiceSequenceRepository;
 
-    /**
-     * Atomically increments the invoice sequence for the current year and serie,
-     * then persists and returns the new Invoice.
-     *
-     * The PESSIMISTIC_WRITE lock on the InvoiceSequence row guarantees that two
-     * concurrent transactions cannot read the same lastNumber before one of them
-     * commits the increment, preventing duplicate invoice numbers.
-     */
     @Override
     @Transactional
-    public Invoice createInvoice(Sale sale) {
+    public Ticket createTicket(Sale sale, boolean applyRecargo) {
         int currentYear = LocalDate.now().getYear();
-        String serie = DEFAULT_SERIE;
+        String serie = TICKET_SERIE;
 
-        // Fetch (and lock) the sequence row for this serie+year, creating it if absent.
+        // Fetch (and lock) the sequence row for serie "T"
         InvoiceSequence sequence = invoiceSequenceRepository
                 .findBySerieAndYearForUpdate(serie, currentYear)
                 .orElseGet(() -> {
@@ -50,31 +42,30 @@ public class InvoiceServiceImpl implements InvoiceService {
                     return invoiceSequenceRepository.save(newSeq);
                 });
 
-        // Increment and persist the new counter value.
         int nextNumber = sequence.getLastNumber() + 1;
         sequence.setLastNumber(nextNumber);
         invoiceSequenceRepository.save(sequence);
 
-        // Format: F-2026-0001 (serie, year, zero-padded 4-digit sequence)
-        String invoiceNumber = String.format("%s-%d-%04d", serie, currentYear, nextNumber);
+        // Format: T-2026-0001
+        String ticketNumber = String.format("%s-%d-%04d", serie, currentYear, nextNumber);
 
-        Invoice invoice = Invoice.builder()
-                .invoiceNumber(invoiceNumber)
+        Ticket ticket = Ticket.builder()
+                .ticketNumber(ticketNumber)
                 .serie(serie)
                 .year(currentYear)
                 .sequenceNumber(nextNumber)
                 .sale(sale)
-                .status(Invoice.InvoiceStatus.ACTIVE)
+                .applyRecargo(applyRecargo)
                 .build();
 
-        Invoice saved = invoiceRepository.save(invoice);
-        log.info("Invoice created: {} for sale #{}", invoiceNumber, sale.getId());
+        Ticket saved = ticketRepository.save(ticket);
+        log.info("Ticket created: {} for sale #{}", ticketNumber, sale.getId());
         return saved;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<Invoice> findBySaleId(Long saleId) {
-        return invoiceRepository.findBySaleId(saleId);
+    public Optional<Ticket> findBySaleId(Long saleId) {
+        return ticketRepository.findBySaleId(saleId);
     }
 }

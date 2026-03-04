@@ -16,7 +16,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,7 +35,7 @@ public class TpvController {
     private final RecargoEquivalenciaCalculator recargoCalculator;
     private final InvoiceService invoiceService;
     private final ReturnService returnService;
-    private final DocumentService documentService;
+    private final TicketService ticketService;
     private final CashWithdrawalService cashWithdrawalService;
 
     @GetMapping
@@ -178,18 +177,20 @@ public class TpvController {
                 redirectAttributes.addFlashAttribute("invoice", invoice);
             }
 
-            byte[] pdfData;
             if (invoice != null) {
-                pdfData = pdfReportService.generateInvoiceReport(sale, invoice);
-                // Guardar PDF directamente en la entidad Invoice
-                String filename = String.format("Factura_%s.pdf", invoice.getInvoiceNumber());
-                invoiceService.savePdf(invoice.getId(), pdfData, filename);
+                // Generamos el reporte para asegurar que los datos son correctos,
+                // aunque ya no se guarda el binario en la base de datos.
+                pdfReportService.generateInvoiceReport(sale, invoice);
             } else {
-                pdfData = pdfReportService.generateTicketReport(sale, taxBreakdowns, applyRecargo, totalBase, totalVat,
-                        totalRecargo);
-                // Guardar PDF en StoredDocument (solo para tickets)
-                String filename = String.format("Ticket_%d.pdf", sale.getId());
-                documentService.store(DocumentType.TICKET, sale.getId(), filename, pdfData);
+                // Para tickets: guardamos el flag de recargo en la venta y creamos el registro
+                // de ticket correlativo
+                saleService.saveApplyRecargo(sale.getId(), applyRecargo);
+                ticketService.createTicket(sale, applyRecargo);
+
+                // No generamos el PDF aquí para guardarlo, solo lo generamos si fuese necesario
+                // para mostrarlo
+                // (pero el flujo actual redirige al /receipt/{id} que lo regenerará para el
+                // navegador)
             }
 
             if (invoice != null) {
@@ -197,7 +198,7 @@ public class TpvController {
                         "Factura " + invoice.getInvoiceNumber() + " generada.");
             }
         } catch (Exception e) {
-            log.error("Error generating/storing PDF for sale " + sale.getId(), e);
+            log.error("Error creating document record for sale " + sale.getId(), e);
             redirectAttributes.addFlashAttribute("errorMessage",
                     "Venta completada pero hubo un error al generar el documento PDF.");
         }
@@ -401,11 +402,7 @@ public class TpvController {
                 closingBalanceDecimal, notes, worker, retainedAmountDecimal);
 
         try {
-            byte[] pdfData = pdfReportService.generateCashCloseReport(register);
-            String dateStr = register.getClosedAt().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            String filename = String.format("Cierre_Caja_%s_ID%d.pdf", dateStr, register.getId());
-
-            documentService.store(DocumentType.CASH_CLOSE, register.getId(), filename, pdfData);
+            // Ya no generamos ni guardamos el PDF aquí. Se regenera al descargar.
 
             redirectAttributes.addFlashAttribute("successMessage",
                     "Cierre de caja realizado. Diferencia: " + register.getDifference()

@@ -25,7 +25,7 @@ public class AdminController {
     private final com.proconsi.electrobazar.service.CustomerService customerService;
     private final com.proconsi.electrobazar.service.InvoiceService invoiceService;
     private final com.proconsi.electrobazar.service.RoleService roleService;
-    private final com.proconsi.electrobazar.service.DocumentService documentService;
+    private final com.proconsi.electrobazar.service.TicketService ticketService;
     private final com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator recargoCalculator;
 
     @GetMapping("/productos-categorias")
@@ -135,41 +135,54 @@ public class AdminController {
 
         try {
             com.proconsi.electrobazar.model.Sale sale = saleService.findById(id);
-            if (sale == null)
-                return org.springframework.http.ResponseEntity.status(404).body("Venta no encontrada.");
-
             com.proconsi.electrobazar.model.Invoice invoice = invoiceService.findBySaleId(id).orElse(null);
 
             byte[] pdfData = null;
             String filename = null;
 
-            // 1. Intentar sacar de la tabla INVOICES si es una factura
-            if (invoice != null && invoice.getPdfData() != null) {
-                pdfData = invoice.getPdfData();
-                filename = invoice.getPdfFilename();
-            }
+            if (invoice != null) {
+                // Regenerate Invoice PDF
+                pdfData = pdfReportService.generateInvoiceReport(sale, invoice);
+                filename = "Factura_" + invoice.getInvoiceNumber() + ".pdf";
+            } else {
+                // Try to find the correlative Ticket
+                java.util.Optional<com.proconsi.electrobazar.model.Ticket> ticketOpt = ticketService.findBySaleId(id);
+                if (ticketOpt.isPresent()) {
+                    com.proconsi.electrobazar.model.Ticket ticket = ticketOpt.get();
 
-            // 2. Only for tickets: search in STORED_DOCUMENTS.
-            // Invoices are stored directly in Invoice.pdfData (Lookup 1 above);
-            // there is no INVOICE entry in stored_documents, so this lookup
-            // is only meaningful — and only correct — for ticket sales.
-            if (pdfData == null && invoice == null) {
-                java.util.Optional<com.proconsi.electrobazar.model.StoredDocument> storedDoc = documentService
-                        .findByTypeAndReference(com.proconsi.electrobazar.model.DocumentType.TICKET, id);
+                    // Recalculate tax breakdowns for ticket regeneration
+                    java.util.List<com.proconsi.electrobazar.dto.TaxBreakdown> taxBreakdowns = new java.util.ArrayList<>();
+                    for (com.proconsi.electrobazar.model.SaleLine line : sale.getLines()) {
+                        taxBreakdowns.add(recargoCalculator.calculateLineBreakdown(
+                                line.getProduct().getId(),
+                                line.getProduct().getName(),
+                                line.getUnitPrice(),
+                                line.getQuantity(),
+                                line.getVatRate(),
+                                ticket.isApplyRecargo()));
+                    }
 
-                if (storedDoc.isPresent()) {
-                    pdfData = storedDoc.get().getData();
-                    filename = storedDoc.get().getFilename();
+                    java.math.BigDecimal totalBase = taxBreakdowns.stream()
+                            .map(com.proconsi.electrobazar.dto.TaxBreakdown::getBaseAmount)
+                            .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                    java.math.BigDecimal totalVat = taxBreakdowns.stream()
+                            .map(com.proconsi.electrobazar.dto.TaxBreakdown::getVatAmount)
+                            .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                    java.math.BigDecimal totalRecargo = taxBreakdowns.stream()
+                            .map(com.proconsi.electrobazar.dto.TaxBreakdown::getRecargoAmount)
+                            .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+                    pdfData = pdfReportService.generateTicketReport(
+                            sale, taxBreakdowns, ticket.isApplyRecargo(),
+                            totalBase, totalVat, totalRecargo);
+                    filename = "Ticket_" + ticket.getTicketNumber() + ".pdf";
                 }
             }
 
-            // If neither the Invoice.pdfData column nor the stored_documents table
-            // contains the PDF, the document was never generated or was somehow lost.
-            // Do NOT regenerate on demand — return 404 so the problem is visible.
             if (pdfData == null) {
-                log.warn("PDF not found in database for sale {}. No fallback regeneration.", id);
+                log.warn("Document not found/could not be generated for sale {}", id);
                 return org.springframework.http.ResponseEntity.status(404)
-                        .body("El documento PDF no existe en la base de datos para la venta #" + id + ".");
+                        .body("No se encontró factura ni ticket correlativo para la venta#" + id);
             }
 
             org.springframework.core.io.Resource resource = new org.springframework.core.io.ByteArrayResource(pdfData);
@@ -179,13 +192,13 @@ public class AdminController {
                     .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
                     .body(resource);
         } catch (Exception e) {
-            log.error("Error downloading document for sale " + id, e);
+            log.error("Error generating document for sale " + id, e);
             return org.springframework.http.ResponseEntity.internalServerError().build();
         }
     }
 
     @GetMapping("/admin/download/cash-close/{id}")
-    public org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> downloadCashClosePdf(
+    public org.springframework.http.ResponseEntity<?> downloadCashClosePdf(
             @org.springframework.web.bind.annotation.PathVariable Long id, HttpSession session) {
         if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
             return org.springframework.http.ResponseEntity.status(401).build();
@@ -196,24 +209,12 @@ public class AdminController {
             if (register == null)
                 return org.springframework.http.ResponseEntity.notFound().build();
 
-            java.util.Optional<com.proconsi.electrobazar.model.StoredDocument> storedDoc = documentService
-                    .findByTypeAndReference(com.proconsi.electrobazar.model.DocumentType.CASH_CLOSE, id);
-
-            byte[] pdfData;
-            String filename;
-
-            if (storedDoc.isPresent()) {
-                pdfData = storedDoc.get().getData();
-                filename = storedDoc.get().getFilename();
-            } else {
-                // Regenerate and store if missing
-                pdfData = pdfReportService.generateCashCloseReport(register);
-                String dateStr = register.getClosedAt() != null
-                        ? register.getClosedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-                        : "UnknownDate";
-                filename = String.format("Cierre_Caja_%s_ID%d.pdf", dateStr, id);
-                documentService.store(com.proconsi.electrobazar.model.DocumentType.CASH_CLOSE, id, filename, pdfData);
-            }
+            // Regenerate on demand
+            byte[] pdfData = pdfReportService.generateCashCloseReport(register);
+            String dateStr = register.getClosedAt() != null
+                    ? register.getClosedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+                    : "UnknownDate";
+            String filename = String.format("Cierre_Caja_%s_ID%d.pdf", dateStr, id);
 
             org.springframework.core.io.Resource resource = new org.springframework.core.io.ByteArrayResource(pdfData);
             return org.springframework.http.ResponseEntity.ok()
@@ -222,6 +223,7 @@ public class AdminController {
                     .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
                     .body(resource);
         } catch (Exception e) {
+            log.error("Error generating cash close PDF for ID " + id, e);
             return org.springframework.http.ResponseEntity.internalServerError().build();
         }
     }

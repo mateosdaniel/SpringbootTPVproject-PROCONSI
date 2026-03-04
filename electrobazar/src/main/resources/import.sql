@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS sales (
     received_amount DECIMAL(10,2),
     change_amount DECIMAL(10,2),
     notes VARCHAR(255),
+    apply_recargo BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY (customer_id) REFERENCES customers(id),
     FOREIGN KEY (worker_id) REFERENCES workers(id)
 );
@@ -82,6 +83,19 @@ CREATE TABLE IF NOT EXISTS sale_lines (
     subtotal DECIMAL(10,2) NOT NULL,
     FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id)
+);
+
+-- Tickets table (Facturas simplificadas)
+CREATE TABLE IF NOT EXISTS tickets (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    ticket_number VARCHAR(20) NOT NULL UNIQUE,
+    serie VARCHAR(5) NOT NULL,
+    year INT NOT NULL,
+    sequence_number INT NOT NULL,
+    sale_id BIGINT NOT NULL UNIQUE,
+    created_at TIMESTAMP NOT NULL,
+    apply_recargo BOOLEAN NOT NULL DEFAULT FALSE,
+    FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE
 );
 
 -- Add vat_rate to sale_lines for existing databases (safe: no-op if column already exists)
