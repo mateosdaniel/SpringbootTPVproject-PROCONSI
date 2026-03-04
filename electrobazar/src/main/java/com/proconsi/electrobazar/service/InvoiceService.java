@@ -34,4 +34,12 @@ public interface InvoiceService {
      * @param filename  The filename
      */
     void savePdf(Long invoiceId, byte[] pdfData, String filename);
+
+    /**
+     * Retrieves only the PDF bytes for the given invoice ID.
+     *
+     * @param invoiceId The invoice ID
+     * @return The PDF bytes or null if not found
+     */
+    byte[] getPdfData(Long invoiceId);
 }

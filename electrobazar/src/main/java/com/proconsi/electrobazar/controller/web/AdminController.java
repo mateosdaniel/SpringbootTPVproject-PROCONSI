@@ -144,8 +144,8 @@ public class AdminController {
             String filename = null;
 
             // 1. Intentar sacar de la tabla INVOICES si es una factura
-            if (invoice != null && invoice.getPdfData() != null) {
-                pdfData = invoice.getPdfData();
+            if (invoice != null) {
+                pdfData = invoiceService.getPdfData(invoice.getId());
                 filename = invoice.getPdfFilename();
             }
 

@@ -15,6 +15,10 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     @Query("SELECT i FROM Invoice i WHERE i.sale.id = :saleId")
     Optional<Invoice> findBySaleId(@Param("saleId") Long saleId);
 
+    /** Select only the PDF bytes for a given invoice ID. */
+    @Query("SELECT i.pdfData FROM Invoice i WHERE i.id = :id")
+    Optional<byte[]> getPdfDataById(@Param("id") Long id);
+
     /** Find by formatted invoice number (e.g. "F-2026-0001"). */
     Optional<Invoice> findByInvoiceNumber(String invoiceNumber);
 }

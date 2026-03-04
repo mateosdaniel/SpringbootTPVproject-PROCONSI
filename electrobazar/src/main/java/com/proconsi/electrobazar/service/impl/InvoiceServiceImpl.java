@@ -87,4 +87,10 @@ public class InvoiceServiceImpl implements InvoiceService {
             invoiceRepository.save(inv);
         });
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] getPdfData(Long invoiceId) {
+        return invoiceRepository.getPdfDataById(invoiceId).orElse(null);
+    }
 }
