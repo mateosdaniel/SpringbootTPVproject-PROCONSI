@@ -23,6 +23,12 @@ public class Product {
     @Column(length = 255)
     private String description;
 
+    /**
+     * The price value. Uses BigDecimal for monetary precision.
+     * Convention: Prices are stored VAT-inclusive. Net prices are derived for
+     * fiscal reporting.
+     * This field represents the Gross Price (Final Price to consumer).
+     */
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 

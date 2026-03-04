@@ -37,4 +37,17 @@ public interface ReturnService {
      * Finds all returns for a given original sale ID.
      */
     List<SaleReturn> findByOriginalSaleId(Long saleId);
+
+    /**
+     * Sums the total amount refunded today for a specific payment method.
+     */
+    java.math.BigDecimal sumTotalRefundedTodayByPaymentMethod(PaymentMethod method);
+
+    /**
+     * Sums the total amount refunded between two dates for a specific payment
+     * method.
+     */
+    java.math.BigDecimal sumTotalRefundedBetweenByPaymentMethod(java.time.LocalDateTime from,
+            java.time.LocalDateTime to,
+            PaymentMethod method);
 }

@@ -180,7 +180,9 @@ public class TpvController {
             if (invoice != null) {
                 // Generamos el reporte para asegurar que los datos son correctos,
                 // aunque ya no se guarda el binario en la base de datos.
-                pdfReportService.generateInvoiceReport(sale, invoice);
+                // Pass the breakdown variables to the invoice report
+                pdfReportService.generateInvoiceReport(sale, invoice, taxBreakdowns, applyRecargo, totalBase, totalVat,
+                        totalRecargo);
             } else {
                 // Para tickets: guardamos el flag de recargo en la venta y creamos el registro
                 // de ticket correlativo
@@ -280,6 +282,7 @@ public class TpvController {
 
         CashRegister openRegister = openRegisterOpt.get();
         java.math.BigDecimal cashSalesToday = saleService.sumTotalByPaymentMethodToday(PaymentMethod.CASH);
+        java.math.BigDecimal cashRefundsToday = returnService.sumTotalRefundedTodayByPaymentMethod(PaymentMethod.CASH);
 
         java.math.BigDecimal totalWithdrawals = cashWithdrawalService.findByRegisterId(openRegister.getId()).stream()
                 .map(CashWithdrawal::getAmount)
@@ -287,14 +290,17 @@ public class TpvController {
 
         java.math.BigDecimal expectedCashInDrawer = openRegister.getOpeningBalance()
                 .add(cashSalesToday)
-                .subtract(totalWithdrawals);
+                .subtract(totalWithdrawals)
+                .subtract(cashRefundsToday);
 
         model.addAttribute("categories", categoryService.findAllActive());
         model.addAttribute("totalToday", saleService.sumTotalToday());
         model.addAttribute("countToday", saleService.countToday());
         model.addAttribute("todayRegister", openRegister);
         model.addAttribute("cashSalesToday", cashSalesToday);
+        model.addAttribute("cashRefundsToday", cashRefundsToday);
         model.addAttribute("cardSalesToday", saleService.sumTotalByPaymentMethodToday(PaymentMethod.CARD));
+        model.addAttribute("cardRefundsToday", returnService.sumTotalRefundedTodayByPaymentMethod(PaymentMethod.CARD));
         model.addAttribute("totalWithdrawals", totalWithdrawals);
         model.addAttribute("expectedCashInDrawer", expectedCashInDrawer);
         return "tpv/cash-close";
@@ -470,7 +476,7 @@ public class TpvController {
                     saleId, lineRequests, reason, paymentMethod, worker);
             redirectAttributes.addFlashAttribute("saleReturn", saleReturn);
             return "redirect:/tpv/return-receipt/" + saleReturn.getId();
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | com.proconsi.electrobazar.exception.InsufficientCashException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/tpv/return/" + saleId;
         }

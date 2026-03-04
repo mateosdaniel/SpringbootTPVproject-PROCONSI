@@ -9,14 +9,23 @@ import java.math.BigDecimal;
  * Represents the detailed tax breakdown for a single sale line item.
  * Supports both standard VAT and the Spanish 'Recargo de Equivalencia' (RE).
  *
- * <p>Formula: Total = Base + (Base × VAT%) + (Base × RE%)</p>
+ * <p>
+ * Convention: Prices are stored VAT-inclusive. Net prices are derived for
+ * fiscal reporting.
+ * </p>
  *
- * <p>Spanish RE rates mapped to VAT rates:</p>
+ * <p>
+ * Formula: Net = Gross / (1 + VAT%), Total = Net + (Net × VAT%) + (Net × RE%)
+ * </p>
+ *
+ * <p>
+ * Spanish RE rates mapped to VAT rates:
+ * </p>
  * <ul>
- *   <li>21% VAT → 5.2% RE</li>
- *   <li>10% VAT → 1.4% RE</li>
- *   <li>4%  VAT → 0.5% RE</li>
- *   <li>2%  VAT → 0.15% RE</li>
+ * <li>21% VAT → 5.2% RE</li>
+ * <li>10% VAT → 1.4% RE</li>
+ * <li>4% VAT → 0.5% RE</li>
+ * <li>2% VAT → 0.15% RE</li>
  * </ul>
  */
 @Data

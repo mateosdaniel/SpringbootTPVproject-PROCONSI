@@ -70,42 +70,8 @@ function previewImage(url) {
     }
 }
 
-// -- Admin PIN Change -----------------------------------------------------
+// PIN management has been moved to environment variables. Runtime changes are no longer supported.
 
-var pinModal = new bootstrap.Modal(document.getElementById('pinModal'));
-
-function openPinModal() {
-    document.getElementById('oldPin').value = '';
-    document.getElementById('newPin').value = '';
-    pinModal.show();
-}
-
-function changePin() {
-    var oldPin = document.getElementById('oldPin').value.trim();
-    var newPin = document.getElementById('newPin').value.trim();
-
-    if (!oldPin || !newPin) {
-        showToast('Rellena ambos campos', 'error');
-        return;
-    }
-
-    fetch('/admin/change-pin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oldPin: oldPin, newPin: newPin })
-    })
-        .then(function (r) {
-            if (r.ok) {
-                pinModal.hide();
-                showToast('PIN cambiado correctamente');
-            } else {
-                r.json().then(function (data) {
-                    showToast(data.message || 'Error al cambiar PIN', 'error');
-                });
-            }
-        })
-        .catch(function () { showToast('Error de red', 'error'); });
-}
 
 // -- Product CRUD ---------------------------------------------------------
 

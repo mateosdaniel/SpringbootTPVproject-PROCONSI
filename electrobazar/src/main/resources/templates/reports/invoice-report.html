@@ -302,25 +302,30 @@
         </tbody>
     </table>
 
-    <!-- â•â• TOTALS â•â• -->
+    <!-- ══ TOTALS ══ -->
     <div class="totals-wrap">
+        <!-- Recargo de Equivalencia notice -->
+        <div class="re-notice" th:if="${applyRecargo}"
+            style="border: 1px solid #c8a000; background: #fffae6; padding: 6px 10px; font-size: 10px; font-weight: 700; color: #7a6000; margin-bottom: 12px; text-align: center;">
+            &#9888; Recargo de Equivalencia aplicado
+        </div>
+
         <table class="totals-table">
             <tr>
                 <td class="lbl">Base imponible:</td>
-                <td class="amt" th:text="${#numbers.formatDecimal(
-                        #aggregates.sum(sale.lines.![subtotal / (1 + vatRate)]),
-                        1, 2, 'POINT')} + ' €'">0.00 €</td>
+                <td class="amt" th:text="${#numbers.formatDecimal(totalBase, 1, 2, 'POINT')} + ' €'">0.00 €</td>
             </tr>
             <tr>
-                <td class="lbl">IVA:</td>
-                <td class="amt" th:text="${#numbers.formatDecimal(
-                        #aggregates.sum(sale.lines.![subtotal - (subtotal / (1 + vatRate))]),
-                        1, 2, 'POINT')} + ' €'">0.00 €</td>
+                <td class="lbl">IVA total:</td>
+                <td class="amt" th:text="${#numbers.formatDecimal(totalVat, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+            </tr>
+            <tr th:if="${applyRecargo}">
+                <td class="lbl">Recargo Equiv.:</td>
+                <td class="amt" th:text="${#numbers.formatDecimal(totalRecargo, 1, 2, 'POINT')} + ' €'">0.00 €</td>
             </tr>
             <tr class="grand">
                 <td class="lbl">TOTAL A PAGAR:</td>
-                <td class="amt" th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2, 'POINT')} + ' €'">0.00
-                    €</td>
+                <td class="amt" th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2, 'POINT')} + ' €'">0.00 €</td>
             </tr>
         </table>
     </div>

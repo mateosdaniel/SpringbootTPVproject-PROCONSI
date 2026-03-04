@@ -64,9 +64,7 @@
 
         <!-- Footer Actions -->
         <div class="sidebar-footer">
-            <button class="btn-back" onclick="openPinModal()">
-                <i class="bi bi-shield-lock"></i> Cambiar PIN
-            </button>
+
             <a href="/tpv" class="btn-back">
                 <i class="bi bi-arrow-left"></i> Volver al listado
             </a>
@@ -88,35 +86,7 @@
         </div>
     </div>
 
-    <!-- ── PIN Change Modal ── -->
-    <div class="modal fade" id="pinModal" tabindex="-1">
-        <div class="modal-dialog modal-sm modal-dialog-centered">
-            <div class="modal-content"
-                style="background:var(--secondary);color:var(--text-main);border-color:var(--border);">
-                <div class="modal-header" style="border-color:var(--border);">
-                    <h5 class="modal-title"><i class="bi bi-shield-lock me-2"></i>Cambiar PIN</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">PIN actual</label>
-                        <input type="password" class="form-control" id="oldPin" maxlength="10" autocomplete="off"
-                            inputmode="numeric">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Nuevo PIN</label>
-                        <input type="password" class="form-control" id="newPin" maxlength="10" autocomplete="off"
-                            inputmode="numeric">
-                    </div>
-                </div>
-                <div class="modal-footer" style="border-color:var(--border);">
-                    <button type="button" class="btn btn-cancel" data-bs-dismiss="modal"
-                        style="flex:1">Cancelar</button>
-                    <button type="button" class="btn btn-save" onclick="changePin()" style="flex:1">Guardar</button>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
 
     <!-- ── Body ── -->

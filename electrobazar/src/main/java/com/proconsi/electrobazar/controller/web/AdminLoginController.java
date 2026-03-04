@@ -60,19 +60,14 @@ public class AdminLoginController {
 
     @PostMapping("/change-pin")
     @ResponseBody
-    public ResponseEntity<?> changePin(@RequestBody Map<String, String> body, HttpSession session) {
-        if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
-            return ResponseEntity.status(401).body(Map.of("ok", false, "message", "No autorizado"));
-        }
-
-        String oldPin = body.getOrDefault("oldPin", "");
-        String newPin = body.getOrDefault("newPin", "");
-
-        if (adminPinService.changePin(oldPin, newPin)) {
-            return ResponseEntity.ok(Map.of("ok", true));
-        }
-        return ResponseEntity.status(400)
-                .body(Map.of("ok", false, "message", "No se pudo cambiar el PIN verifique el PIN actual."));
+    public ResponseEntity<?> changePin(HttpSession session) {
+        // PIN rotation is no longer supported at runtime.
+        // To change the admin PIN, update the ADMIN_PIN environment variable and
+        // restart the application.
+        return ResponseEntity.status(410)
+                .body(Map.of("ok", false, "message",
+                        "El cambio de PIN en tiempo de ejecución ha sido deshabilitado por razones de seguridad. " +
+                                "Para cambiar el PIN, actualice la variable de entorno ADMIN_PIN y reinicie la aplicación."));
     }
 
     @GetMapping("/logout")

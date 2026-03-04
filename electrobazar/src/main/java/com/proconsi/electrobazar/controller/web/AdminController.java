@@ -141,8 +141,40 @@ public class AdminController {
             String filename = null;
 
             if (invoice != null) {
-                // Regenerate Invoice PDF
-                pdfData = pdfReportService.generateInvoiceReport(sale, invoice);
+                // Recalculate tax breakdowns for invoice regeneration
+                java.util.List<com.proconsi.electrobazar.dto.TaxBreakdown> taxBreakdowns = new java.util.ArrayList<>();
+                boolean applyRecargo = sale.getCustomer() != null
+                        && Boolean.TRUE.equals(sale.getCustomer().getHasRecargoEquivalencia());
+
+                for (com.proconsi.electrobazar.model.SaleLine line : sale.getLines()) {
+                    // Logic: Back-calculate Gross if needed, but here we assume line.unitPrice
+                    // already follows the convention for that sale's customer.
+                    // However, to be safe and use the Gross convention:
+                    // We need the original Gross price. In this system, Product.price is Gross.
+                    // But if it was an RE customer, line.unitPrice already includes RE.
+                    // So we must be careful. Let's use the line's data.
+                    taxBreakdowns.add(recargoCalculator.calculateLineBreakdown(
+                            line.getProduct().getId(),
+                            line.getProduct().getName(),
+                            line.getUnitPrice(), // This is Gross (VAT inc)
+                            line.getQuantity(),
+                            line.getVatRate(),
+                            applyRecargo));
+                }
+
+                java.math.BigDecimal totalBase = taxBreakdowns.stream()
+                        .map(com.proconsi.electrobazar.dto.TaxBreakdown::getBaseAmount)
+                        .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                java.math.BigDecimal totalVat = taxBreakdowns.stream()
+                        .map(com.proconsi.electrobazar.dto.TaxBreakdown::getVatAmount)
+                        .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                java.math.BigDecimal totalRecargo = taxBreakdowns.stream()
+                        .map(com.proconsi.electrobazar.dto.TaxBreakdown::getRecargoAmount)
+                        .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+                // Regenerate Invoice PDF with breakdown
+                pdfData = pdfReportService.generateInvoiceReport(sale, invoice, taxBreakdowns, applyRecargo, totalBase,
+                        totalVat, totalRecargo);
                 filename = "Factura_" + invoice.getInvoiceNumber() + ".pdf";
             } else {
                 // Try to find the correlative Ticket

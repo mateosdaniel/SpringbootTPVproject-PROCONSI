@@ -23,6 +23,7 @@ public class SaleApiRestController {
     private final com.proconsi.electrobazar.service.PdfReportService pdfReportService;
     private final com.proconsi.electrobazar.service.WorkerService workerService;
     private final com.proconsi.electrobazar.service.InvoiceService invoiceService;
+    private final com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator recargoCalculator;
 
     @GetMapping
     public ResponseEntity<List<Sale>> getAll() {
@@ -57,7 +58,35 @@ public class SaleApiRestController {
     public ResponseEntity<org.springframework.core.io.Resource> getTicket(@PathVariable Long id) {
         Sale sale = saleService.findById(id);
         com.proconsi.electrobazar.model.Invoice invoice = invoiceService.findBySaleId(id).orElse(null);
-        byte[] pdfData = pdfReportService.generateInvoiceReport(sale, invoice);
+        // Recalculate tax breakdowns for PDF generation
+        java.util.List<com.proconsi.electrobazar.dto.TaxBreakdown> taxBreakdowns = new java.util.ArrayList<>();
+        boolean applyRecargo = sale.getCustomer() != null
+                && Boolean.TRUE.equals(sale.getCustomer().getHasRecargoEquivalencia());
+
+        for (com.proconsi.electrobazar.model.SaleLine line : sale.getLines()) {
+            java.math.BigDecimal vatRate = line.getVatRate() != null ? line.getVatRate()
+                    : new java.math.BigDecimal("0.21");
+            taxBreakdowns.add(recargoCalculator.calculateLineBreakdown(
+                    line.getProduct().getId(),
+                    line.getProduct().getName(),
+                    line.getUnitPrice(),
+                    line.getQuantity(),
+                    vatRate,
+                    applyRecargo));
+        }
+
+        java.math.BigDecimal totalBase = taxBreakdowns.stream()
+                .map(com.proconsi.electrobazar.dto.TaxBreakdown::getBaseAmount)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+        java.math.BigDecimal totalVat = taxBreakdowns.stream()
+                .map(com.proconsi.electrobazar.dto.TaxBreakdown::getVatAmount)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+        java.math.BigDecimal totalRecargo = taxBreakdowns.stream()
+                .map(com.proconsi.electrobazar.dto.TaxBreakdown::getRecargoAmount)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+        byte[] pdfData = pdfReportService.generateInvoiceReport(sale, invoice, taxBreakdowns, applyRecargo, totalBase,
+                totalVat, totalRecargo);
 
         String invoiceLabel = invoice != null ? invoice.getInvoiceNumber() : ("Ticket_" + id);
         String filename = "Ticket_" + invoiceLabel + ".pdf";

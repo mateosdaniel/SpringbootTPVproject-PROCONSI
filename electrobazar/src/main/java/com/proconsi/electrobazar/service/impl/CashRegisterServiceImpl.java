@@ -6,6 +6,7 @@ import com.proconsi.electrobazar.model.CashRegister;
 import com.proconsi.electrobazar.model.PaymentMethod;
 import com.proconsi.electrobazar.repository.CashRegisterRepository;
 import com.proconsi.electrobazar.repository.SaleRepository;
+import com.proconsi.electrobazar.repository.SaleReturnRepository;
 import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.CashRegisterService;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class CashRegisterServiceImpl implements CashRegisterService {
 
         private final CashRegisterRepository cashRegisterRepository;
         private final SaleRepository saleRepository;
+        private final SaleReturnRepository saleReturnRepository;
         private final ActivityLogService activityLogService;
 
         @Override
@@ -81,12 +83,24 @@ public class CashRegisterServiceImpl implements CashRegisterService {
                                         .map(com.proconsi.electrobazar.model.CashWithdrawal::getAmount)
                                         .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+                        BigDecimal cashRefunds = saleReturnRepository
+                                        .sumTotalRefundedBetweenByPaymentMethod(startTime, endOfDay,
+                                                        PaymentMethod.CASH);
+                        BigDecimal cardRefunds = saleReturnRepository
+                                        .sumTotalRefundedBetweenByPaymentMethod(startTime, endOfDay,
+                                                        PaymentMethod.CARD);
+
                         register.setCashSales(cashSales != null ? cashSales : BigDecimal.ZERO);
                         register.setCardSales(cardSales != null ? cardSales : BigDecimal.ZERO);
                         register.setTotalSales(totalSales != null ? totalSales : BigDecimal.ZERO);
                         register.setClosingBalance(closingBalance != null ? closingBalance : BigDecimal.ZERO);
+                        register.setCashRefunds(cashRefunds != null ? cashRefunds : BigDecimal.ZERO);
+                        register.setCardRefunds(cardRefunds != null ? cardRefunds : BigDecimal.ZERO);
+                        register.setTotalWithdrawals(totalWithdrawals != null ? totalWithdrawals : BigDecimal.ZERO);
 
-                        BigDecimal expected = openingBal.add(register.getCashSales()).subtract(totalWithdrawals);
+                        BigDecimal expected = openingBal.add(register.getCashSales())
+                                        .subtract(register.getTotalWithdrawals())
+                                        .subtract(register.getCashRefunds());
                         register.setDifference(register.getClosingBalance().subtract(expected));
 
                         register.setNotes(notes);
@@ -183,6 +197,40 @@ public class CashRegisterServiceImpl implements CashRegisterService {
                                                 .hasSuggestion(false)
                                                 .suggestedBalance(null)
                                                 .build());
+        }
+
+        @Override
+        public BigDecimal calculateExpectedCashBalance(CashRegister register) {
+                if (register == null) {
+                        return BigDecimal.ZERO;
+                }
+
+                LocalDateTime startTime = register.getOpeningTime() != null ? register.getOpeningTime()
+                                : register.getRegisterDate().atStartOfDay();
+                LocalDateTime now = LocalDateTime.now();
+
+                BigDecimal cashSales = saleRepository
+                                .sumTotalBetweenByPaymentMethod(startTime, now, PaymentMethod.CASH)
+                                .orElse(BigDecimal.ZERO);
+
+                BigDecimal totalWithdrawals = register.getWithdrawals().stream()
+                                .map(com.proconsi.electrobazar.model.CashWithdrawal::getAmount)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                BigDecimal cashRefunds = saleReturnRepository
+                                .sumTotalRefundedBetweenByPaymentMethod(startTime, now, PaymentMethod.CASH);
+
+                return register.getOpeningBalance()
+                                .add(cashSales)
+                                .subtract(totalWithdrawals)
+                                .subtract(cashRefunds);
+        }
+
+        @Override
+        public BigDecimal getCurrentCashBalance() {
+                return getOpenRegister()
+                                .map(this::calculateExpectedCashBalance)
+                                .orElse(BigDecimal.ZERO);
         }
 
 }

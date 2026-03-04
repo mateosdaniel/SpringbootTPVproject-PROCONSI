@@ -53,13 +53,25 @@ public class PdfReportServiceImpl implements PdfReportService {
     }
 
     @Override
-    public byte[] generateInvoiceReport(Sale sale, Invoice invoice) {
+    public byte[] generateInvoiceReport(
+            Sale sale,
+            Invoice invoice,
+            List<TaxBreakdown> taxBreakdowns,
+            Boolean applyRecargo,
+            BigDecimal totalBase,
+            BigDecimal totalVat,
+            BigDecimal totalRecargo) {
         log.info("Generating invoice PDF report for Sale ID {}", sale.getId());
         try {
             // 1. Prepare Thymeleaf context with variables
             Context context = new Context();
             context.setVariable("sale", sale);
             context.setVariable("invoice", invoice);
+            context.setVariable("taxBreakdowns", taxBreakdowns);
+            context.setVariable("applyRecargo", applyRecargo);
+            context.setVariable("totalBase", totalBase);
+            context.setVariable("totalVat", totalVat);
+            context.setVariable("totalRecargo", totalRecargo);
 
             // 2. Process HTML template
             String htmlContent = templateEngine.process("reports/invoice-report", context);
@@ -67,7 +79,7 @@ public class PdfReportServiceImpl implements PdfReportService {
             // 3. Convert HTML to PDF using OpenHTMLToPDF in-memory
             try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
                 PdfRendererBuilder builder = new PdfRendererBuilder();
-                builder.withHtmlContent(htmlContent, "classpath:/templates/");
+                builder.withHtmlContent(htmlContent, "");
                 builder.toStream(os);
                 builder.run();
 

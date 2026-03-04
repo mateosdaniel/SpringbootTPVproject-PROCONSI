@@ -27,6 +27,7 @@ public class SaleServiceImpl implements SaleService {
     private final ProductService productService;
     private final CashRegisterRepository cashRegisterRepository;
     private final ActivityLogService activityLogService;
+    private final com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator recargoCalculator;
 
     @Override
     @Transactional(readOnly = true)
@@ -71,12 +72,23 @@ public class SaleServiceImpl implements SaleService {
             productService.decreaseStock(line.getProduct().getId(), line.getQuantity());
         }
 
-        // Calcular subtotales y total
+        // Determine if RE applies for this sale
+        boolean applyRecargo = customer != null && Boolean.TRUE.equals(customer.getHasRecargoEquivalencia());
+
+        // Calcular subtotales y total usando el calculador de impuestos
         BigDecimal total = BigDecimal.ZERO;
         for (SaleLine line : lines) {
-            BigDecimal subtotal = line.getUnitPrice().multiply(BigDecimal.valueOf(line.getQuantity()));
-            line.setSubtotal(subtotal);
-            total = total.add(subtotal);
+            BigDecimal vatRate = line.getVatRate() != null ? line.getVatRate() : new BigDecimal("0.21");
+            com.proconsi.electrobazar.dto.TaxBreakdown breakdown = recargoCalculator.calculateLineBreakdown(
+                    line.getProduct().getId(),
+                    line.getProduct().getName(),
+                    line.getUnitPrice(), // unitPrice is Gross (VAT incl)
+                    line.getQuantity(),
+                    vatRate,
+                    applyRecargo);
+
+            line.setSubtotal(breakdown.getTotalAmount());
+            total = total.add(line.getSubtotal());
         }
 
         BigDecimal changeAmount = null;

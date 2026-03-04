@@ -7,6 +7,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -18,61 +20,74 @@ public class SecurityConfig {
         private final JwtAuthenticationFilter jwtAuthFilter;
 
         @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
+
+        @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
                                 .csrf(AbstractHttpConfigurer::disable)
                                 .authorizeHttpRequests(auth -> auth
-                                                // login endpoint is public
+
+                                                // ── PUBLIC ENDPOINTS ─────────────────────────────────────────────
+                                                // Web login / logout pages (form-based session auth)
+                                                .requestMatchers("/login", "/logout").permitAll()
+                                                // API login endpoint (returns JWT / creates session)
                                                 .requestMatchers("/api/workers/login").permitAll()
-                                                // allow public reads for catalog (products, categories, cash register
-                                                // status)
-                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
-                                                                "/api/products/**")
-                                                .permitAll()
-                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
-                                                                "/api/categories/**")
-                                                .permitAll()
-                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
-                                                                "/api/cash-registers/**")
-                                                .permitAll()
-                                                // allow public reads for product prices (catalog display) and RE rate
-                                                // info
-                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
-                                                                "/api/product-prices/**")
-                                                .permitAll()
-                                                // allow activity log access without auth (used by admin UI)
-                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
-                                                                "/api/activity-log/**")
-                                                .permitAll()
-                                                // allow bulk price scheduling without auth (used by admin UI)
+
+                                                // ── ADMIN-ONLY ENDPOINTS (RBAC) ──────────────────────────────────
+                                                // Audit / activity log — sensitive operational data
+                                                .requestMatchers("/api/activity-log/**")
+                                                .hasAuthority("ADMIN_ACCESS")
+                                                // Bulk price scheduling — mass price mutation, admin only
                                                 .requestMatchers(org.springframework.http.HttpMethod.POST,
                                                                 "/api/product-prices/bulk-schedule")
-                                                .permitAll()
-                                                // allow anybody to GET and POST customers (used by TPV for search and
-                                                // creation)
+                                                .hasAuthority("ADMIN_ACCESS")
+                                                // Price history and future prices — admin dashboard read operations
                                                 .requestMatchers(org.springframework.http.HttpMethod.GET,
-                                                                "/api/customers/**")
-                                                .permitAll()
+                                                                "/api/product-prices/future")
+                                                .hasAuthority("ADMIN_ACCESS")
+                                                // PIN escalation — any authenticated worker can attempt it;
+                                                // the AdminPinService validates the PIN itself
                                                 .requestMatchers(org.springframework.http.HttpMethod.POST,
-                                                                "/api/customers")
-                                                .permitAll()
-                                                // Allow authenticated workers to access TPV
-                                                .requestMatchers("/tpv/**").authenticated()
-                                                // Admin web interface requires ADMIN_ACCESS authority
+                                                                "/admin/login")
+                                                .authenticated()
+                                                // Admin web interface and logout (must come after the POST /admin/login
+                                                // rule)
                                                 .requestMatchers("/admin/**").hasAuthority("ADMIN_ACCESS")
-
-                                                // roles access (only authenticated)
-                                                .requestMatchers("/api/roles/**").authenticated()
-                                                // workers access (only authenticated)
-                                                .requestMatchers("/api/workers/**").authenticated()
-                                                // sales access (only authenticated)
-                                                .requestMatchers("/api/sales/**").authenticated()
-
-                                                // admin controllers require explicit authority
+                                                // Admin REST API namespace
                                                 .requestMatchers("/api/admin/**").hasAuthority("ADMIN_ACCESS")
-                                                // the rest of the API needs a valid token/session
+
+                                                // ── AUTHENTICATED ENDPOINTS ───────────────────────────────────────
+                                                // TPV web interface — any logged-in worker
+                                                .requestMatchers("/tpv/**").authenticated()
+                                                // Catalog reads needed by the TPV frontend and JavaFX client
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                                                "/api/products/**")
+                                                .authenticated()
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                                                "/api/categories/**")
+                                                .authenticated()
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                                                "/api/cash-registers/**")
+                                                .authenticated()
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                                                "/api/product-prices/**")
+                                                .authenticated()
+                                                // Customer management — search and creation during a sale
+                                                .requestMatchers("/api/customers/**").authenticated()
+                                                // Roles, workers, sales
+                                                .requestMatchers("/api/roles/**").authenticated()
+                                                .requestMatchers("/api/workers/**").authenticated()
+                                                .requestMatchers("/api/sales/**").authenticated()
+                                                // Catch-all for any remaining API route
                                                 .requestMatchers("/api/**").authenticated()
-                                                .anyRequest().permitAll())
+
+                                                // ── SECURE BY DEFAULT ─────────────────────────────────────────────
+                                                // Every request not matched above requires authentication.
+                                                // This replaces the previous .anyRequest().permitAll() hole.
+                                                .anyRequest().authenticated())
                                 .exceptionHandling(exceptions -> exceptions
                                                 // Redirect unauthenticated HTML requests to login, while returning 401
                                                 // for API

@@ -38,4 +38,16 @@ public interface CashRegisterService {
      * amount so the open-register form can pre-fill the balance input.
      */
     CashRegisterOpenSuggestion getOpenSuggestion();
+
+    /**
+     * Calculates the expected cash balance currently in the drawer for the given
+     * register.
+     */
+    BigDecimal calculateExpectedCashBalance(CashRegister register);
+
+    /**
+     * Convenience method to get the expected cash balance for the currently open
+     * register.
+     */
+    BigDecimal getCurrentCashBalance();
 }

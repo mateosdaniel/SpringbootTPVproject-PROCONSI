@@ -42,6 +42,18 @@ public class CashRegister {
     @Builder.Default
     private BigDecimal closingBalance = BigDecimal.ZERO;
 
+    @Column(nullable = false, precision = 10, scale = 2)
+    @Builder.Default
+    private BigDecimal cashRefunds = BigDecimal.ZERO;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    @Builder.Default
+    private BigDecimal cardRefunds = BigDecimal.ZERO;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    @Builder.Default
+    private BigDecimal totalWithdrawals = BigDecimal.ZERO;
+
     @Column(precision = 10, scale = 2)
     private BigDecimal difference;
 

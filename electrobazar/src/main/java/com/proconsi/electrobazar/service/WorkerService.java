@@ -3,6 +3,7 @@ package com.proconsi.electrobazar.service;
 import com.proconsi.electrobazar.model.Worker;
 import com.proconsi.electrobazar.model.WorkerRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,6 +15,7 @@ public class WorkerService {
 
     private final WorkerRepository workerRepository;
     private final ActivityLogService activityLogService;
+    private final PasswordEncoder passwordEncoder;
 
     public List<Worker> findAll() {
         return workerRepository.findAll();
@@ -31,12 +33,25 @@ public class WorkerService {
 
     public Worker save(Worker worker) {
         boolean isNew = worker.getId() == null;
+
         if (!isNew) {
+            // Updating an existing worker
             Worker existing = workerRepository.findById(worker.getId()).orElse(null);
             if (existing != null) {
-                if (worker.getPassword() == null || worker.getPassword().trim().isEmpty()) {
+                String submitted = worker.getPassword();
+                if (submitted == null || submitted.trim().isEmpty()) {
+                    // No new password provided → keep the existing hash
                     worker.setPassword(existing.getPassword());
+                } else if (!submitted.startsWith("$2")) {
+                    // A new plain-text password was submitted → hash it
+                    worker.setPassword(passwordEncoder.encode(submitted.trim()));
                 }
+                // If it already starts with "$2" it's already a BCrypt hash — leave it as-is
+            }
+        } else {
+            // New worker: hash the plain-text password before saving
+            if (worker.getPassword() != null && !worker.getPassword().trim().isEmpty()) {
+                worker.setPassword(passwordEncoder.encode(worker.getPassword().trim()));
             }
         }
 
@@ -64,10 +79,14 @@ public class WorkerService {
         });
     }
 
+    /**
+     * Authenticates a worker by verifying their plain-text password against
+     * the stored BCrypt hash using {@code passwordEncoder.matches()}.
+     */
     public Optional<Worker> login(String username, String password) {
         Optional<Worker> workerOpt = workerRepository.findByUsername(username)
                 .filter(Worker::isActive)
-                .filter(w -> w.getPassword().equals(password));
+                .filter(w -> passwordEncoder.matches(password, w.getPassword()));
 
         if (workerOpt.isPresent()) {
             activityLogService.logActivity(

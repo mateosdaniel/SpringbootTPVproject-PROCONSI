@@ -1,8 +1,10 @@
 package com.proconsi.electrobazar.service.impl;
 
 import com.proconsi.electrobazar.dto.ReturnLineRequest;
+import com.proconsi.electrobazar.exception.InsufficientCashException;
 import com.proconsi.electrobazar.model.*;
 import com.proconsi.electrobazar.repository.*;
+import com.proconsi.electrobazar.service.CashRegisterService;
 import com.proconsi.electrobazar.service.InvoiceService;
 import com.proconsi.electrobazar.service.ProductService;
 import com.proconsi.electrobazar.service.ReturnService;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +37,7 @@ public class ReturnServiceImpl implements ReturnService {
     private final InvoiceService invoiceService;
     private final InvoiceSequenceRepository invoiceSequenceRepository;
     private final InvoiceRepository invoiceRepository;
+    private final CashRegisterService cashRegisterService;
 
     @Override
     @Transactional
@@ -101,6 +105,18 @@ public class ReturnServiceImpl implements ReturnService {
 
         if (returnLines.isEmpty()) {
             throw new IllegalArgumentException("No valid lines to return. Please select at least one product.");
+        }
+
+        // Core Requirement: Before processing any return marked as 'CASH', the system
+        // must verify if the current CashRegister session has enough physical cash to
+        // cover the refund amount.
+        if (paymentMethod == PaymentMethod.CASH) {
+            BigDecimal currentCashBalance = cashRegisterService.getCurrentCashBalance();
+            if (totalRefunded.compareTo(currentCashBalance) > 0) {
+                log.warn("Blocked cash return attempt due to insufficient funds: Refund {}, Balance {}",
+                        totalRefunded, currentCashBalance);
+                throw new InsufficientCashException("Cannot process cash return: Insufficient funds in drawer");
+            }
         }
 
         // Determine return type: TOTAL if all original units from this sale are now
@@ -181,5 +197,25 @@ public class ReturnServiceImpl implements ReturnService {
     @Transactional(readOnly = true)
     public List<SaleReturn> findByOriginalSaleId(Long saleId) {
         return saleReturnRepository.findByOriginalSaleId(saleId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal sumTotalRefundedTodayByPaymentMethod(PaymentMethod method) {
+        LocalDate today = LocalDate.now();
+        LocalDateTime startTime = cashRegisterService.getOpenRegister()
+                .filter(cr -> cr.getOpeningTime() != null)
+                .map(cr -> cr.getOpeningTime())
+                .orElse(today.atStartOfDay());
+
+        LocalDateTime endOfDay = today.atStartOfDay().plusDays(1).minusNanos(1);
+        return saleReturnRepository.sumTotalRefundedBetweenByPaymentMethod(startTime, endOfDay, method);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal sumTotalRefundedBetweenByPaymentMethod(java.time.LocalDateTime from, java.time.LocalDateTime to,
+            PaymentMethod method) {
+        return saleReturnRepository.sumTotalRefundedBetweenByPaymentMethod(from, to, method);
     }
 }

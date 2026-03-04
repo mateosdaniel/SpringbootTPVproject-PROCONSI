@@ -17,15 +17,25 @@ public interface PdfReportService {
 
     /**
      * Generates a PDF invoice report for the given sale and its associated invoice.
-     * The invoice object is passed to the Thymeleaf template to render the
-     * correlative number.
+     * Includes detailed tax breakdown for fiscal transparency.
      *
-     * @param sale    The Sale object
-     * @param invoice The Invoice object (may be null for anonymous ticket-only
-     *                sales)
+     * @param sale          The Sale object
+     * @param invoice       The Invoice object
+     * @param taxBreakdowns List of tax breakdowns
+     * @param applyRecargo  Whether recargo de equivalencia applies
+     * @param totalBase     Total taxable base
+     * @param totalVat      Total vat amount
+     * @param totalRecargo  Total recargo amount
      * @return The PDF data as byte array
      */
-    byte[] generateInvoiceReport(Sale sale, Invoice invoice);
+    byte[] generateInvoiceReport(
+            Sale sale,
+            Invoice invoice,
+            java.util.List<com.proconsi.electrobazar.dto.TaxBreakdown> taxBreakdowns,
+            Boolean applyRecargo,
+            java.math.BigDecimal totalBase,
+            java.math.BigDecimal totalVat,
+            java.math.BigDecimal totalRecargo);
 
     /**
      * Generates a PDF ticket report for the given sale and tax breakdowns.
