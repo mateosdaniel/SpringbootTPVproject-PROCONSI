@@ -2,6 +2,7 @@ package com.proconsi.electrobazar.service.impl;
 
 import com.proconsi.electrobazar.model.Role;
 import com.proconsi.electrobazar.repository.RoleRepository;
+import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.util.Optional;
 public class RoleServiceImpl implements RoleService {
 
     private final RoleRepository roleRepository;
+    private final ActivityLogService activityLogService;
 
     @Override
     @Transactional(readOnly = true)
@@ -31,11 +33,29 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public Role save(Role role) {
-        return roleRepository.save(role);
+        boolean isNew = role.getId() == null;
+        Role saved = roleRepository.save(role);
+
+        activityLogService.logActivity(
+                isNew ? "CREAR_ROL" : "ACTUALIZAR_ROL",
+                (isNew ? "Nuevo rol creado: " : "Rol actualizado: ") + saved.getName(),
+                "Admin",
+                "ROLE",
+                saved.getId());
+
+        return saved;
     }
 
     @Override
     public void delete(Long id) {
-        roleRepository.deleteById(id);
+        roleRepository.findById(id).ifPresent(r -> {
+            roleRepository.deleteById(id);
+            activityLogService.logActivity(
+                    "ELIMINAR_ROL",
+                    "Rol eliminado definitivamente: " + r.getName(),
+                    "Admin",
+                    "ROLE",
+                    id);
+        });
     }
 }

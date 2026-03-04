@@ -6,6 +6,7 @@ import com.proconsi.electrobazar.model.SuspendedSale;
 import com.proconsi.electrobazar.model.SuspendedSaleLine;
 import com.proconsi.electrobazar.model.Worker;
 import com.proconsi.electrobazar.repository.SuspendedSaleRepository;
+import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.ProductService;
 import com.proconsi.electrobazar.service.SuspendedSaleService;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class SuspendedSaleServiceImpl implements SuspendedSaleService {
 
     private final SuspendedSaleRepository suspendedSaleRepository;
     private final ProductService productService;
+    private final ActivityLogService activityLogService;
 
     @Override
     @Transactional
@@ -54,6 +56,15 @@ public class SuspendedSaleServiceImpl implements SuspendedSaleService {
         SuspendedSale saved = suspendedSaleRepository.save(sale);
         log.info("Sale suspended (id={}) by worker '{}' with {} line(s)",
                 saved.getId(), worker != null ? worker.getUsername() : "?", lines.size());
+
+        String username = worker != null ? worker.getUsername() : "Anónimo";
+        activityLogService.logActivity(
+                "SUSPENDER_VENTA",
+                "Venta en espera: " + (label != null ? label : "Sin etiqueta") + " con " + lines.size() + " productos",
+                username,
+                "SALE",
+                null);
+
         return saved;
     }
 
@@ -70,6 +81,15 @@ public class SuspendedSaleServiceImpl implements SuspendedSaleService {
         sale.setStatus(SuspendedSale.SuspendedSaleStatus.RESUMED);
         SuspendedSale saved = suspendedSaleRepository.save(sale);
         log.info("Sale {} resumed by worker '{}'", id, worker != null ? worker.getUsername() : "?");
+
+        String username = worker != null ? worker.getUsername() : "Anónimo";
+        activityLogService.logActivity(
+                "RECUPERAR_VENTA",
+                "Venta recuperada (ID: " + id + ")",
+                username,
+                "SALE",
+                id);
+
         return saved;
     }
 
@@ -86,6 +106,15 @@ public class SuspendedSaleServiceImpl implements SuspendedSaleService {
         sale.setStatus(SuspendedSale.SuspendedSaleStatus.CANCELLED);
         SuspendedSale saved = suspendedSaleRepository.save(sale);
         log.info("Sale {} cancelled by worker '{}'", id, worker != null ? worker.getUsername() : "?");
+
+        String username = worker != null ? worker.getUsername() : "Anónimo";
+        activityLogService.logActivity(
+                "CANCELAR_VENTA_ESPERA",
+                "Venta en espera cancelada (ID: " + id + ")",
+                username,
+                "SALE",
+                id);
+
         return saved;
     }
 

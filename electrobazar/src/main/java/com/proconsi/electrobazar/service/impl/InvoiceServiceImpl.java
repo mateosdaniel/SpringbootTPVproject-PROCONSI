@@ -5,6 +5,7 @@ import com.proconsi.electrobazar.model.InvoiceSequence;
 import com.proconsi.electrobazar.model.Sale;
 import com.proconsi.electrobazar.repository.InvoiceRepository;
 import com.proconsi.electrobazar.repository.InvoiceSequenceRepository;
+import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.InvoiceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
     private final InvoiceSequenceRepository invoiceSequenceRepository;
+    private final ActivityLogService activityLogService;
 
     /**
      * Atomically increments the invoice sequence for the current year and serie,
@@ -69,6 +71,14 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         Invoice saved = invoiceRepository.save(invoice);
         log.info("Invoice created: {} for sale #{}", invoiceNumber, sale.getId());
+
+        activityLogService.logActivity(
+                "CREAR_FACTURA",
+                "Factura generada: " + invoiceNumber + " (Venta #" + sale.getId() + ")",
+                "Sistema",
+                "INVOICE",
+                saved.getId());
+
         return saved;
     }
 

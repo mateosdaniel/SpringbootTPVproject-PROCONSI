@@ -13,6 +13,7 @@ import java.util.Optional;
 public class WorkerService {
 
     private final WorkerRepository workerRepository;
+    private final ActivityLogService activityLogService;
 
     public List<Worker> findAll() {
         return workerRepository.findAll();
@@ -29,7 +30,8 @@ public class WorkerService {
     }
 
     public Worker save(Worker worker) {
-        if (worker.getId() != null) {
+        boolean isNew = worker.getId() == null;
+        if (!isNew) {
             Worker existing = workerRepository.findById(worker.getId()).orElse(null);
             if (existing != null) {
                 if (worker.getPassword() == null || worker.getPassword().trim().isEmpty()) {
@@ -37,16 +39,52 @@ public class WorkerService {
                 }
             }
         }
-        return workerRepository.save(worker);
+
+        Worker saved = workerRepository.save(worker);
+
+        activityLogService.logActivity(
+                isNew ? "CREAR_TRABAJADOR" : "ACTUALIZAR_TRABAJADOR",
+                (isNew ? "Nuevo trabajador registrado: " : "Trabajador actualizado: ") + saved.getUsername(),
+                "Admin",
+                "WORKER",
+                saved.getId());
+
+        return saved;
     }
 
     public void deleteById(Long id) {
-        workerRepository.deleteById(id);
+        workerRepository.findById(id).ifPresent(w -> {
+            workerRepository.deleteById(id);
+            activityLogService.logActivity(
+                    "ELIMINAR_TRABAJADOR",
+                    "Trabajador eliminado definitivamente: " + w.getUsername(),
+                    "Admin",
+                    "WORKER",
+                    id);
+        });
     }
 
     public Optional<Worker> login(String username, String password) {
-        return workerRepository.findByUsername(username)
+        Optional<Worker> workerOpt = workerRepository.findByUsername(username)
                 .filter(Worker::isActive)
                 .filter(w -> w.getPassword().equals(password));
+
+        if (workerOpt.isPresent()) {
+            activityLogService.logActivity(
+                    "LOGIN",
+                    "Inicio de sesión exitoso: " + username,
+                    username,
+                    "WORKER",
+                    workerOpt.get().getId());
+        } else {
+            activityLogService.logActivity(
+                    "LOGIN_FALLIDO",
+                    "Intento de inicio de sesión fallido: " + username,
+                    "Sistema",
+                    "WORKER",
+                    null);
+        }
+
+        return workerOpt;
     }
 }
