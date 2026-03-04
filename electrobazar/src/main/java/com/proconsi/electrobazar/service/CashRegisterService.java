@@ -38,4 +38,21 @@ public interface CashRegisterService {
      * amount so the open-register form can pre-fill the balance input.
      */
     CashRegisterOpenSuggestion getOpenSuggestion();
+
+    /**
+     * Saves the PDF blob and filename into an existing CashRegister.
+     *
+     * @param registerId The cash register ID
+     * @param pdfData    The PDF bytes
+     * @param filename   The filename
+     */
+    void savePdf(Long registerId, byte[] pdfData, String filename);
+
+    /**
+     * Retrieves only the PDF bytes for the given cash register ID.
+     *
+     * @param registerId The cash register ID
+     * @return The PDF bytes or null if not found
+     */
+    byte[] getPdfData(Long registerId);
 }

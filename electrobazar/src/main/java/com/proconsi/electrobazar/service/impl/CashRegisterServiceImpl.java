@@ -185,4 +185,20 @@ public class CashRegisterServiceImpl implements CashRegisterService {
                                                 .build());
         }
 
+        @Override
+        @Transactional
+        public void savePdf(Long registerId, byte[] pdfData, String filename) {
+                cashRegisterRepository.findById(registerId).ifPresent(register -> {
+                        register.setPdfData(pdfData);
+                        register.setPdfFilename(filename);
+                        cashRegisterRepository.save(register);
+                });
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public byte[] getPdfData(Long registerId) {
+                return cashRegisterRepository.getPdfDataById(registerId).orElse(null);
+        }
+
 }

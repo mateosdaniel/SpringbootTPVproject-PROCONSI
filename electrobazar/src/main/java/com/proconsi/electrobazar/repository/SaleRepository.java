@@ -54,4 +54,8 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
                         "FROM Sale s WHERE s.createdAt BETWEEN :from AND :to")
         com.proconsi.electrobazar.dto.SaleSummaryResponse getSummaryBetween(@Param("from") LocalDateTime from,
                         @Param("to") LocalDateTime to);
+
+        /** Select only the PDF bytes for a given sale ID. */
+        @Query("SELECT s.pdfData FROM Sale s WHERE s.id = :id")
+        Optional<byte[]> getPdfDataById(@Param("id") Long id);
 }

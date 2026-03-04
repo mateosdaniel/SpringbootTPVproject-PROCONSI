@@ -168,4 +168,20 @@ public class SaleServiceImpl implements SaleService {
         LocalDateTime endOfDay = today.atStartOfDay().plusDays(1).minusNanos(1);
         return saleRepository.getSummaryBetween(startTime, endOfDay);
     }
+
+    @Override
+    @Transactional
+    public void savePdf(Long saleId, byte[] pdfData, String filename) {
+        saleRepository.findById(saleId).ifPresent(sale -> {
+            sale.setPdfData(pdfData);
+            sale.setPdfFilename(filename);
+            saleRepository.save(sale);
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] getPdfData(Long saleId) {
+        return saleRepository.getPdfDataById(saleId).orElse(null);
+    }
 }

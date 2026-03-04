@@ -2,6 +2,8 @@ package com.proconsi.electrobazar.repository;
 
 import com.proconsi.electrobazar.model.CashRegister;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -21,4 +23,8 @@ public interface CashRegisterRepository extends JpaRepository<CashRegister, Long
 
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = { "worker", "retainedByWorker" })
     Optional<CashRegister> findFirstByClosedTrueOrderByClosedAtDesc();
+
+    /** Select only the PDF bytes for a given cash register ID. */
+    @Query("SELECT c.pdfData FROM CashRegister c WHERE c.id = :id")
+    Optional<byte[]> getPdfDataById(@Param("id") Long id);
 }

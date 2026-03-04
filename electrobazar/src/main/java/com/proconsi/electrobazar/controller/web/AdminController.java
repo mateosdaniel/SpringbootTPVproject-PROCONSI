@@ -149,17 +149,14 @@ public class AdminController {
                 filename = invoice.getPdfFilename();
             }
 
-            // 2. Only for tickets: search in STORED_DOCUMENTS.
-            // Invoices are stored directly in Invoice.pdfData (Lookup 1 above);
-            // there is no INVOICE entry in stored_documents, so this lookup
-            // is only meaningful — and only correct — for ticket sales.
+            // 2. Only for tickets: load pdf_data directly from the Sale entity.
+            // Invoices are stored in Invoice.pdfData (Lookup 1 above).
+            // Tickets are now stored directly in Sale.pdfData.
             if (pdfData == null && invoice == null) {
-                java.util.Optional<com.proconsi.electrobazar.model.StoredDocument> storedDoc = documentService
-                        .findByTypeAndReference(com.proconsi.electrobazar.model.DocumentType.TICKET, id);
-
-                if (storedDoc.isPresent()) {
-                    pdfData = storedDoc.get().getData();
-                    filename = storedDoc.get().getFilename();
+                pdfData = saleService.getPdfData(id);
+                if (pdfData != null) {
+                    com.proconsi.electrobazar.model.Sale ticketSale = saleService.findById(id);
+                    filename = ticketSale.getPdfFilename();
                 }
             }
 
@@ -185,7 +182,8 @@ public class AdminController {
     }
 
     @GetMapping("/admin/download/cash-close/{id}")
-    public org.springframework.http.ResponseEntity<org.springframework.core.io.Resource> downloadCashClosePdf(
+    @Transactional(readOnly = true)
+    public org.springframework.http.ResponseEntity<?> downloadCashClosePdf(
             @org.springframework.web.bind.annotation.PathVariable Long id, HttpSession session) {
         if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
             return org.springframework.http.ResponseEntity.status(401).build();
@@ -193,26 +191,14 @@ public class AdminController {
 
         try {
             com.proconsi.electrobazar.model.CashRegister register = cashRegisterService.findById(id);
-            if (register == null)
-                return org.springframework.http.ResponseEntity.notFound().build();
 
-            java.util.Optional<com.proconsi.electrobazar.model.StoredDocument> storedDoc = documentService
-                    .findByTypeAndReference(com.proconsi.electrobazar.model.DocumentType.CASH_CLOSE, id);
+            byte[] pdfData = cashRegisterService.getPdfData(id);
+            String filename = register.getPdfFilename();
 
-            byte[] pdfData;
-            String filename;
-
-            if (storedDoc.isPresent()) {
-                pdfData = storedDoc.get().getData();
-                filename = storedDoc.get().getFilename();
-            } else {
-                // Regenerate and store if missing
-                pdfData = pdfReportService.generateCashCloseReport(register);
-                String dateStr = register.getClosedAt() != null
-                        ? register.getClosedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-                        : "UnknownDate";
-                filename = String.format("Cierre_Caja_%s_ID%d.pdf", dateStr, id);
-                documentService.store(com.proconsi.electrobazar.model.DocumentType.CASH_CLOSE, id, filename, pdfData);
+            if (pdfData == null) {
+                log.warn("PDF not found in database for cash register {}. No fallback regeneration.", id);
+                return org.springframework.http.ResponseEntity.status(404)
+                        .body("El documento PDF no existe en la base de datos para el cierre #" + id + ".");
             }
 
             org.springframework.core.io.Resource resource = new org.springframework.core.io.ByteArrayResource(pdfData);
@@ -222,6 +208,7 @@ public class AdminController {
                     .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
                     .body(resource);
         } catch (Exception e) {
+            log.error("Error downloading PDF for cash register " + id, e);
             return org.springframework.http.ResponseEntity.internalServerError().build();
         }
     }

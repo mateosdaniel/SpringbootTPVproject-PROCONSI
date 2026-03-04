@@ -73,6 +73,13 @@ public class CashRegister {
     @Builder.Default
     private java.util.List<CashWithdrawal> withdrawals = new java.util.ArrayList<>();
 
+    @Lob
+    @Column(name = "pdf_data", columnDefinition = "LONGBLOB")
+    private byte[] pdfData;
+
+    @Column(name = "pdf_filename", length = 200)
+    private String pdfFilename;
+
     @PrePersist
     public void prePersist() {
         if (this.registerDate == null) {

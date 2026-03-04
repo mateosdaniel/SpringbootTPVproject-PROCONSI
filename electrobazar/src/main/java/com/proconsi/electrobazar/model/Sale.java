@@ -57,6 +57,13 @@ public class Sale {
     @OneToOne(mappedBy = "sale")
     private Invoice invoice;
 
+    @Lob
+    @Column(name = "pdf_data", columnDefinition = "LONGBLOB")
+    private byte[] pdfData;
+
+    @Column(name = "pdf_filename", length = 200)
+    private String pdfFilename;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();

@@ -32,4 +32,21 @@ public interface SaleService {
         BigDecimal sumTotalByPaymentMethodToday(PaymentMethod paymentMethod);
 
         com.proconsi.electrobazar.dto.SaleSummaryResponse getSummaryToday();
+
+        /**
+         * Saves the PDF blob and filename into an existing Sale (ticket).
+         *
+         * @param saleId   The sale ID
+         * @param pdfData  The PDF bytes
+         * @param filename The filename
+         */
+        void savePdf(Long saleId, byte[] pdfData, String filename);
+
+        /**
+         * Retrieves only the PDF bytes for the given sale ID.
+         *
+         * @param saleId The sale ID
+         * @return The PDF bytes or null if not found
+         */
+        byte[] getPdfData(Long saleId);
 }
