@@ -285,30 +285,62 @@
         <thead>
             <tr>
                 <th>Concepto</th>
-                <th class="r">Precio Unit. (IVA inc.)</th>
-                <th class="r">Cantidad</th>
+                <th class="r">Base</th>
+                <th class="r">Cant.</th>
+                <th class="r">IVA</th>
+                <th class="r" th:if="${applyRecargo}">RE</th>
                 <th class="r">Subtotal</th>
             </tr>
         </thead>
         <tbody>
             <tr th:each="line : ${sale.lines}">
                 <td class="name" th:text="${line.product.name}">Producto</td>
-                <td class="r" th:text="${#numbers.formatDecimal(line.unitPrice, 1, 2, 'POINT')} + ' €'">0.00 €
+                <td class="r"
+                    th:text="${#numbers.formatDecimal(line.baseAmount / line.quantity, 1, 2, 'POINT')} + ' €'">0.00 €
                 </td>
                 <td class="r" th:text="${line.quantity}">1</td>
-                <td class="r" th:text="${#numbers.formatDecimal(line.unitPrice * line.quantity, 1, 2, 'POINT')} + ' €'">
-                    0.00 €</td>
+                <td class="r" th:text="${#numbers.formatDecimal(line.vatRate * 100, 0, 0, 'POINT')} + '%'">21%</td>
+                <td class="r" th:if="${applyRecargo}"
+                    th:text="${#numbers.formatDecimal(line.recargoRate * 100, 1, 1, 'POINT')} + '%'">5.2%</td>
+                <td class="r" th:text="${#numbers.formatDecimal(line.subtotal, 1, 2, 'POINT')} + ' €'">0.00 €</td>
             </tr>
         </tbody>
     </table>
 
     <!-- ══ TOTALS ══ -->
     <div class="totals-wrap">
-        <!-- Recargo de Equivalencia notice -->
-        <div class="re-notice" th:if="${applyRecargo}"
-            style="border: 1px solid #c8a000; background: #fffae6; padding: 6px 10px; font-size: 10px; font-weight: 700; color: #7a6000; margin-bottom: 12px; text-align: center;">
-            &#9888; Recargo de Equivalencia aplicado
-        </div>
+        <!-- TAX SUMMARY (Fiscal Requirement) -->
+        <table
+            style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10px; border: 1px solid #eee;">
+            <thead>
+                <tr style="background: #f0f0f0;">
+                    <th style="padding: 5px; border: 1px solid #ddd; text-align: left;">Base Imp.</th>
+                    <th style="padding: 5px; border: 1px solid #ddd; text-align: left;">% IVA</th>
+                    <th style="padding: 5px; border: 1px solid #ddd; text-align: left;">Cuota IVA</th>
+                    <th th:if="${applyRecargo}" style="padding: 5px; border: 1px solid #ddd; text-align: left;">% RE
+                    </th>
+                    <th th:if="${applyRecargo}" style="padding: 5px; border: 1px solid #ddd; text-align: left;">Cuota RE
+                    </th>
+                    <th style="padding: 5px; border: 1px solid #ddd; text-align: right;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="bd : ${taxBreakdowns}">
+                    <td style="padding: 5px; border: 1px solid #ddd;"
+                        th:text="${#numbers.formatDecimal(bd.baseAmount, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+                    <td style="padding: 5px; border: 1px solid #ddd;"
+                        th:text="${#numbers.formatDecimal(bd.vatRate * 100, 0, 0, 'POINT')} + '%'">21%</td>
+                    <td style="padding: 5px; border: 1px solid #ddd;"
+                        th:text="${#numbers.formatDecimal(bd.vatAmount, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+                    <td th:if="${applyRecargo}" style="padding: 5px; border: 1px solid #ddd;"
+                        th:text="${#numbers.formatDecimal(bd.recargoRate * 100, 1, 1, 'POINT')} + '%'">5.2%</td>
+                    <td th:if="${applyRecargo}" style="padding: 5px; border: 1px solid #ddd;"
+                        th:text="${#numbers.formatDecimal(bd.recargoAmount, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+                    <td style="padding: 5px; border: 1px solid #ddd; text-align: right; font-weight: bold;"
+                        th:text="${#numbers.formatDecimal(bd.totalAmount, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+                </tr>
+            </tbody>
+        </table>
 
         <table class="totals-table">
             <tr>
