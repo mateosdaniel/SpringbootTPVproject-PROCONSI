@@ -68,4 +68,10 @@ public class TicketServiceImpl implements TicketService {
     public Optional<Ticket> findBySaleId(Long saleId) {
         return ticketRepository.findBySaleId(saleId);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Ticket> findByTicketNumber(String ticketNumber) {
+        return ticketRepository.findByTicketNumber(ticketNumber);
+    }
 }

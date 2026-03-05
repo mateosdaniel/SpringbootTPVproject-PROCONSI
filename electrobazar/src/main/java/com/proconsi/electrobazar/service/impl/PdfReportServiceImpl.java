@@ -22,6 +22,7 @@ import java.util.List;
 public class PdfReportServiceImpl implements PdfReportService {
 
     private final TemplateEngine templateEngine;
+    private final com.proconsi.electrobazar.repository.SaleReturnRepository saleReturnRepository;
 
     @Override
     public byte[] generateCashCloseReport(CashRegister register) {
@@ -30,6 +31,15 @@ public class PdfReportServiceImpl implements PdfReportService {
             // 1. Prepare Thymeleaf context with variables
             Context context = new Context();
             context.setVariable("register", register);
+
+            // Fetch returns for this session
+            java.time.LocalDateTime start = register.getOpeningTime() != null ? register.getOpeningTime()
+                    : register.getRegisterDate().atStartOfDay();
+            java.time.LocalDateTime end = register.getClosedAt() != null ? register.getClosedAt()
+                    : java.time.LocalDateTime.now();
+            List<com.proconsi.electrobazar.model.SaleReturn> returns = saleReturnRepository
+                    .findByCreatedAtBetweenOrderByCreatedAtDesc(start, end);
+            context.setVariable("returns", returns);
 
             // 2. Process HTML template
             String htmlContent = templateEngine.process("reports/cash-close-report", context);

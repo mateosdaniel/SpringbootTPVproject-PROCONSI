@@ -218,4 +218,10 @@ public class ReturnServiceImpl implements ReturnService {
             PaymentMethod method) {
         return saleReturnRepository.sumTotalRefundedBetweenByPaymentMethod(from, to, method);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SaleReturn> findByCreatedAtBetween(java.time.LocalDateTime from, java.time.LocalDateTime to) {
+        return saleReturnRepository.findByCreatedAtBetweenOrderByCreatedAtDesc(from, to);
+    }
 }

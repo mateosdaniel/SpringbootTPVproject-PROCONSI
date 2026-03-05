@@ -31,4 +31,11 @@ build/
 
 ### VS Code ###
 .vscode/
+### Global / Environment ###
 .env
+.env.local
+.env.*.local
+
+### Spring Boot Local ###
+src/main/resources/application-local.properties
+application-local.properties

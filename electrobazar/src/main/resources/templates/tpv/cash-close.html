@@ -155,6 +155,46 @@
             </div>
         </div>
 
+        <!-- Detalle de Devoluciones (Si las hay) -->
+        <div class="card mt-4" th:if="${not #lists.isEmpty(returnsToday)}">
+            <div class="card-header bg-danger bg-opacity-10">
+                <h5 class="card-title mb-0 text-danger" style="font-weight: 700; font-size: 1rem;">
+                    <i class="bi bi-arrow-counterclockwise"></i> Devoluciones de la sesión
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" style="color: var(--text-main); font-size: 0.9rem;">
+                        <thead style="background: rgba(0,0,0,0.02);">
+                            <tr>
+                                <th class="ps-3 border-0">Hora</th>
+                                <th class="border-0">Nº Devolución</th>
+                                <th class="border-0">Ticket Orig.</th>
+                                <th class="border-0">Método</th>
+                                <th class="text-end pe-3 border-0">Importe</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="ret : ${returnsToday}" style="border-bottom: 1px solid var(--border);">
+                                <td class="ps-3 align-middle" th:text="${#temporals.format(ret.createdAt, 'HH:mm')}">
+                                    14:30</td>
+                                <td class="fw-bold align-middle" th:text="${ret.returnNumber}">D-2026-0001</td>
+                                <td class="align-middle" th:text="'#' + ${ret.originalSale.id}">#123</td>
+                                <td class="align-middle">
+                                    <span th:if="${ret.paymentMethod.name() == 'CASH'}"
+                                        class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3">Efectivo</span>
+                                    <span th:if="${ret.paymentMethod.name() == 'CARD'}"
+                                        class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3">Tarjeta</span>
+                                </td>
+                                <td class="text-end pe-3 fw-bold text-danger align-middle"
+                                    th:text="'-' + ${#numbers.formatDecimal(ret.totalRefunded, 1, 2)} + '€'">-0.00€</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- Dejar dinero en caja para el siguiente turno -->
         <div class="retain-card" id="retainCard">
             <div class="d-flex align-items-center justify-content-between gap-3">

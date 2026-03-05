@@ -148,13 +148,15 @@ public class CsvImportService {
 
                         Product product = Product.builder()
                                 .name(productName)
-                                .price(price)
                                 .stock(stock)
                                 .imageUrl(imageUrl.isEmpty() ? null : imageUrl)
                                 .category(category)
                                 .active(true)
                                 .ivaRate(ivaRate)
                                 .build();
+
+                        // Use setPrice to handle Gross -> Net conversion automatically
+                        product.setPrice(price);
 
                         Product saved = productService.save(product);
                         productsCreated++;

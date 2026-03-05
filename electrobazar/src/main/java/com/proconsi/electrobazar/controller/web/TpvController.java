@@ -288,6 +288,12 @@ public class TpvController {
                 .map(CashWithdrawal::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        java.time.LocalDateTime startOfShift = openRegister.getOpeningTime() != null
+                ? openRegister.getOpeningTime()
+                : java.time.LocalDate.now().atStartOfDay();
+        model.addAttribute("returnsToday",
+                returnService.findByCreatedAtBetween(startOfShift, java.time.LocalDateTime.now()));
+
         java.math.BigDecimal expectedCashInDrawer = openRegister.getOpeningBalance()
                 .add(cashSalesToday)
                 .subtract(totalWithdrawals)
@@ -426,6 +432,30 @@ public class TpvController {
         }
 
         return "redirect:/tpv/open-register";
+    }
+
+    @GetMapping("/return/search")
+    public String searchTicketForReturn(@RequestParam String query, RedirectAttributes redirectAttributes) {
+        try {
+            // Try searching by ID
+            if (query.matches("\\d+")) {
+                Long id = Long.parseLong(query);
+                if (saleService.findById(id) != null) {
+                    return "redirect:/tpv/return/" + id;
+                }
+            }
+
+            // Try searching by Ticket Number
+            return ticketService.findByTicketNumber(query)
+                    .map(t -> "redirect:/tpv/return/" + t.getSale().getId())
+                    .orElseGet(() -> {
+                        redirectAttributes.addFlashAttribute("errorMessage", "Ticket no encontrado: " + query);
+                        return "redirect:/tpv";
+                    });
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Error al buscar el ticket: " + e.getMessage());
+            return "redirect:/tpv";
+        }
     }
 
     @GetMapping("/return/{saleId}")

@@ -25,4 +25,12 @@ public interface TicketService {
      * @return Optional containing the Ticket or empty
      */
     Optional<Ticket> findBySaleId(Long saleId);
+
+    /**
+     * Finds a ticket by its formatted ticket number (e.g. "T-2026-0001").
+     *
+     * @param ticketNumber The ticket number
+     * @return Optional containing the Ticket or empty
+     */
+    Optional<Ticket> findByTicketNumber(String ticketNumber);
 }

@@ -86,6 +86,13 @@
                     style="display:none; position:absolute; top:-6px; right:-6px; background:#ef4444; color:#fff; border-radius:50%; width:18px; height:18px; font-size:0.7rem; font-weight:700; line-height:18px; text-align:center;">0</span>
             </button>
 
+            <!-- Devoluciones button -->
+            <button type="button" class="btn-action-tpv flex-shrink-0" id="btnReturnSearch" title="Gestionar Devolución"
+                data-bs-toggle="modal" data-bs-target="#returnSearchModal"
+                style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2);">
+                <i class="bi bi-arrow-counterclockwise"></i> <span>Devolver</span>
+            </button>
+
             <div class="menu-wrapper">
                 <button class="hamburger-btn" id="hamburgerBtn" title="Menú">
                     <i class="bi bi-list"></i>
@@ -513,6 +520,40 @@
                             style="background: var(--primary); border-color: var(--border); color: var(--text-main);">Cancelar</button>
                         <button type="submit" class="btn"
                             style="background: var(--accent); color: var(--primary); font-weight: 600;">Confirmar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── MODAL: Buscar Ticket para Devolución ── -->
+    <div class="modal fade" id="returnSearchModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content"
+                style="background: var(--secondary); color: var(--text-main); border-color: var(--border);">
+                <div class="modal-header" style="border-color: var(--border);">
+                    <h6 class="modal-title"><i class="bi bi-search me-2"></i>Buscar Ticket</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        style="filter: var(--close-filter, invert(1));"></button>
+                </div>
+                <form th:action="@{/tpv/return/search}" method="get">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label" style="font-size:0.85rem; color: var(--text-muted);">ID de Venta o
+                                Número de Ticket</label>
+                            <input type="text" name="query" class="form-control" placeholder="Ej: 123 o T-2026-0001"
+                                required
+                                style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
+                        </div>
+                        <small style="color: var(--text-muted); font-size:0.78rem;">
+                            Introduce el número que aparece en la parte superior del ticket.
+                        </small>
+                    </div>
+                    <div class="modal-footer" style="border-color: var(--border);">
+                        <button type="button" class="btn" data-bs-dismiss="modal"
+                            style="background: var(--primary); border-color: var(--border); color: var(--text-main);">Cancelar</button>
+                        <button type="submit" class="btn"
+                            style="background: var(--accent); color: var(--primary); font-weight: 600;">Buscar</button>
                     </div>
                 </form>
             </div>

@@ -65,6 +65,12 @@ public class SaleReturn {
     @Column(name = "payment_method", nullable = false, length = 20)
     private PaymentMethod paymentMethod;
 
+    /** Status of the return (e.g. PROCESSED). */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private ReturnStatus status = ReturnStatus.COMPLETED;
+
     /** The individual product lines being returned. */
     @OneToMany(mappedBy = "saleReturn", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -73,6 +79,11 @@ public class SaleReturn {
     public enum ReturnType {
         TOTAL,
         PARTIAL
+    }
+
+    public enum ReturnStatus {
+        COMPLETED,
+        CANCELLED
     }
 
     @PrePersist

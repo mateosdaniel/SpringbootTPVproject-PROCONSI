@@ -289,6 +289,34 @@
         </table>
     </div>
 
+    <div class="card" th:if="${returns != null and !returns.isEmpty()}">
+        <h2 class="card-title">Detalle de Devoluciones</h2>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Fecha/Hora</th>
+                    <th>Nº Devolución</th>
+                    <th>Ticket Orig.</th>
+                    <th>Método</th>
+                    <th class="amount">Importe</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="ret : ${returns}">
+                    <td th:text="${#temporals.format(ret.createdAt, 'HH:mm')}">14:30</td>
+                    <td th:text="${ret.returnNumber}">D-2026-0001</td>
+                    <td th:text="${ret.originalSale.id}">123</td>
+                    <td
+                        th:text="${ret.paymentMethod == T(com.proconsi.electrobazar.model.PaymentMethod).CASH ? 'Efectivo' : 'Tarjeta'}">
+                        Efectivo</td>
+                    <td class="amount text-danger"
+                        th:text="'-' + ${#numbers.formatDecimal(ret.totalRefunded, 1, 'POINT', 2, 'COMMA')} + ' €'">
+                        -0,00 €</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
     <div th:if="${register.notes != null and !register.notes.isEmpty()}" class="notes-section">
         <strong>Observaciones del Cierre:</strong><br />
         <span th:text="${register.notes}">Sin observaciones.</span>

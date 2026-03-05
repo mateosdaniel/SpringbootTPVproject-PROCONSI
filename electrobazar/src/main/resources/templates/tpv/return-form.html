@@ -11,10 +11,121 @@
     <th:block th:replace="~{fragments/theme :: themeScript}" />
     <link rel="stylesheet" th:href="@{/css/tpv/tpv-receipt.css}">
     <link rel="stylesheet" th:href="@{/css/tpv/tpv-return-form.css}">
+    <style>
+        .confirm-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .confirm-modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .confirm-modal h3 {
+            margin-top: 0;
+            color: #ef4444;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .confirm-summary {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1.5rem 0;
+            border: 1px solid var(--border);
+        }
+
+        .confirm-total {
+            font-size: 1.4rem;
+            font-weight: 700;
+            text-align: right;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            color: var(--accent);
+        }
+
+        .confirm-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        .btn-primary-confirm {
+            background: var(--accent);
+            color: var(--primary);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            background: var(--surface-light);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .row-selected {
+            background: rgba(var(--accent-rgb), 0.05);
+        }
+
+        /* Error states for validation */
+        .is-invalid {
+            border-color: #ef4444 !important;
+            background-color: rgba(239, 68, 68, 0.1) !important;
+            color: #ef4444 !important;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+        }
+
+        .row-error {
+            background: rgba(239, 68, 68, 0.05) !important;
+        }
+
+        .qty-error-msg {
+            color: #ef4444;
+            font-size: 0.7rem;
+            display: none;
+            margin-top: 2px;
+            font-weight: 600;
+        }
+
+        .row-error .qty-error-msg {
+            display: block;
+        }
+    </style>
 </head>
 
 <body>
-    <div class="page-title"><i class="bi bi-arrow-counterclockwise"></i> Processar Devolución</div>
+    <div class="page-title"><i class="bi bi-arrow-counterclockwise"></i> Procesar Devolución</div>
 
     <div class="return-form-wrap">
 
@@ -67,6 +178,7 @@
                     <table class="return-lines-table">
                         <thead>
                             <tr>
+                                <th><i class="bi bi-check2-square"></i></th>
                                 <th>Producto</th>
                                 <th>Precio/ud.</th>
                                 <th>Vendido</th>
@@ -80,6 +192,13 @@
                                 th:with="returned=${alreadyReturned[line.id]}, available=${line.quantity - alreadyReturned[line.id]}"
                                 th:class="${available == 0} ? 'fully-returned' : ''">
                                 <td>
+                                    <div class="form-check">
+                                        <input class="form-check-input row-selector" type="checkbox"
+                                            th:id="'check-' + ${line.id}" th:disabled="${available == 0}"
+                                            onchange="toggleRow(this)">
+                                    </div>
+                                </td>
+                                <td>
                                     <input type="hidden" name="saleLineIds" th:value="${line.id}">
                                     <strong th:text="${line.product.name}">Producto</strong>
                                 </td>
@@ -90,8 +209,9 @@
                                 <td><strong th:text="${available} + ' ud.'">1 ud.</strong></td>
                                 <td>
                                     <input type="number" name="quantities" class="qty-input" th:id="'qty-' + ${line.id}"
-                                        th:value="0" min="0" th:max="${available}" th:disabled="${available == 0}"
-                                        th:attr="data-max=${available}">
+                                        th:value="0" min="0" th:max="${available}" disabled
+                                        th:attr="data-max=${available}" oninput="validateQty(this)">
+                                    <div class="qty-error-msg">Máx. <span th:text="${available}">0</span> superado</div>
                                 </td>
                             </tr>
                         </tbody>
@@ -117,9 +237,31 @@
                         <a th:href="@{/tpv/receipt/{id}(id=${sale.id})}" class="btn-cancel">
                             <i class="bi bi-x-lg"></i> Cancelar
                         </a>
-                        <button type="submit" class="btn-danger" id="submit-return-btn">
+                        <button type="button" class="btn-danger" id="submit-return-btn"
+                            onclick="openConfirmationModal()">
                             <i class="bi bi-arrow-counterclockwise"></i> Procesar devolución
                         </button>
+                    </div>
+
+                    <!-- Confirmation Modal -->
+                    <div id="confirmModal" class="confirm-modal-overlay" style="display:none;">
+                        <div class="confirm-modal">
+                            <h3><i class="bi bi-exclamation-triangle"></i> Confirmar Devolución</h3>
+                            <p>¿Estás seguro de que deseas procesar esta devolución?</p>
+
+                            <div class="confirm-summary">
+                                <div id="confirm-items-list"></div>
+                                <div class="confirm-total">
+                                    Total a devolver: <span id="confirm-total-amount">0.00 €</span>
+                                </div>
+                            </div>
+
+                            <div class="modal-actions">
+                                <button type="button" class="btn-secondary"
+                                    onclick="closeConfirmationModal()">Cancelar</button>
+                                <button type="submit" class="btn-primary-confirm">Confirmar y Finalizar</button>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -127,13 +269,103 @@
     </div>
 
     <script>
-        // Prevent submitting if all quantities are 0
+        function toggleRow(checkbox) {
+            const row = checkbox.closest('tr');
+            const qtyInput = row.querySelector('.qty-input');
+            const max = parseInt(qtyInput.getAttribute('data-max'));
+
+            if (checkbox.checked) {
+                row.classList.add('row-selected');
+                qtyInput.disabled = false;
+                qtyInput.value = max;
+                qtyInput.focus();
+            } else {
+                row.classList.remove('row-selected');
+                qtyInput.disabled = true;
+                qtyInput.value = 0;
+            }
+            validateQty(qtyInput);
+        }
+
+        function validateQty(input) {
+            const max = parseInt(input.getAttribute('data-max'));
+            const val = parseInt(input.value || 0);
+            const row = input.closest('tr');
+
+            if (val > max || val < 0) {
+                input.classList.add('is-invalid');
+                row.classList.add('row-error');
+                return false;
+            } else {
+                input.classList.remove('is-invalid');
+                row.classList.remove('row-error');
+                return true;
+            }
+        }
+
+        function openConfirmationModal() {
+            const itemsList = document.getElementById('confirm-items-list');
+            const totalDisplay = document.getElementById('confirm-total-amount');
+            itemsList.innerHTML = '';
+
+            let total = 0;
+            let hasErrors = false;
+            const checkedBoxes = document.querySelectorAll('.row-selector:checked');
+
+            if (checkedBoxes.length === 0) {
+                alert('Selecciona al menos un artículo para devolver.');
+                return;
+            }
+
+            checkedBoxes.forEach(cb => {
+                const row = cb.closest('tr');
+                const qtyInput = row.querySelector('.qty-input');
+
+                // Validate quantity
+                if (!validateQty(qtyInput)) {
+                    hasErrors = true;
+                }
+
+                const name = row.querySelector('strong').innerText;
+                // FIX BUG 1: Use index 2 for Price/ud column (index 3 was 'Vendido')
+                const priceText = row.children[2].innerText;
+                const price = parseFloat(priceText.replace(' €', '').replace(',', '.'));
+                const qty = parseInt(qtyInput.value || 0);
+                const subtotal = price * qty;
+
+                total += subtotal;
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'confirm-item';
+                itemDiv.innerHTML = `<span>${qty}x ${name}</span> <span>${subtotal.toFixed(2).replace('.', ',')} €</span>`;
+                itemsList.appendChild(itemDiv);
+            });
+
+            if (hasErrors) {
+                alert('Por favor, corrige las cantidades que superan el máximo disponible.');
+                return;
+            }
+
+            totalDisplay.innerText = total.toFixed(2).replace('.', ',') + ' €';
+            document.getElementById('confirmModal').style.display = 'flex';
+        }
+
+        function closeConfirmationModal() {
+            document.getElementById('confirmModal').style.display = 'none';
+        }
+
         document.getElementById('return-form').addEventListener('submit', function (e) {
-            const inputs = document.querySelectorAll('input[name="quantities"]:not([disabled])');
-            const total = Array.from(inputs).reduce((s, i) => s + parseInt(i.value || 0), 0);
-            if (total <= 0) {
+            // Check errors again on submit
+            const checkedBoxes = document.querySelectorAll('.row-selector:checked');
+            let hasErrors = false;
+            checkedBoxes.forEach(cb => {
+                const qtyInput = cb.closest('tr').querySelector('.qty-input');
+                if (!validateQty(qtyInput)) hasErrors = true;
+            });
+
+            if (hasErrors) {
                 e.preventDefault();
-                alert('Selecciona al menos una unidad a devolver.');
+                alert('Corrige los errores en las cantidades antes de continuar.');
             }
         });
     </script>
