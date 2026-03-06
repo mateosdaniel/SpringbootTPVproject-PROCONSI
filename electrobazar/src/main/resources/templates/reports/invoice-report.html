@@ -3,13 +3,18 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Factura — ElectroBazar</title>
+    <title>Factura &#183; ElectroBazar</title>
     <style>
-        /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        /* ══════════════════════════════════════════════════════════
            ElectroBazar — Plantilla de Factura A4
            Diseño profesional para PDF (openhtmltopdf)
-           Sin flexbox — usa table-layout para compatibilidad
-           â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+           Optimizada para papel A4 estándar
+           ══════════════════════════════════════════════════════════ */
+
+        @page {
+            size: A4 portrait;
+            margin: 20mm;
+        }
 
         * {
             box-sizing: border-box;
@@ -22,7 +27,7 @@
             font-size: 12px;
             color: #222;
             background: #fff;
-            padding: 36px 40px;
+            padding: 0;
         }
 
         /* ── Header bar ── */
@@ -225,16 +230,16 @@
 
 <body>
 
-    <!-- â•â• HEADER â•â• -->
+    <!-- ══ HEADER ══ -->
     <div class="header-bar">
         <table class="header-table">
             <tr>
                 <td>
                     <div class="brand">Electro<span class="brand-light">Bazar</span></div>
                     <div class="company-info">
-                        ElectroBazar S.L. · CIF: B12345678<br />
-                        C/ Exemple, 12 · 28001 Madrid<br />
-                        Tel: 91 123 45 67 · info@electrobazar.com
+                        ElectroBazar S.L. &#183; CIF: B12345678<br />
+                        C/ Exemple, 12 &#183; 28001 Madrid<br />
+                        Tel: 91 123 45 67 &#183; info@electrobazar.com
                     </div>
                 </td>
                 <td>
@@ -250,7 +255,7 @@
         </table>
     </div>
 
-    <!-- â•â• PARTIES â•â• -->
+    <!-- ══ PARTIES ══ -->
     <table class="parties-table">
         <tr>
             <td>
@@ -271,7 +276,7 @@
                 <div class="party-name" th:text="${sale.customer.name}">Cliente</div>
                 <div class="party-detail">
                     <span th:text="${sale.customer.type.name() == 'COMPANY' ? 'CIF: ' : 'NIF: '}">NIF: </span>
-                    <span th:text="${sale.customer.taxId}">—</span><br />
+                    <span th:text="${sale.customer.taxId}">&#8212;</span><br />
                     <span th:if="${sale.customer.address != null}"
                         th:text="${sale.customer.address + ', ' + (sale.customer.city ?: '') + ' ' + (sale.customer.postalCode ?: '')}"></span><br />
                     <span th:if="${sale.customer.email != null}" th:text="${sale.customer.email}"></span>
@@ -280,7 +285,7 @@
         </tr>
     </table>
 
-    <!-- â•â• ITEMS â•â• -->
+    <!-- ══ ITEMS ══ -->
     <table class="items-table">
         <thead>
             <tr>
@@ -296,13 +301,15 @@
             <tr th:each="line : ${sale.lines}">
                 <td class="name" th:text="${line.product.name}">Producto</td>
                 <td class="r"
-                    th:text="${#numbers.formatDecimal(line.baseAmount / line.quantity, 1, 2, 'POINT')} + ' €'">0.00 €
+                    th:text="${#numbers.formatDecimal(line.baseAmount / line.quantity, 1, 2, 'POINT')} + ' &#8364;'">
+                    0.00 &#8364;
                 </td>
                 <td class="r" th:text="${line.quantity}">1</td>
                 <td class="r" th:text="${#numbers.formatDecimal(line.vatRate * 100, 0, 0, 'POINT')} + '%'">21%</td>
                 <td class="r" th:if="${applyRecargo}"
                     th:text="${#numbers.formatDecimal(line.recargoRate * 100, 1, 1, 'POINT')} + '%'">5.2%</td>
-                <td class="r" th:text="${#numbers.formatDecimal(line.subtotal, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+                <td class="r" th:text="${#numbers.formatDecimal(line.subtotal, 1, 2, 'POINT')} + ' &#8364;'">0.00
+                    &#8364;</td>
             </tr>
         </tbody>
     </table>
@@ -327,17 +334,19 @@
             <tbody>
                 <tr th:each="bd : ${taxBreakdowns}">
                     <td style="padding: 5px; border: 1px solid #ddd;"
-                        th:text="${#numbers.formatDecimal(bd.baseAmount, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+                        th:text="${#numbers.formatDecimal(bd.baseAmount, 1, 2, 'POINT')} + ' &#8364;'">0.00 &#8364;</td>
                     <td style="padding: 5px; border: 1px solid #ddd;"
                         th:text="${#numbers.formatDecimal(bd.vatRate * 100, 0, 0, 'POINT')} + '%'">21%</td>
                     <td style="padding: 5px; border: 1px solid #ddd;"
-                        th:text="${#numbers.formatDecimal(bd.vatAmount, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+                        th:text="${#numbers.formatDecimal(bd.vatAmount, 1, 2, 'POINT')} + ' &#8364;'">0.00 &#8364;</td>
                     <td th:if="${applyRecargo}" style="padding: 5px; border: 1px solid #ddd;"
                         th:text="${#numbers.formatDecimal(bd.recargoRate * 100, 1, 1, 'POINT')} + '%'">5.2%</td>
                     <td th:if="${applyRecargo}" style="padding: 5px; border: 1px solid #ddd;"
-                        th:text="${#numbers.formatDecimal(bd.recargoAmount, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+                        th:text="${#numbers.formatDecimal(bd.recargoAmount, 1, 2, 'POINT')} + ' &#8364;'">0.00 &#8364;
+                    </td>
                     <td style="padding: 5px; border: 1px solid #ddd; text-align: right; font-weight: bold;"
-                        th:text="${#numbers.formatDecimal(bd.totalAmount, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+                        th:text="${#numbers.formatDecimal(bd.totalAmount, 1, 2, 'POINT')} + ' &#8364;'">0.00 &#8364;
+                    </td>
                 </tr>
             </tbody>
         </table>
@@ -345,19 +354,23 @@
         <table class="totals-table">
             <tr>
                 <td class="lbl">Base imponible:</td>
-                <td class="amt" th:text="${#numbers.formatDecimal(totalBase, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+                <td class="amt" th:text="${#numbers.formatDecimal(totalBase, 1, 2, 'POINT')} + ' &#8364;'">0.00 &#8364;
+                </td>
             </tr>
             <tr>
                 <td class="lbl">IVA total:</td>
-                <td class="amt" th:text="${#numbers.formatDecimal(totalVat, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+                <td class="amt" th:text="${#numbers.formatDecimal(totalVat, 1, 2, 'POINT')} + ' &#8364;'">0.00 &#8364;
+                </td>
             </tr>
             <tr th:if="${applyRecargo}">
                 <td class="lbl">Recargo Equiv.:</td>
-                <td class="amt" th:text="${#numbers.formatDecimal(totalRecargo, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+                <td class="amt" th:text="${#numbers.formatDecimal(totalRecargo, 1, 2, 'POINT')} + ' &#8364;'">0.00
+                    &#8364;</td>
             </tr>
             <tr class="grand">
                 <td class="lbl">TOTAL A PAGAR:</td>
-                <td class="amt" th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2, 'POINT')} + ' €'">0.00 €</td>
+                <td class="amt" th:text="${#numbers.formatDecimal(sale.totalAmount, 1, 2, 'POINT')} + ' &#8364;'">0.00
+                    &#8364;</td>
             </tr>
         </table>
     </div>
@@ -367,16 +380,18 @@
         Forma de pago:
         <strong th:text="${sale.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta bancaria'}">Efectivo</strong>
         <span th:if="${sale.receivedAmount != null}">
-            — Entregado: <strong th:text="${#numbers.formatDecimal(sale.receivedAmount, 1, 2, 'POINT')} + ' €'">0.00
-                €</strong>
-            — Cambio: <strong th:text="${#numbers.formatDecimal(sale.changeAmount, 1, 2, 'POINT')} + ' €'">0.00
-                €</strong>
+            &#8212; Entregado: <strong
+                th:text="${#numbers.formatDecimal(sale.receivedAmount, 1, 2, 'POINT')} + ' &#8364;'">0.00
+                &#8364;</strong>
+            &#8212; Cambio: <strong
+                th:text="${#numbers.formatDecimal(sale.changeAmount, 1, 2, 'POINT')} + ' &#8364;'">0.00
+                &#8364;</strong>
         </span>
     </div>
 
-    <!-- â•â• FOOTER â•â• -->
+    <!-- == FOOTER == -->
     <div class="footer">
-        ElectroBazar S.L. — Registro Mercantil de Madrid, Tomo 1, Folio 1, Hoja M-1 · CIF: B12345678<br />
+        ElectroBazar S.L. &#183; Registro Mercantil de Madrid, Tomo 1, Folio 1, Hoja M-1 &#183; CIF: B12345678<br />
         Documento generado automáticamente el
         <span th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm:ss')}"></span>.
         Este documento tiene validez fiscal.

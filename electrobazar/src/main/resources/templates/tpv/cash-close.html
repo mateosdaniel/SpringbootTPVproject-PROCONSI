@@ -28,197 +28,195 @@
             <p class="text-muted">Finaliza el día y genera el informe de arqueo</p>
         </div>
 
-        <!-- Resumen del día -->
-        <div class="row mb-4 g-3">
-            <!-- Row 1: High level -->
-            <div class="col-md-6">
-                <div class="stat-box">
-                    <div class="stat-label">Total hoy (Ventas)</div>
-                    <div class="stat-value" th:text="${#numbers.formatDecimal(totalToday, 1, 2)} + '€'">0.00€</div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="stat-box">
-                    <div class="stat-label">Número de ventas</div>
-                    <div class="stat-value" th:text="${countToday}">0</div>
-                </div>
-            </div>
-
-            <!-- Row 2: Payment flow & withdrawals -->
-            <div class="col-md-3">
-                <div class="stat-box">
-                    <div class="stat-label">Pagos en efectivo</div>
-                    <div class="stat-value text-success"
-                        th:text="${#numbers.formatDecimal(cashSalesToday, 1, 2)} + '€'">0.00€</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-box">
-                    <div class="stat-label">Devoluciones efectivo</div>
-                    <div class="stat-value text-danger"
-                        th:text="${#numbers.formatDecimal(cashRefundsToday, 1, 2)} + '€'">0.00€</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-box">
-                    <div class="stat-label">Retiradas caja</div>
-                    <div class="stat-value text-danger"
-                        th:text="${#numbers.formatDecimal(totalWithdrawals, 1, 2)} + '€'">0.00€</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-box">
-                    <div class="stat-label">Pagos netos tarjeta</div>
-                    <div class="stat-value text-primary"
-                        th:text="${#numbers.formatDecimal(cardSalesToday.subtract(cardRefundsToday), 1, 2)} + '€'">0.00€
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Formulario de cierre -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-clipboard-check"></i> Arqueo de Caja
-                </h5>
-            </div>
-            <div class="card-body">
-                <form th:action="@{/tpv/cash-close}" method="post">
-                    <div class="mb-3">
-                        <label for="closingBalance" class="form-label">Saldo total contado en caja</label>
-                        <div class="input-group">
-                            <input type="number" id="closingBalance" name="closingBalance" class="form-control"
-                                placeholder="0.00" step="0.01" min="0" required>
-                            <span class="input-group-text">€</span>
+        <div class="row g-4">
+            <!-- Left Column: Stats and Arqueo Form -->
+            <div class="col-lg-8">
+                <!-- Compact Stats Row -->
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-md-4">
+                        <div class="stat-box">
+                            <div class="stat-label">Total de Ventas</div>
+                            <div class="stat-value text-accent"
+                                th:text="${#numbers.formatDecimal(totalToday, 1, 2)} + '€'">0.00€</div>
                         </div>
-                        <small class="text-muted">Cantidad total de dinero en físico en la caja</small>
                     </div>
-
-                    <div class="mb-3">
-                        <label for="notes" class="form-label">Observaciones</label>
-                        <textarea id="notes" name="notes" class="form-control" rows="4"
-                            placeholder="Notas sobre el cierre, diferencias, incidencias..."></textarea>
+                    <div class="col-6 col-md-4">
+                        <div class="stat-box">
+                            <div class="stat-label">Operaciones</div>
+                            <div class="stat-value" th:text="${countToday}">0</div>
+                        </div>
                     </div>
+                    <div class="col-6 col-md-4">
+                        <div class="stat-box">
+                            <div class="stat-label">Cobros Tarjeta</div>
+                            <div class="stat-value"
+                                th:text="${#numbers.formatDecimal(cardSalesToday.subtract(cardRefundsToday), 1, 2)} + '€'">
+                                0.00€</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="stat-box">
+                            <div class="stat-label">Efectivo (Ventas)</div>
+                            <div class="stat-value text-success"
+                                th:text="${#numbers.formatDecimal(cashSalesToday, 1, 2)} + '€'">0.00€</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="stat-box">
+                            <div class="stat-label">Efectivo (Devol.)</div>
+                            <div class="stat-value text-danger"
+                                th:text="${#numbers.formatDecimal(cashRefundsToday, 1, 2)} + '€'">0.00€</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="stat-box">
+                            <div class="stat-label">Retiradas</div>
+                            <div class="stat-value text-danger"
+                                th:text="${#numbers.formatDecimal(totalWithdrawals, 1, 2)} + '€'">0.00€</div>
+                        </div>
+                    </div>
+                </div>
 
-                    <!-- Resumen del diferencial -->
-                    <div class="alert alert-info mb-3"
-                        style="background: rgba(52,152,219,0.1); border-color: #3498db; color: #3498db;">
-                        <small>
+                <!-- Arqueo Card -->
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-clipboard-check me-2"></i>Arqueo de Caja
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/tpv/cash-close}" method="post">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="closingBalance" class="form-label">Saldo total contado en caja</label>
+                                    <div class="input-group">
+                                        <input type="number" id="closingBalance" name="closingBalance"
+                                            class="form-control" placeholder="0.00" step="0.01" min="0" required
+                                            autofocus>
+                                        <span class="input-group-text">€</span>
+                                    </div>
+                                    <small class="text-muted">Total de dinero físico en el cajón</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="notes" class="form-label">Observaciones</label>
+                                    <textarea id="notes" name="notes" class="form-control" rows="2"
+                                        placeholder="Incidencias o notas..."></textarea>
+                                </div>
+                            </div>
+
+                            <input type="hidden" id="retainedAmount" name="retainedAmount" value="">
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary flex-grow-1" id="btnConfirmClose">
+                                    <i class="bi bi-check-circle me-2"></i>Confirmar Cierre de Caja
+                                </button>
+                                <a href="/tpv" class="btn btn-secondary px-4">
+                                    <i class="bi bi-x-circle me-2"></i>Cancelar
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Differential Alert, Returns and Retention -->
+            <div class="col-lg-4">
+                <!-- Differential Alert -->
+                <div class="card alert-info-custom border-0 shadow-sm mb-4">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3 border-bottom pb-2">Resumen del Diferencial</h6>
+                        <div class="small">
                             <div class="d-flex justify-content-between mb-1">
-                                <span>Saldo inicial:</span>
+                                <span class="text-muted">Saldo inicial:</span>
                                 <span
                                     th:text="${#numbers.formatDecimal(todayRegister.openingBalance, 1, 2)} + '€'">0.00€</span>
                             </div>
                             <div class="d-flex justify-content-between mb-1">
-                                <span>(+) Ventas efectivo:</span>
+                                <span class="text-muted">(+) Ventas efectivo:</span>
                                 <span th:text="${#numbers.formatDecimal(cashSalesToday, 1, 2)} + '€'">0.00€</span>
                             </div>
                             <div class="d-flex justify-content-between mb-1 text-danger">
-                                <span>(-) Devoluciones efectivo:</span>
+                                <span class="text-muted">(-) Devoluciones efectivo:</span>
                                 <span
                                     th:text="'-' + ${#numbers.formatDecimal(cashRefundsToday, 1, 2)} + '€'">-0.00€</span>
                             </div>
                             <div class="d-flex justify-content-between mb-1 text-danger">
-                                <span>(-) Retiradas:</span>
+                                <span class="text-muted">(-) Retiradas:</span>
                                 <span
                                     th:text="'-' + ${#numbers.formatDecimal(totalWithdrawals, 1, 2)} + '€'">-0.00€</span>
                             </div>
-                            <hr class="my-1" style="border-top: 1px solid #3498db; opacity: 0.3;">
+                            <hr class="my-2 opacity-10">
                             <div class="d-flex justify-content-between fw-bold mb-2">
                                 <span>Teoría (Esperado):</span>
                                 <span id="theoryAmount"
                                     th:text="${#numbers.formatDecimal(expectedCashInDrawer, 1, 2)} + '€'">0.00€</span>
                             </div>
-                            <div class="d-flex justify-content-between fw-bold">
+                            <div class="d-flex justify-content-between fw-bold mb-1">
                                 <span>Real (Contado):</span>
                                 <span id="realAmount">0.00€</span>
                             </div>
-                            <div class="d-flex justify-content-between fw-bold pt-1">
+                            <div class="d-flex justify-content-between fw-bold">
                                 <span>Diferencia:</span>
                                 <span id="diffAmount">0.00€</span>
                             </div>
-                        </small>
+                        </div>
                     </div>
+                </div>
 
-                    <input type="hidden" id="retainedAmount" name="retainedAmount" value="">
-
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary btn-lg" id="btnConfirmClose">
-                            <i class="bi bi-check-circle"></i> Confirmar Cierre de Caja
-                        </button>
-                        <a href="/tpv" class="btn btn-secondary">
-                            <i class="bi bi-x-circle"></i> Cancelar
-                        </a>
+                <!-- Devoluciones Card (if any) -->
+                <div class="card mb-4" th:if="${not #lists.isEmpty(returnsToday)}">
+                    <div class="card-header bg-danger bg-opacity-10 py-2">
+                        <h6 class="card-title mb-0 text-danger" style="font-size: 0.85rem;">
+                            <i class="bi bi-arrow-counterclockwise me-2"></i>Devoluciones de hoy
+                        </h6>
                     </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Detalle de Devoluciones (Si las hay) -->
-        <div class="card mt-4" th:if="${not #lists.isEmpty(returnsToday)}">
-            <div class="card-header bg-danger bg-opacity-10">
-                <h5 class="card-title mb-0 text-danger" style="font-weight: 700; font-size: 1rem;">
-                    <i class="bi bi-arrow-counterclockwise"></i> Devoluciones de la sesión
-                </h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0" style="color: var(--text-main); font-size: 0.9rem;">
-                        <thead style="background: rgba(0,0,0,0.02);">
-                            <tr>
-                                <th class="ps-3 border-0">Hora</th>
-                                <th class="border-0">Nº Devolución</th>
-                                <th class="border-0">Ticket Orig.</th>
-                                <th class="border-0">Método</th>
-                                <th class="text-end pe-3 border-0">Importe</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="ret : ${returnsToday}" style="border-bottom: 1px solid var(--border);">
-                                <td class="ps-3 align-middle" th:text="${#temporals.format(ret.createdAt, 'HH:mm')}">
-                                    14:30</td>
-                                <td class="fw-bold align-middle" th:text="${ret.returnNumber}">D-2026-0001</td>
-                                <td class="align-middle" th:text="'#' + ${ret.originalSale.id}">#123</td>
-                                <td class="align-middle">
-                                    <span th:if="${ret.paymentMethod.name() == 'CASH'}"
-                                        class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3">Efectivo</span>
-                                    <span th:if="${ret.paymentMethod.name() == 'CARD'}"
-                                        class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-3">Tarjeta</span>
-                                </td>
-                                <td class="text-end pe-3 fw-bold text-danger align-middle"
-                                    th:text="'-' + ${#numbers.formatDecimal(ret.totalRefunded, 1, 2)} + '€'">-0.00€</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Dejar dinero en caja para el siguiente turno -->
-        <div class="retain-card" id="retainCard">
-            <div class="d-flex align-items-center justify-content-between gap-3">
-                <div>
-                    <h6 class="mb-0 fw-bold">
-                        <i class="bi bi-piggy-bank me-2" style="color: var(--accent);"></i>Dejar dinero en caja para el
-                        siguiente turno
-                    </h6>
-                    <small class="text-muted">El importe elegido se sugerirá como saldo inicial en la próxima
-                        apertura.</small>
-                </div>
-                <div class="form-check form-switch mb-0 flex-shrink-0">
-                    <input class="form-check-input" type="checkbox" role="switch" id="retainToggle">
-                </div>
-            </div>
-            <div class="retain-body" id="retainBody">
-                <div class="mt-3 mb-1">
-                    <label for="retainInput" class="form-label">Importe a retener</label>
-                    <div class="input-group">
-                        <input type="number" id="retainInput" class="form-control" step="0.01" min="0"
-                            placeholder="0.00">
-                        <span class="input-group-text">€</span>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0" style="font-size: 0.75rem;">
+                                <tbody>
+                                    <tr th:each="ret : ${returnsToday}">
+                                        <td class="ps-3 py-2">
+                                            <div class="fw-bold" th:text="${ret.returnNumber}">D-2026-0001</div>
+                                            <div class="text-muted small"
+                                                th:text="${#temporals.format(ret.createdAt, 'HH:mm')}">14:30</div>
+                                        </td>
+                                        <td class="py-2">
+                                            <span th:if="${ret.paymentMethod.name() == 'CASH'}"
+                                                class="badge bg-success bg-opacity-10 text-success rounded-pill">E</span>
+                                            <span th:if="${ret.paymentMethod.name() == 'CARD'}"
+                                                class="badge bg-primary bg-opacity-10 text-primary rounded-pill">T</span>
+                                        </td>
+                                        <td class="text-end pe-3 fw-bold text-danger py-2"
+                                            th:text="'-' + ${#numbers.formatDecimal(ret.totalRefunded, 1, 2)} + '€'">
+                                            -0.00€</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                    <small class="text-muted">Pre-rellenado con el saldo de cierre. Puedes modificarlo.</small>
+                </div>
+
+                <!-- Cash Retention Card -->
+                <div class="retain-card" id="retainCard">
+                    <div class="d-flex align-items-center justify-content-between gap-3">
+                        <div>
+                            <h6 class="mb-0 fw-bold" style="font-size: 0.85rem;">
+                                <i class="bi bi-piggy-bank me-2 text-accent"></i>Fondo para mañana
+                            </h6>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" role="switch" id="retainToggle">
+                        </div>
+                    </div>
+                    <div class="retain-body" id="retainBody">
+                        <div class="mt-2">
+                            <div class="input-group input-group-sm">
+                                <input type="number" id="retainInput" class="form-control" step="0.01" min="0"
+                                    placeholder="0.00">
+                                <span class="input-group-text">€</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

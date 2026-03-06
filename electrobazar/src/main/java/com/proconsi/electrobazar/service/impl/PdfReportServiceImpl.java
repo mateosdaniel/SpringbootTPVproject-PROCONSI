@@ -155,4 +155,21 @@ public class PdfReportServiceImpl implements PdfReportService {
             throw new RuntimeException("Error generating PDF report: " + e.getMessage(), e);
         }
     }
+
+    @Override
+    public byte[] generateSaleDocument(
+            Sale sale,
+            com.proconsi.electrobazar.model.Invoice invoice,
+            java.util.List<com.proconsi.electrobazar.dto.TaxBreakdown> taxBreakdowns,
+            Boolean applyRecargo,
+            java.math.BigDecimal totalBase,
+            java.math.BigDecimal totalVat,
+            java.math.BigDecimal totalRecargo) {
+
+        if (invoice != null) {
+            return generateInvoiceReport(sale, invoice, taxBreakdowns, applyRecargo, totalBase, totalVat, totalRecargo);
+        } else {
+            return generateTicketReport(sale, taxBreakdowns, applyRecargo, totalBase, totalVat, totalRecargo);
+        }
+    }
 }
