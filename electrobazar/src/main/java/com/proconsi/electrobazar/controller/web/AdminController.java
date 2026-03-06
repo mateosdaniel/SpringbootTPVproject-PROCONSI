@@ -88,7 +88,11 @@ public class AdminController {
         if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
             return org.springframework.http.ResponseEntity.status(401).build();
         }
-        workerService.deleteById(id);
+        // Instead of hard delete, we deactivate the worker to preserve history
+        workerService.findById(id).ifPresent(w -> {
+            w.setActive(false);
+            workerService.save(w);
+        });
         return org.springframework.http.ResponseEntity.ok().build();
     }
 
@@ -111,20 +115,24 @@ public class AdminController {
         }
     }
 
-    @DeleteMapping("/admin/products/{id}/hard")
+    @PostMapping("/admin/sales/cancel/{id}")
     @ResponseBody
-    public org.springframework.http.ResponseEntity<?> hardDeleteProduct(@PathVariable Long id, HttpSession session) {
+    public org.springframework.http.ResponseEntity<?> cancelSale(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, String> body,
+            HttpSession session) {
         if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
             return org.springframework.http.ResponseEntity.status(401).build();
         }
+        String reason = body.getOrDefault("reason", "Anulación desde administración");
+        com.proconsi.electrobazar.model.Worker adminWorker = (com.proconsi.electrobazar.model.Worker) session
+                .getAttribute("worker");
+
         try {
-            productService.hardDeleteProduct(id);
+            saleService.cancelSale(id, adminWorker, reason);
             return org.springframework.http.ResponseEntity.ok().build();
-        } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            return org.springframework.http.ResponseEntity.status(409)
-                    .body("No se puede eliminar: el producto tiene ventas asociadas");
         } catch (Exception e) {
-            return org.springframework.http.ResponseEntity.status(500).body("Error al eliminar el producto");
+            return org.springframework.http.ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 

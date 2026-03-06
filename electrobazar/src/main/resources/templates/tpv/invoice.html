@@ -376,7 +376,8 @@
             <thead>
                 <tr>
                     <th>Concepto</th>
-                    <th class="r">Precio Base</th>
+                    <th class="r">Precio Unit. (sin IVA)</th>
+                    <th class="r">Cant.</th>
                     <th class="r">IVA (%)</th>
                     <th class="r" th:if="${applyRecargo}">RE (%)</th>
                     <th class="r">Subtotal</th>
@@ -385,10 +386,9 @@
             <tbody>
                 <tr th:each="line : ${sale.lines}">
                     <td class="name" th:text="${line.product.name}">Producto</td>
-                    <!-- Usamos baseAmount/quantity para mostrar el precio neto real por unidad -->
-                    <td class="r"
-                        th:text="${#numbers.formatDecimal(line.baseAmount / line.quantity, 1, 2)} + ' &euro;'">0.00
-                        &euro;</td>
+                    <td class="r" th:text="${#numbers.formatDecimal(line.basePriceNet, 1, 2)} + ' &euro;'">0.00 &euro;
+                    </td>
+                    <td class="r" th:text="${line.quantity}">1</td>
                     <td class="r" th:text="${#numbers.formatDecimal(line.vatRate * 100, 1, 0)} + '%'">21%</td>
                     <td class="r" th:if="${applyRecargo}"
                         th:text="${#numbers.formatDecimal(line.recargoRate * 100, 1, 1)} + '%'">5.2%</td>
@@ -405,28 +405,38 @@
             <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #eee;">
                 <thead>
                     <tr style="background: #f9f9f9;">
-                        <th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee;">Base Imponible
-                        </th>
-                        <th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee;">% IVA</th>
-                        <th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee;">Cuota IVA</th>
+                        <th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee;">Concepto</th>
+                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">P. Unit.</th>
+                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">Cant.</th>
+                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">Base Imp.</th>
+                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">% IVA</th>
+                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">Cuota IVA</th>
                         <th th:if="${applyRecargo}"
-                            style="padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee;">% RE</th>
+                            style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">% RE</th>
                         <th th:if="${applyRecargo}"
-                            style="padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee;">Cuota RE</th>
+                            style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">Cuota RE</th>
                         <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">Importe</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr th:each="bd : ${taxBreakdowns}">
-                        <td style="padding: 8px 12px; border-bottom: 1px solid #eee;"
+                        <td style="padding: 8px 12px; border-bottom: 1px solid #eee;" th:text="${bd.productName}">
+                            Producto</td>
+                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;"
+                            th:text="${#numbers.formatDecimal(bd.unitPrice, 1, 2)} + ' &euro;'">0.00 &euro;</td>
+                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;"
+                            th:text="${bd.quantity}">1</td>
+                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;"
                             th:text="${#numbers.formatDecimal(bd.baseAmount, 1, 2)} + ' &euro;'">0.00 &euro;</td>
-                        <td style="padding: 8px 12px; border-bottom: 1px solid #eee;"
+                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;"
                             th:text="${#numbers.formatDecimal(bd.vatRate * 100, 1, 0)} + '%'">21%</td>
-                        <td style="padding: 8px 12px; border-bottom: 1px solid #eee;"
+                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;"
                             th:text="${#numbers.formatDecimal(bd.vatAmount, 1, 2)} + ' &euro;'">0.00 &euro;</td>
-                        <td th:if="${applyRecargo}" style="padding: 8px 12px; border-bottom: 1px solid #eee;"
+                        <td th:if="${applyRecargo}"
+                            style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;"
                             th:text="${#numbers.formatDecimal(bd.recargoRate * 100, 1, 1)} + '%'">5.2%</td>
-                        <td th:if="${applyRecargo}" style="padding: 8px 12px; border-bottom: 1px solid #eee;"
+                        <td th:if="${applyRecargo}"
+                            style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;"
                             th:text="${#numbers.formatDecimal(bd.recargoAmount, 1, 2)} + ' &euro;'">0.00 &euro;</td>
                         <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee; font-weight: 600;"
                             th:text="${#numbers.formatDecimal(bd.totalAmount, 1, 2)} + ' &euro;'">0.00 &euro;</td>

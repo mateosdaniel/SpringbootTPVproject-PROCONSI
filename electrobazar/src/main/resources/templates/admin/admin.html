@@ -517,6 +517,8 @@
                             <td style="color:var(--text-muted);font-weight:600" th:text="${'#'+sale.id}"></td>
                             <td th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
                             <td>
+                                <span th:if="${sale.status.name() == 'CANCELLED'}" class="badge bg-danger mb-1 d-block"
+                                    style="font-size: 0.65rem;">ANULADA</span>
                                 <span class="badge-active" th:classappend="${sale.invoice != null} ? 'yes' : 'no'"
                                     th:text="${sale.invoice != null} ? 'Factura' : 'Ticket'"></span>
                             </td>
@@ -541,10 +543,17 @@
                             <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--text-main)"
                                 th:text="${#numbers.formatDecimal(sale.totalAmount,1,2)} + ' &euro;'"></td>
                             <td style="text-align:right">
-                                <a th:href="@{/tpv/receipt/{id}(id=${sale.id}, autoPrint=true)}" target="_blank"
-                                    class="btn-icon" title="Imprimir Ticket" style="text-decoration: none;">
-                                    <i class="bi bi-printer" style="color:#e74c3c;"></i>
-                                </a>
+                                <div style="display:flex;gap:0.4rem;justify-content:flex-end">
+                                    <button th:if="${sale.status.name() == 'ACTIVE'}" class="btn-icon danger"
+                                        title="Anular Venta" th:data-id="${sale.id}"
+                                        onclick="cancelSale(this.getAttribute('data-id'))">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                    <a th:href="@{/tpv/receipt/{id}(id=${sale.id}, autoPrint=true)}" target="_blank"
+                                        class="btn-icon" title="Imprimir Ticket" style="text-decoration: none;">
+                                        <i class="bi bi-printer" style="color:#e74c3c;"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(sales)}">

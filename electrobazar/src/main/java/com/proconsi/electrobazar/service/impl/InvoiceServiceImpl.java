@@ -52,19 +52,24 @@ public class InvoiceServiceImpl implements InvoiceService {
                     return invoiceSequenceRepository.save(newSeq);
                 });
 
-        // Increment and persist the new counter value.
-        int nextNumber = sequence.getLastNumber() + 1;
-        sequence.setLastNumber(nextNumber);
-        invoiceSequenceRepository.save(sequence);
+        // Increment and persist the next available sequence number.
+        // We use a loop and checking current repository to ensure strict sequentiality
+        // and no gaps.
+        String invoiceNumber;
+        do {
+            int nextNumber = sequence.getLastNumber() + 1;
+            sequence.setLastNumber(nextNumber);
+            invoiceSequenceRepository.save(sequence);
 
-        // Format: F-2026-0001 (serie, year, zero-padded 4-digit sequence)
-        String invoiceNumber = String.format("%s-%d-%04d", serie, currentYear, nextNumber);
+            // Format: F-2026-0001 (serie, year, zero-padded 4-digit sequence)
+            invoiceNumber = String.format("%s-%d-%04d", serie, currentYear, nextNumber);
+        } while (invoiceRepository.findByInvoiceNumber(invoiceNumber).isPresent());
 
         Invoice invoice = Invoice.builder()
                 .invoiceNumber(invoiceNumber)
                 .serie(serie)
                 .year(currentYear)
-                .sequenceNumber(nextNumber)
+                .sequenceNumber(sequence.getLastNumber())
                 .sale(sale)
                 .status(Invoice.InvoiceStatus.ACTIVE)
                 .build();

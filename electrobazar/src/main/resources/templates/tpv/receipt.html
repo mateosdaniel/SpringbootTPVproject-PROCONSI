@@ -25,6 +25,7 @@
             <div class="t-header">
                 <div class="t-brand">Electro<span>Bazar</span></div>
                 <div class="t-subtitle">Ticket de venta</div>
+                <div class="t-cif">CIF: B12345678</div>
                 <div class="t-meta">
                     <div th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm')}">25/02/2026 14:30</div>
                     <div style="margin-top: 0.2rem;">Le atendi&oacute;: <strong
@@ -131,11 +132,15 @@
                 </div>
             </div>
 
-            <!-- Footer -->
             <div class="t-footer">
                 <strong>&iexcl;Gracias por su compra!</strong><br>
                 ElectroBazar S.L. &middot; C/ Exemple, 12, Madrid<br>
                 Vuelva pronto &mdash; conserve este ticket
+                <div class="legal-info"
+                    style="margin-top:0.8rem; font-size:0.72rem; color:var(--text-muted); text-align:center; line-height: 1.4;">
+                    Devoluciones en un plazo de 14 d&iacute;as con ticket original<br>
+                    Factura simplificada seg&uacute;n RD 1619/2012
+                </div>
                 <div class="t-barcode"></div>
             </div>
         </div>

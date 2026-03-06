@@ -136,6 +136,12 @@
                 <span th:text="${successMessage}"></span>
             </div>
 
+            <!-- Alerta de error -->
+            <div th:if="${errorMessage}" class="alert-tpv bg-danger" id="errorAlert">
+                <i class="bi bi-exclamation-octagon-fill"></i>
+                <span th:text="${errorMessage}"></span>
+            </div>
+
             <div class="products-grid">
                 <!-- Sin productos -->
                 <div th:if="${#lists.isEmpty(products)}" class="no-products">
@@ -239,15 +245,19 @@
                     <div id="cashInputSection" class="mb-4" style="display: none;">
                         <label class="form-label fw-bold">Cantidad recibida (Efectivo)</label>
                         <div class="input-group input-group-lg">
-                            <span class="input-group-text bg-primary text-secondary"
-                                style="border-color: var(--border);"><i class="bi bi-cash-coin"
-                                    style="color:var(--text-main)"></i></span>
+                            <span class="input-group-text"
+                                style="background: var(--surface); color: var(--text-main); border-color: var(--border);"><i
+                                    class="bi bi-cash-coin"></i></span>
                             <input type="number" id="receivedAmount" class="form-control" placeholder="0.00" step="0.01"
                                 min="0"
                                 style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
-                            <span class="input-group-text bg-primary text-secondary"
-                                style="border-color: var(--border); color:var(--text-main)"><i
-                                    class="bi bi-currency-euro" style="color:var(--text-main)"></i></span>
+                            <button class="btn btn-outline-secondary" type="button" onclick="setExactAmount()"
+                                style="border-color: var(--border); background: var(--surface); color: var(--text-main); font-size: 0.9rem; font-weight: 600; border-left: none; border-right: none;">
+                                <i class="bi bi-check2-all me-1 text-accent"></i> Exacto
+                            </button>
+                            <span class="input-group-text"
+                                style="background: var(--surface); color: var(--text-main); border-color: var(--border);"><i
+                                    class="bi bi-currency-euro"></i></span>
                         </div>
                         <div class="mt-2 d-flex justify-content-between align-items-center">
                             <small style="color: var(--text-main);">Cambio a devolver:</small>

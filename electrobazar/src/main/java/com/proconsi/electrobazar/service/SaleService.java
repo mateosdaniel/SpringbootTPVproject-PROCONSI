@@ -40,4 +40,6 @@ public interface SaleService {
          * @param applyRecargo Whether RE tax matches for this sale
          */
         void saveApplyRecargo(Long saleId, boolean applyRecargo);
+
+        void cancelSale(Long id, com.proconsi.electrobazar.model.Worker worker, String reason);
 }

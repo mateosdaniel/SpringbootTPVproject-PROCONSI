@@ -37,6 +37,10 @@ public class SaleLine {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal unitPrice;
 
+    @Column(nullable = false, precision = 10, scale = 2, name = "base_price_net")
+    @Builder.Default
+    private BigDecimal basePriceNet = BigDecimal.ZERO;
+
     @Column(nullable = false, precision = 5, scale = 4, name = "vat_rate")
     private BigDecimal vatRate;
 

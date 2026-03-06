@@ -91,6 +91,7 @@ public class SaleServiceImpl implements SaleService {
                     vatRate,
                     applyRecargo);
 
+            line.setBasePriceNet(breakdown.getUnitPrice()); // Storing historical net unit price
             line.setBaseAmount(breakdown.getBaseAmount());
             line.setVatAmount(breakdown.getVatAmount());
             line.setRecargoRate(breakdown.getRecargoRate());
@@ -204,5 +205,31 @@ public class SaleServiceImpl implements SaleService {
             sale.setApplyRecargo(applyRecargo);
             saleRepository.save(sale);
         });
+    }
+
+    @Override
+    @Transactional
+    public void cancelSale(Long id, com.proconsi.electrobazar.model.Worker worker, String reason) {
+        Sale sale = findById(id);
+        if (sale.getStatus() == Sale.SaleStatus.CANCELLED) {
+            throw new IllegalStateException("La venta ya está anulada.");
+        }
+
+        // Restaurar stock
+        for (SaleLine line : sale.getLines()) {
+            productService.increaseStock(line.getProduct().getId(), line.getQuantity());
+        }
+
+        sale.setStatus(Sale.SaleStatus.CANCELLED);
+        sale.setNotes((sale.getNotes() != null ? sale.getNotes() + " | " : "") + "ANULADA: " + reason);
+        saleRepository.save(sale);
+
+        String username = worker != null ? worker.getUsername() : "Sistema";
+        activityLogService.logActivity(
+                "ANULAR_VENTA",
+                String.format("Venta #%d anulada por %s. Motivo: %s", id, username, reason),
+                username,
+                "SALE",
+                id);
     }
 }

@@ -1568,5 +1568,32 @@ function updateAdminPin() {
         });
 }
 
+function cancelSale(saleId) {
+    const reason = prompt('Indica el motivo de la anulación:');
+    if (!reason || !reason.trim()) {
+        showToast('El motivo es obligatorio para anular', 'error');
+        return;
+    }
+
+    if (!confirm('¿Seguro que quieres ANULAR la venta #' + saleId + '? Se restaurará el stock y se marcará como anulada.')) return;
+
+    fetch('/admin/sales/cancel/' + saleId, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason: reason })
+    })
+        .then(r => {
+            if (r.ok) {
+                showToast('Venta anulada correctamente');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                return r.text().then(msg => showToast('Error al anular: ' + msg, 'error'));
+            }
+        })
+        .catch(() => showToast('Error de conexión', 'error'));
+}
+
 
 

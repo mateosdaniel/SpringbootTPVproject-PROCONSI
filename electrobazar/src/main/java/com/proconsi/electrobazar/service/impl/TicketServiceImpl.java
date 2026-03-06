@@ -42,18 +42,24 @@ public class TicketServiceImpl implements TicketService {
                     return invoiceSequenceRepository.save(newSeq);
                 });
 
-        int nextNumber = sequence.getLastNumber() + 1;
-        sequence.setLastNumber(nextNumber);
-        invoiceSequenceRepository.save(sequence);
+        // Ensure no gaps by using a loop to find the next available sequence number.
+        // Usually sequence counters handle this, but for extra sequentiality and gap
+        // prevention:
+        String ticketNumber;
+        do {
+            int nextNumber = sequence.getLastNumber() + 1;
+            sequence.setLastNumber(nextNumber);
+            invoiceSequenceRepository.save(sequence);
 
-        // Format: T-2026-0001
-        String ticketNumber = String.format("%s-%d-%04d", serie, currentYear, nextNumber);
+            // Format: T-2026-0001
+            ticketNumber = String.format("%s-%d-%04d", serie, currentYear, nextNumber);
+        } while (ticketRepository.findByTicketNumber(ticketNumber).isPresent());
 
         Ticket ticket = Ticket.builder()
                 .ticketNumber(ticketNumber)
                 .serie(serie)
                 .year(currentYear)
-                .sequenceNumber(nextNumber)
+                .sequenceNumber(sequence.getLastNumber())
                 .sale(sale)
                 .applyRecargo(applyRecargo)
                 .build();

@@ -1102,8 +1102,52 @@
             color: var(--text-muted);
         }
 
-        /* Modal header styling - ensure text is visible in dark mode */
         .modal-header .modal-title {
             color: var(--text-main);
             font-weight: 700;
+        }
+
+        /* ── CUSTOM THEMED OVERRIDES FOR BOOTSTRAP ── */
+        .nav-pills .nav-link.active {
+            background-color: var(--accent) !important;
+            color: var(--primary) !important;
+        }
+
+        .nav-pills .nav-link {
+            transition: all 0.2s;
+        }
+
+        .nav-pills .nav-link:hover:not(.active) {
+            background-color: rgba(var(--accent-rgb), 0.1);
+            border-color: var(--accent) !important;
+        }
+
+        .form-check-input:checked {
+            background-color: var(--accent) !important;
+            border-color: var(--accent) !important;
+        }
+
+        .form-check-input:focus {
+            box-shadow: 0 0 0 0.25rem rgba(var(--accent-rgb), 0.25);
+            border-color: var(--accent);
+        }
+
+        .input-group-text {
+            background-color: var(--surface);
+            color: var(--text-main);
+            border-color: var(--border);
+        }
+
+        .btn-close {
+            filter: var(--close-filter, invert(1));
+        }
+
+        /* Fix for focus rings on buttons */
+        .btn:focus, .btn-close:focus {
+            box-shadow: 0 0 0 0.25rem rgba(var(--accent-rgb), 0.25);
+        }
+
+        .form-control:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 0.25rem rgba(var(--accent-rgb), 0.25);
         }

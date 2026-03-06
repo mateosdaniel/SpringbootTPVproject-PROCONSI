@@ -33,29 +33,35 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
         List<Sale> findToday();
 
         // Total recaudado en un rango de fechas
-        @Query("SELECT COALESCE(SUM(s.totalAmount), 0) FROM Sale s WHERE s.createdAt BETWEEN :from AND :to")
+        @Query("SELECT COALESCE(SUM(s.totalAmount), 0) FROM Sale s WHERE s.createdAt BETWEEN :from AND :to AND s.status = com.proconsi.electrobazar.model.Sale.SaleStatus.ACTIVE")
         BigDecimal sumTotalBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
         // Total por método de pago en un rango de fechas
-        @Query("SELECT COALESCE(SUM(s.totalAmount), 0) FROM Sale s WHERE s.createdAt BETWEEN :from AND :to AND s.paymentMethod = :method")
+        @Query("SELECT COALESCE(SUM(s.totalAmount), 0) FROM Sale s WHERE s.createdAt BETWEEN :from AND :to AND s.paymentMethod = :method AND s.status = com.proconsi.electrobazar.model.Sale.SaleStatus.ACTIVE")
         Optional<BigDecimal> sumTotalBetweenByPaymentMethod(@Param("from") LocalDateTime from,
                         @Param("to") LocalDateTime to, @Param("method") PaymentMethod method);
 
         // Número de ventas hoy
-        @Query("SELECT COUNT(s) FROM Sale s WHERE DATE(s.createdAt) = CURRENT_DATE")
+        @Query("SELECT COUNT(s) FROM Sale s WHERE DATE(s.createdAt) = CURRENT_DATE AND s.status = com.proconsi.electrobazar.model.Sale.SaleStatus.ACTIVE")
         long countToday();
 
         // Contar ventas en un rango de fechas
-        @Query("SELECT COUNT(s) FROM Sale s WHERE s.createdAt BETWEEN :from AND :to")
+        @Query("SELECT COUNT(s) FROM Sale s WHERE s.createdAt BETWEEN :from AND :to AND s.status = com.proconsi.electrobazar.model.Sale.SaleStatus.ACTIVE")
         long countByCreatedAtBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
         // Resumen de ventas (proyección optimizada)
         @Query("SELECT new com.proconsi.electrobazar.dto.SaleSummaryResponse(" +
-                        "COUNT(s), " +
-                        "COALESCE(SUM(s.totalAmount), 0), " +
-                        "COALESCE(SUM(CASE WHEN s.paymentMethod = com.proconsi.electrobazar.model.PaymentMethod.CASH THEN s.totalAmount ELSE 0 END), 0), "
+                        "COUNT(CASE WHEN s.status = com.proconsi.electrobazar.model.Sale.SaleStatus.ACTIVE THEN 1 END), "
                         +
-                        "COALESCE(SUM(CASE WHEN s.paymentMethod = com.proconsi.electrobazar.model.PaymentMethod.CARD THEN s.totalAmount ELSE 0 END), 0)) "
+                        "COALESCE(SUM(CASE WHEN s.status = com.proconsi.electrobazar.model.Sale.SaleStatus.ACTIVE THEN s.totalAmount ELSE 0 END), 0), "
+                        +
+                        "COALESCE(SUM(CASE WHEN s.status = com.proconsi.electrobazar.model.Sale.SaleStatus.ACTIVE AND s.paymentMethod = com.proconsi.electrobazar.model.PaymentMethod.CASH THEN s.totalAmount ELSE 0 END), 0), "
+                        +
+                        "COALESCE(SUM(CASE WHEN s.status = com.proconsi.electrobazar.model.Sale.SaleStatus.ACTIVE AND s.paymentMethod = com.proconsi.electrobazar.model.PaymentMethod.CARD THEN s.totalAmount ELSE 0 END), 0), "
+                        +
+                        "COUNT(CASE WHEN s.status = com.proconsi.electrobazar.model.Sale.SaleStatus.CANCELLED THEN 1 END), "
+                        +
+                        "COALESCE(SUM(CASE WHEN s.status = com.proconsi.electrobazar.model.Sale.SaleStatus.CANCELLED THEN s.totalAmount ELSE 0 END), 0)) "
                         +
                         "FROM Sale s WHERE s.createdAt BETWEEN :from AND :to")
         com.proconsi.electrobazar.dto.SaleSummaryResponse getSummaryBetween(@Param("from") LocalDateTime from,

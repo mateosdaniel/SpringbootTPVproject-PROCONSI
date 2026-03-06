@@ -195,7 +195,6 @@ function openCustomerModal() {
         setTimeout(function () { receivedInput.focus(); }, 150);
     }
 }
-
 // Live calculation for change
 document.getElementById('receivedAmount')?.addEventListener('input', function (e) {
     var el = e.target;
@@ -217,6 +216,15 @@ document.getElementById('receivedAmount')?.addEventListener('input', function (e
         }
     }
 });
+
+function setExactAmount() {
+    var totalText = document.getElementById('ticketTotal').textContent;
+    var totalVal = parseFloat(totalText.replace('\u20AC', '').trim());
+    var input = document.getElementById('receivedAmount');
+    input.value = totalVal.toFixed(2);
+    // Trigger input event manually to update change calculation
+    input.dispatchEvent(new Event('input'));
+}
 
 function toggleInvoiceCard(override) {
     var checkbox = document.getElementById('requestInvoiceToggle');
@@ -357,6 +365,13 @@ function processSaleWithInvoiceValidation() {
     // Limpiar datos previos
     customerIdInput.value = '';
 
+    // Validar límite de pago en efectivo (Ley 11/2021)
+    var total = parseFloat(document.getElementById('ticketTotal').textContent.replace('\u20AC', '').trim());
+    if (paymentMethod === 'CASH' && total >= 1000) {
+        showError('El pago en efectivo no está permitido para importes iguales o superiores a 1.000 € según la Ley 11/2021 de prevención del fraude fiscal. Seleccione otro método de pago.');
+        return;
+    }
+
     // Handle Cash Received Logic
     if (paymentMethod === 'CASH') {
         var rVal = parseFloat(receivedAmountInput.value);
@@ -459,6 +474,9 @@ function escapeHtml(str) {
 // Auto-ocultar alerta de éxito tras 4 segundos
 var successAlert = document.getElementById('successAlert');
 if (successAlert) setTimeout(function () { successAlert.style.display = 'none'; }, 4000);
+
+var errorAlert = document.getElementById('errorAlert');
+if (errorAlert) setTimeout(function () { errorAlert.style.display = 'none'; }, 6000);
 
 // -- SEARCH AND FILTER FUNCTIONALITY --
 var searchTimeout;

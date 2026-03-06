@@ -76,6 +76,16 @@ public class Sale {
     @Builder.Default
     private boolean applyRecargo = false;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private SaleStatus status = SaleStatus.ACTIVE;
+
+    public enum SaleStatus {
+        ACTIVE,
+        CANCELLED
+    }
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();

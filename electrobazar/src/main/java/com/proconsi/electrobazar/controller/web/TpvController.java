@@ -37,6 +37,7 @@ public class TpvController {
     private final ReturnService returnService;
     private final TicketService ticketService;
     private final CashWithdrawalService cashWithdrawalService;
+    private final ActivityLogService activityLogService;
 
     @GetMapping
     public String index(
@@ -143,6 +144,20 @@ public class TpvController {
         }
 
         Worker worker = (Worker) session.getAttribute("worker");
+        BigDecimal totalAmount = taxBreakdowns.stream()
+                .map(TaxBreakdown::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Validar límite de pago en efectivo (Ley 11/2021)
+        if (paymentMethod == PaymentMethod.CASH && totalAmount.compareTo(new BigDecimal("1000")) >= 0) {
+            activityLogService.logActivity("CASH_LIMIT_VIOLATION",
+                    "Intento de pago en efectivo bloqueado por importe >= 1000€ (Total: " + totalAmount + "€)",
+                    worker.getUsername(), "SALE", null);
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "El pago en efectivo no está permitido para importes iguales o superiores a 1.000 € según la Ley 11/2021 de prevención del fraude fiscal. Seleccione otro método de pago.");
+            return "redirect:/tpv";
+        }
+
         BigDecimal receivedAmountDecimal = null;
         if (paymentMethod == PaymentMethod.CASH && receivedAmount != null && !receivedAmount.isBlank()) {
             try {
@@ -298,6 +313,10 @@ public class TpvController {
                 .add(totalEntries)
                 .subtract(totalWithdrawals)
                 .subtract(cashRefundsToday);
+
+        com.proconsi.electrobazar.dto.SaleSummaryResponse summary = saleService.getSummaryToday();
+        model.addAttribute("cancelledCount", summary.getTotalCancelledCount());
+        model.addAttribute("cancelledTotal", summary.getTotalCancelledAmount());
 
         model.addAttribute("categories", categoryService.findAllActive());
         model.addAttribute("totalToday", saleService.sumTotalToday());
