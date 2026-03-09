@@ -86,6 +86,9 @@
             <button class="nav-link sidebar-menu-btn" onclick="switchView('tarifasView', this)">
                 <i class="bi bi-tags"></i> Tarifas
             </button>
+            <button class="nav-link sidebar-menu-btn" onclick="switchView('tiposIvaView', this)">
+                <i class="bi bi-percent"></i> Tipos de IVA
+            </button>
         </nav>
 
         <!-- Footer Actions -->
@@ -352,6 +355,68 @@
             </div>
         </div>
 
+        <!-- TIPOS IVA VIEW -->
+        <div id="tiposIvaView" style="display: none;">
+            <div class="panel-header">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn-icon"
+                        onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
+                        title="Volver al Panel">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <span class="panel-title"><i class="bi bi-percent me-2"></i>Gestión de Tipos de IVA</span>
+                </div>
+                <button class="btn-nuevo" onclick="openCreateTaxRateModal()">
+                    <i class="bi bi-plus-lg me-1"></i> Nuevo Tipo de IVA
+                </button>
+            </div>
+
+            <div class="admin-table-wrap mt-3">
+                <table class="admin-table" id="taxRatesTable">
+                    <thead>
+                        <tr>
+                            <th>Descripción</th>
+                            <th>IVA (%)</th>
+                            <th>RE (%)</th>
+                            <th>Activo</th>
+                            <th>Válido Desde</th>
+                            <th>Válido Hasta</th>
+                            <th style="text-align:right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="tr : ${taxRates}">
+                            <td><strong th:text="${tr.description}">IVA General</strong></td>
+                            <td th:text="${#numbers.formatDecimal(tr.vatRate * 100, 1, 1)} + '%'">21.0%</td>
+                            <td th:text="${#numbers.formatDecimal(tr.reRate * 100, 1, 2)} + '%'">5.20%</td>
+                            <td>
+                                <span class="badge-active" th:classappend="${tr.active} ? 'yes' : 'no'"
+                                    th:text="${tr.active} ? 'Sí' : 'No'"></span>
+                            </td>
+                            <td th:text="${tr.validFrom}">2024-01-01</td>
+                            <td th:text="${tr.validTo ?: '—'}">—</td>
+                            <td style="text-align:right">
+                                <div style="display:flex;gap:0.4rem;justify-content:flex-end">
+                                    <button class="btn-icon" title="Editar" th:data-id="${tr.id}"
+                                        th:data-description="${tr.description}" th:data-vatrate="${tr.vatRate}"
+                                        th:data-rerate="${tr.reRate}" th:data-active="${tr.active}"
+                                        th:data-validfrom="${tr.validFrom}" th:data-validto="${tr.validTo ?: ''}"
+                                        onclick="openEditTaxRateModal(this)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn-icon danger" title="Eliminar" th:data-id="${tr.id}"
+                                        th:data-description="${tr.description}"
+                                        onclick="deleteTaxRate(this.getAttribute('data-id'), this.getAttribute('data-description'))">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Modal: Crear Tarifa -->
         <div class="modal fade" id="createTariffModal" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
@@ -418,6 +483,113 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modal: Crear Tipo IVA -->
+        <div class="modal fade" id="createTaxRateModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="background:var(--surface);border:1px solid var(--border);">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-2"></i>Nuevo Tipo de IVA</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Descripción <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" id="newTaxRateDescription" class="form-control"
+                                placeholder="Ej: IVA General">
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label small fw-bold">IVA (ej: 0.21) <span
+                                        class="text-danger">*</span></label>
+                                <input type="number" id="newTaxRateVat" class="form-control" step="0.0001"
+                                    placeholder="0.21">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label small fw-bold">RE (ej: 0.052) <span
+                                        class="text-danger">*</span></label>
+                                <input type="number" id="newTaxRateRe" class="form-control" step="0.0001"
+                                    placeholder="0.052">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label small fw-bold">Válido Desde <span
+                                        class="text-danger">*</span></label>
+                                <input type="date" id="newTaxRateValidFrom" class="form-control">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label small fw-bold">Válido Hasta</label>
+                                <input type="date" id="newTaxRateValidTo" class="form-control">
+                            </div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" id="newTaxRateActive" class="form-check-input" checked>
+                            <label class="form-check-label small fw-bold">Activo</label>
+                        </div>
+                        <div id="createTaxRateError" class="alert alert-danger" style="display:none;"></div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-save" onclick="saveTaxRate()">Guardar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal: Editar Tipo IVA -->
+        <div class="modal fade" id="editTaxRateModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="background:var(--surface);border:1px solid var(--border);">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title fw-bold"><i class="bi bi-pencil me-2"></i>Editar Tipo de IVA</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="editTaxRateId">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Descripción <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" id="editTaxRateDescription" class="form-control">
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label small fw-bold">IVA (ej: 0.21) <span
+                                        class="text-danger">*</span></label>
+                                <input type="number" id="editTaxRateVat" class="form-control" step="0.0001">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label small fw-bold">RE (ej: 0.052) <span
+                                        class="text-danger">*</span></label>
+                                <input type="number" id="editTaxRateRe" class="form-control" step="0.0001">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label small fw-bold">Válido Desde <span
+                                        class="text-danger">*</span></label>
+                                <input type="date" id="editTaxRateValidFrom" class="form-control">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label small fw-bold">Válido Hasta</label>
+                                <input type="date" id="editTaxRateValidTo" class="form-control">
+                            </div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" id="editTaxRateActive" class="form-check-input">
+                            <label class="form-check-label small fw-bold">Activo</label>
+                        </div>
+                        <div id="editTaxRateError" class="alert alert-danger" style="display:none;"></div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-save" onclick="updateTaxRate()">Actualizar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="productsView" style="display: none;">
             <!-- PANEL: Gestión de Inventario -->
             <div class="panel-header">
@@ -2288,6 +2460,88 @@
             toastIcon.className = 'bi ' + (type === 'success' ? 'bi-check-circle-fill text-success' : 'bi-exclamation-triangle-fill text-warning');
             var bsToast = new bootstrap.Toast(toastEl, { delay: 3000 });
             bsToast.show();
+        }
+
+        // ── TAX RATE MANAGEMENT ──────────────────────────────────────────────────
+        function openCreateTaxRateModal() {
+            document.getElementById('newTaxRateDescription').value = '';
+            document.getElementById('newTaxRateVat').value = '';
+            document.getElementById('newTaxRateRe').value = '';
+            document.getElementById('newTaxRateValidFrom').value = new Date().toISOString().split('T')[0];
+            document.getElementById('newTaxRateValidTo').value = '';
+            document.getElementById('newTaxRateActive').checked = true;
+            document.getElementById('createTaxRateError').style.display = 'none';
+            new bootstrap.Modal(document.getElementById('createTaxRateModal')).show();
+        }
+
+        function saveTaxRate() {
+            const description = document.getElementById('newTaxRateDescription').value.trim();
+            const vatRate = document.getElementById('newTaxRateVat').value;
+            const reRate = document.getElementById('newTaxRateRe').value;
+            const validFrom = document.getElementById('newTaxRateValidFrom').value;
+            const validTo = document.getElementById('newTaxRateValidTo').value || null;
+            const active = document.getElementById('newTaxRateActive').checked;
+            const errorEl = document.getElementById('createTaxRateError');
+
+            if (!description || !vatRate || !reRate || !validFrom) {
+                errorEl.textContent = 'Descripción, IVA, RE y Fecha Inicio son obligatorios.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            fetch('/api/tax-rates', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description, vatRate: parseFloat(vatRate), reRate: parseFloat(reRate), validFrom, validTo, active })
+            }).then(r => {
+                if (!r.ok) throw new Error('Error al guardar');
+                location.reload();
+            }).catch(e => {
+                errorEl.textContent = e.message;
+                errorEl.style.display = 'block';
+            });
+        }
+
+        function openEditTaxRateModal(btn) {
+            document.getElementById('editTaxRateId').value = btn.dataset.id;
+            document.getElementById('editTaxRateDescription').value = btn.dataset.description;
+            document.getElementById('editTaxRateVat').value = btn.dataset.vatrate;
+            document.getElementById('editTaxRateRe').value = btn.dataset.rerate;
+            document.getElementById('editTaxRateValidFrom').value = btn.dataset.validfrom;
+            document.getElementById('editTaxRateValidTo').value = btn.dataset.validto;
+            document.getElementById('editTaxRateActive').checked = btn.dataset.active === 'true';
+            document.getElementById('editTaxRateError').style.display = 'none';
+            new bootstrap.Modal(document.getElementById('editTaxRateModal')).show();
+        }
+
+        function updateTaxRate() {
+            const id = document.getElementById('editTaxRateId').value;
+            const description = document.getElementById('editTaxRateDescription').value.trim();
+            const vatRate = document.getElementById('editTaxRateVat').value;
+            const reRate = document.getElementById('editTaxRateRe').value;
+            const validFrom = document.getElementById('editTaxRateValidFrom').value;
+            const validTo = document.getElementById('editTaxRateValidTo').value || null;
+            const active = document.getElementById('editTaxRateActive').checked;
+            const errorEl = document.getElementById('editTaxRateError');
+
+            fetch('/api/tax-rates/' + id, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description, vatRate: parseFloat(vatRate), reRate: parseFloat(reRate), validFrom, validTo, active })
+            }).then(r => {
+                if (!r.ok) throw new Error('Error al actualizar');
+                location.reload();
+            }).catch(e => {
+                errorEl.textContent = e.message;
+                errorEl.style.display = 'block';
+            });
+        }
+
+        function deleteTaxRate(id, msg) {
+            if (!confirm('¿Eliminar el tipo de IVA "' + msg + '"?')) return;
+            fetch('/api/tax-rates/' + id, { method: 'DELETE' }).then(r => {
+                if (r.ok) location.reload(); else showToastAdmin('Error al eliminar', 'warning');
+            });
         }
     </script>
 </body>

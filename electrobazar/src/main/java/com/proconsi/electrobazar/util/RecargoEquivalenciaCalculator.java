@@ -1,11 +1,15 @@
 package com.proconsi.electrobazar.util;
 
 import com.proconsi.electrobazar.dto.TaxBreakdown;
+import com.proconsi.electrobazar.model.TaxRate;
+import com.proconsi.electrobazar.repository.TaxRateRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Utility component for calculating Spanish 'Recargo de Equivalencia' (RE)
@@ -50,20 +54,19 @@ public class RecargoEquivalenciaCalculator {
         private static final int MONETARY_SCALE = 2;
         private static final RoundingMode ROUNDING_MODE = RoundingMode.HALF_UP;
 
+        @Autowired
+        private TaxRateRepository taxRateRepository;
+
         /**
-         * Mapping of VAT rates (as decimal fractions) to their corresponding RE rates.
-         * Keys and values are stored as BigDecimal strings for precision.
+         * Dynamically builds the mapping of VAT rates to their corresponding RE rates
+         * from the database.
          *
-         * <p>
-         * Example: 0.21 (21% VAT) → 0.052 (5.2% RE)
-         * </p>
+         * @return a map of VAT rates (decimal) to RE rates (decimal)
          */
-        private static final Map<BigDecimal, BigDecimal> VAT_TO_RE_RATE_MAP = Map.of(
-                        new BigDecimal("0.21"), new BigDecimal("0.052"), // 21% VAT → 5.2% RE
-                        new BigDecimal("0.10"), new BigDecimal("0.014"), // 10% VAT → 1.4% RE
-                        new BigDecimal("0.04"), new BigDecimal("0.005"), // 4% VAT → 0.5% RE
-                        new BigDecimal("0.02"), new BigDecimal("0.0015") // 2% VAT → 0.15% RE
-        );
+        private Map<BigDecimal, BigDecimal> getVatToReRateMapDynamic() {
+                return taxRateRepository.findByActiveTrue().stream()
+                                .collect(Collectors.toMap(TaxRate::getVatRate, TaxRate::getReRate));
+        }
 
         /**
          * Resolves the Recargo de Equivalencia rate for a given VAT rate.
@@ -84,7 +87,7 @@ public class RecargoEquivalenciaCalculator {
                 }
                 // Normalize scale for comparison (strip trailing zeros)
                 BigDecimal normalizedVat = vatRate.stripTrailingZeros();
-                return VAT_TO_RE_RATE_MAP.entrySet().stream()
+                return getVatToReRateMapDynamic().entrySet().stream()
                                 .filter(entry -> entry.getKey().stripTrailingZeros().compareTo(normalizedVat) == 0)
                                 .map(Map.Entry::getValue)
                                 .findFirst()
@@ -170,6 +173,6 @@ public class RecargoEquivalenciaCalculator {
          * @return an unmodifiable map of VAT rates to RE rates
          */
         public Map<BigDecimal, BigDecimal> getVatToReRateMap() {
-                return VAT_TO_RE_RATE_MAP;
+                return getVatToReRateMapDynamic();
         }
 }

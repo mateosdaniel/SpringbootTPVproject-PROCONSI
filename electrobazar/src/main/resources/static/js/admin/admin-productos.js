@@ -27,26 +27,53 @@ function openProductModal(id) {
     document.getElementById('productImageUrl').value = '';
     document.getElementById('productActive').checked = true;
     const ivaEl = document.getElementById('productIvaRate');
-    if (ivaEl) ivaEl.value = '0.21';
     document.getElementById('productModalLabel').textContent = id ? 'Editar Producto' : 'Nuevo Producto';
     previewImage(null);
 
-    if (id) {
-        fetch('/api/products/' + id)
-            .then(function (r) { return r.json(); })
-            .then(function (p) {
-                document.getElementById('productId').value = p.id;
-                document.getElementById('productName').value = p.name || '';
-                document.getElementById('productDescription').value = p.description || '';
-                document.getElementById('productPrice').value = p.price || '';
-                document.getElementById('productStock').value = (p.stock !== undefined && p.stock !== null) ? p.stock : 0;
-                document.getElementById('productCategory').value = p.category ? p.category.id : '';
-                document.getElementById('productImageUrl').value = p.imageUrl || '';
-                document.getElementById('productActive').checked = p.active !== false;
-                if (ivaEl) ivaEl.value = p.ivaRate ? p.ivaRate.toString() : '0.21';
-                previewImage(p.imageUrl);
-            });
-    }
+    // Fetch active tax rates every time the modal opens
+    fetch('/api/tax-rates/active')
+        .then(function (res) { return res.json(); })
+        .then(function (rates) {
+            if (ivaEl) {
+                ivaEl.innerHTML = '';
+                let highest = null;
+                rates.forEach(function (r) {
+                    const opt = document.createElement('option');
+                    opt.value = r.vatRate;
+                    opt.textContent = r.description + ' (' + (r.vatRate * 100).toFixed(1).replace('.0', '') + '%)';
+                    ivaEl.appendChild(opt);
+                    if (!highest || r.vatRate > highest.vatRate) {
+                        highest = r;
+                    }
+                });
+
+                // Default for new products: highest rate
+                if (!id && highest) {
+                    ivaEl.value = highest.vatRate.toString();
+                }
+            }
+
+            // If editing, load product AFTER tax rates are ready
+            if (id) {
+                fetch('/api/products/' + id)
+                    .then(function (r) { return r.json(); })
+                    .then(function (p) {
+                        document.getElementById('productId').value = p.id;
+                        document.getElementById('productName').value = p.name || '';
+                        document.getElementById('productDescription').value = p.description || '';
+                        document.getElementById('productPrice').value = p.price || '';
+                        document.getElementById('productStock').value = (p.stock !== undefined && p.stock !== null) ? p.stock : 0;
+                        document.getElementById('productCategory').value = p.category ? p.category.id : '';
+                        document.getElementById('productImageUrl').value = p.imageUrl || '';
+                        document.getElementById('productActive').checked = p.active !== false;
+                        if (ivaEl && p.ivaRate !== null && p.ivaRate !== undefined) {
+                            ivaEl.value = p.ivaRate.toString();
+                        }
+                        previewImage(p.imageUrl);
+                    });
+            }
+        });
+
     productModal.show();
 }
 
@@ -62,7 +89,7 @@ function saveProduct() {
         stock: parseInt(document.getElementById('productStock').value) || 0,
         active: document.getElementById('productActive').checked,
         imageUrl: document.getElementById('productImageUrl').value.trim() || null,
-        ivaRate: document.getElementById('productIvaRate') ? parseFloat(document.getElementById('productIvaRate').value) : 0.21,
+        ivaRate: document.getElementById('productIvaRate') ? parseFloat(document.getElementById('productIvaRate').value) : null,
         category: document.getElementById('productCategory').value ? { id: parseInt(document.getElementById('productCategory').value) } : null
     };
 
