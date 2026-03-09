@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 public class IneApiServiceImpl implements IneApiService {
 
     private final RestTemplate restTemplate;
-    private static final String INE_URL = "https://servicios.ine.es/wstempus/js/ES/DATOS_SERIE/IPC206449?nult=2";
+    private static final String INE_URL = "https://servicios.ine.es/wstempus/js/ES/DATOS_SERIE/IPC251856?nult=2";
 
     // Manual cache
     private BigDecimal cachedIpc;

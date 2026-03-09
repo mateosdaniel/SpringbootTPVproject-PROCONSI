@@ -392,19 +392,19 @@
             </thead>
             <tbody>
                 <!-- Forma A: Mostrar 3 lineas por producto si hay descuento -->
-                <th:block th:each="line : ${sale.lines}">
+                <th:block th:each="line, lineStat : ${sale.lines}">
                     <!-- Main Product Line (shows original price and subtotal before discount) -->
                     <tr>
                         <td class="name" th:text="${line.product.name}">Producto</td>
                         <td class="r"
-                            th:text="${#numbers.formatDecimal(line.originalUnitPrice / (1 + line.vatRate), 1, 2)} + ' &euro;'">
+                            th:text="${#numbers.formatDecimal(taxBreakdowns[lineStat.index].unitPrice, 1, 2)} + ' &euro;'">
                             0.00 &euro;</td>
                         <td class="r" th:text="${line.quantity}">1</td>
                         <td class="r" th:text="${#numbers.formatDecimal(line.vatRate * 100, 1, 0)} + '%'">21%</td>
                         <td class="r" th:if="${applyRecargo}"
                             th:text="${#numbers.formatDecimal(line.recargoRate * 100, 1, 1)} + '%'">5.2%</td>
                         <td class="r"
-                            th:text="${#numbers.formatDecimal((line.originalUnitPrice / (1 + line.vatRate)) * line.quantity, 1, 2)} + ' &euro;'">
+                            th:text="${#numbers.formatDecimal(taxBreakdowns[lineStat.index].baseAmount, 1, 2)} + ' &euro;'">
                             0.00 &euro;</td>
                     </tr>
 
@@ -428,7 +428,7 @@
                         <td style="padding-left: 30px; font-weight: 500;">Precio final (sin IVA)</td>
                         <td class="r" colspan="4" th:colspan="${applyRecargo} ? 4 : 3"></td>
                         <td class="r" style="font-weight: 600;"
-                            th:text="${#numbers.formatDecimal(line.basePriceNet * line.quantity, 1, 2)} + ' &euro;'">
+                            th:text="${#numbers.formatDecimal(taxBreakdowns[lineStat.index].baseAmount, 1, 2)} + ' &euro;'">
                             0.00 &euro;</td>
                     </tr>
                 </th:block>
