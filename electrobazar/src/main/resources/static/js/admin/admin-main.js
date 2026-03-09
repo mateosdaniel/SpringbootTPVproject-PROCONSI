@@ -2,6 +2,7 @@
     if (typeof attachNifCifValidator === 'function') {
         attachNifCifValidator('customerTaxId');
     }
+    updatePermDropdownLabel();
 });
 
 var productModal = new bootstrap.Modal(document.getElementById('productModal'));
@@ -19,7 +20,8 @@ function switchView(viewId, btnElement) {
     const views = [
         'dashboardView', 'productsView', 'invoicesView', 'cashCloseView',
         'returnsHistoryView', 'settingsView', 'workersView', 'rolesView', 'analyticsView',
-        'crmView', 'preciosTempView', 'preciosMasivosView', 'activityView', 'tarifasView'
+        'crmView', 'preciosTempView', 'preciosMasivosView', 'activityView', 'tarifasView',
+        'tiposIvaView'
     ];
     views.forEach(v => {
         const el = document.getElementById(v);
@@ -279,7 +281,7 @@ function loadActivityLog() {
         })
         .then(function (logs) {
             if (logs.length === 0) {
-                container.innerHTML = '<div class="text-center p-4 text-muted">No hay actividad reciente.</div>';
+                container.innerHTML = '<div class="text-center p-4" style="color: var(--text-muted);">No hay actividad reciente.</div>';
                 return;
             }
 
@@ -560,7 +562,7 @@ function openWorkerModal(id, username, active, permissions, roleId) {
     // Ajustar etiqueta de contraseña según si editamos o creamos
     var pwdLabel = document.getElementById('workerPasswordLabel');
     if (id) {
-        pwdLabel.innerHTML = 'Contraseña <small class="text-muted font-normal">(opcional, blanco para mantener)</small>';
+        pwdLabel.innerHTML = 'Contraseña <small class="font-normal" style="color: var(--text-muted);">(opcional, blanco para mantener)</small>';
     } else {
         pwdLabel.innerHTML = 'Contraseña *';
     }
@@ -572,6 +574,7 @@ function openWorkerModal(id, username, active, permissions, roleId) {
     document.getElementById('permProd').checked = perms.indexOf('MANAGE_PRODUCTS_TPV') !== -1;
     document.getElementById('permCash').checked = perms.indexOf('CASH_CLOSE') !== -1;
     document.getElementById('permAdmin').checked = perms.indexOf('ADMIN_ACCESS') !== -1;
+    updatePermDropdownLabel();
 
     // Load roles into select if not already there, then select current
     loadRoles().then(() => {
@@ -619,6 +622,21 @@ function saveWorker() {
     }).catch(function () {
         showToast('Error de red', 'error');
     });
+}
+
+/**
+ * Updates the permissions dropdown button label based on how many of the
+ * three permission checkboxes (permProd, permCash, permAdmin) are checked.
+ * Shows "N permiso(s) seleccionado(s)" or "Sin permisos" when none are checked.
+ */
+function updatePermDropdownLabel() {
+    var btn = document.getElementById('permDropdownBtn');
+    if (!btn) return;
+    var count = 0;
+    if (document.getElementById('permProd') && document.getElementById('permProd').checked) count++;
+    if (document.getElementById('permCash') && document.getElementById('permCash').checked) count++;
+    if (document.getElementById('permAdmin') && document.getElementById('permAdmin').checked) count++;
+    btn.textContent = count === 0 ? 'Sin permisos' : count + ' permiso' + (count !== 1 ? 's' : '') + ' seleccionado' + (count !== 1 ? 's' : '');
 }
 
 function deleteWorker(id) {
@@ -877,7 +895,7 @@ function loadFuturePrices() {
         .then(function (prices) {
             var tbody = document.getElementById('futurePricesBody');
             if (!prices || prices.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No hay precios programados para el futuro.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4" style="color: var(--text-muted);">No hay precios programados para el futuro.</td></tr>';
                 return;
             }
             tbody.innerHTML = prices.map(function (p) {
@@ -886,10 +904,10 @@ function loadFuturePrices() {
                 return '<tr class="future-price-row" data-product-name="' + escHtml(p.productName).toLowerCase() + '">'
                     + '<td><strong>' + escHtml(p.productName) + '</strong></td>'
                     + '<td>' + parseFloat(p.price).toFixed(2) + ' &euro;</td>'
-                    + '<td>' + vatPct + ' <small class="text-muted">(+' + reRate + ' RE)</small></td>'
+                    + '<td>' + vatPct + ' <small style="color: var(--text-muted);">(+' + reRate + ' RE)</small></td>'
                     + '<td>' + formatDateTime(p.startDate) + '</td>'
-                    + '<td>' + (p.endDate ? formatDateTime(p.endDate) : '<span class="text-muted">Abierto</span>') + '</td>'
-                    + '<td>' + (p.label ? escHtml(p.label) : '<span class="text-muted">—</span>') + '</td>'
+                    + '<td>' + (p.endDate ? formatDateTime(p.endDate) : '<span style="color: var(--text-muted);">Abierto</span>') + '</td>'
+                    + '<td>' + (p.label ? escHtml(p.label) : '<span style="color: var(--text-muted);">—</span>') + '</td>'
                     + '</tr>';
             }).join('');
         })
@@ -908,7 +926,7 @@ function loadPriceHistory() {
         .then(function (prices) {
             var tbody = document.getElementById('priceHistoryBody');
             if (!prices || prices.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No hay historial de precios para este producto.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4" style="color: var(--text-muted);">No hay historial de precios para este producto.</td></tr>';
                 return;
             }
             tbody.innerHTML = prices.map(function (p) {
@@ -917,11 +935,11 @@ function loadPriceHistory() {
                 var statusBadge = p.currentlyActive
                     ? '<span class="badge bg-success">Activo</span>'
                     : (new Date(p.startDate) > new Date()
-                        ? '<span class="badge bg-warning text-dark">Programado</span>'
-                        : '<span class="badge bg-secondary">Expirado</span>');
+                        ? '<span class="badge" style="background-color: rgba(245,158,11,0.18); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3);">Programado</span>'
+                        : '<span class="badge" style="background-color: rgba(148,163,184,0.15); color: var(--text-muted); border: 1px solid rgba(148,163,184,0.25);">Expirado</span>');
 
                 // Calculate price variation display
-                var variationHtml = '<span class="text-muted">—</span>';
+                var variationHtml = '<span style="color: var(--text-muted);">—</span>';
                 if (p.priceChange !== null && p.priceChange !== undefined) {
                     var changeAmount = parseFloat(p.priceChange).toFixed(2);
                     var changePct = parseFloat(p.priceChangePct).toFixed(2);
@@ -930,16 +948,16 @@ function loadPriceHistory() {
                     } else if (p.priceChange < 0) {
                         variationHtml = '<span class="text-danger fw-bold">' + changeAmount + ' € (' + changePct + '%)</span>';
                     } else {
-                        variationHtml = '<span class="text-muted">0.00 € (0.00%)</span>';
+                        variationHtml = '<span style="color: var(--text-muted);">0.00 € (0.00%)</span>';
                     }
                 }
 
                 return '<tr>'
                     + '<td>' + parseFloat(p.price).toFixed(2) + ' &euro;</td>'
-                    + '<td>' + vatPct + ' <small class="text-muted">(+' + reRate + ' RE)</small></td>'
+                    + '<td>' + vatPct + ' <small style="color: var(--text-muted);">(+' + reRate + ' RE)</small></td>'
                     + '<td>' + formatDateTime(p.startDate) + '</td>'
-                    + '<td>' + (p.endDate ? formatDateTime(p.endDate) : '<span class="text-muted">Abierto</span>') + '</td>'
-                    + '<td>' + (p.label ? escHtml(p.label) : '<span class="text-muted">—</span>') + '</td>'
+                    + '<td>' + (p.endDate ? formatDateTime(p.endDate) : '<span style="color: var(--text-muted);">Abierto</span>') + '</td>'
+                    + '<td>' + (p.label ? escHtml(p.label) : '<span style="color: var(--text-muted);">—</span>') + '</td>'
                     + '<td>' + variationHtml + '</td>'
                     + '<td>' + statusBadge + '</td>'
                     + '</tr>';
@@ -991,15 +1009,15 @@ function loadBulkProducts() {
 function renderBulkProductList(products) {
     var container = document.getElementById('bulkProductList');
     if (!products || products.length === 0) {
-        container.innerHTML = '<div class="text-center text-muted py-3">No hay productos disponibles</div>';
+        container.innerHTML = '<div class="text-center py-3" style="color: var(--text-muted);">No hay productos disponibles</div>';
         return;
     }
     container.innerHTML = products.map(function (p) {
         var catName = p.category ? p.category.name : 'S/C';
         return '<div class="form-check bulk-product-item" data-category="' + escHtml(catName).toLowerCase() + '" data-search="' + escHtml(p.name).toLowerCase() + ' ' + escHtml(catName).toLowerCase() + '">'
             + '<input class="form-check-input bulk-product-checkbox" type="checkbox" value="' + p.id + '" id="bulkProd' + p.id + '" onchange="updateBulkSelectedCount()">'
-            + '<label class="form-check-label" for="bulkProd' + p.id + '">'
-            + '<strong>' + escHtml(p.name) + '</strong> <small class="text-muted">(' + catName + ' - ' + parseFloat(p.price).toFixed(2) + ' €)</small></label>'
+            + '<label class="form-check-label" for="bulkProd' + p.id + '" style="color: var(--text-primary);">'
+            + '<strong style="color: var(--text-primary);">' + escHtml(p.name) + '</strong> <small style="color: var(--text-muted);">(' + catName + ' - ' + parseFloat(p.price).toFixed(2) + ' €)</small></label>'
             + '</div>';
     }).join('');
 }
@@ -1103,12 +1121,12 @@ function loadRoles() {
 function renderRolesTable(roles, workers) {
     const tbody = document.getElementById('rolesTableBody');
     if (!roles || roles.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No hay roles definidos</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4" style="color: var(--text-muted);">No hay roles definidos</td></tr>';
         return;
     }
 
     tbody.innerHTML = roles.map(r => {
-        const perms = r.permissions.map(p => `<span class="badge bg-secondary me-1" style="font-size:0.7rem">${p}</span>`).join('');
+        const perms = r.permissions.map(p => `<span class="badge me-1" style="font-size:0.7rem; background-color: rgba(148,163,184,0.15); color: var(--text-muted); border: 1px solid rgba(148,163,184,0.25);">${p}</span>`).join('');
         const permsText = r.permissions.join(',');
 
         // Count workers with this role
@@ -1116,9 +1134,9 @@ function renderRolesTable(roles, workers) {
 
         return `<tr class="role-row" data-name="${escHtml(r.name)}" data-permissions="${permsText}">
             <td><strong>${escHtml(r.name)}</strong></td>
-            <td class="small text-muted">${escHtml(r.description || '—')}</td>
-            <td>${perms || '<span class="text-muted small">Sin permisos</span>'}</td>
-            <td><span class="badge bg-info text-dark" style="font-size:0.85rem">${count} trabajador(es)</span></td>
+            <td style="font-size:0.85rem; color: var(--text-muted);">${escHtml(r.description || '\u2014')}</td>
+            <td>${perms || '<span class="small" style="color: var(--text-muted);">Sin permisos</span>'}</td>
+            <td><span class="badge" style="font-size:0.85rem; background-color: rgba(6,182,212,0.18); color: #22d3ee; border: 1px solid rgba(6,182,212,0.3);">${count} trabajador(es)</span></td>
             <td style="text-align:right">
                 <button class="btn-icon" onclick="openRoleModal(${r.id})"><i class="bi bi-pencil"></i></button>
                 <button class="btn-icon danger" onclick="deleteRole(${r.id})"><i class="bi bi-trash"></i></button>
@@ -1269,6 +1287,7 @@ function resetWorkerFilters() {
     document.getElementById('workerFilterStatus').value = '';
     document.querySelectorAll('.worker-filter-perm').forEach(cb => cb.checked = false);
     filterWorkers();
+    updateFilterPermLabel('workerFilterPermBtn', '.worker-filter-perm', 'Cualquier permiso');
 }
 
 // ── ROLE FILTERING ──────────────────────────────────────────────────────────
@@ -1297,6 +1316,27 @@ function filterRoles() {
 function resetRolePermFilters() {
     document.querySelectorAll('.role-filter-perm').forEach(cb => cb.checked = false);
     filterRoles();
+    updateFilterPermLabel('roleFilterPermBtn', '.role-filter-perm', 'Seleccionar Permisos');
+}
+
+/**
+ * Updates a filter dropdown button label based on which checkboxes in the group are checked.
+ * Maps full permission strings to short display names.
+ * @param {string} btnId       - id of the dropdown toggle button
+ * @param {string} selector    - CSS selector for checkboxes in that dropdown
+ * @param {string} defaultText - text to show when nothing is checked
+ */
+function updateFilterPermLabel(btnId, selector, defaultText) {
+    var btn = document.getElementById(btnId);
+    if (!btn) return;
+    var nameMap = {
+        'ADMIN_ACCESS': 'ADMIN',
+        'CASH_CLOSE': 'CAJA',
+        'MANAGE_PRODUCTS_TPV': 'INV'
+    };
+    var checked = Array.from(document.querySelectorAll(selector + ':checked'))
+        .map(function (cb) { return nameMap[cb.value] || cb.value; });
+    btn.textContent = checked.length === 0 ? defaultText : checked.join(' + ');
 }
 
 // ── NEW FILTERING FUNCTIONS ──────────────────────────────────────────────────
@@ -1683,7 +1723,7 @@ function updateIpcPreview() {
         .then(r => r.json())
         .then(data => {
             if (!data || data.length === 0) {
-                body.innerHTML = '<tr><td colspan="3" class="text-center py-2 text-muted">No hay productos para previsualizar</td></tr>';
+                body.innerHTML = '<tr><td colspan="3" class="text-center py-2" style="color: var(--text-muted);">No hay productos para previsualizar</td></tr>';
                 return;
             }
             body.innerHTML = data.map(p => `

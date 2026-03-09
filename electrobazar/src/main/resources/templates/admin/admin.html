@@ -134,8 +134,8 @@
 
             <!-- QUICK ACTIONS SECTION -->
             <div class="mb-5">
-                <h5 class="mb-3 text-muted"
-                    style="font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">
+                <h5 class="mb-3"
+                    style="font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);">
                     Acciones Rápidas
                 </h5>
                 <div class="d-flex flex-wrap gap-2">
@@ -187,8 +187,8 @@
                 </div>
             </div>
 
-            <h5 class="mb-3 text-muted"
-                style="font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">
+            <h5 class="mb-3"
+                style="font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);">
                 <i class="bi bi-columns-gap me-2"></i>Secciones del Panel
             </h5>
             <div class="dashboard-grid">
@@ -647,6 +647,8 @@
                                 <tr>
                                     <th>Imagen</th>
                                     <th>Nombre</th>
+                                    <th>Descripción</th>
+                                    <th title="Tipo de IVA">IVA</th>
                                     <th>Precio</th>
                                     <th>Stock</th>
                                     <th>Categoría</th>
@@ -658,19 +660,26 @@
                                 <tr th:each="p : ${products}" class="product-row" th:data-name="${p.name}"
                                     th:data-desc="${p.description}" th:data-id="${p.id}"
                                     th:data-category="${p.category != null ? p.category.name : ''}"
-                                    th:data-stock="${p.stock}" th:data-active="${p.active}">
+                                    th:data-stock="${p.stock}" th:data-active="${p.active}" th:data-iva="${p.ivaRate}">
                                     <td>
                                         <img th:if="${p.imageUrl != null && !#strings.isEmpty(p.imageUrl)}"
                                             th:src="${p.imageUrl}" class="thumb" alt="">
                                         <div th:unless="${p.imageUrl != null && !#strings.isEmpty(p.imageUrl)}"
                                             class="thumb-placeholder"><i class="bi bi-image"></i></div>
                                     </td>
+                                    <td><strong th:text="${p.name}"></strong></td>
                                     <td>
-                                        <strong th:text="${p.name}"></strong>
-                                        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px"
+                                        <div style="font-size:0.78rem;color:var(--text-muted)"
                                             th:if="${p.description != null}"
                                             th:text="${#strings.abbreviate(p.description,60)}">
                                         </div>
+                                        <span th:unless="${p.description != null}"
+                                            style="color:var(--text-muted)">—</span>
+                                    </td>
+                                    <td style="font-size:0.9rem; font-weight: 500;">
+                                        <span th:if="${p.ivaRate != null}"
+                                            th:text="${#numbers.formatDecimal(p.ivaRate * 100, 1, 0)} + '%'"></span>
+                                        <span th:unless="${p.ivaRate != null}" style="color:var(--text-muted)">—</span>
                                     </td>
                                     <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--accent)"
                                         th:text="${#numbers.formatDecimal(p.price,1,2)} + ' &euro;'"></td>
@@ -703,7 +712,7 @@
                                     </td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(products)}">
-                                    <td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted)">
+                                    <td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted)">
                                         No hay productos registrados. <a href="javascript:void(0)"
                                             onclick="openProductModal()" style="color:var(--accent)">Crear el
                                             primero</a>
@@ -720,9 +729,11 @@
                         style="background: var(--surface); border: 1px solid var(--border);">
                         <div class="row g-2">
                             <div class="col-md-10">
-                                <label class="form-label small text-muted mb-1">Buscar categoría</label>
+                                <label class="form-label small mb-1" style="color: var(--text-primary);">Buscar
+                                    categoría</label>
                                 <input type="text" id="categoryFilterSearch" class="form-control form-control-sm"
-                                    placeholder="Nombre o descripción..." oninput="debounceSharedFilter()">
+                                    placeholder="Nombre o descripción..." oninput="debounceSharedFilter()"
+                                    style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                             </div>
                             <div class="col-md-2 d-flex align-items-end">
                                 <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetCategoryFilters()">
@@ -803,30 +814,35 @@
                 style="background: var(--surface); border: 1px solid var(--border);">
                 <div class="row g-2">
                     <div class="col-md-3">
-                        <label class="form-label small text-muted mb-1">Buscar factura/cliente</label>
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Buscar
+                            factura/cliente</label>
                         <input type="text" id="invoiceFilterSearch" class="form-control form-control-sm"
-                            placeholder="Nº, Cliente, NIF..." oninput="filterInvoices()">
+                            placeholder="Nº, Cliente, NIF..." oninput="filterInvoices()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small text-muted mb-1">Tipo</label>
-                        <select id="invoiceFilterType" class="form-select form-select-sm" onchange="filterInvoices()">
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Tipo</label>
+                        <select id="invoiceFilterType" class="form-select form-select-sm" onchange="filterInvoices()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                             <option value="">Todos</option>
                             <option value="factura">Factura</option>
                             <option value="ticket">Ticket</option>
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label small text-muted mb-1">Método de Pago</label>
-                        <select id="invoiceFilterMethod" class="form-select form-select-sm" onchange="filterInvoices()">
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Método de Pago</label>
+                        <select id="invoiceFilterMethod" class="form-select form-select-sm" onchange="filterInvoices()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                             <option value="">Cualquier método</option>
                             <option value="Efectivo">Efectivo</option>
                             <option value="Tarjeta">Tarjeta</option>
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small text-muted mb-1">Fecha</label>
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Fecha</label>
                         <input type="date" id="invoiceFilterDate" class="form-control form-control-sm"
-                            onchange="filterInvoices()">
+                            onchange="filterInvoices()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetInvoiceFilters()">
@@ -926,22 +942,26 @@
                 style="background: var(--surface); border: 1px solid var(--border);">
                 <div class="row g-2">
                     <div class="col-md-3">
-                        <label class="form-label small text-muted mb-1">Buscar por Nº / Motivo</label>
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Buscar por Nº /
+                            Motivo</label>
                         <input type="text" id="returnFilterSearch" class="form-control form-control-sm"
-                            placeholder="Ej: D-2026-0001 o Motivo..." oninput="filterReturns()">
+                            placeholder="Ej: D-2026-0001 o Motivo..." oninput="filterReturns()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label small text-muted mb-1">Método de Pago</label>
-                        <select id="returnFilterMethod" class="form-select form-select-sm" onchange="filterReturns()">
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Método de Pago</label>
+                        <select id="returnFilterMethod" class="form-select form-select-sm" onchange="filterReturns()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                             <option value="">Cualquier método</option>
                             <option value="Efectivo">Efectivo</option>
                             <option value="Tarjeta">Tarjeta</option>
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label small text-muted mb-1">Fecha</label>
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Fecha</label>
                         <input type="date" id="returnFilterDate" class="form-control form-control-sm"
-                            onchange="filterReturns()">
+                            onchange="filterReturns()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                     </div>
                     <div class="col-md-3 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetReturnFilters()">
@@ -1028,7 +1048,7 @@
                                 PIN Administrador</h5>
                         </div>
                         <div class="card-body p-4">
-                            <p class="text-muted small mb-4">
+                            <p class="small mb-4" style="color: var(--text-muted);">
                                 Este PIN se utiliza para acceder a funciones administrativas y realizar cierres de caja.
                                 Al cambiarlo, el nuevo PIN se aplicará inmediatamente sin necesidad de reiniciar.
                             </p>
@@ -1036,7 +1056,8 @@
                                 <div class="mb-3">
                                     <label class="form-label small fw-bold">PIN Actual</label>
                                     <div class="input-group input-group-sm">
-                                        <span class="input-group-text bg-transparent border-border text-muted"><i
+                                        <span class="input-group-text"
+                                            style="background-color: var(--surface); border-color: var(--border); color: var(--text-muted);"><i
                                                 class="bi bi-key"></i></span>
                                         <input type="password" id="currentPin"
                                             class="form-control border-border shadow-none" required placeholder="••••">
@@ -1046,7 +1067,8 @@
                                 <div class="mb-3">
                                     <label class="form-label small fw-bold">Nuevo PIN</label>
                                     <div class="input-group input-group-sm">
-                                        <span class="input-group-text bg-transparent border-border text-muted"><i
+                                        <span class="input-group-text"
+                                            style="background-color: var(--surface); border-color: var(--border); color: var(--text-muted);"><i
                                                 class="bi bi-shield-plus"></i></span>
                                         <input type="password" id="newPin"
                                             class="form-control border-border shadow-none" required minlength="4"
@@ -1056,7 +1078,8 @@
                                 <div class="mb-4">
                                     <label class="form-label small fw-bold">Confirmar Nuevo PIN</label>
                                     <div class="input-group input-group-sm">
-                                        <span class="input-group-text bg-transparent border-border text-muted"><i
+                                        <span class="input-group-text"
+                                            style="background-color: var(--surface); border-color: var(--border); color: var(--text-muted);"><i
                                                 class="bi bi-check-circle"></i></span>
                                         <input type="password" id="confirmPin"
                                             class="form-control border-border shadow-none" required
@@ -1090,14 +1113,18 @@
                 style="background: var(--surface); border: 1px solid var(--border);">
                 <div class="row g-2">
                     <div class="col-md-5">
-                        <label class="form-label small text-muted mb-1">Buscar por trabajador</label>
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Buscar por
+                            trabajador</label>
                         <input type="text" id="cashFilterWorker" class="form-control form-control-sm"
-                            placeholder="Nombre de usuario..." oninput="filterCashClosures()">
+                            placeholder="Nombre de usuario..." oninput="filterCashClosures()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                     </div>
                     <div class="col-md-5">
-                        <label class="form-label small text-muted mb-1">Fecha (DD/MM/YYYY)</label>
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Fecha
+                            (DD/MM/YYYY)</label>
                         <input type="text" id="cashFilterDate" class="form-control form-control-sm"
-                            placeholder="Ej: 03/03/2026..." oninput="filterCashClosures()">
+                            placeholder="Ej: 03/03/2026..." oninput="filterCashClosures()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetCashFilters()">
@@ -1187,43 +1214,61 @@
                 style="background: var(--surface); border: 1px solid var(--border);">
                 <div class="row g-2">
                     <div class="col-md-3">
-                        <label class="form-label small text-muted mb-1">Buscar por nombre</label>
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Buscar por
+                            nombre</label>
                         <input type="text" id="workerFilterName" class="form-control form-control-sm"
-                            placeholder="Usuario..." oninput="filterWorkers()">
+                            placeholder="Usuario..." oninput="filterWorkers()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small text-muted mb-1">Rol</label>
-                        <select id="workerFilterRole" class="form-select form-select-sm" onchange="filterWorkers()">
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Rol</label>
+                        <select id="workerFilterRole" class="form-select form-select-sm" onchange="filterWorkers()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                             <option value="">Cualquier Rol</option>
                             <option th:each="r : ${roles}" th:value="${r.id}" th:text="${r.name}"></option>
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small text-muted mb-1">Estado</label>
-                        <select id="workerFilterStatus" class="form-select form-select-sm" onchange="filterWorkers()">
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Estado</label>
+                        <select id="workerFilterStatus" class="form-select form-select-sm" onchange="filterWorkers()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                             <option value="">Todos</option>
                             <option value="true">Activos</option>
                             <option value="false">Inactivos</option>
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label small text-muted mb-1">Permisos (requiere todos los marcados)</label>
-                        <div class="d-flex flex-wrap gap-2 p-2 rounded border"
-                            style="background: rgba(255,255,255,0.02);">
-                            <div class="form-check">
-                                <input class="form-check-input worker-filter-perm" type="checkbox" value="ADMIN_ACCESS"
-                                    id="wf_admin" onchange="filterWorkers()">
-                                <label class="form-check-label x-small" for="wf_admin">ADMIN</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input worker-filter-perm" type="checkbox" value="CASH_CLOSE"
-                                    id="wf_cash" onchange="filterWorkers()">
-                                <label class="form-check-label x-small" for="wf_cash">CAJA</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input worker-filter-perm" type="checkbox"
-                                    value="MANAGE_PRODUCTS_TPV" id="wf_stock" onchange="filterWorkers()">
-                                <label class="form-check-label x-small" for="wf_stock">INV</label>
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Permisos</label>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100" type="button"
+                                id="workerFilterPermBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                                aria-expanded="false"
+                                style="text-align: left; color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
+                                Cualquier permiso
+                            </button>
+                            <div class="dropdown-menu p-3 w-100"
+                                style="--bs-dropdown-bg: var(--surface); --bs-dropdown-color: var(--text-primary); --bs-dropdown-border-color: var(--border); background-color: var(--surface); border-color: var(--border);">
+                                <div class="form-check mb-2" onclick="event.stopPropagation()">
+                                    <input class="form-check-input worker-filter-perm" type="checkbox"
+                                        value="ADMIN_ACCESS" id="wf_admin"
+                                        onchange="filterWorkers(); updateFilterPermLabel('workerFilterPermBtn', '.worker-filter-perm', 'Cualquier permiso');">
+                                    <label class="form-check-label" for="wf_admin"
+                                        style="color: var(--text-primary);">ADMIN_ACCESS</label>
+                                </div>
+                                <div class="form-check mb-2" onclick="event.stopPropagation()">
+                                    <input class="form-check-input worker-filter-perm" type="checkbox"
+                                        value="CASH_CLOSE" id="wf_cash"
+                                        onchange="filterWorkers(); updateFilterPermLabel('workerFilterPermBtn', '.worker-filter-perm', 'Cualquier permiso');">
+                                    <label class="form-check-label" for="wf_cash"
+                                        style="color: var(--text-primary);">CASH_CLOSE</label>
+                                </div>
+                                <div class="form-check" onclick="event.stopPropagation()">
+                                    <input class="form-check-input worker-filter-perm" type="checkbox"
+                                        value="MANAGE_PRODUCTS_TPV" id="wf_stock"
+                                        onchange="filterWorkers(); updateFilterPermLabel('workerFilterPermBtn', '.worker-filter-perm', 'Cualquier permiso');">
+                                    <label class="form-check-label" for="wf_stock"
+                                        style="color: var(--text-primary);">MANAGE_PRODUCTS_TPV</label>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1233,7 +1278,7 @@
                         </button>
                     </div>
                 </div>
-                <div id="workerCountLabel" class="text-muted small mt-2">
+                <div id="workerCountLabel" class="small mt-2" style="color: var(--text-muted);">
                     Mostrando todas las fichas de trabajadores.
                 </div>
             </div>
@@ -1255,19 +1300,22 @@
                             th:data-permissions="${#strings.listJoin(w.getEffectivePermissions(), ',')}">
                             <td><strong th:text="${w.username}"></strong></td>
                             <td>
-                                <span th:if="${w.role != null}" class="badge bg-info text-dark"
-                                    style="font-size:0.75rem" th:text="${w.role.name}"></span>
-                                <span th:unless="${w.role != null}" class="text-muted small">Sin rol</span>
+                                <span th:if="${w.role != null}" class="badge"
+                                    style="font-size:0.75rem; background-color: rgba(6,182,212,0.18); color: #22d3ee; border: 1px solid rgba(6,182,212,0.3);"
+                                    th:text="${w.role.name}"></span>
+                                <span th:unless="${w.role != null}" class="small" style="color: var(--text-muted);">Sin
+                                    rol</span>
                             </td>
                             <td>
                                 <span th:if="${w.active}" class="badge bg-success">Activo</span>
                                 <span th:unless="${w.active}" class="badge bg-danger">Inactivo</span>
                             </td>
                             <td>
-                                <span th:each="perm : ${w.getEffectivePermissions()}" class="badge bg-secondary me-1"
-                                    th:text="${perm}" style="font-size: 0.65rem;"></span>
-                                <span th:if="${#lists.isEmpty(w.getEffectivePermissions())}"
-                                    class="text-muted small">Sin
+                                <span th:each="perm : ${w.getEffectivePermissions()}" class="badge me-1"
+                                    th:text="${perm}"
+                                    style="font-size: 0.65rem; background-color: rgba(148,163,184,0.15); color: var(--text-muted); border: 1px solid rgba(148,163,184,0.25);"></span>
+                                <span th:if="${#lists.isEmpty(w.getEffectivePermissions())}" class="small"
+                                    style="color: var(--text-muted);">Sin
                                     permisos</span>
                             </td>
                             <td style="text-align:right">
@@ -1284,7 +1332,8 @@
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(workers)}">
-                            <td colspan="5" class="text-center py-4 text-muted">No hay trabajadores registrados</td>
+                            <td colspan="5" class="text-center py-4" style="color: var(--text-muted);">No hay
+                                trabajadores registrados</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1313,33 +1362,44 @@
                 style="background: var(--surface); border: 1px solid var(--border);">
                 <div class="row g-2">
                     <div class="col-md-6">
-                        <label class="form-label small text-muted mb-1">Buscar por nombre</label>
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Buscar por
+                            nombre</label>
                         <input type="text" id="roleFilterName" class="form-control form-control-sm"
-                            placeholder="Buscar por nombre..." oninput="filterRoles()">
+                            placeholder="Buscar por nombre..." oninput="filterRoles()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label small text-muted mb-1">Permisos requeridos</label>
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Permisos
+                            requeridos</label>
                         <div class="dropdown">
                             <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100" type="button"
-                                data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
-                                style="text-align: left; background: var(--surface); border: 1px solid var(--border);">
+                                id="roleFilterPermBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                                aria-expanded="false"
+                                style="text-align: left; color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                                 Seleccionar Permisos
                             </button>
-                            <div class="dropdown-menu p-3 bg-surface border-border shadow" style="min-width: 250px;">
-                                <div class="form-check mb-2">
+                            <div class="dropdown-menu p-3 shadow"
+                                style="min-width: 250px; --bs-dropdown-bg: var(--surface); --bs-dropdown-color: var(--text-primary); --bs-dropdown-border-color: var(--border); background-color: var(--surface); border-color: var(--border);">
+                                <div class="form-check mb-2" onclick="event.stopPropagation()">
                                     <input class="form-check-input role-filter-perm" type="checkbox"
-                                        value="ADMIN_ACCESS" id="rf_admin" onchange="filterRoles()">
-                                    <label class="form-check-label small" for="rf_admin">ADMIN_ACCESS</label>
+                                        value="ADMIN_ACCESS" id="rf_admin"
+                                        onchange="filterRoles(); updateFilterPermLabel('roleFilterPermBtn', '.role-filter-perm', 'Seleccionar Permisos');">
+                                    <label class="form-check-label small" for="rf_admin"
+                                        style="color: var(--text-primary);">ADMIN_ACCESS</label>
                                 </div>
-                                <div class="form-check mb-2">
+                                <div class="form-check mb-2" onclick="event.stopPropagation()">
                                     <input class="form-check-input role-filter-perm" type="checkbox" value="CASH_CLOSE"
-                                        id="rf_cash" onchange="filterRoles()">
-                                    <label class="form-check-label small" for="rf_cash">CASH_CLOSE</label>
+                                        id="rf_cash"
+                                        onchange="filterRoles(); updateFilterPermLabel('roleFilterPermBtn', '.role-filter-perm', 'Seleccionar Permisos');">
+                                    <label class="form-check-label small" for="rf_cash"
+                                        style="color: var(--text-primary);">CASH_CLOSE</label>
                                 </div>
-                                <div class="form-check mb-0">
+                                <div class="form-check mb-0" onclick="event.stopPropagation()">
                                     <input class="form-check-input role-filter-perm" type="checkbox"
-                                        value="MANAGE_PRODUCTS_TPV" id="rf_stock" onchange="filterRoles()">
-                                    <label class="form-check-label small" for="rf_stock">MANAGE_PRODUCTS_TPV</label>
+                                        value="MANAGE_PRODUCTS_TPV" id="rf_stock"
+                                        onchange="filterRoles(); updateFilterPermLabel('roleFilterPermBtn', '.role-filter-perm', 'Seleccionar Permisos');">
+                                    <label class="form-check-label small" for="rf_stock"
+                                        style="color: var(--text-primary);">MANAGE_PRODUCTS_TPV</label>
                                 </div>
                             </div>
                         </div>
@@ -1366,7 +1426,7 @@
                     </thead>
                     <tbody id="rolesTableBody">
                         <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">
+                            <td colspan="5" class="text-center py-4" style="color: var(--text-muted);">
                                 <span class="spinner-border spinner-border-sm me-2"></span>Cargando...
                             </td>
                         </tr>
@@ -1477,21 +1537,24 @@
                 style="background: var(--surface); border: 1px solid var(--border);">
                 <div class="row g-2">
                     <div class="col-md-5">
-                        <label class="form-label small text-muted mb-1">Buscar cliente</label>
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Buscar cliente</label>
                         <input type="text" id="crmFilterSearch" class="form-control form-control-sm"
-                            placeholder="Nombre, NIF, Email, Teléfono..." oninput="filterCRM()">
+                            placeholder="Nombre, NIF, Email, Teléfono..." oninput="filterCRM()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label small text-muted mb-1">Tipo</label>
-                        <select id="crmFilterType" class="form-select form-select-sm" onchange="filterCRM()">
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Tipo</label>
+                        <select id="crmFilterType" class="form-select form-select-sm" onchange="filterCRM()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                             <option value="">Todos los tipos</option>
                             <option value="INDIVIDUAL">Particular</option>
                             <option value="COMPANY">Empresa / Profesional</option>
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small text-muted mb-1">R.E.</label>
-                        <select id="crmFilterRE" class="form-select form-select-sm" onchange="filterCRM()">
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">R.E.</label>
+                        <select id="crmFilterRE" class="form-select form-select-sm" onchange="filterCRM()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                             <option value="">Todos</option>
                             <option value="yes">Con Recargo</option>
                             <option value="no">Sin Recargo</option>
@@ -1562,7 +1625,8 @@
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(customers)}">
-                            <td colspan="8" class="text-center py-4 text-muted">No hay clientes registrados</td>
+                            <td colspan="8" class="text-center py-4" style="color: var(--text-muted);">No hay clientes
+                                registrados</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1616,9 +1680,11 @@
                     style="background: var(--surface); border: 1px solid var(--border);">
                     <div class="row g-2">
                         <div class="col-md-10">
-                            <label class="form-label small text-muted mb-1">Buscar por producto</label>
+                            <label class="form-label small mb-1" style="color: var(--text-primary);">Buscar por
+                                producto</label>
                             <input type="text" id="futurePriceFilterSearch" class="form-control form-control-sm"
-                                placeholder="Nombre del producto..." oninput="filterFuturePrices()">
+                                placeholder="Nombre del producto..." oninput="filterFuturePrices()"
+                                style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
                             <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetFuturePriceFilters()">
@@ -1656,9 +1722,10 @@
                     style="background: var(--surface); border: 1px solid var(--border);">
                     <div class="row g-2">
                         <div class="col-md-10">
-                            <label class="form-label small text-muted mb-1">Producto</label>
+                            <label class="form-label small mb-1" style="color: var(--text-primary);">Producto</label>
                             <select class="form-select form-select-sm" id="historialProductSelect"
-                                onchange="loadPriceHistory()">
+                                onchange="loadPriceHistory()"
+                                style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                                 <option value="">— Selecciona un producto —</option>
                                 <option th:each="p : ${products}" th:value="${p.id}" th:text="${p.name}"></option>
                             </select>
@@ -1727,7 +1794,8 @@
             <div class="card" style="background:var(--bg-card);border:1px solid var(--border);max-width:700px">
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label fw-600">Seleccionar Productos</label>
+                        <label class="form-label fw-600" style="color: var(--text-primary);">Seleccionar
+                            Productos</label>
                         <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
                             <button class="btn btn-sm btn-outline-secondary"
                                 onclick="selectAllBulkProducts(true)">Seleccionar Todos</button>
@@ -1753,34 +1821,42 @@
                         </div>
                         <div class="bulk-product-list" id="bulkProductList"
                             style="max-height:250px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:10px">
-                            <div class="text-center text-muted py-3">Cargando productos...</div>
+                            <style>
+                                #bulkProductList .form-check-label {
+                                    color: var(--text-primary) !important;
+                                }
+                            </style>
+                            <div class="text-center py-3" style="color: var(--text-muted);">Cargando productos...</div>
                         </div>
-                        <small class="text-muted" id="selectedCountLabel">0 productos seleccionados</small>
+                        <small id="selectedCountLabel" style="color: var(--text-muted);">0 productos
+                            seleccionados</small>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-600">Tipo de Cambio</label>
+                            <label class="form-label fw-600" style="color: var(--text-primary);">Tipo de Cambio</label>
                             <select class="form-select" id="bulkPriceType" onchange="toggleBulkPriceFields()">
                                 <option value="percentage">Porcentaje (%)</option>
                                 <option value="fixed">Cantidad Fija (€)</option>
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-600" id="bulkPriceValueLabel">Porcentaje (%)</label>
+                            <label class="form-label fw-600" id="bulkPriceValueLabel"
+                                style="color: var(--text-primary);">Porcentaje (%)</label>
                             <input type="number" class="form-control" id="bulkPriceValue" step="0.01"
                                 placeholder="Ej: 10 para +10%">
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-600">Fecha de Vigencia (opcional)</label>
+                        <label class="form-label fw-600" style="color: var(--text-primary);">Fecha de Vigencia
+                            (opcional)</label>
                         <input type="datetime-local" class="form-control" id="bulkEffectiveDate">
-                        <small class="text-muted">Dejar vacío para aplicar inmediatamente</small>
+                        <small style="color: var(--text-muted);">Dejar vacío para aplicar inmediatamente</small>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-600">Etiqueta (opcional)</label>
+                        <label class="form-label fw-600" style="color: var(--text-primary);">Etiqueta (opcional)</label>
                         <input type="text" class="form-control" id="bulkLabel" placeholder="Ej: Incremento IPC 2026">
                     </div>
 
@@ -1816,19 +1892,23 @@
                 style="background: var(--surface); border: 1px solid var(--border);">
                 <div class="row g-2">
                     <div class="col-md-4">
-                        <label class="form-label small text-muted mb-1">Buscar por usuario</label>
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Buscar por
+                            usuario</label>
                         <input type="text" id="activityFilterUser" class="form-control form-control-sm"
-                            placeholder="Nombre de usuario..." oninput="filterActivity()">
+                            placeholder="Nombre de usuario..." oninput="filterActivity()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label small text-muted mb-1">Buscar acción</label>
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Buscar acción</label>
                         <input type="text" id="activityFilterAction" class="form-control form-control-sm"
-                            placeholder="Ej: VENTA, ELIMINAR..." oninput="filterActivity()">
+                            placeholder="Ej: VENTA, ELIMINAR..." oninput="filterActivity()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small text-muted mb-1">Fecha</label>
+                        <label class="form-label small mb-1" style="color: var(--text-primary);">Fecha</label>
                         <input type="date" id="activityFilterDate" class="form-control form-control-sm"
-                            onchange="filterActivity()">
+                            onchange="filterActivity()"
+                            style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetActivityFilters()">
@@ -2048,7 +2128,8 @@
                                 <label class="form-label" id="workerPasswordLabel">Contraseña *</label>
                                 <input type="text" class="form-control" id="workerPassword" required
                                     placeholder="••••••••">
-                                <small class="text-muted">Se muestra en texto plano para gestión del dueño.</small>
+                                <small style="color: var(--text-muted);">Se muestra en texto plano para gestión del
+                                    dueño.</small>
                             </div>
                             <div class="col-12">
                                 <div class="form-check">
@@ -2061,32 +2142,45 @@
                                 <select class="form-select" id="workerRole" onchange="onWorkerRoleChange()">
                                     <option value="">Sin rol</option>
                                 </select>
-                                <small class="text-muted">Selecciona un rol para auto-completar permisos, o establece
+                                <small style="color: var(--text-muted);">Selecciona un rol para auto-completar permisos,
+                                    o establece
                                     permisos manualmente.</small>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Permisos</label>
-                                <div class="p-3 rounded"
-                                    style="background:var(--primary); border:1px solid var(--border)">
-                                    <div class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" value="MANAGE_PRODUCTS_TPV"
-                                            id="permProd">
-                                        <label class="form-check-label" for="permProd">Gestionar productos en
-                                            TPV</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" value="CASH_CLOSE"
-                                            id="permCash">
-                                        <label class="form-check-label" for="permCash">Realizar cierres de caja</label>
-                                    </div>
-                                    <div class="form-check mt-2"
-                                        style="border-top: 1px solid var(--border); padding-top: 0.5rem;">
-                                        <input class="form-check-input" type="checkbox" value="ADMIN_ACCESS"
-                                            id="permAdmin">
-                                        <label class="form-check-label text-danger" for="permAdmin"
-                                            style="font-weight:700">
-                                            <i class="bi bi-shield-exclamation me-1"></i>ACCESO TOTAL ADMIN
-                                        </label>
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100" type="button"
+                                        id="permDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                                        aria-expanded="false"
+                                        style="text-align: left; background: var(--surface); border: 1px solid var(--border); color: var(--text-primary);">
+                                        Sin permisos
+                                    </button>
+                                    <div class="dropdown-menu p-3 w-100"
+                                        style="--bs-dropdown-bg: var(--surface); --bs-dropdown-color: var(--text-primary); --bs-dropdown-border-color: var(--border); background-color: var(--surface); border-color: var(--border);">
+                                        <div class="form-check mb-2" onclick="event.stopPropagation()">
+                                            <input class="form-check-input" type="checkbox" value="MANAGE_PRODUCTS_TPV"
+                                                id="permProd" onchange="updatePermDropdownLabel()">
+                                            <label class="form-check-label" for="permProd"
+                                                style="color: var(--text-primary);">Gestionar productos en
+                                                TPV</label>
+                                        </div>
+                                        <div class="form-check mb-2" onclick="event.stopPropagation()">
+                                            <input class="form-check-input" type="checkbox" value="CASH_CLOSE"
+                                                id="permCash" onchange="updatePermDropdownLabel()">
+                                            <label class="form-check-label" for="permCash"
+                                                style="color: var(--text-primary);">Realizar cierres de
+                                                caja</label>
+                                        </div>
+                                        <div class="form-check mt-2"
+                                            style="border-top: 1px solid var(--border); padding-top: 0.5rem;"
+                                            onclick="event.stopPropagation()">
+                                            <input class="form-check-input" type="checkbox" value="ADMIN_ACCESS"
+                                                id="permAdmin" onchange="updatePermDropdownLabel()">
+                                            <label class="form-check-label text-danger" for="permAdmin"
+                                                style="font-weight:700">
+                                                <i class="bi bi-shield-exclamation me-1"></i>ACCESO TOTAL ADMIN
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -2177,7 +2271,8 @@
                                             Sujeto a Recargo de Equivalencia (R.E.)
                                         </label>
                                     </div>
-                                    <small class="text-muted d-block mt-2 ms-4" style="font-size: 0.8rem;">
+                                    <small class="d-block mt-2 ms-4"
+                                        style="font-size: 0.8rem; color: var(--text-muted);">
                                         Activa esta opción si el cliente es un minorista en régimen de RE. Se aplicará
                                         el recargo español según el IVA (21%→5,2%, etc.).
                                     </small>
@@ -2195,7 +2290,8 @@
                                             th:text="${tariff.getDisplayLabel()}">MINORISTA</option>
                                     </th:block>
                                 </select>
-                                <small class="text-muted">La tarifa define el descuento automático cuando este cliente
+                                <small style="color: var(--text-muted);">La tarifa define el descuento automático cuando
+                                    este cliente
                                     se añade a una venta.</small>
                             </div>
                         </div>
@@ -2268,7 +2364,8 @@
                                     style="background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.3);font-size:0.8rem">
                                     <strong><i class="bi bi-percent me-1 text-warning"></i>Recargo de Equivalencia
                                         asociado:</strong>
-                                    <span id="spRecargoPreview" class="ms-2 text-muted">21% IVA → +5,2% RE</span>
+                                    <span id="spRecargoPreview" class="ms-2" style="color: var(--text-muted);">21% IVA →
+                                        +5,2% RE</span>
                                 </div>
                             </div>
                         </div>
@@ -2306,25 +2403,32 @@
                         <div class="col-md-5">
                             <h6 class="fw-bold mb-3">Configuración</h6>
                             <div class="mb-3">
-                                <label class="form-label small text-muted">Variación IPC (%)</label>
+                                <label class="form-label small" style="color: var(--text-primary);">Variación IPC
+                                    (%)</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-end-0"><i
+                                    <span class="input-group-text border-end-0"
+                                        style="background-color: var(--surface); border-color: var(--border); color: var(--text-muted);"><i
                                             class="bi bi-percent"></i></span>
-                                    <input type="number" step="0.01" class="form-control" id="ipcValueInput">
+                                    <input type="number" step="0.01" class="form-control" id="ipcValueInput"
+                                        style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                                 </div>
                                 <div id="ipcSourceNote" class="form-text mt-1" style="font-size:0.75rem">Cargando dato
                                     INE...</div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small text-muted">Fecha de Vigencia</label>
-                                <input type="datetime-local" class="form-control" id="ipcEffectiveDate">
+                                <label class="form-label small" style="color: var(--text-primary);">Fecha de
+                                    Vigencia</label>
+                                <input type="datetime-local" class="form-control" id="ipcEffectiveDate"
+                                    style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                                 <div class="form-text" id="ipcDateNote" style="font-size:0.75rem">Sugerido: 1 de enero
                                     del próximo año
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small text-muted">Ámbito de Aplicación</label>
-                                <select class="form-select" id="ipcScope">
+                                <label class="form-label small" style="color: var(--text-primary);">Ámbito de
+                                    Aplicación</label>
+                                <select class="form-select" id="ipcScope"
+                                    style="color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
                                     <option value="all">Todos los productos</option>
                                     <option value="category">Por categoría seleccionada</option>
                                 </select>
@@ -2541,6 +2645,93 @@
             if (!confirm('¿Eliminar el tipo de IVA "' + msg + '"?')) return;
             fetch('/api/tax-rates/' + id, { method: 'DELETE' }).then(r => {
                 if (r.ok) location.reload(); else showToastAdmin('Error al eliminar', 'warning');
+            });
+        }
+    </script>
+    <script>
+        // Override the shared product table rendering to include new columns (IVA and Descripción)
+        // This ensures that server-side filtered results also show the new columns.
+        if (typeof renderSharedProductsTable === 'function') {
+            window.renderSharedProductsTable = function (products) {
+                const tbody = document.getElementById('productsTableBody');
+                if (!tbody) return;
+
+                tbody.innerHTML = '';
+
+                if (!products || products.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="9" class="text-center p-4 text-muted">No se encontraron productos con esos filtros.</td></tr>`;
+                    return;
+                }
+
+                products.forEach(p => {
+                    const formattedPrice = (p.price || 0).toFixed(2) + ' €';
+                    const stockStyle = p.stock < 5 ? 'fw-bold text-danger' : '';
+                    const badgeLowStock = p.stock < 5 ? '<span class="badge-stock-low ms-1">Stock Bajo</span>' : '';
+                    const catName = p.category ? p.category.name : '—';
+                    const imgHtml = p.imageUrl
+                        ? `<img src="${p.imageUrl}" class="thumb" alt="">`
+                        : `<div class="thumb-placeholder"><i class="bi bi-image"></i></div>`;
+                    const activeBadge = p.active
+                        ? `<span class="badge-active yes">Sí</span>`
+                        : `<span class="badge-active no">No</span>`;
+
+                    const ivaDisplay = p.ivaRate != null ? (p.ivaRate * 100).toFixed(0) + '%' : '—';
+                    const descTruncated = p.description ? (p.description.length > 60 ? p.description.substring(0, 57) + '...' : p.description) : '—';
+                    const escapedName = p.name ? p.name.replace(/'/g, "\\'").replace(/"/g, "&quot;") : '';
+
+                    let tr = document.createElement('tr');
+                    tr.className = 'product-row';
+                    tr.setAttribute('data-iva', p.ivaRate);
+                    tr.innerHTML = `
+                        <td>${imgHtml}</td>
+                        <td><strong>${p.name}</strong></td>
+                        <td><div style="font-size:0.78rem;color:var(--text-muted)">${descTruncated}</div></td>
+                        <td style="font-size:0.9rem; font-weight: 500;">${ivaDisplay}</td>
+                        <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--accent)">${formattedPrice}</td>
+                        <td><span class="${stockStyle}">${p.stock}</span> ${badgeLowStock}</td>
+                        <td><span style="font-size:0.82rem;padding:0.2rem 0.5rem;border-radius:6px;background:var(--surface);color:var(--text-muted)">${catName}</span></td>
+                        <td>${activeBadge}</td>
+                        <td style="text-align:right">
+                            <div class="d-flex gap-1 justify-content-end">
+                                <button class="btn-icon" title="Editar" onclick="openProductModal(${p.id})"><i class="bi bi-pencil"></i></button>
+                                <button class="btn-icon danger" title="Eliminar" onclick="deleteProduct(${p.id}, '${escapedName}')"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // After rendering, apply client-side IVA filtering if needed
+                filterProducts();
+            };
+        }
+
+        /**
+         * Client-side filter for IVA rate.
+         */
+        function filterProducts() {
+            const ivaFilter = document.getElementById('sharedFilterIvaRate');
+            if (!ivaFilter) return;
+
+            const selectedIva = ivaFilter.value;
+            const rows = document.querySelectorAll('.product-row');
+
+            rows.forEach(row => {
+                const rowIva = row.getAttribute('data-iva');
+                let matchesIva = true;
+
+                if (selectedIva !== "") {
+                    // Handle potential null/empty values for iva in data attribute
+                    const val = rowIva ? parseFloat(rowIva).toFixed(2) : null;
+                    const target = parseFloat(selectedIva).toFixed(2);
+                    matchesIva = (val === target);
+                }
+
+                if (matchesIva) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
             });
         }
     </script>

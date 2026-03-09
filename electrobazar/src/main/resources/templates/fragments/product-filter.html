@@ -3,22 +3,33 @@
     style="background: var(--surface); border: 1px solid var(--border);">
     <div class="row g-2">
         <!-- Buscador -->
-        <div class="col-md-3">
-            <label class="form-label small text-muted mb-1">Buscar producto</label>
+        <div class="col-md-2">
+            <label class="form-label small mb-1" style="color: var(--text-primary);">Buscar producto</label>
             <input type="text" id="sharedFilterSearch" class="form-control form-control-sm"
                 placeholder="Nombre, ID o desc..." autocomplete="off" oninput="debounceSharedFilter()">
         </div>
         <!-- Select Categoría -->
         <div class="col-md-2">
-            <label class="form-label small text-muted mb-1">Categoría</label>
+            <label class="form-label small mb-1" style="color: var(--text-primary);">Categoría</label>
             <select id="sharedFilterCategory" class="form-select form-select-sm" onchange="runSharedBackendFilter()">
                 <option value="">Todas</option>
                 <option th:each="c : ${categories}" th:value="${c.name}" th:text="${c.name}"></option>
             </select>
         </div>
+        <!-- Select IVA -->
+        <div class="col-md-2">
+            <label class="form-label small mb-1" style="color: var(--text-primary);">Tipo IVA</label>
+            <select id="sharedFilterIvaRate" class="form-select form-select-sm" onchange="runSharedBackendFilter()">
+                <option value="">Todos</option>
+                <option value="0.21">21%</option>
+                <option value="0.10">10%</option>
+                <option value="0.04">4%</option>
+                <option value="0.02">2%</option>
+            </select>
+        </div>
         <!-- Select Stock -->
         <div class="col-md-2">
-            <label class="form-label small text-muted mb-1">Nivel Stock</label>
+            <label class="form-label small mb-1" style="color: var(--text-primary);">Nivel Stock</label>
             <select id="sharedFilterStock" class="form-select form-select-sm" onchange="runSharedBackendFilter()">
                 <option value="">Todos</option>
                 <option value="low">Stock Bajo</option>
@@ -27,7 +38,7 @@
         </div>
         <!-- Select Activo -->
         <div class="col-md-2">
-            <label class="form-label small text-muted mb-1">Estado</label>
+            <label class="form-label small mb-1" style="color: var(--text-primary);">Estado</label>
             <select id="sharedFilterActive" class="form-select form-select-sm" onchange="runSharedBackendFilter()">
                 <option value="">Todos</option>
                 <option value="true">Activos</option>
@@ -35,7 +46,7 @@
             </select>
         </div>
         <!-- Acciones -->
-        <div class="col-md-3 d-flex align-items-end gap-1">
+        <div class="col-md-2 d-flex align-items-end gap-1">
             <button class="btn btn-sm btn-outline-danger w-100" onclick="sharedFilterToggleLowStock()"
                 id="btnSharedLowStock">
                 <i class="bi bi-exclamation-triangle me-1"></i> Stock Bajo
