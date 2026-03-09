@@ -335,6 +335,13 @@
                             Fecha: <strong
                                 th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy')}">25/02/2026</strong><br />
                             Hora: <strong th:text="${#temporals.format(sale.createdAt, 'HH:mm:ss')}">14:30:00</strong>
+                            <div th:if="${sale.appliedDiscountPercentage != null and sale.appliedDiscountPercentage > 0}"
+                                style="margin-top: 10px; padding: 3px 8px; background: rgba(39, 174, 96, 0.1); color: #27ae60; border: 1px solid rgba(39, 174, 96, 0.2); border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">
+                                <i class="bi bi-tags-fill" style="margin-right: 4px;"></i>Tarifa: <span
+                                    th:text="${sale.appliedTariff}"></span> (<span
+                                    th:text="${#numbers.formatDecimal(sale.appliedDiscountPercentage, 1, 0)}"></span>%
+                                dto.)
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -482,6 +489,15 @@
                 <tr>
                     <td class="lbl">Base imponible:</td>
                     <td class="amt" th:text="${#numbers.formatDecimal(totalBase, 1, 2)} + ' &euro;'">0.00 &euro;</td>
+                </tr>
+                <tr th:if="${sale.appliedDiscountPercentage != null and sale.appliedDiscountPercentage > 0}">
+                    <td class="lbl" style="color: #27ae60;">Descuento aplicado (<span
+                            th:text="${sale.appliedTariff}"></span> <span
+                            th:text="${#numbers.formatDecimal(sale.appliedDiscountPercentage, 1, 0)}"></span>% dto.):
+                    </td>
+                    <td class="amt" style="color: #27ae60; font-weight: 700;">
+                        -<span th:text="${#numbers.formatDecimal(sale.totalDiscount, 1, 2)} + ' &euro;'"></span>
+                    </td>
                 </tr>
                 <tr>
                     <td class="lbl">IVA total:</td>

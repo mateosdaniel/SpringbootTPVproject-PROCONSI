@@ -184,26 +184,6 @@
                 <span class="ticket-count" id="ticketCount">0</span>
             </div>
 
-            <!-- Tariff badge + selector -->
-            <div id="tariffBar"
-                style="display:none; padding: 0.5rem 0.75rem; background: var(--surface); border-bottom: 1px solid var(--border); gap: 0.5rem; align-items: center;">
-                <div
-                    style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.4rem;">
-                    <div style="display:flex; align-items:center; gap:0.4rem;">
-                        <i class="bi bi-tags-fill" style="font-size:0.85rem;"></i>
-                        <span style="font-size:0.78rem; font-weight:600; color:var(--text-muted);">Tarifa:</span>
-                        <span id="tariffBadge" class="tariff-badge">MINORISTA</span>
-                    </div>
-                    <select id="tariffSelector"
-                        style="font-size:0.78rem; padding: 0.2rem 0.5rem; border-radius:6px; border: 1px solid var(--border); background: var(--primary); color: var(--text-main); cursor:pointer;"
-                        onchange="onTariffChange(this.value, this.options[this.selectedIndex].dataset.discount, this.options[this.selectedIndex].text)">
-                        <th:block th:each="tariff : ${tariffs}">
-                            <option th:value="${tariff.id}" th:attr="data-discount=${tariff.discountPercentage}"
-                                th:text="${tariff.getDisplayLabel()}">MINORISTA</option>
-                        </th:block>
-                    </select>
-                </div>
-            </div>
 
             <div class="ticket-lines" id="ticketLines">
                 <div class="ticket-empty" id="ticketEmpty">
@@ -247,7 +227,6 @@
                     <input type="hidden" name="customerType" id="customerTypeInput">
                     <input type="hidden" name="receivedAmount" id="receivedAmountInput">
                     <input type="hidden" name="requestInvoice" id="requestInvoiceInput" value="false">
-                    <input type="hidden" name="tariffId" id="tariffIdInput">
                     <div id="formLines"></div>
                     <button type="button" class="btn-cobrar" id="btnCobrar" onclick="openCustomerModal()" disabled>
                         <i class="bi bi-lightning-fill me-1"></i> Cobrar
@@ -366,9 +345,11 @@
                                                 <small class="text-success d-block fw-bold"
                                                     style="font-size: 0.7rem; text-transform: uppercase;">Cliente
                                                     seleccionado</small>
-                                                <span id="selectedCustomerName" class="fw-bold"></span>
-                                                <div id="selectedCustomerTaxId" class="text-muted"
-                                                    style="font-size: 0.85rem;"></div>
+                                                <span id="selectedCustomerName" class="fw-bold"
+                                                    style="color: var(--text-primary); background-color: var(--surface);"></span>
+                                                <div id="selectedCustomerTaxId"
+                                                    style="color: var(--text-primary); background-color: var(--surface); font-size: 0.85rem;">
+                                                </div>
                                             </div>
                                             <button type="button" class="btn btn-sm btn-outline-danger"
                                                 onclick="clearSelectedCustomer()">

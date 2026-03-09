@@ -770,13 +770,15 @@ function renderCustomerResults(customers) {
     container.innerHTML = '';
 
     if (customers.length === 0) {
-        container.innerHTML = '<div class="p-3 text-muted">No se encontraron clientes</div>';
+        container.innerHTML = '<div class="p-3" style="color: var(--text-primary); background-color: var(--surface);">No se encontraron clientes</div>';
     } else {
         customers.forEach(function (c) {
             var div = document.createElement('div');
             div.className = 'customer-search-item';
-            div.innerHTML = '<span class="name">' + escapeHtml(c.name) + '</span>' +
-                '<span class="details">' + (c.taxId || 'Sin NIF') + ' · ' + (c.city || '') + '</span>';
+            div.style.color = 'var(--text-primary)';
+            div.style.backgroundColor = 'var(--surface)';
+            div.innerHTML = '<span class="name" style="color: var(--text-primary);">' + escapeHtml(c.name) + '</span>' +
+                '<span class="details" style="color: var(--text-primary); opacity: 0.8;">' + (c.taxId || 'Sin NIF') + ' · ' + (c.city || '') + '</span>';
             div.onclick = function () { selectCustomer(c); };
             container.appendChild(div);
         });
