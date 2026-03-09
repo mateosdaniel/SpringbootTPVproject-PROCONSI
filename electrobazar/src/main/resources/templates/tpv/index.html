@@ -35,12 +35,13 @@
 
             <!-- Botones de Acción (Admin & Gestión) -->
             <div class="d-flex align-items-center gap-2 ms-1">
-                <button th:if="${session.worker.permissions.contains('ADMIN_ACCESS')}" class="btn-action-tpv p-0"
-                    id="adminLockBtn" title="Panel de Administración" onclick="openAdminPinModal()">
+                <button th:if="${session.worker.getEffectivePermissions().contains('ADMIN_ACCESS')}"
+                    class="btn-action-tpv p-0" id="adminLockBtn" title="Panel de Administración"
+                    onclick="openAdminPinModal()">
                     <i class="bi bi-shield-lock"></i>
                 </button>
 
-                <a th:if="${session.worker.permissions.contains('MANAGE_PRODUCTS_TPV') or session.worker.permissions.contains('ADMIN_ACCESS')}"
+                <a th:if="${session.worker.getEffectivePermissions().contains('MANAGE_PRODUCTS_TPV') or session.worker.getEffectivePermissions().contains('ADMIN_ACCESS')}"
                     th:href="@{/productos-categorias}" class="btn-action-tpv"
                     title="Administrar productos y categorías">
                     <i class="bi bi-box-seam"></i> <span>Inventario</span>
@@ -58,7 +59,7 @@
         <!-- Derecha: Acciones y Menú -->
         <div class="d-flex align-items-center gap-3">
             <!-- Stats (solo con permiso) -->
-            <th:block th:if="${session.worker.permissions.contains('CASH_CLOSE')}">
+            <th:block th:if="${session.worker.getEffectivePermissions().contains('CASH_CLOSE')}">
                 <div class="header-stats d-flex gap-3"
                     style="border-right: 1px solid var(--border); padding-right: 1rem;">
                     <div>Ventas hoy <br><strong th:text="${countToday}">0</strong></div>

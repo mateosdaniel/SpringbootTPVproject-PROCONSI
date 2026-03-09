@@ -71,10 +71,8 @@ public class ElectrobazarApplication {
 						// Update existing root
 						w.setRole(finalAdminRole);
 						w.setActive(true);
-						w.getPermissions()
-								.addAll(java.util.Set.of("MANAGE_PRODUCTS_TPV", "CASH_CLOSE", "ADMIN_ACCESS"));
 						workerService.save(w);
-						System.out.println(">>> Usuario ROOT actualizado con rol ADMIN y permisos manuales");
+						System.out.println(">>> Usuario ROOT actualizado con rol ADMIN");
 					}, () -> {
 						// Create new root
 						com.proconsi.electrobazar.model.Worker defaultWorker = new com.proconsi.electrobazar.model.Worker();
@@ -82,10 +80,8 @@ public class ElectrobazarApplication {
 						defaultWorker.setPassword("r00t");
 						defaultWorker.setActive(true);
 						defaultWorker.setRole(finalAdminRole);
-						defaultWorker.getPermissions()
-								.addAll(java.util.Set.of("MANAGE_PRODUCTS_TPV", "CASH_CLOSE", "ADMIN_ACCESS"));
 						workerService.save(defaultWorker);
-						System.out.println(">>> Usuario ROOT creado por defecto (root/r00t) con permisos manuales");
+						System.out.println(">>> Usuario ROOT creado por defecto (root/r00t) con rol ADMIN");
 					});
 		};
 	}

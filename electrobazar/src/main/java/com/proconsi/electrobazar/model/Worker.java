@@ -25,12 +25,6 @@ public class Worker {
     @Column(nullable = false)
     private String password;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "worker_permissions", joinColumns = @JoinColumn(name = "worker_id"))
-    @Column(name = "permission")
-    @Builder.Default
-    private Set<String> permissions = new HashSet<>();
-
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")
     private Role role;
@@ -39,15 +33,10 @@ public class Worker {
     @Builder.Default
     private boolean active = true;
 
-    /**
-     * Returns the effective permissions by combining manual permissions with role permissions.
-     * If a worker has a role, the role's permissions are added to any manual permissions.
-     */
     public Set<String> getEffectivePermissions() {
-        Set<String> effective = new HashSet<>(this.permissions);
-        if (this.role != null) {
-            effective.addAll(this.role.getPermissions());
+        if (this.role != null && this.role.getPermissions() != null) {
+            return new HashSet<>(this.role.getPermissions());
         }
-        return effective;
+        return new HashSet<>();
     }
 }

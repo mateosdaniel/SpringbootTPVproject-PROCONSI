@@ -1237,41 +1237,6 @@
                             <option value="false">Inactivos</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label small mb-1" style="color: var(--text-primary);">Permisos</label>
-                        <div class="dropdown">
-                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100" type="button"
-                                id="workerFilterPermBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside"
-                                aria-expanded="false"
-                                style="text-align: left; color: var(--text-primary); background-color: var(--surface); border-color: var(--border);">
-                                Cualquier permiso
-                            </button>
-                            <div class="dropdown-menu p-3 w-100"
-                                style="--bs-dropdown-bg: var(--surface); --bs-dropdown-color: var(--text-primary); --bs-dropdown-border-color: var(--border); background-color: var(--surface); border-color: var(--border);">
-                                <div class="form-check mb-2" onclick="event.stopPropagation()">
-                                    <input class="form-check-input worker-filter-perm" type="checkbox"
-                                        value="ADMIN_ACCESS" id="wf_admin"
-                                        onchange="filterWorkers(); updateFilterPermLabel('workerFilterPermBtn', '.worker-filter-perm', 'Cualquier permiso');">
-                                    <label class="form-check-label" for="wf_admin"
-                                        style="color: var(--text-primary);">ADMIN_ACCESS</label>
-                                </div>
-                                <div class="form-check mb-2" onclick="event.stopPropagation()">
-                                    <input class="form-check-input worker-filter-perm" type="checkbox"
-                                        value="CASH_CLOSE" id="wf_cash"
-                                        onchange="filterWorkers(); updateFilterPermLabel('workerFilterPermBtn', '.worker-filter-perm', 'Cualquier permiso');">
-                                    <label class="form-check-label" for="wf_cash"
-                                        style="color: var(--text-primary);">CASH_CLOSE</label>
-                                </div>
-                                <div class="form-check" onclick="event.stopPropagation()">
-                                    <input class="form-check-input worker-filter-perm" type="checkbox"
-                                        value="MANAGE_PRODUCTS_TPV" id="wf_stock"
-                                        onchange="filterWorkers(); updateFilterPermLabel('workerFilterPermBtn', '.worker-filter-perm', 'Cualquier permiso');">
-                                    <label class="form-check-label" for="wf_stock"
-                                        style="color: var(--text-primary);">MANAGE_PRODUCTS_TPV</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetWorkerFilters()">
                             <i class="bi bi-arrow-counterclockwise"></i> Reset
@@ -1296,8 +1261,7 @@
                     </thead>
                     <tbody>
                         <tr th:each="w : ${workers}" class="worker-row" th:data-username="${w.username}"
-                            th:data-active="${w.active}" th:data-role-id="${w.role != null ? w.role.id : ''}"
-                            th:data-permissions="${#strings.listJoin(w.getEffectivePermissions(), ',')}">
+                            th:data-active="${w.active}" th:data-role-id="${w.role != null ? w.role.id : ''}">
                             <td><strong th:text="${w.username}"></strong></td>
                             <td>
                                 <span th:if="${w.role != null}" class="badge"
@@ -1311,18 +1275,17 @@
                                 <span th:unless="${w.active}" class="badge bg-danger">Inactivo</span>
                             </td>
                             <td>
-                                <span th:each="perm : ${w.getEffectivePermissions()}" class="badge me-1"
-                                    th:text="${perm}"
+                                <span th:if="${w.role != null}" th:each="perm : ${w.role.permissions}"
+                                    class="badge me-1" th:text="${perm}"
                                     style="font-size: 0.65rem; background-color: rgba(148,163,184,0.15); color: var(--text-muted); border: 1px solid rgba(148,163,184,0.25);"></span>
-                                <span th:if="${#lists.isEmpty(w.getEffectivePermissions())}" class="small"
+                                <span th:if="${w.role == null || #lists.isEmpty(w.role.permissions)}" class="small"
                                     style="color: var(--text-muted);">Sin
                                     permisos</span>
                             </td>
                             <td style="text-align:right">
                                 <button class="btn-action" th:data-id="${w.id}" th:data-username="${w.username}"
-                                    th:data-active="${w.active}" th:data-permissions="${w.permissions}"
-                                    th:data-role="${w.role != null ? w.role.id : ''}"
-                                    onclick="openWorkerModal(this.getAttribute('data-id'), this.getAttribute('data-username'), this.getAttribute('data-active') === 'true', this.getAttribute('data-permissions'), this.getAttribute('data-role'))">
+                                    th:data-active="${w.active}" th:data-role="${w.role != null ? w.role.id : ''}"
+                                    onclick="openWorkerModal(this.getAttribute('data-id'), this.getAttribute('data-username'), this.getAttribute('data-active') === 'true', null, this.getAttribute('data-role'))">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <button class="btn-action btn-action-delete" th:data-id="${w.id}"
@@ -1794,7 +1757,7 @@
             <div class="card" style="background:var(--bg-card);border:1px solid var(--border);max-width:700px">
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label fw-600" style="color: var(--text-primary);">Seleccionar
+                        <label class="form-label fw-600" style="color: var(--text-main);">Seleccionar
                             Productos</label>
                         <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
                             <button class="btn btn-sm btn-outline-secondary"
@@ -1823,7 +1786,7 @@
                             style="max-height:250px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:10px">
                             <style>
                                 #bulkProductList .form-check-label {
-                                    color: var(--text-primary) !important;
+                                    color: var(--text-main) !important;
                                 }
                             </style>
                             <div class="text-center py-3" style="color: var(--text-muted);">Cargando productos...</div>
@@ -1834,7 +1797,7 @@
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-600" style="color: var(--text-primary);">Tipo de Cambio</label>
+                            <label class="form-label fw-600" style="color: var(--text-main);">Tipo de Cambio</label>
                             <select class="form-select" id="bulkPriceType" onchange="toggleBulkPriceFields()">
                                 <option value="percentage">Porcentaje (%)</option>
                                 <option value="fixed">Cantidad Fija (€)</option>
@@ -1842,21 +1805,21 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-600" id="bulkPriceValueLabel"
-                                style="color: var(--text-primary);">Porcentaje (%)</label>
+                                style="color: var(--text-main);">Porcentaje (%)</label>
                             <input type="number" class="form-control" id="bulkPriceValue" step="0.01"
                                 placeholder="Ej: 10 para +10%">
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-600" style="color: var(--text-primary);">Fecha de Vigencia
+                        <label class="form-label fw-600" style="color: var(--text-main);">Fecha de Vigencia
                             (opcional)</label>
                         <input type="datetime-local" class="form-control" id="bulkEffectiveDate">
                         <small style="color: var(--text-muted);">Dejar vacío para aplicar inmediatamente</small>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-600" style="color: var(--text-primary);">Etiqueta (opcional)</label>
+                        <label class="form-label fw-600" style="color: var(--text-main);">Etiqueta (opcional)</label>
                         <input type="text" class="form-control" id="bulkLabel" placeholder="Ej: Incremento IPC 2026">
                     </div>
 
@@ -2142,47 +2105,8 @@
                                 <select class="form-select" id="workerRole" onchange="onWorkerRoleChange()">
                                     <option value="">Sin rol</option>
                                 </select>
-                                <small style="color: var(--text-muted);">Selecciona un rol para auto-completar permisos,
-                                    o establece
-                                    permisos manualmente.</small>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Permisos</label>
-                                <div class="dropdown">
-                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100" type="button"
-                                        id="permDropdownBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside"
-                                        aria-expanded="false"
-                                        style="text-align: left; background: var(--surface); border: 1px solid var(--border); color: var(--text-primary);">
-                                        Sin permisos
-                                    </button>
-                                    <div class="dropdown-menu p-3 w-100"
-                                        style="--bs-dropdown-bg: var(--surface); --bs-dropdown-color: var(--text-primary); --bs-dropdown-border-color: var(--border); background-color: var(--surface); border-color: var(--border);">
-                                        <div class="form-check mb-2" onclick="event.stopPropagation()">
-                                            <input class="form-check-input" type="checkbox" value="MANAGE_PRODUCTS_TPV"
-                                                id="permProd" onchange="updatePermDropdownLabel()">
-                                            <label class="form-check-label" for="permProd"
-                                                style="color: var(--text-primary);">Gestionar productos en
-                                                TPV</label>
-                                        </div>
-                                        <div class="form-check mb-2" onclick="event.stopPropagation()">
-                                            <input class="form-check-input" type="checkbox" value="CASH_CLOSE"
-                                                id="permCash" onchange="updatePermDropdownLabel()">
-                                            <label class="form-check-label" for="permCash"
-                                                style="color: var(--text-primary);">Realizar cierres de
-                                                caja</label>
-                                        </div>
-                                        <div class="form-check mt-2"
-                                            style="border-top: 1px solid var(--border); padding-top: 0.5rem;"
-                                            onclick="event.stopPropagation()">
-                                            <input class="form-check-input" type="checkbox" value="ADMIN_ACCESS"
-                                                id="permAdmin" onchange="updatePermDropdownLabel()">
-                                            <label class="form-check-label text-danger" for="permAdmin"
-                                                style="font-weight:700">
-                                                <i class="bi bi-shield-exclamation me-1"></i>ACCESO TOTAL ADMIN
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
+                                <small style="color: var(--text-muted);">Las tareas y permisos se heredan
+                                    automáticamente del rol asignado.</small>
                             </div>
                         </div>
                     </form>

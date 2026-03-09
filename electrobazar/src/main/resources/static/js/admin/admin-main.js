@@ -2,7 +2,6 @@
     if (typeof attachNifCifValidator === 'function') {
         attachNifCifValidator('customerTaxId');
     }
-    updatePermDropdownLabel();
 });
 
 var productModal = new bootstrap.Modal(document.getElementById('productModal'));
@@ -559,22 +558,13 @@ function openWorkerModal(id, username, active, permissions, roleId) {
         // but since we are refetching in some cases, let's just use what's passed
     }
 
-    // Ajustar etiqueta de contraseña según si editamos o creamos
+    // Password label adjustment based on edit or create
     var pwdLabel = document.getElementById('workerPasswordLabel');
     if (id) {
         pwdLabel.innerHTML = 'Contraseña <small class="font-normal" style="color: var(--text-muted);">(opcional, blanco para mantener)</small>';
     } else {
         pwdLabel.innerHTML = 'Contraseña *';
     }
-
-    // Permissions
-    var perms = permissions || [];
-    if (typeof perms === 'string') perms = perms.replace(/[\[\]]/g, '').split(',').map(s => s.trim());
-
-    document.getElementById('permProd').checked = perms.indexOf('MANAGE_PRODUCTS_TPV') !== -1;
-    document.getElementById('permCash').checked = perms.indexOf('CASH_CLOSE') !== -1;
-    document.getElementById('permAdmin').checked = perms.indexOf('ADMIN_ACCESS') !== -1;
-    updatePermDropdownLabel();
 
     // Load roles into select if not already there, then select current
     loadRoles().then(() => {
@@ -589,22 +579,13 @@ function saveWorker() {
     var username = document.getElementById('workerUsername').value;
     var password = document.getElementById('workerPassword').value;
     var active = document.getElementById('workerActive').checked;
-
-    var permissions = [];
-    if (document.getElementById('permProd').checked) permissions.push('MANAGE_PRODUCTS_TPV');
-    if (document.getElementById('permCash').checked) permissions.push('CASH_CLOSE');
-    if (document.getElementById('permAdmin').checked) permissions.push('ADMIN_ACCESS');
-
-    if (!username) { showToast('El nombre de usuario es obligatorio', 'error'); return; }
-    if (!id && !password) { showToast('La contraseña es obligatoria para nuevos trabajadores', 'error'); return; }
-
     var roleId = document.getElementById('workerRole').value;
+
     var worker = {
         id: id ? parseInt(id) : null,
         username: username,
         password: password || null,
         active: active,
-        permissions: permissions,
         role: roleId ? { id: parseInt(roleId) } : null
     };
 
@@ -624,20 +605,6 @@ function saveWorker() {
     });
 }
 
-/**
- * Updates the permissions dropdown button label based on how many of the
- * three permission checkboxes (permProd, permCash, permAdmin) are checked.
- * Shows "N permiso(s) seleccionado(s)" or "Sin permisos" when none are checked.
- */
-function updatePermDropdownLabel() {
-    var btn = document.getElementById('permDropdownBtn');
-    if (!btn) return;
-    var count = 0;
-    if (document.getElementById('permProd') && document.getElementById('permProd').checked) count++;
-    if (document.getElementById('permCash') && document.getElementById('permCash').checked) count++;
-    if (document.getElementById('permAdmin') && document.getElementById('permAdmin').checked) count++;
-    btn.textContent = count === 0 ? 'Sin permisos' : count + ' permiso' + (count !== 1 ? 's' : '') + ' seleccionado' + (count !== 1 ? 's' : '');
-}
 
 function deleteWorker(id) {
     if (!confirm('¿Seguro que quieres eliminar a este trabajador?')) return;
@@ -1016,8 +983,10 @@ function renderBulkProductList(products) {
         var catName = p.category ? p.category.name : 'S/C';
         return '<div class="form-check bulk-product-item" data-category="' + escHtml(catName).toLowerCase() + '" data-search="' + escHtml(p.name).toLowerCase() + ' ' + escHtml(catName).toLowerCase() + '">'
             + '<input class="form-check-input bulk-product-checkbox" type="checkbox" value="' + p.id + '" id="bulkProd' + p.id + '" onchange="updateBulkSelectedCount()">'
-            + '<label class="form-check-label" for="bulkProd' + p.id + '" style="color: var(--text-primary);">'
-            + '<strong style="color: var(--text-primary);">' + escHtml(p.name) + '</strong> <small style="color: var(--text-muted);">(' + catName + ' - ' + parseFloat(p.price).toFixed(2) + ' €)</small></label>'
+            + '<label class="form-check-label" for="bulkProd' + p.id + '" style="color: var(--text-main); cursor: pointer;">'
+            + '<span style="color: var(--text-main);">' + escHtml(p.name) + '</span>'
+            + ' <small style="color: var(--text-muted);">(' + catName + ' - ' + parseFloat(p.price).toFixed(2) + ' €)</small>'
+            + '</label>'
             + '</div>';
     }).join('');
 }
@@ -1230,15 +1199,7 @@ function deleteRole(id) {
 }
 
 function onWorkerRoleChange() {
-    const roleId = document.getElementById('workerRole').value;
-    if (!roleId) return;
-
-    const role = rolesCache.find(r => r.id == roleId);
-    if (role) {
-        document.getElementById('permProd').checked = role.permissions.includes('MANAGE_PRODUCTS_TPV');
-        document.getElementById('permCash').checked = role.permissions.includes('CASH_CLOSE');
-        document.getElementById('permAdmin').checked = role.permissions.includes('ADMIN_ACCESS');
-    }
+    // No longer auto-checking individual permissions as they are removed
 }
 
 // ── WORKER FILTERING ────────────────────────────────────────────────────────
@@ -1247,7 +1208,6 @@ function filterWorkers() {
     const nameQuery = document.getElementById('workerFilterName').value.toLowerCase().trim();
     const roleId = document.getElementById('workerFilterRole').value;
     const status = document.getElementById('workerFilterStatus').value;
-    const selectedPerms = Array.from(document.querySelectorAll('.worker-filter-perm:checked')).map(cb => cb.value);
 
     const rows = document.querySelectorAll('.worker-row');
     let visibleCount = 0;
@@ -1256,25 +1216,18 @@ function filterWorkers() {
         const username = row.getAttribute('data-username').toLowerCase();
         const active = row.getAttribute('data-active');
         const rowRoleId = row.getAttribute('data-role-id');
-        const permissions = (row.getAttribute('data-permissions') || '').split(',');
 
         let matches = true;
         if (nameQuery && !username.includes(nameQuery)) matches = false;
         if (roleId && rowRoleId !== roleId) matches = false;
         if (status && active !== status) matches = false;
 
-        // Multi-perm logic: MUST HAVE ALL selected perms
-        if (selectedPerms.length > 0) {
-            const hasAll = selectedPerms.every(p => permissions.includes(p));
-            if (!hasAll) matches = false;
-        }
-
         row.style.display = matches ? '' : 'none';
         if (matches) visibleCount++;
     });
 
     const label = document.getElementById('workerCountLabel');
-    if (nameQuery || roleId || status || selectedPerms.length > 0) {
+    if (nameQuery || roleId || status) {
         label.innerHTML = `Filtrado activo: <b>${visibleCount}</b> de <b>${rows.length}</b> trabajadores encontrados.`;
     } else {
         label.textContent = 'Mostrando todas las fichas de trabajadores.';
@@ -1285,9 +1238,7 @@ function resetWorkerFilters() {
     document.getElementById('workerFilterName').value = '';
     document.getElementById('workerFilterRole').value = '';
     document.getElementById('workerFilterStatus').value = '';
-    document.querySelectorAll('.worker-filter-perm').forEach(cb => cb.checked = false);
     filterWorkers();
-    updateFilterPermLabel('workerFilterPermBtn', '.worker-filter-perm', 'Cualquier permiso');
 }
 
 // ── ROLE FILTERING ──────────────────────────────────────────────────────────
@@ -1319,25 +1270,6 @@ function resetRolePermFilters() {
     updateFilterPermLabel('roleFilterPermBtn', '.role-filter-perm', 'Seleccionar Permisos');
 }
 
-/**
- * Updates a filter dropdown button label based on which checkboxes in the group are checked.
- * Maps full permission strings to short display names.
- * @param {string} btnId       - id of the dropdown toggle button
- * @param {string} selector    - CSS selector for checkboxes in that dropdown
- * @param {string} defaultText - text to show when nothing is checked
- */
-function updateFilterPermLabel(btnId, selector, defaultText) {
-    var btn = document.getElementById(btnId);
-    if (!btn) return;
-    var nameMap = {
-        'ADMIN_ACCESS': 'ADMIN',
-        'CASH_CLOSE': 'CAJA',
-        'MANAGE_PRODUCTS_TPV': 'INV'
-    };
-    var checked = Array.from(document.querySelectorAll(selector + ':checked'))
-        .map(function (cb) { return nameMap[cb.value] || cb.value; });
-    btn.textContent = checked.length === 0 ? defaultText : checked.join(' + ');
-}
 
 // ── NEW FILTERING FUNCTIONS ──────────────────────────────────────────────────
 
