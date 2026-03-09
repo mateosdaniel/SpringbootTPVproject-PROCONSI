@@ -81,6 +81,12 @@ public class AdminController {
         return taxRateRepository.findByActiveTrue();
     }
 
+    @GetMapping("/api/permissions")
+    @ResponseBody
+    public java.util.List<String> getAllPermissions() {
+        return roleService.findAllPermissions();
+    }
+
     @PostMapping("/api/tax-rates")
     @ResponseBody
     public org.springframework.http.ResponseEntity<?> createTaxRate(

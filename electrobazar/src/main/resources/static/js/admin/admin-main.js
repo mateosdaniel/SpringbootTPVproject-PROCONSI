@@ -1138,16 +1138,40 @@ function openRoleModal(id) {
     document.getElementById('roleId').value = id || '';
     document.getElementById('roleModalLabel').textContent = id ? 'Editar Rol' : 'Nuevo Rol';
 
-    if (id) {
-        const role = rolesCache.find(r => r.id == id);
-        if (role) {
-            document.getElementById('roleName').value = role.name;
-            document.getElementById('roleDescription').value = role.description || '';
-            document.getElementById('rolePermProd').checked = role.permissions.includes('MANAGE_PRODUCTS_TPV');
-            document.getElementById('rolePermCash').checked = role.permissions.includes('CASH_CLOSE');
-            document.getElementById('rolePermAdmin').checked = role.permissions.includes('ADMIN_ACCESS');
-        }
-    }
+    const container = document.getElementById('rolePermissionsContainer');
+    container.innerHTML = '<div class="text-center p-2"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+
+    fetch('/api/permissions')
+        .then(function (r) { return r.json(); })
+        .then(function (permissions) {
+            container.innerHTML = '';
+            const role = id ? rolesCache.find(function (r) { return r.id == id; }) : null;
+
+            if (id && role) {
+                document.getElementById('roleName').value = role.name;
+                document.getElementById('roleDescription').value = role.description || '';
+            }
+
+            permissions.forEach(function (p) {
+                const isSpecial = p === 'ADMIN_ACCESS';
+                const isChecked = role && role.permissions && role.permissions.includes(p);
+
+                const div = document.createElement('div');
+                div.className = 'form-check ' + (isSpecial ? 'mt-2 pt-2' : 'mb-2');
+                if (isSpecial) div.style.borderTop = '1px solid var(--border)';
+
+                div.innerHTML = '<input class="form-check-input role-perm-checkbox" type="checkbox" value="' + p + '" id="perm_' + p + '"' + (isChecked ? ' checked' : '') + '>' +
+                    '<label class="form-check-label ' + (isSpecial ? 'text-danger fw-bold' : '') + '" for="perm_' + p + '" style="color: var(--text-primary); cursor: pointer;">' +
+                    (isSpecial ? '<i class="bi bi-shield-exclamation me-1"></i>' : '') + p +
+                    '</label>';
+
+                container.appendChild(div);
+            });
+        })
+        .catch(function () {
+            container.innerHTML = '<div class="text-danger small">Error al cargar permisos</div>';
+        });
+
     roleModal.show();
 }
 
@@ -1156,10 +1180,7 @@ function saveRole() {
     const name = document.getElementById('roleName').value.trim();
     if (!name) { showToast('El nombre del rol es obligatorio', 'error'); return; }
 
-    const permissions = [];
-    if (document.getElementById('rolePermProd').checked) permissions.push('MANAGE_PRODUCTS_TPV');
-    if (document.getElementById('rolePermCash').checked) permissions.push('CASH_CLOSE');
-    if (document.getElementById('rolePermAdmin').checked) permissions.push('ADMIN_ACCESS');
+    const permissions = Array.from(document.querySelectorAll('.role-perm-checkbox:checked')).map(function (cb) { return cb.value; });
 
     const role = {
         name: name,
@@ -1174,7 +1195,7 @@ function saveRole() {
         method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(role)
-    }).then(res => {
+    }).then(function (res) {
         if (res.ok) {
             roleModal.hide();
             showToast(id ? 'Rol actualizado' : 'Rol creado');

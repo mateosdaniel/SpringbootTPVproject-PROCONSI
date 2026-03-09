@@ -35,6 +35,11 @@ public class Worker {
 
     public Set<String> getEffectivePermissions() {
         if (this.role != null && this.role.getPermissions() != null) {
+            if (this.role.getPermissions().contains("ADMIN_ACCESS")) {
+                return new HashSet<>(java.util.Arrays.asList(
+                        "ADMIN_ACCESS", "CASH_CLOSE", "MANAGE_PRODUCTS_TPV",
+                        "RETURNS", "HOLD_SALES", "PREFERENCES"));
+            }
             return new HashSet<>(this.role.getPermissions());
         }
         return new HashSet<>();

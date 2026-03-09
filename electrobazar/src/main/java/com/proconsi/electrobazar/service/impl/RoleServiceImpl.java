@@ -58,4 +58,10 @@ public class RoleServiceImpl implements RoleService {
                     id);
         });
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<String> findAllPermissions() {
+        return roleRepository.findAllPermissions();
+    }
 }

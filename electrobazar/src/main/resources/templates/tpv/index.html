@@ -78,7 +78,8 @@
 
 
             <!-- Ventas en espera badge button -->
-            <button id="btnSuspendedList" onclick="openSuspendedModal()"
+            <button th:if="${session.worker.getEffectivePermissions().contains('HOLD_SALES')}" id="btnSuspendedList"
+                onclick="openSuspendedModal()"
                 style="position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 0.4rem 0.75rem; color: var(--text-main); font-size: 0.82rem; font-weight: 600; display: flex; align-items: center; gap: 0.4rem; cursor: pointer; transition: border-color 0.18s;"
                 title="Ventas en espera">
                 <i class="bi bi-hourglass-split"></i>
@@ -88,13 +89,14 @@
             </button>
 
             <!-- Devoluciones button -->
-            <button type="button" class="btn-action-tpv flex-shrink-0" id="btnReturnSearch" title="Gestionar Devolución"
+            <button th:if="${session.worker.getEffectivePermissions().contains('RETURNS')}" type="button"
+                class="btn-action-tpv flex-shrink-0" id="btnReturnSearch" title="Gestionar Devolución"
                 data-bs-toggle="modal" data-bs-target="#returnSearchModal"
                 style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2);">
                 <i class="bi bi-arrow-counterclockwise"></i> <span>Devolver</span>
             </button>
 
-            <div class="menu-wrapper">
+            <div th:if="${session.worker.getEffectivePermissions().contains('PREFERENCES')}" class="menu-wrapper">
                 <button class="hamburger-btn" id="hamburgerBtn" title="Menú">
                     <i class="bi bi-list"></i>
                 </button>
