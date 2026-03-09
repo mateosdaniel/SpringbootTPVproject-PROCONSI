@@ -134,7 +134,8 @@ public class ProductPriceServiceImpl implements ProductPriceService {
         // ── Step 2: Create and persist the new scheduled price ─────────────────
         BigDecimal vatRate = request.getVatRate() != null
                 ? request.getVatRate()
-                : new BigDecimal("0.21"); // Default to 21% VAT (standard Spanish rate)
+                : (product.getIvaRate() != null ? product.getIvaRate() : new BigDecimal("0.21")); // Default to Spanish
+                                                                                                  // standard VAT rate
 
         ProductPrice newPrice = ProductPrice.builder()
                 .product(product)

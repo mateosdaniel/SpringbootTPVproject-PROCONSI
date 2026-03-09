@@ -136,7 +136,7 @@ public class TpvController {
                 vatRate = activePrice.getVatRate();
             } else {
                 unitPrice = product.getPrice();
-                vatRate = new BigDecimal("0.21"); // Default Spanish standard VAT
+                vatRate = product.getIvaRate() != null ? product.getIvaRate() : new BigDecimal("0.21");
             }
 
             lines.add(SaleLine.builder()

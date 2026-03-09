@@ -140,7 +140,9 @@ public class SaleWithTaxApiRestController {
                                 // For overridden prices, use the product's current active price VAT rate if
                                 // available
                                 ProductPrice activePrice = productPriceService.getCurrentPrice(product.getId(), now);
-                                vatRate = activePrice != null ? activePrice.getVatRate() : new BigDecimal("0.21");
+                                vatRate = activePrice != null ? activePrice.getVatRate()
+                                                : (product.getIvaRate() != null ? product.getIvaRate()
+                                                                : new BigDecimal("0.21"));
                                 log.debug("Using override price {} for product '{}' (id={})",
                                                 unitPrice, product.getName(), product.getId());
                         } else {
@@ -154,7 +156,8 @@ public class SaleWithTaxApiRestController {
                                 } else {
                                         // Fallback to the product's base price if no temporal price is configured
                                         unitPrice = product.getPrice();
-                                        vatRate = new BigDecimal("0.21"); // Default Spanish standard VAT rate
+                                        vatRate = product.getIvaRate() != null ? product.getIvaRate()
+                                                        : new BigDecimal("0.21"); // Default Spanish standard VAT rate
                                         log.warn("No temporal price found for product '{}' (id={}). Using base price: {}",
                                                         product.getName(), product.getId(), unitPrice);
                                 }
@@ -280,7 +283,9 @@ public class SaleWithTaxApiRestController {
                         if (lineReq.getOverridePrice() != null) {
                                 unitPrice = lineReq.getOverridePrice();
                                 ProductPrice activePrice = productPriceService.getCurrentPrice(product.getId(), now);
-                                vatRate = activePrice != null ? activePrice.getVatRate() : new BigDecimal("0.21");
+                                vatRate = activePrice != null ? activePrice.getVatRate()
+                                                : (product.getIvaRate() != null ? product.getIvaRate()
+                                                                : new BigDecimal("0.21"));
                         } else {
                                 ProductPrice activePrice = productPriceService.getCurrentPrice(product.getId(), now);
                                 if (activePrice != null) {
@@ -288,7 +293,8 @@ public class SaleWithTaxApiRestController {
                                         vatRate = activePrice.getVatRate();
                                 } else {
                                         unitPrice = product.getPrice();
-                                        vatRate = new BigDecimal("0.21");
+                                        vatRate = product.getIvaRate() != null ? product.getIvaRate()
+                                                        : new BigDecimal("0.21");
                                 }
                         }
 

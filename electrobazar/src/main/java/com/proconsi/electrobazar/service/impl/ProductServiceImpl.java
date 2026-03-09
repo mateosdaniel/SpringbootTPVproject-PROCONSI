@@ -2,19 +2,24 @@ package com.proconsi.electrobazar.service.impl;
 
 import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import com.proconsi.electrobazar.model.Product;
+import com.proconsi.electrobazar.model.ProductPrice;
+import com.proconsi.electrobazar.repository.ProductPriceRepository;
 import com.proconsi.electrobazar.repository.ProductRepository;
 import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
+    private final ProductPriceRepository productPriceRepository;
     private final ActivityLogService activityLogService;
 
     @Override
@@ -103,6 +108,16 @@ public class ProductServiceImpl implements ProductService {
             existing.setStock(updated.getStock());
         }
         Product saved = productRepository.save(existing);
+
+        // Sync active temporal price with the new product VAT rate
+        productPriceRepository.findActivePriceAt(saved.getId(), java.time.LocalDateTime.now())
+                .ifPresent(activePrice -> {
+                    activePrice.setVatRate(saved.getIvaRate());
+                    productPriceRepository.save(activePrice);
+                    log.info("Synced ProductPrice (id={}) vatRate with product '{}' (id={}) updated ivaRate: {}",
+                            activePrice.getId(), saved.getName(), saved.getId(), saved.getIvaRate());
+                });
+
         activityLogService.logActivity(
                 "ACTUALIZAR_PRODUCTO",
                 "Producto actualizado: " + saved.getName(),
