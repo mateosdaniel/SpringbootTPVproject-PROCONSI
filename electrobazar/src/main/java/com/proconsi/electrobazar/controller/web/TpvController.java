@@ -136,7 +136,7 @@ public class TpvController {
                 vatRate = activePrice.getVatRate();
             } else {
                 unitPrice = product.getPrice();
-                vatRate = product.getIvaRate() != null ? product.getIvaRate() : new BigDecimal("0.21");
+                vatRate = product.getTaxRate() != null && product.getTaxRate().getVatRate() != null ? product.getTaxRate().getVatRate() : new BigDecimal("0.21");
             }
 
             lines.add(SaleLine.builder()

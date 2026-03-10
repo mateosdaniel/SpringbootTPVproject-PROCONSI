@@ -3,6 +3,8 @@ package com.proconsi.electrobazar.service;
 import com.proconsi.electrobazar.dto.ProductPriceRequest;
 import com.proconsi.electrobazar.model.Category;
 import com.proconsi.electrobazar.model.Product;
+import com.proconsi.electrobazar.model.TaxRate;
+import com.proconsi.electrobazar.repository.TaxRateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,6 +56,7 @@ public class CsvImportService {
     private final ProductService productService;
     private final CategoryService categoryService;
     private final ProductPriceService productPriceService;
+    private final TaxRateRepository taxRateRepository;
 
     @Transactional
     public String importProductsCsv(MultipartFile file) {
@@ -152,8 +155,15 @@ public class CsvImportService {
                                 .imageUrl(imageUrl.isEmpty() ? null : imageUrl)
                                 .category(category)
                                 .active(true)
-                                .ivaRate(ivaRate)
                                 .build();
+
+                        // Buscar el TaxRate correspondiente al ivaRate y asignarlo
+                        final BigDecimal targetVat = ivaRate;
+                        TaxRate taxRate = taxRateRepository.findAll().stream()
+                                .filter(t -> t.getVatRate().compareTo(targetVat) == 0)
+                                .findFirst()
+                                .orElse(taxRateRepository.findById(1L).orElse(null));
+                        product.setTaxRate(taxRate);
 
                         // Use setPrice to handle Gross -> Net conversion automatically
                         product.setPrice(price);

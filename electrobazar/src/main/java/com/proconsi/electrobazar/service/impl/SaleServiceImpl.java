@@ -141,8 +141,8 @@ public class SaleServiceImpl implements SaleService {
             // VAT), to show the true loss of revenue/value.
             // Using a simple reverse VAT calculation to get the net discount
             BigDecimal vatRate = line.getVatRate() != null ? line.getVatRate()
-                    : (line.getProduct() != null && line.getProduct().getIvaRate() != null
-                            ? line.getProduct().getIvaRate()
+                    : (line.getProduct() != null && line.getProduct().getTaxRate() != null && line.getProduct().getTaxRate().getVatRate() != null
+                            ? line.getProduct().getTaxRate().getVatRate()
                             : new BigDecimal("0.21"));
             BigDecimal perUnitGrossDiscount = originalPrice.subtract(discountedPrice);
             BigDecimal divisor = BigDecimal.ONE.add(vatRate);

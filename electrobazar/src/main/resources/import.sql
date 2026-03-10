@@ -21,8 +21,9 @@ CREATE TABLE IF NOT EXISTS products (
     active BOOLEAN NOT NULL DEFAULT TRUE,
     image_url VARCHAR(500),
     category_id BIGINT,
-    iva_rate DECIMAL(5,4) NOT NULL DEFAULT 0.2100,
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+    tax_rate_id BIGINT NOT NULL DEFAULT 1,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
+    FOREIGN KEY (tax_rate_id) REFERENCES tax_rates(id)
 );
 
 -- Workers table

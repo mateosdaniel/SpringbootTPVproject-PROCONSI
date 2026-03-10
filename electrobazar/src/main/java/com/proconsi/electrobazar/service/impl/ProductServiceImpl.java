@@ -90,7 +90,7 @@ public class ProductServiceImpl implements ProductService {
         Product existing = findById(id);
         existing.setName(updated.getName());
         existing.setDescription(updated.getDescription());
-        existing.setIvaRate(updated.getIvaRate()); // Set rate first
+        existing.setTaxRate(updated.getTaxRate()); // Set TaxRate first
 
         // If the update object came with a specific net base price, use it
         if (updated.getBasePriceNet() != null && updated.getBasePriceNet().compareTo(java.math.BigDecimal.ZERO) > 0) {
@@ -112,10 +112,10 @@ public class ProductServiceImpl implements ProductService {
         // Sync active temporal price with the new product VAT rate
         productPriceRepository.findActivePriceAt(saved.getId(), java.time.LocalDateTime.now())
                 .ifPresent(activePrice -> {
-                    activePrice.setVatRate(saved.getIvaRate());
+                    activePrice.setVatRate(saved.getTaxRate() != null && saved.getTaxRate().getVatRate() != null ? saved.getTaxRate().getVatRate() : new java.math.BigDecimal("0.21"));
                     productPriceRepository.save(activePrice);
                     log.info("Synced ProductPrice (id={}) vatRate with product '{}' (id={}) updated ivaRate: {}",
-                            activePrice.getId(), saved.getName(), saved.getId(), saved.getIvaRate());
+                            activePrice.getId(), saved.getName(), saved.getId(), saved.getTaxRate() != null ? saved.getTaxRate().getVatRate() : "null");
                 });
 
         activityLogService.logActivity(

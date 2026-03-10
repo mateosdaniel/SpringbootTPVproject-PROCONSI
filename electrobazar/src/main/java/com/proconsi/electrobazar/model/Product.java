@@ -38,7 +38,7 @@ public class Product {
     public java.math.BigDecimal getPrice() {
         if (basePriceNet == null)
             return java.math.BigDecimal.ZERO;
-        java.math.BigDecimal rate = ivaRate != null ? ivaRate : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal rate = taxRate != null && taxRate.getVatRate() != null ? taxRate.getVatRate() : java.math.BigDecimal.ZERO;
         return basePriceNet.multiply(java.math.BigDecimal.ONE.add(rate))
                 .setScale(2, java.math.RoundingMode.HALF_UP);
     }
@@ -52,7 +52,7 @@ public class Product {
             this.basePriceNet = java.math.BigDecimal.ZERO;
             return;
         }
-        java.math.BigDecimal rate = ivaRate != null ? ivaRate : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal rate = taxRate != null && taxRate.getVatRate() != null ? taxRate.getVatRate() : java.math.BigDecimal.ZERO;
         this.basePriceNet = grossPrice.divide(java.math.BigDecimal.ONE.add(rate), 10, java.math.RoundingMode.HALF_UP)
                 .setScale(2, java.math.RoundingMode.HALF_UP);
     }
@@ -72,7 +72,7 @@ public class Product {
     @JoinColumn(name = "category_id")
     private Category category;
 
-    @Column(name = "iva_rate", nullable = false, precision = 5, scale = 4)
-    @Builder.Default
-    private BigDecimal ivaRate = null;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tax_rate_id", nullable = false)
+    private TaxRate taxRate;
 }

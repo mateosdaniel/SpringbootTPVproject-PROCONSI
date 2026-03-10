@@ -6,6 +6,8 @@ import com.proconsi.electrobazar.model.Product;
 import com.proconsi.electrobazar.service.CategoryService;
 import com.proconsi.electrobazar.service.ProductPriceService;
 import com.proconsi.electrobazar.service.ProductService;
+import com.proconsi.electrobazar.repository.TaxRateRepository;
+import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +26,7 @@ public class ProductApiRestController {
     private final ProductService productService;
     private final CategoryService categoryService;
     private final ProductPriceService productPriceService;
+    private final TaxRateRepository taxRateRepository;
 
     @GetMapping
     public ResponseEntity<List<Product>> getAll() {
@@ -60,7 +63,11 @@ public class ProductApiRestController {
         Product product = new Product();
         product.setName(request.getName());
         product.setDescription(request.getDescription());
-        product.setIvaRate(request.getIvaRate()); // Set rate first for calculations
+        
+        if (request.getTaxRateId() != null) {
+            product.setTaxRate(taxRateRepository.findById(request.getTaxRateId())
+                    .orElseThrow(() -> new ResourceNotFoundException("TaxRate no encontrado")));
+        }
 
         if (request.getBasePriceNet() != null) {
             product.setBasePriceNet(request.getBasePriceNet());
@@ -81,6 +88,10 @@ public class ProductApiRestController {
     public ResponseEntity<Product> update(@PathVariable Long id, @RequestBody Product product) {
         if (product.getCategory() != null && product.getCategory().getId() != null) {
             product.setCategory(categoryService.findById(product.getCategory().getId()));
+        }
+        if (product.getTaxRate() != null && product.getTaxRate().getId() != null) {
+            product.setTaxRate(taxRateRepository.findById(product.getTaxRate().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("TaxRate no encontrado")));
         }
         return ResponseEntity.ok(productService.update(id, product));
     }
@@ -137,7 +148,8 @@ public class ProductApiRestController {
                     } else {
                         // Fall back to product's base price and ivaRate
                         currentPrice = product.getPrice();
-                        currentVat = product.getIvaRate() != null ? product.getIvaRate() : new BigDecimal("0.21");
+                        currentVat = product.getTaxRate() != null && product.getTaxRate().getVatRate() != null 
+                            ? product.getTaxRate().getVatRate() : new BigDecimal("0.21");
                     }
 
                     return new ProductSelectionItem(

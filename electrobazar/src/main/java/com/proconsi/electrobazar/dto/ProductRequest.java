@@ -22,9 +22,7 @@ public class ProductRequest {
     private BigDecimal basePriceNet;
 
     @NotNull
-    @DecimalMin("0.00")
-    @DecimalMax("1.00")
-    private BigDecimal ivaRate;
+    private Long taxRateId;
 
     private Integer stock;
 
