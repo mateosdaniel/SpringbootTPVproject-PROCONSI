@@ -39,8 +39,9 @@ function openProductModal(id) {
                 let highest = null;
                 rates.forEach(function (r) {
                     const opt = document.createElement('option');
-                    opt.value = r.vatRate;
+                    opt.value = r.id; // Store tax rate ID, not vatRate
                     opt.textContent = r.description + ' (' + (r.vatRate * 100).toFixed(1).replace('.0', '') + '%)';
+                    opt.dataset.vatRate = r.vatRate; // Store vatRate for reference
                     ivaEl.appendChild(opt);
                     if (!highest || r.vatRate > highest.vatRate) {
                         highest = r;
@@ -49,7 +50,7 @@ function openProductModal(id) {
 
                 // Default for new products: highest rate
                 if (!id && highest) {
-                    ivaEl.value = highest.vatRate.toString();
+                    ivaEl.value = highest.id.toString();
                 }
             }
 
@@ -66,8 +67,9 @@ function openProductModal(id) {
                         document.getElementById('productCategory').value = p.category ? p.category.id : '';
                         document.getElementById('productImageUrl').value = p.imageUrl || '';
                         document.getElementById('productActive').checked = p.active !== false;
-                        if (ivaEl && p.ivaRate !== null && p.ivaRate !== undefined) {
-                            ivaEl.value = p.ivaRate.toString();
+                        // Use taxRate.vatRate for display and taxRate.id for selection
+                        if (ivaEl && p.taxRate !== null && p.taxRate !== undefined) {
+                            ivaEl.value = p.taxRate.id.toString();
                         }
                         previewImage(p.imageUrl);
                     });
@@ -83,13 +85,16 @@ function saveProduct() {
     if (!name || !price) { showToast('Nombre y precio son obligatorios', 'error'); return; }
 
     const id = document.getElementById('productId').value;
+    const ivaEl = document.getElementById('productIvaRate');
+    const taxRateId = ivaEl ? parseInt(ivaEl.value) : null;
+    
     const body = {
         name, price: parseFloat(price),
         description: document.getElementById('productDescription').value.trim() || null,
         stock: parseInt(document.getElementById('productStock').value) || 0,
         active: document.getElementById('productActive').checked,
         imageUrl: document.getElementById('productImageUrl').value.trim() || null,
-        ivaRate: document.getElementById('productIvaRate') ? parseFloat(document.getElementById('productIvaRate').value) : null,
+        taxRateId: taxRateId, // Send taxRateId instead of ivaRate
         category: document.getElementById('productCategory').value ? { id: parseInt(document.getElementById('productCategory').value) } : null
     };
 

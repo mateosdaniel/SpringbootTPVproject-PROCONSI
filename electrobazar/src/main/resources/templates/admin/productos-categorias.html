@@ -88,7 +88,7 @@
                             </tr>
                         </thead>
                         <tbody id="productsTableBody">
-                            <tr th:each="p : ${products}" class="product-row" th:data-iva="${p.ivaRate}">
+                            <tr th:each="p : ${products}" class="product-row" th:data-iva="${p.taxRate != null ? p.taxRate.vatRate : ''}">
                                 <td>
                                     <img th:if="${p.imageUrl != null && !#strings.isEmpty(p.imageUrl)}"
                                         th:src="${p.imageUrl}" class="thumb">
@@ -103,9 +103,9 @@
                                     <span th:unless="${p.description != null}" style="color:var(--text-muted)">—</span>
                                 </td>
                                 <td style="font-size:0.9rem; font-weight: 500;">
-                                    <span th:if="${p.ivaRate != null}"
-                                        th:text="${#numbers.formatDecimal(p.ivaRate * 100, 1, 0)} + '%'"></span>
-                                    <span th:unless="${p.ivaRate != null}" style="color:var(--text-muted)">—</span>
+                                    <span th:if="${p.taxRate != null && p.taxRate.vatRate != null}"
+                                        th:text="${#numbers.formatDecimal(p.taxRate.vatRate * 100, 1, 0)} + '%'"></span>
+                                    <span th:unless="${p.taxRate != null && p.taxRate.vatRate != null}" style="color:var(--text-muted)">—</span>
                                 </td>
                                 <td class="fw-bold text-accent"
                                     th:text="${#numbers.formatDecimal(p.price,1,2)} + ' &euro;'">
@@ -338,13 +338,13 @@
                     const activeBadge = p.active
                         ? `<span class="badge-active yes">Activo</span>`
                         : `<span class="badge-active no">Baja</span>`;
-                    const ivaDisplay = p.ivaRate != null ? (p.ivaRate * 100).toFixed(0) + '%' : '—';
+                    const ivaDisplay = p.taxRate && p.taxRate.vatRate != null ? (p.taxRate.vatRate * 100).toFixed(0) + '%' : '—';
                     const descTruncated = p.description ? (p.description.length > 60 ? p.description.substring(0, 57) + '...' : p.description) : '—';
                     const escapedName = p.name ? p.name.replace(/'/g, "\\'").replace(/"/g, "&quot;") : '';
 
                     let tr = document.createElement('tr');
                     tr.className = 'product-row';
-                    tr.setAttribute('data-iva', p.ivaRate);
+                    tr.setAttribute('data-iva', p.taxRate ? p.taxRate.vatRate : null);
                     tr.innerHTML = `
                         <td>${imgHtml}</td>
                         <td><strong>${p.name}</strong></td>

@@ -86,7 +86,6 @@ function openProductModal(id) {
     document.getElementById('productName').value = '';
     document.getElementById('productDescription').value = '';
     document.getElementById('productPrice').value = '';
-    document.getElementById('productIvaRate').value = '0.21';
     document.getElementById('productStock').value = '0';
     document.getElementById('productCategory').value = '';
     document.getElementById('productImageUrl').value = '';
@@ -95,23 +94,54 @@ function openProductModal(id) {
 
     previewImage(null); // Set placeholder by default
 
-    if (id) {
-        fetch('/api/products/' + id)
-            .then(function (r) { return r.json(); })
-            .then(function (p) {
-                document.getElementById('productId').value = p.id;
-                document.getElementById('productName').value = p.name || '';
-                document.getElementById('productDescription').value = p.description || '';
-                document.getElementById('productPrice').value = p.price || '';
-                document.getElementById('productIvaRate').value = p.ivaRate ? String(p.ivaRate) : '0.21';
-                document.getElementById('productStock').value = (p.stock !== undefined && p.stock !== null) ? p.stock : 0;
-                document.getElementById('productCategory').value = p.category ? p.category.id : '';
-                document.getElementById('productImageUrl').value = p.imageUrl || '';
-                document.getElementById('productActive').checked = p.active !== false;
-                previewImage(p.imageUrl);
-            })
-            .catch(function () { showToast('Error al cargar el producto', 'error'); });
-    }
+    // Fetch active tax rates and populate dropdown
+    const ivaEl = document.getElementById('productIvaRate');
+    fetch('/api/tax-rates/active')
+        .then(function (res) { return res.json(); })
+        .then(function (rates) {
+            if (ivaEl) {
+                ivaEl.innerHTML = '';
+                let highest = null;
+                rates.forEach(function (r) {
+                    const opt = document.createElement('option');
+                    opt.value = r.id; // Store tax rate ID, not vatRate
+                    opt.textContent = r.description + ' (' + (r.vatRate * 100).toFixed(1).replace('.0', '') + '%)';
+                    opt.dataset.vatRate = r.vatRate;
+                    ivaEl.appendChild(opt);
+                    if (!highest || r.vatRate > highest.vatRate) {
+                        highest = r;
+                    }
+                });
+
+                // Default for new products: highest rate
+                if (!id && highest) {
+                    ivaEl.value = highest.id.toString();
+                }
+            }
+
+            // If editing, load product AFTER tax rates are ready
+            if (id) {
+                fetch('/api/products/' + id)
+                    .then(function (r) { return r.json(); })
+                    .then(function (p) {
+                        document.getElementById('productId').value = p.id;
+                        document.getElementById('productName').value = p.name || '';
+                        document.getElementById('productDescription').value = p.description || '';
+                        document.getElementById('productPrice').value = p.price || '';
+                        document.getElementById('productStock').value = (p.stock !== undefined && p.stock !== null) ? p.stock : 0;
+                        document.getElementById('productCategory').value = p.category ? p.category.id : '';
+                        document.getElementById('productImageUrl').value = p.imageUrl || '';
+                        document.getElementById('productActive').checked = p.active !== false;
+                        // Use taxRate.vatRate for display and taxRate.id for selection
+                        if (ivaEl && p.taxRate !== null && p.taxRate !== undefined) {
+                            ivaEl.value = p.taxRate.id.toString();
+                        }
+                        previewImage(p.imageUrl);
+                    })
+                    .catch(function () { showToast('Error al cargar el producto', 'error'); });
+            }
+        })
+        .catch(function () { showToast('Error al cargar tipos de IVA', 'error'); });
 
     productModal.show();
 }
@@ -123,12 +153,14 @@ function saveProduct() {
 
     var id = document.getElementById('productId').value;
     var catId = document.getElementById('productCategory').value;
+    var ivaEl = document.getElementById('productIvaRate');
+    var taxRateId = ivaEl ? parseInt(ivaEl.value) : null;
 
     const body = {
         name: name,
         description: document.getElementById('productDescription').value.trim() || null,
         price: parseFloat(price),
-        ivaRate: parseFloat(document.getElementById('productIvaRate').value),
+        taxRateId: taxRateId, // Send taxRateId instead of ivaRate
         stock: parseInt(document.getElementById('productStock').value) || 0,
         active: document.getElementById('productActive').checked,
         imageUrl: document.getElementById('productImageUrl').value.trim() || null,
@@ -801,8 +833,8 @@ document.getElementById('spProductSelect').addEventListener('change', function (
         fetch('/api/products/' + productId)
             .then(function (r) { return r.json(); })
             .then(function (p) {
-                if (p.ivaRate) {
-                    document.getElementById('spVatRate').value = String(p.ivaRate);
+                if (p.taxRate && p.taxRate.vatRate) {
+                    document.getElementById('spVatRate').value = String(p.taxRate.vatRate);
                     updateRecargoPreview();
                 }
             })
