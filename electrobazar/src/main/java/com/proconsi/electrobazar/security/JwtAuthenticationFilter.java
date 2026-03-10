@@ -18,6 +18,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -46,8 +49,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 // Extract permissions from JWT to populate roles
                 @SuppressWarnings("unchecked")
-                Set<String> permissions = (Set<String>) jwtService.extractClaim(jwt,
-                        claims -> claims.get("permissions", Set.class));
+                List<String> permissions = (List<String>) jwtService.extractClaim(jwt,
+                        claims -> claims.get("permissions", List.class));
 
                 List<SimpleGrantedAuthority> authorities = permissions.stream()
                         .map(SimpleGrantedAuthority::new)
@@ -62,6 +65,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         } catch (Exception e) {
+            log.error("JWT filter error: {}", e.getMessage());
             // If token is invalid or expired, SecurityContext will remain empty
             // and the filter chain will eventually return 403 or 401
         }
