@@ -156,23 +156,46 @@ function saveProduct() {
     var ivaEl = document.getElementById('productIvaRate');
     var taxRateId = ivaEl ? parseInt(ivaEl.value) : null;
 
-    const body = {
-        name: name,
-        description: document.getElementById('productDescription').value.trim() || null,
-        price: parseFloat(price),
-        taxRateId: taxRateId, // Send taxRateId instead of ivaRate
-        stock: parseInt(document.getElementById('productStock').value) || 0,
-        active: document.getElementById('productActive').checked,
-        imageUrl: document.getElementById('productImageUrl').value.trim() || null,
-        category: catId ? { id: parseInt(catId) } : null
-    };
+    let body;
+    if (id) {
+        // PUT request - use taxRate object format
+        body = {
+            name: name,
+            description: document.getElementById('productDescription').value.trim() || null,
+            price: parseFloat(price),
+            taxRate: taxRateId ? { id: taxRateId } : null,
+            stock: parseInt(document.getElementById('productStock').value) || 0,
+            active: document.getElementById('productActive').checked,
+            imageUrl: document.getElementById('productImageUrl').value.trim() || null,
+            category: catId ? { id: parseInt(catId) } : null
+        };
+    } else {
+        // POST request - use taxRateId format
+        body = {
+            name: name,
+            description: document.getElementById('productDescription').value.trim() || null,
+            price: parseFloat(price),
+            taxRateId: taxRateId,
+            stock: parseInt(document.getElementById('productStock').value) || 0,
+            active: document.getElementById('productActive').checked,
+            imageUrl: document.getElementById('productImageUrl').value.trim() || null,
+            category: catId ? { id: parseInt(catId) } : null
+        };
+    }
 
     var method = id ? 'PUT' : 'POST';
     var url = id ? '/api/products/' + id : '/api/products';
 
     fetch(url, { method: method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
         .then(function (r) {
-            if (!r.ok) throw new Error();
+            if (!r.ok) {
+                r.json().then(function(err) {
+                    showToast('Error al guardar: ' + (err.error || err.message || 'Desconocido'), 'error');
+                }).catch(function() {
+                    showToast('Error al guardar el producto', 'error');
+                });
+                return;
+            }
             productModal.hide();
             showToast(id ? 'Producto actualizado correctamente' : 'Producto creado correctamente');
             setTimeout(function () { location.reload(); }, 900);

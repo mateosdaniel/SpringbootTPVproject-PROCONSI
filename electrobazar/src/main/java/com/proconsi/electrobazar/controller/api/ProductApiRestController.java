@@ -9,6 +9,7 @@ import com.proconsi.electrobazar.service.ProductService;
 import com.proconsi.electrobazar.repository.TaxRateRepository;
 import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
@@ -60,15 +62,24 @@ public class ProductApiRestController {
 
     @PostMapping
     public ResponseEntity<Product> create(@RequestBody ProductRequest request) {
+        log.info("Creating product with request: {}", request);
+        
+        if (request.getTaxRateId() == null) {
+            log.error("taxRateId is null in request");
+            return ResponseEntity.badRequest().build();
+        }
+        
+        var taxRateOpt = taxRateRepository.findById(request.getTaxRateId());
+        if (taxRateOpt.isEmpty()) {
+            log.error("TaxRate not found with id: {}", request.getTaxRateId());
+            throw new ResourceNotFoundException("TaxRate no encontrado con id: " + request.getTaxRateId());
+        }
+        
         Product product = new Product();
         product.setName(request.getName());
         product.setDescription(request.getDescription());
+        product.setTaxRate(taxRateOpt.get());
         
-        if (request.getTaxRateId() != null) {
-            product.setTaxRate(taxRateRepository.findById(request.getTaxRateId())
-                    .orElseThrow(() -> new ResourceNotFoundException("TaxRate no encontrado")));
-        }
-
         if (request.getBasePriceNet() != null) {
             product.setBasePriceNet(request.getBasePriceNet());
         } else {
@@ -81,17 +92,26 @@ public class ProductApiRestController {
         if (request.getCategoryId() != null) {
             product.setCategory(categoryService.findById(request.getCategoryId()));
         }
+        log.info("Saving product with taxRate: {}", product.getTaxRate());
         return ResponseEntity.status(HttpStatus.CREATED).body(productService.save(product));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Product> update(@PathVariable Long id, @RequestBody Product product) {
+        log.info("Updating product {} with data: {}", id, product);
         if (product.getCategory() != null && product.getCategory().getId() != null) {
             product.setCategory(categoryService.findById(product.getCategory().getId()));
         }
         if (product.getTaxRate() != null && product.getTaxRate().getId() != null) {
-            product.setTaxRate(taxRateRepository.findById(product.getTaxRate().getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("TaxRate no encontrado")));
+            var taxRateOpt = taxRateRepository.findById(product.getTaxRate().getId());
+            if (taxRateOpt.isEmpty()) {
+                log.error("TaxRate not found with id: {}", product.getTaxRate().getId());
+                throw new ResourceNotFoundException("TaxRate no encontrado con id: " + product.getTaxRate().getId());
+            }
+            product.setTaxRate(taxRateOpt.get());
+            log.info("Setting taxRate: {}", product.getTaxRate());
+        } else {
+            log.warn("No taxRate provided in update request");
         }
         return ResponseEntity.ok(productService.update(id, product));
     }
