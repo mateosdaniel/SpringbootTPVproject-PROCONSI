@@ -21,10 +21,10 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
     List<Product> findByNameContainingIgnoreCaseAndActiveTrue(String name);
 
     // Productos con su categoría en una sola query — solo activos (TPV)
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category WHERE p.active = true ORDER BY p.name ASC")
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE p.active = true ORDER BY p.name ASC")
     List<Product> findAllActiveWithCategory();
 
     // Todos los productos con su categoría — activos e inactivos (Admin)
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category ORDER BY p.name ASC")
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate ORDER BY p.name ASC")
     List<Product> findAllWithCategory();
 }
