@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
     const accentColors = [
         { name: 'Monocromo', value: '#ffffff', hover: '#e0e0e0' },
         { name: 'Naranja', value: '#f5a623', hover: '#e09400' },
@@ -111,8 +111,10 @@
 
         let logoFile = isDark ? '/icons/favicon.svg' : '/icons/favicon-light.svg';
         document.querySelectorAll('img[alt="Logo"]').forEach(img => img.src = logoFile);
-        const faviconLink = document.querySelector('link[rel="icon"]');
-        if (faviconLink) faviconLink.href = logoFile;
+        document.querySelectorAll('link[rel="icon"]').forEach(link => {
+            link.removeAttribute('media');
+            link.href = logoFile;
+        });
 
         document.getElementById('modeDark').classList.toggle('active', isDark);
         document.getElementById('modeLight').classList.toggle('active', !isDark);

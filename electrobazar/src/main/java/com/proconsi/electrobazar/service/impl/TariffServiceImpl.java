@@ -1,19 +1,22 @@
 package com.proconsi.electrobazar.service.impl;
 
 import com.proconsi.electrobazar.model.Customer;
+import com.proconsi.electrobazar.model.Product;
 import com.proconsi.electrobazar.model.Tariff;
+import com.proconsi.electrobazar.model.TariffPriceHistory;
 import com.proconsi.electrobazar.repository.CustomerRepository;
-import com.proconsi.electrobazar.repository.TariffRepository;
-import com.proconsi.electrobazar.repository.ProductRepository;
 import com.proconsi.electrobazar.repository.TariffPriceHistoryRepository;
-import com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator;
+import com.proconsi.electrobazar.repository.TariffRepository;
 import com.proconsi.electrobazar.service.TariffService;
+import com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.*;
 
 @Slf4j
@@ -24,7 +27,6 @@ public class TariffServiceImpl implements TariffService {
 
     private final TariffRepository tariffRepository;
     private final CustomerRepository customerRepository;
-    private final ProductRepository productRepository;
     private final TariffPriceHistoryRepository tariffPriceHistoryRepository;
     private final RecargoEquivalenciaCalculator recargoCalculator;
 
@@ -57,7 +59,7 @@ public class TariffServiceImpl implements TariffService {
     public Tariff getDefault() {
         return tariffRepository.findByName(Tariff.MINORISTA)
                 .orElseThrow(() -> new IllegalStateException(
-                        "System tariff MINORISTA not found – data initializer may have failed."));
+                        "System tariff MINORISTA not found \u2013 data initializer may have failed."));
     }
 
     @Override
@@ -72,55 +74,7 @@ public class TariffServiceImpl implements TariffService {
                 .active(true)
                 .systemTariff(false)
                 .build();
-        Tariff savedTariff = tariffRepository.save(tariff);
-
-        // Auto-generate tariff history for all active products
-        List<com.proconsi.electrobazar.model.Product> products = productRepository.findByActiveTrueOrderByNameAsc();
-        List<com.proconsi.electrobazar.model.TariffPriceHistory> histories = new ArrayList<>();
-        java.time.LocalDate today = java.time.LocalDate.now();
-
-        BigDecimal discountPct = savedTariff.getDiscountPercentage();
-        BigDecimal discountMultiplier = BigDecimal.ONE.subtract(discountPct.divide(BigDecimal.valueOf(100), 10, java.math.RoundingMode.HALF_UP));
-
-        Map<BigDecimal, BigDecimal> vatToReRateMap = recargoCalculator.getVatToReRateMap();
-
-        for (com.proconsi.electrobazar.model.Product product : products) {
-            BigDecimal basePriceWithVat = product.getPrice();
-            BigDecimal vatRate = (product.getTaxRate() != null && product.getTaxRate().getVatRate() != null) 
-                    ? product.getTaxRate().getVatRate() : new BigDecimal("0.21");
-            
-            // net_price = (base_price_with_vat / (1 + vatRate)) * (1 - discountPercent/100)
-            BigDecimal netPrice = basePriceWithVat.divide(BigDecimal.ONE.add(vatRate), 10, java.math.RoundingMode.HALF_UP)
-                    .multiply(discountMultiplier).setScale(2, java.math.RoundingMode.HALF_UP);
-            
-            BigDecimal priceWithVat = netPrice.multiply(BigDecimal.ONE.add(vatRate)).setScale(2, java.math.RoundingMode.HALF_UP);
-            
-            BigDecimal normalizedVat = vatRate.stripTrailingZeros();
-            BigDecimal reRate = vatToReRateMap.entrySet().stream()
-                    .filter(entry -> entry.getKey().stripTrailingZeros().compareTo(normalizedVat) == 0)
-                    .map(Map.Entry::getValue)
-                    .findFirst()
-                    .orElse(BigDecimal.ZERO);
-            
-            BigDecimal priceWithRe = netPrice.multiply(BigDecimal.ONE.add(vatRate).add(reRate)).setScale(2, java.math.RoundingMode.HALF_UP);
-
-            histories.add(com.proconsi.electrobazar.model.TariffPriceHistory.builder()
-                    .product(product)
-                    .tariff(savedTariff)
-                    .basePrice(basePriceWithVat)
-                    .netPrice(netPrice)
-                    .vatRate(vatRate)
-                    .priceWithVat(priceWithVat)
-                    .reRate(reRate)
-                    .priceWithRe(priceWithRe)
-                    .discountPercent(discountPct)
-                    .validFrom(today)
-                    .validTo(null)
-                    .build());
-        }
-        tariffPriceHistoryRepository.saveAll(histories);
-
-        return savedTariff;
+        return tariffRepository.save(tariff);
     }
 
     @Override
@@ -167,5 +121,113 @@ public class TariffServiceImpl implements TariffService {
         tariffRepository.countCustomersPerTariff()
                 .forEach(row -> result.put((Long) row[0], (Long) row[1]));
         return result;
+    }
+
+    /**
+     * Closes any open tariff_price_history records for the affected products and
+     * creates fresh records for every active tariff using the new VAT rate already
+     * stored in {@code product.getTaxRate()}.
+     *
+     * <p>Algorithm (per product x tariff pair):
+     * <ol>
+     *   <li>Close existing open record: set {@code valid_to = today - 1 day}</li>
+     *   <li>Compute from {@code product.price} (gross price inclusive of VAT):
+     *       <pre>
+     *       net_price      = (product.price / (1 + newVatRate)) * (1 - discount% / 100)
+     *       price_with_vat = net_price * (1 + newVatRate)
+     *       price_with_re  = net_price * (1 + newVatRate + reRate)
+     *       </pre>
+     *   </li>
+     *   <li>Bulk-insert all new records via {@code saveAll()}</li>
+     * </ol>
+     * </p>
+     *
+     * @param affectedProducts products whose VAT rate has just been updated
+     */
+    @Override
+    public void regenerateTariffHistoryForProducts(List<Product> affectedProducts) {
+        if (affectedProducts == null || affectedProducts.isEmpty()) {
+            return;
+        }
+
+        List<Tariff> activeTariffs = tariffRepository.findByActiveTrueOrderByNameAsc();
+        if (activeTariffs.isEmpty()) {
+            return;
+        }
+
+        LocalDate today     = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+
+        // ── 1. Close all currently open records for every affected product x tariff ──
+        List<TariffPriceHistory> toClose = new ArrayList<>();
+        for (Product product : affectedProducts) {
+            for (Tariff tariff : activeTariffs) {
+                tariffPriceHistoryRepository
+                        .findCurrentByProductAndTariff(product.getId(), tariff.getId())
+                        .ifPresent(h -> {
+                            h.setValidTo(yesterday);
+                            toClose.add(h);
+                        });
+            }
+        }
+        if (!toClose.isEmpty()) {
+            tariffPriceHistoryRepository.saveAll(toClose);
+        }
+
+        // ── 2. Build new records for every product x tariff ──────────────────────────
+        List<TariffPriceHistory> newRecords = new ArrayList<>();
+
+        for (Product product : affectedProducts) {
+            if (product.getPrice() == null) continue;
+
+            // New VAT rate is already persisted on the product entity at this point
+            BigDecimal newVatRate = (product.getTaxRate() != null && product.getTaxRate().getVatRate() != null)
+                    ? product.getTaxRate().getVatRate()
+                    : new BigDecimal("0.21");
+
+            BigDecimal reRate     = recargoCalculator.getRecargoRate(newVatRate);
+            BigDecimal grossPrice = product.getPrice(); // product.price = gross (VAT-inclusive) base
+
+            for (Tariff tariff : activeTariffs) {
+                BigDecimal discountPct = tariff.getDiscountPercentage() != null
+                        ? tariff.getDiscountPercentage()
+                        : BigDecimal.ZERO;
+
+                // net_price = (product.price / (1 + vatRate)) x (1 - discount% / 100)
+                BigDecimal discountMultiplier = BigDecimal.ONE
+                        .subtract(discountPct.divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP));
+                BigDecimal netPrice = grossPrice
+                        .divide(BigDecimal.ONE.add(newVatRate), 10, RoundingMode.HALF_UP)
+                        .multiply(discountMultiplier)
+                        .setScale(2, RoundingMode.HALF_UP);
+
+                BigDecimal priceWithVat = netPrice
+                        .multiply(BigDecimal.ONE.add(newVatRate))
+                        .setScale(2, RoundingMode.HALF_UP);
+                BigDecimal priceWithRe  = netPrice
+                        .multiply(BigDecimal.ONE.add(newVatRate).add(reRate))
+                        .setScale(2, RoundingMode.HALF_UP);
+
+                newRecords.add(TariffPriceHistory.builder()
+                        .product(product)
+                        .tariff(tariff)
+                        .basePrice(grossPrice)
+                        .netPrice(netPrice)
+                        .vatRate(newVatRate)
+                        .priceWithVat(priceWithVat)
+                        .reRate(reRate)
+                        .priceWithRe(priceWithRe)
+                        .discountPercent(discountPct.setScale(2, RoundingMode.HALF_UP))
+                        .validFrom(today)
+                        .validTo(null)
+                        .build());
+            }
+        }
+
+        if (!newRecords.isEmpty()) {
+            tariffPriceHistoryRepository.saveAll(newRecords);
+            log.info("Regenerated {} tariff_price_history records for {} products x {} tariffs.",
+                    newRecords.size(), affectedProducts.size(), activeTariffs.size());
+        }
     }
 }

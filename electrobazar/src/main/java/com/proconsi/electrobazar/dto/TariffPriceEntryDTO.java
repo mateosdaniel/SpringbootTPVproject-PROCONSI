@@ -21,5 +21,7 @@ public class TariffPriceEntryDTO {
     private BigDecimal discountPercent;
     private LocalDate validFrom;
     private LocalDate validTo;
+    private BigDecimal vatAmount;
+    private BigDecimal reAmount;
     private boolean isFromHistory;
 }

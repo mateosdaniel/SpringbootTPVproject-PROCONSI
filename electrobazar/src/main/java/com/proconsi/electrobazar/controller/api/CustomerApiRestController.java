@@ -5,6 +5,7 @@ import com.proconsi.electrobazar.model.Tariff;
 import com.proconsi.electrobazar.repository.TariffRepository;
 import com.proconsi.electrobazar.service.CustomerService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/customers")
 @RequiredArgsConstructor
@@ -67,6 +69,7 @@ public class CustomerApiRestController {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        log.info("Customer update request for id={}: {}", id, body);
         try {
             Customer existing = customerService.findById(id);
             Customer updated = buildCustomerFromBody(body, existing);
@@ -74,6 +77,7 @@ public class CustomerApiRestController {
             Customer saved = customerService.update(id, updated);
             return ResponseEntity.ok(saved);
         } catch (IllegalArgumentException iae) {
+            log.warn("Customer update id={} rejected: {}", id, iae.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", iae.getMessage()));
         } catch (DataIntegrityViolationException dive) {
             dive.printStackTrace();
@@ -81,7 +85,7 @@ public class CustomerApiRestController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", "Violación de integridad: " + msg));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Customer update id={} error: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Error interno al actualizar cliente: " + e.getMessage()));
         }

@@ -3,6 +3,7 @@ package com.proconsi.electrobazar.controller.web;
 import com.proconsi.electrobazar.dto.TaxBreakdown;
 import com.proconsi.electrobazar.model.*;
 import com.proconsi.electrobazar.model.CashWithdrawal;
+import com.proconsi.electrobazar.repository.TariffPriceHistoryRepository;
 import com.proconsi.electrobazar.service.*;
 import com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator;
 import lombok.RequiredArgsConstructor;
@@ -39,39 +40,7 @@ public class TpvController {
     private final CashWithdrawalService cashWithdrawalService;
     private final ActivityLogService activityLogService;
     private final TariffService tariffService;
-    private final com.proconsi.electrobazar.repository.TariffPriceHistoryRepository tariffPriceHistoryRepository;
-
-    @GetMapping("/api/products/{id}/price")
-    @ResponseBody
-    public BigDecimal getProductPrice(
-            @PathVariable Long id,
-            @RequestParam(required = false) Long tariffId) {
-        
-        Product product = productService.findById(id);
-        if (product == null) throw new RuntimeException("Producto no encontrado");
-        
-        if (tariffId == null) {
-            log.info("No tariff requested for product {}, returning base price: {}", id, product.getPrice());
-            return product.getPrice();
-        }
-        
-        Tariff tariff = tariffService.findById(tariffId)
-                .orElseThrow(() -> new RuntimeException("Tarifa no encontrada"));
-
-        return tariffPriceHistoryRepository.findCurrentByProductAndTariff(id, tariffId)
-                .map(t -> {
-                    BigDecimal price = t.getPriceWithVat();
-                    log.info("History found for product {}/tariff {}: {}", id, tariffId, price);
-                    return price;
-                })
-                .orElseGet(() -> {
-                    BigDecimal discount = tariff.getDiscountPercentage() != null ? tariff.getDiscountPercentage() : BigDecimal.ZERO;
-                    BigDecimal multiplier = BigDecimal.ONE.subtract(discount.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
-                    BigDecimal price = product.getPrice().multiply(multiplier).setScale(2, RoundingMode.HALF_UP);
-                    log.info("No history found for product {}/tariff {}, fallback price calculated: {}", id, tariffId, price);
-                    return price;
-                });
-    }
+    private final TariffPriceHistoryRepository tariffPriceHistoryRepository;
 
     @GetMapping
     public String index(
@@ -118,6 +87,7 @@ public class TpvController {
             @RequestParam(required = false) String customerType,
             @RequestParam List<Long> productIds,
             @RequestParam List<Integer> quantities,
+            @RequestParam(required = false) List<String> unitPrices,
             @RequestParam PaymentMethod paymentMethod,
             @RequestParam(required = false) String notes,
             @RequestParam(required = false) String receivedAmount,
@@ -153,23 +123,36 @@ public class TpvController {
         // Determinar si aplica Recargo de Equivalencia
         boolean applyRecargo = customer != null && Boolean.TRUE.equals(customer.getHasRecargoEquivalencia());
 
-        // Procesar líneas de venta usando el sistema de precios temporales
-        LocalDateTime now = LocalDateTime.now();
+        // Build sale lines using the unit prices sent by the frontend ticket.
+        // These are already the final prices (tariff-adjusted by the sidebar) — do NOT recalculate.
         List<SaleLine> lines = new ArrayList<>();
 
         for (int i = 0; i < productIds.size(); i++) {
             Product product = productService.findById(productIds.get(i));
             int qty = quantities.get(i);
 
+            // Use the price sent from the ticket; fall back to productPriceService only if missing.
             BigDecimal unitPrice;
             BigDecimal vatRate;
-            ProductPrice activePrice = productPriceService.getCurrentPrice(product.getId(), now);
-            if (activePrice != null) {
-                unitPrice = activePrice.getPrice();
-                vatRate = activePrice.getVatRate();
+
+            if (unitPrices != null && i < unitPrices.size() && unitPrices.get(i) != null && !unitPrices.get(i).isBlank()) {
+                // Price already final from the TPV sidebar — use as-is
+                unitPrice = new BigDecimal(unitPrices.get(i).replace(",", "."));
+                vatRate = product.getTaxRate() != null && product.getTaxRate().getVatRate() != null
+                        ? product.getTaxRate().getVatRate()
+                        : new BigDecimal("0.21");
             } else {
-                unitPrice = product.getPrice();
-                vatRate = product.getTaxRate() != null && product.getTaxRate().getVatRate() != null ? product.getTaxRate().getVatRate() : new BigDecimal("0.21");
+                // Fallback: read from price schedule (no tariff discount applied here)
+                ProductPrice activePrice = productPriceService.getCurrentPrice(product.getId(), LocalDateTime.now());
+                if (activePrice != null) {
+                    unitPrice = activePrice.getPrice();
+                    vatRate = activePrice.getVatRate();
+                } else {
+                    unitPrice = product.getPrice();
+                    vatRate = product.getTaxRate() != null && product.getTaxRate().getVatRate() != null
+                            ? product.getTaxRate().getVatRate()
+                            : new BigDecimal("0.21");
+                }
             }
 
             lines.add(SaleLine.builder()
@@ -697,5 +680,59 @@ public class TpvController {
 
         model.addAttribute("taxBreakdowns", standardBreakdowns);
         return "tpv/return-receipt";
+    }
+    /**
+     * Returns the effective unit price for a product, optionally discounted by a tariff.
+     * Used by the TPV sidebar to update ticket prices when a customer is selected.
+     *
+     * <p>Lookup order:
+     * <ol>
+     *   <li>tariff_price_history WHERE product_id = ? AND tariff_id = ? AND valid_to IS NULL → returns price_with_vat directly</li>
+     *   <li>Fallback: basePrice * (1 - tariff.discountPercentage / 100)</li>
+     * </ol></p>
+     *
+     * <p>Example: {@code GET /tpv/api/products/42/price?tariffId=3}</p>
+     *
+     * @param productId the product ID
+     * @param tariffId  optional tariff to apply discount from
+     * @return the effective price as a plain decimal number
+     */
+    @GetMapping("/api/products/{productId}/price")
+    @ResponseBody
+    public java.math.BigDecimal getProductEffectivePrice(
+            @PathVariable Long productId,
+            @RequestParam(required = false) Long tariffId) {
+
+        Product product = productService.findById(productId);
+        if (product == null) {
+            return BigDecimal.ZERO;
+        }
+
+        // Get current active base price (from ProductPrice scheduling system)
+        ProductPrice activePrice = productPriceService.getCurrentPrice(productId, LocalDateTime.now());
+        BigDecimal basePrice = (activePrice != null) ? activePrice.getPrice() : product.getPrice();
+
+        if (tariffId == null) {
+            return basePrice.setScale(2, RoundingMode.HALF_UP);
+        }
+
+        // 1. Look up the active price from tariff_price_history first
+        var historyEntry = tariffPriceHistoryRepository.findCurrentByProductAndTariff(productId, tariffId);
+        if (historyEntry.isPresent()) {
+            return historyEntry.get().getPriceWithVat();
+        }
+
+        // 2. Fallback: apply tariff discount % to the base price
+        return tariffService.findById(tariffId)
+                .map(tariff -> {
+                    BigDecimal discount = tariff.getDiscountPercentage();
+                    if (discount == null || discount.compareTo(BigDecimal.ZERO) == 0) {
+                        return basePrice.setScale(2, RoundingMode.HALF_UP);
+                    }
+                    BigDecimal factor = BigDecimal.ONE.subtract(
+                            discount.divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP));
+                    return basePrice.multiply(factor).setScale(2, RoundingMode.HALF_UP);
+                })
+                .orElse(basePrice.setScale(2, RoundingMode.HALF_UP));
     }
 }

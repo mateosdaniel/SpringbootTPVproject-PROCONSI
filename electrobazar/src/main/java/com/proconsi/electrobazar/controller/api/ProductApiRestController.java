@@ -97,23 +97,9 @@ public class ProductApiRestController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Product> update(@PathVariable Long id, @RequestBody Product product) {
-        log.info("Updating product {} with data: {}", id, product);
-        if (product.getCategory() != null && product.getCategory().getId() != null) {
-            product.setCategory(categoryService.findById(product.getCategory().getId()));
-        }
-        if (product.getTaxRate() != null && product.getTaxRate().getId() != null) {
-            var taxRateOpt = taxRateRepository.findById(product.getTaxRate().getId());
-            if (taxRateOpt.isEmpty()) {
-                log.error("TaxRate not found with id: {}", product.getTaxRate().getId());
-                throw new ResourceNotFoundException("TaxRate no encontrado con id: " + product.getTaxRate().getId());
-            }
-            product.setTaxRate(taxRateOpt.get());
-            log.info("Setting taxRate: {}", product.getTaxRate());
-        } else {
-            log.warn("No taxRate provided in update request");
-        }
-        return ResponseEntity.ok(productService.update(id, product));
+    public ResponseEntity<Product> update(@PathVariable Long id, @RequestBody ProductRequest request) {
+        log.info("Updating product {} with request: {}", id, request);
+        return ResponseEntity.ok(productService.update(id, request));
     }
 
     @DeleteMapping("/{id}")

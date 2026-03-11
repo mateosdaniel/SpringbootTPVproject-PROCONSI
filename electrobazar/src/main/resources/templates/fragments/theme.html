@@ -20,6 +20,10 @@
         <link
             href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@400;700&family=Quicksand:wght@400;500;600;700&display=swap"
             rel="stylesheet">
+        
+        <!-- Adaptive Favicon -->
+        <link rel="icon" type="image/svg+xml" th:href="@{/icons/favicon.svg}" media="(prefers-color-scheme: light)">
+        <link rel="icon" type="image/svg+xml" th:href="@{/icons/favicon-light.svg}" media="(prefers-color-scheme: dark)">
         <style>
             /* Apply theme before render to avoid flash */
             :root {
@@ -127,8 +131,12 @@
                 document.addEventListener('DOMContentLoaded', function () {
                     document.querySelectorAll('img[alt="Logo"], img[alt="Logo ElectroBazar"]')
                         .forEach(function (img) { img.src = logoFile; });
-                    const faviconLink = document.querySelector('link[rel="icon"]');
-                    if (faviconLink) faviconLink.href = logoFile;
+                    
+                    // Update all favicon links and remove media queries so app preference takes over
+                    document.querySelectorAll('link[rel="icon"]').forEach(function(link) {
+                        link.removeAttribute('media');
+                        link.href = logoFile;
+                    });
 
                     // Root font size for rem/em scaling
                     document.documentElement.style.fontSize = prefs.fontSize;
@@ -183,8 +191,10 @@
                     const logoFile2 = isDark2 ? '/icons/favicon.svg' : '/icons/favicon-light.svg';
                     document.querySelectorAll('img[alt="Logo"], img[alt="Logo ElectroBazar"]')
                         .forEach(function (img) { img.src = logoFile2; });
-                    const faviconLink2 = document.querySelector('link[rel="icon"]');
-                    if (faviconLink2) faviconLink2.href = logoFile2;
+                    document.querySelectorAll('link[rel="icon"]').forEach(function(link) {
+                        link.removeAttribute('media');
+                        link.href = logoFile2;
+                    });
                 });
             })();
         </script>

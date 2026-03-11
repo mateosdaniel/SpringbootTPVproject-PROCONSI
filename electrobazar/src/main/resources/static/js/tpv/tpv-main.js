@@ -10,8 +10,6 @@ var ticket = {}; // { productId: { name, price, quantity, stock } }
 var currentTariffId = null;
 var currentDiscountPct = 0; // 0–100
 var currentTariffLabel = 'MINORISTA';
-var selectedCustomer = null; // { id, name, tariff: { id, name, discountPercentage } }
-var isTariffPricingActive = false;
 
 
 function addToTicket(card) {
@@ -29,9 +27,25 @@ function addToTicket(card) {
     if (ticket[id]) {
         ticket[id].quantity++;
     } else {
-        ticket[id] = { name, price, quantity: 1, stock };
+        ticket[id] = { name: name, price: price, quantity: 1, stock: stock };
     }
-    renderTicket();
+
+    // If a customer with a tariff is active, fetch the final tariff price before rendering
+    if (window.currentTariffId) {
+        fetch('/tpv/api/products/' + id + '/price?tariffId=' + window.currentTariffId)
+            .then(function(r) { return r.json(); })
+            .then(function(tariffPrice) {
+                if (ticket[id]) {
+                    ticket[id].price = tariffPrice;
+                }
+                renderTicket();
+            })
+            .catch(function() {
+                renderTicket(); // fallback: render with base price on error
+            });
+    } else {
+        renderTicket();
+    }
 
     // Feedback visual en la tarjeta
     card.style.borderColor = 'var(--success)';
@@ -146,14 +160,16 @@ function renderTicket() {
 
         formHTML += `
                 <input type="hidden" name="productIds" value="${id}">
-                <input type="hidden" name="quantities" value="${item.quantity}">`;
+                <input type="hidden" name="quantities" value="${item.quantity}">
+                <input type="hidden" name="unitPrices" value="${item.price.toFixed(2)}">`;
     });
 
     linesEl.innerHTML = linesHTML;
     formLines.innerHTML = formHTML;
     countEl.textContent = totalItems;
 
-    // ── Discount display (now handled per-line via API/Tariff) ────────────────
+    // Prices stored in ticket[id].price are already final (returned by the backend
+    // including any tariff discount). No additional discount calculation is applied here.
     var originalTotalRow = document.getElementById('originalTotalRow');
     var discountRow = document.getElementById('discountRow');
     if (originalTotalRow) { originalTotalRow.style.display = 'none'; }
@@ -202,17 +218,26 @@ function openCustomerModal() {
 
     // Reset modal state
     document.getElementById('modalAlert').style.display = 'none';
-    toggleInvoiceCard(false); // Reset toggle
 
-    // Reset search state
-    // Reset search state
-    document.getElementById('customerSearchInput').value = '';
+    // Populate customer summary
+    var customerId = document.getElementById('customerIdInput').value;
+    var summaryWith = document.getElementById('summaryWithCustomer');
+    var summaryNo = document.getElementById('summaryNoCustomer');
     
-    // Pre-fill if already selected in sidebar
-    if (selectedCustomer) {
-        selectCustomer(selectedCustomer);
+    if (customerId) {
+        document.getElementById('checkoutCustomerName').textContent = document.getElementById('sidebarCustomerName').textContent;
+        document.getElementById('checkoutCustomerTaxId').textContent = document.getElementById('sidebarCustomerTaxId').textContent;
+        summaryWith.style.display = 'block';
+        summaryNo.style.display = 'none';
+        if (document.getElementById('requestInvoiceInput')) {
+            document.getElementById('requestInvoiceInput').value = 'true';
+        }
     } else {
-        clearSelectedCustomer();
+        summaryWith.style.display = 'none';
+        summaryNo.style.display = 'block';
+        if (document.getElementById('requestInvoiceInput')) {
+            document.getElementById('requestInvoiceInput').value = 'false';
+        }
     }
 
     invoiceModalInstance = new bootstrap.Modal(document.getElementById('customerModal'));
@@ -253,39 +278,7 @@ function setExactAmount() {
     input.dispatchEvent(new Event('input'));
 }
 
-function toggleInvoiceCard(override) {
-    var checkbox = document.getElementById('requestInvoiceToggle');
-    var card = document.getElementById('invoiceToggleCard').firstElementChild;
-    var iconCircle = card.querySelector('.icon-circle');
 
-    // Solo forzamos el estado si override es un booleano estricto (al abrir/cerrar modal)
-    if (typeof override === 'boolean') {
-        checkbox.checked = override;
-    }
-
-    var isChecked = checkbox.checked;
-
-    // Actualizar UI de la tarjeta
-    if (isChecked) {
-        card.style.borderColor = 'var(--accent)';
-        card.style.background = 'rgba(100, 100, 100, 0.1)'; // Fondo sutil para no desentonar
-        iconCircle.style.background = 'var(--accent)';
-        iconCircle.style.color = 'var(--primary)';
-    } else {
-        card.style.borderColor = 'var(--border)';
-        card.style.background = 'var(--primary)';
-        iconCircle.style.background = 'var(--secondary)';
-        iconCircle.style.color = 'var(--text-muted)';
-    }
-
-    document.getElementById('invoiceSection').style.display = isChecked ? 'block' : 'none';
-
-    if (isChecked && document.getElementById('search-tab').classList.contains('active')) {
-        if (document.getElementById('customerSearchInput').value.trim().length === 0) {
-            loadAllCustomers();
-        }
-    }
-}
 
 function toggleCustomerType() {
     var isCompany = document.getElementById('typeCompany').checked;
@@ -376,21 +369,20 @@ function showToast(message, type = 'warning') {
 }
 
 function processSaleWithInvoiceValidation() {
-    var wantsInvoice = document.getElementById('requestInvoiceToggle').checked;
     var saleForm = document.getElementById('saleForm');
-    var customerIdInput = document.getElementById('customerIdInput');
     var requestInvoiceInput = document.getElementById('requestInvoiceInput');
     var paymentMethod = document.getElementById('paymentMethodInput').value;
     var receivedAmountInput = document.getElementById('receivedAmount');
     var hiddenReceivedAmount = document.getElementById('receivedAmountInput');
 
-    // Sincronizar el flag de factura
-    if (requestInvoiceInput) {
-        requestInvoiceInput.value = wantsInvoice ? 'true' : 'false';
-    }
+    // Determine if a customer was selected in the sidebar
+    var customerId = document.getElementById('customerIdInput').value;
+    var hasCustomer = !!customerId;
 
-    // Limpiar datos previos
-    customerIdInput.value = '';
+    // Set invoice flag based on whether customer is selected
+    if (requestInvoiceInput) {
+        requestInvoiceInput.value = hasCustomer ? 'true' : 'false';
+    }
 
     // Validar límite de pago en efectivo (Ley 11/2021)
     var total = parseFloat(document.getElementById('ticketTotal').textContent.replace('\u20AC', '').trim());
@@ -402,7 +394,6 @@ function processSaleWithInvoiceValidation() {
     // Handle Cash Received Logic
     if (paymentMethod === 'CASH') {
         var rVal = parseFloat(receivedAmountInput.value);
-        var total = parseFloat(document.getElementById('ticketTotal').textContent.replace('\u20AC', '').trim());
         if (isNaN(rVal)) {
             showError('Por favor, indica la cantidad entregada en efectivo.');
             return;
@@ -416,89 +407,8 @@ function processSaleWithInvoiceValidation() {
         hiddenReceivedAmount.value = '';
     }
 
-    if (!wantsInvoice) {
-        // Cobro simplificado sin cliente
-        saleForm.submit();
-        return;
-    }
-
-    var searchTabActive = document.getElementById('search-tab').classList.contains('active');
-
-    if (searchTabActive) {
-        // Cliente Existente
-        var selectedId = document.getElementById('existingCustomerId').value;
-        if (!selectedId) {
-            showError('Por favor, busca y selecciona un cliente.');
-            return;
-        }
-        customerIdInput.value = selectedId;
-        saleForm.submit();
-    } else {
-        // Crear Nuevo Cliente
-        var type = document.querySelector('input[name="newCustomerType"]:checked').value;
-        var name = document.getElementById('newCustomerName').value.trim();
-        var taxId = document.getElementById('newCustomerTaxId').value.trim();
-        var address = document.getElementById('newCustomerAddress').value.trim();
-        var city = document.getElementById('newCustomerCity').value.trim();
-        var postalCode = document.getElementById('newCustomerPostalCode').value.trim();
-        var email = document.getElementById('newCustomerEmail').value.trim();
-        var phone = document.getElementById('newCustomerPhone').value.trim();
-        var hasRecargo = document.getElementById('newCustomerHasRecargo').checked;
-
-        // Validación básica: sólo _nombre_ siempre, y CIF/NIF sólo cuando sea estrictamente necesario
-        if (!name) {
-            showError('El nombre es obligatorio');
-            return;
-        }
-
-        // en el formulario para factura pedimos todos los datos porque se usan en el PDF,
-        // sin embargo queremos permitir crear clientes rápidos desde el TPV cuando no
-        // se disponga de todos los campos; dejamos el resto como opcionales y
-        // sólo obligamos el taxId cuando se trate de una empresa.
-        if (type === 'COMPANY' && !taxId) {
-            showError('El CIF de la empresa es obligatorio');
-            return;
-        }
-
-        // Validate NIF/CIF
-        var taxInput = document.getElementById('newCustomerTaxId');
-        if (taxInput && taxInput.dataset.invalidNif === 'true') {
-            showError('Por favor, introduce un NIF/CIF válido antes de continuar.');
-            return;
-        }
-
-        var newCustomer = {
-            name: name,
-            taxId: taxId,
-            address: address,
-            city: city,
-            postalCode: postalCode,
-            email: email,
-            phone: phone,
-            type: type,
-            active: true,
-            hasRecargoEquivalencia: hasRecargo
-        };
-
-        fetch('/api/customers', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newCustomer)
-        })
-            .then(function (response) {
-                if (!response.ok) throw new Error('Error al crear el cliente');
-                return response.json();
-            })
-            .then(function (savedCustomer) {
-                // Cliente creado con éxito
-                customerIdInput.value = savedCustomer.id;
-                saleForm.submit();
-            })
-            .catch(function (err) {
-                console.error(err);
-                showError('Hubo un problema al crear el cliente. Revisa los datos.');
-            });
-    }
+    // customerIdInput already set by selectCustomer() in sidebar — just submit
+    saleForm.submit();
 }
 
 function escapeHtml(str) {
@@ -782,26 +692,151 @@ function renderCustomerResults(customers) {
 }
 
 function selectCustomer(c) {
-    document.getElementById('existingCustomerId').value = c.id;
-    document.getElementById('selectedCustomerName').textContent = c.name;
-    document.getElementById('selectedCustomerTaxId').textContent = c.taxId || 'Sin NIF';
+    document.getElementById('customerIdInput').value = c.id;
+    document.getElementById('sidebarCustomerName').textContent = c.name;
+    document.getElementById('sidebarCustomerTaxId').textContent = c.taxId || 'Sin NIF';
 
     document.getElementById('customerSearchInput').value = '';
     document.getElementById('customerSearchResults').style.display = 'none';
-    document.getElementById('selectedCustomerDisplay').style.display = 'block';
+    document.getElementById('selectedCustomerCard').style.display = 'block';
+    document.getElementById('customerSelectionControls').style.display = 'none';
 
-    // Auto-apply the customer's tariff
+    // Auto-apply the customer's tariff and update ticket prices
     if (c.tariff) {
-        applyTariffById(c.tariff.id, parseFloat(c.tariff.discountPercentage || 0), c.tariff.name +
-            (parseFloat(c.tariff.discountPercentage) > 0 ? ' -' + parseFloat(c.tariff.discountPercentage) + '%' : ''));
+        window.currentTariffId = c.tariff.id; // expose for addToTicket
+        updateTicketPricesForTariff(c.tariff.id, c.tariff.name, parseFloat(c.tariff.discountPercentage || 0));
+    } else {
+        window.currentTariffId = null;
+        resetTicketPrices();
     }
 }
 
 function clearSelectedCustomer() {
-    document.getElementById('existingCustomerId').value = '';
-    document.getElementById('selectedCustomerDisplay').style.display = 'none';
-    // Reset tariff to MINORISTA when customer is cleared
-    resetTariffToDefault();
+    document.getElementById('customerIdInput').value = '';
+    document.getElementById('selectedCustomerCard').style.display = 'none';
+    document.getElementById('customerSelectionControls').style.display = 'block';
+    window.currentTariffId = null; // clear so addToTicket uses base prices again
+    resetTicketPrices();
+}
+
+/**
+ * Updates prices for all items currently in the ticket using the backend price API.
+ * The API already returns the final tariff price — no additional discount is applied here.
+ */
+function updateTicketPricesForTariff(tariffId, tariffName, discountPct) {
+    var productIds = Object.keys(ticket);
+    if (productIds.length === 0) {
+        // Pass discountPct=0 so renderTicket never re-applies a discount
+        applyTariffById(tariffId, 0, tariffName);
+        return;
+    }
+
+    var promises = productIds.map(function(id) {
+        return fetch('/tpv/api/products/' + id + '/price?tariffId=' + tariffId)
+            .then(function(r) { return r.json(); })
+            .then(function(price) {
+                if (ticket[id]) {
+                    ticket[id].price = price; // already the final price from backend
+                }
+            });
+    });
+
+    Promise.all(promises).then(function() {
+        // discountPct=0: prices are already final, renderTicket must not re-discount
+        applyTariffById(tariffId, 0, tariffName);
+        var badge = document.getElementById('sidebarTariffBadge');
+        if (badge) {
+            badge.textContent = tariffName + (discountPct > 0 ? ' -' + discountPct + '%' : '');
+            badge.style.display = 'inline-block';
+        }
+    }).catch(function(err) {
+        console.error('Error updating ticket prices', err);
+        applyTariffById(tariffId, 0, tariffName);
+    });
+}
+
+/**
+ * Resets ticket prices to their base website price.
+ */
+function resetTicketPrices() {
+    var productIds = Object.keys(ticket);
+    var badge = document.getElementById('sidebarTariffBadge');
+    if (badge) badge.style.display = 'none';
+
+    if (productIds.length === 0) {
+        resetTariffToDefault();
+        return;
+    }
+
+    var promises = productIds.map(function(id) {
+        return fetch('/tpv/api/products/' + id + '/price') // endpoint returns base price if no tariffId
+            .then(function(r) { return r.json(); })
+            .then(function(price) {
+                if (ticket[id]) {
+                    ticket[id].price = price;
+                }
+            });
+    });
+
+    Promise.all(promises).then(function() {
+        resetTariffToDefault();
+    });
+}
+
+function openFullCustomerModal() {
+    // Reset form
+    document.getElementById('newCustomerName').value = '';
+    document.getElementById('newCustomerTaxId').value = '';
+    document.getElementById('newCustomerAddress').value = '';
+    document.getElementById('newCustomerCity').value = '';
+    document.getElementById('newCustomerPostalCode').value = '';
+    document.getElementById('newCustomerEmail').value = '';
+    document.getElementById('newCustomerPhone').value = '';
+    document.getElementById('typeIndividual').checked = true;
+    toggleCustomerType();
+    
+    var modal = new bootstrap.Modal(document.getElementById('fullCustomerModal'));
+    modal.show();
+}
+
+function createNewCustomerAjax() {
+    var type = document.querySelector('input[name="newCustomerType"]:checked').value;
+    var name = document.getElementById('newCustomerName').value.trim();
+    var taxId = document.getElementById('newCustomerTaxId').value.trim();
+    var address = document.getElementById('newCustomerAddress').value.trim();
+    var city = document.getElementById('newCustomerCity').value.trim();
+    var postalCode = document.getElementById('newCustomerPostalCode').value.trim();
+    var email = document.getElementById('newCustomerEmail').value.trim();
+    var phone = document.getElementById('newCustomerPhone').value.trim();
+    var hasRecargo = document.getElementById('newCustomerHasRecargo').checked;
+
+    if (!name) { showToast('El nombre es obligatorio', 'warning'); return; }
+    if (type === 'COMPANY' && !taxId) { showToast('El CIF de la empresa es obligatorio', 'warning'); return; }
+
+    var newCustomer = {
+        name: name, taxId: taxId, address: address, city: city,
+        postalCode: postalCode, email: email, phone: phone,
+        type: type, active: true, hasRecargoEquivalencia: hasRecargo
+    };
+
+    fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCustomer)
+    })
+    .then(function (response) {
+        if (!response.ok) throw new Error('Error al crear el cliente');
+        return response.json();
+    })
+    .then(function (savedCustomer) {
+        bootstrap.Modal.getInstance(document.getElementById('fullCustomerModal')).hide();
+        selectCustomer(savedCustomer);
+        showToast('Cliente creado y seleccionado', 'success');
+    })
+    .catch(function (err) {
+        console.error(err);
+        showToast('Error al crear el cliente', 'warning');
+    });
 }
 
 // Cerrar resultados al hacer click fuera
@@ -811,7 +846,7 @@ document.addEventListener('click', function (e) {
     }
 });
 
-var searchTab = document.getElementById('search-tab');
+var searchTab = document.getElementById('sidebar-search-tab');
 if (searchTab) {
     searchTab.addEventListener('shown.bs.tab', function () {
         if (document.getElementById('customerSearchInput').value.trim().length === 0) {
@@ -1254,129 +1289,3 @@ document.addEventListener('DOMContentLoaded', function () {
     resetTariffToDefault();
 });
 
-// -- Sidebar Customer Search & Price Update --
-(function () {
-    var searchInput = document.getElementById('sidebarCustomerSearch');
-    var resultsContainer = document.getElementById('sidebarCustomerResults');
-    var timeout = null;
-
-    if (!searchInput) return;
-
-    function renderSidebarResults(customers) {
-        resultsContainer.innerHTML = '';
-        if (customers.length === 0) {
-            resultsContainer.innerHTML = '<div class="p-3 text-center text-muted small">No se encontraron clientes</div>';
-        } else {
-            customers.forEach(function (c) {
-                var div = document.createElement('div');
-                div.className = 'customer-item p-2 border-bottom';
-                div.style.cursor = 'pointer';
-                div.style.backgroundColor = 'var(--surface)';
-                div.innerHTML = '<div class="fw-bold small" style="color: var(--text-main);">' + escapeHtml(c.name) + '</div>' +
-                                '<div class="text-muted" style="font-size:0.7rem">' + (c.taxId || 'Sin NIF') + ' &middot; ' + (c.city || '') + '</div>';
-                div.onclick = function () { selectSidebarCustomer(c); };
-                resultsContainer.appendChild(div);
-            });
-        }
-        resultsContainer.style.display = 'block';
-    }
-
-    searchInput.addEventListener('input', function () {
-        var query = this.value.trim();
-        clearTimeout(timeout);
-        if (query.length < 2) {
-            resultsContainer.style.display = 'none';
-            return;
-        }
-        timeout = setTimeout(function () {
-            fetch('/api/customers/search?query=' + encodeURIComponent(query))
-                .then(function (r) { return r.json(); })
-                .then(renderSidebarResults);
-        }, 300);
-    });
-
-    searchInput.addEventListener('focus', function () {
-        if (this.value.trim() === '') {
-            fetch('/api/customers/search?query=')
-                .then(function (r) { return r.json(); })
-                .then(renderSidebarResults);
-        }
-    });
-
-    document.addEventListener('click', function (e) {
-        if (!searchInput.contains(e.target) && !resultsContainer.contains(e.target)) {
-            resultsContainer.style.display = 'none';
-        }
-    });
-
-    window.selectSidebarCustomer = function (c) {
-        selectedCustomer = c;
-        document.getElementById('customerSearchContainer').style.setProperty('display', 'none', 'important');
-        var sidebarSelected = document.getElementById('sidebarSelectedCustomer');
-        sidebarSelected.style.setProperty('display', 'flex', 'important');
-        document.getElementById('sidebarCustomerName').textContent = c.name;
-        document.getElementById('sidebarCustomerSearch').value = '';
-        resultsContainer.style.display = 'none';
-        
-        // Update hidden inputs for sale form (pre-fill checkout)
-        document.getElementById('customerIdInput').value = c.id;
-        document.getElementById('customerNameInput').value = c.name;
-        document.getElementById('customerTypeInput').value = c.type;
-
-        if (c.tariff) {
-            applyTariffById(c.tariff.id, parseFloat(c.tariff.discountPercentage || 0), c.tariff.name);
-            updatePricesForTariff(c.tariff.id);
-        } else {
-            resetTariffToDefault();
-            updatePricesForTariff(null);
-        }
-    };
-
-    window.clearSidebarCustomer = function () {
-        selectedCustomer = null;
-        document.getElementById('customerSearchContainer').style.setProperty('display', 'block', 'important');
-        document.getElementById('sidebarSelectedCustomer').style.setProperty('display', 'none', 'important');
-        
-        document.getElementById('customerIdInput').value = '';
-        document.getElementById('customerNameInput').value = '';
-        document.getElementById('customerTypeInput').value = '';
-        
-        resetTariffToDefault();
-        updatePricesForTariff(null);
-    };
-
-    function updatePricesForTariff(tariffId) {
-        var productIds = Object.keys(ticket);
-        isTariffPricingActive = !!tariffId; // Set flag based on whether a tariff is active
-        if (productIds.length === 0) return;
-
-        Promise.all(productIds.map(function (id) {
-            var url = '/tpv/api/products/' + id + '/price' + (tariffId ? '?tariffId=' + tariffId : '');
-            return fetch(url)
-                .then(function (r) { return r.json(); })
-                .then(function (price) { return { id: id, price: price }; });
-        })).then(function (results) {
-            results.forEach(function (res) {
-                if (ticket[res.id]) {
-                    ticket[res.id].price = res.price;
-                }
-            });
-            renderTicket();
-        });
-    }
-
-    var originalApplyTariff = window.applyTariffById;
-    window.applyTariffById = function(id, discount, label) {
-        originalApplyTariff(id, discount, label);
-        var badge = document.getElementById('ticketTariffBadge');
-        var labelEl = document.getElementById('tariffBadgeLabel');
-        if (badge && labelEl) {
-            if (discount > 0) {
-                labelEl.textContent = label + (label.includes('%') ? '' : ' ' + discount + '%');
-                badge.style.display = 'block';
-            } else {
-                badge.style.display = 'none';
-            }
-        }
-    };
-})();

@@ -21,6 +21,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final ProductPriceRepository productPriceRepository;
     private final com.proconsi.electrobazar.repository.TaxRateRepository taxRateRepository;
+    private final com.proconsi.electrobazar.repository.CategoryRepository categoryRepository;
     private final ActivityLogService activityLogService;
 
     @Override
@@ -87,36 +88,55 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public Product update(Long id, Product updated) {
+    public Product update(Long id, com.proconsi.electrobazar.dto.ProductRequest request) {
         Product existing = findById(id);
-        existing.setName(updated.getName());
-        existing.setDescription(updated.getDescription());
-        existing.setTaxRate(updated.getTaxRate()); // Set TaxRate first
-
-        // If the update object came with a specific net base price, use it
-        if (updated.getBasePriceNet() != null && updated.getBasePriceNet().compareTo(java.math.BigDecimal.ZERO) > 0) {
-            existing.setBasePriceNet(updated.getBasePriceNet());
-        } else {
-            existing.setPrice(updated.getPrice());
+        existing.setName(request.getName());
+        existing.setDescription(request.getDescription());
+        
+        // 1. Update Tax Rate first because setPrice depends on it
+        if (request.getTaxRateId() != null) {
+            com.proconsi.electrobazar.model.TaxRate newRate = taxRateRepository.findById(request.getTaxRateId())
+                    .orElseThrow(() -> new ResourceNotFoundException("TaxRate no encontrado: " + request.getTaxRateId()));
+            existing.setTaxRate(newRate);
         }
 
-        existing.setActive(updated.getActive());
-        existing.setImageUrl(updated.getImageUrl());
-        existing.setCategory(updated.getCategory());
-
-        // El stock se puede actualizar manualmente para corregir errores de datos
-        if (updated.getStock() != null && updated.getStock() >= 0) {
-            existing.setStock(updated.getStock());
+        // 2. Update price using raw values from request to avoid inflation bug
+        if (request.getBasePriceNet() != null && request.getBasePriceNet().compareTo(java.math.BigDecimal.ZERO) > 0) {
+            existing.setBasePriceNet(request.getBasePriceNet());
+        } else if (request.getPrice() != null && request.getPrice().compareTo(java.math.BigDecimal.ZERO) > 0) {
+            existing.setPrice(request.getPrice());
         }
+
+        if (request.getActive() != null) {
+            existing.setActive(request.getActive());
+        }
+        existing.setImageUrl(request.getImageUrl());
+        
+        if (request.getCategoryId() != null) {
+            existing.setCategory(categoryRepository.findById(request.getCategoryId())
+                .orElse(null));
+        }
+
+        if (request.getStock() != null && request.getStock() >= 0) {
+            existing.setStock(request.getStock());
+        }
+
         Product saved = productRepository.save(existing);
 
-        // Sync active temporal price with the new product VAT rate
+        // 3. Sync BOTH price and vatRate with active temporal price entry
         productPriceRepository.findActivePriceAt(saved.getId(), java.time.LocalDateTime.now())
                 .ifPresent(activePrice -> {
-                    activePrice.setVatRate(saved.getTaxRate() != null && saved.getTaxRate().getVatRate() != null ? saved.getTaxRate().getVatRate() : new java.math.BigDecimal("0.21"));
+                    // Update VAT
+                    activePrice.setVatRate(saved.getTaxRate() != null && saved.getTaxRate().getVatRate() != null
+                            ? saved.getTaxRate().getVatRate()
+                            : new java.math.BigDecimal("0.21"));
+                    
+                    // Update Price (Gross) - uses saved.getPrice() which is now correct
+                    activePrice.setPrice(saved.getPrice());
+                    
                     productPriceRepository.save(activePrice);
-                    log.info("Synced ProductPrice (id={}) vatRate with product '{}' (id={}) updated ivaRate: {}",
-                            activePrice.getId(), saved.getName(), saved.getId(), saved.getTaxRate() != null ? saved.getTaxRate().getVatRate() : "null");
+                    log.info("Synced ProductPrice (id={}) price & vatRate with updated product '{}' (id={}). New Price: {}",
+                            activePrice.getId(), saved.getName(), saved.getId(), saved.getPrice());
                 });
 
         activityLogService.logActivity(
@@ -197,12 +217,16 @@ public class ProductServiceImpl implements ProductService {
         com.proconsi.electrobazar.model.TaxRate newRate = taxRateRepository.findById(newTaxRateId)
                 .orElseThrow(() -> new ResourceNotFoundException("TaxRate no encontrado: " + newTaxRateId));
 
-        // Buscar todos los TaxRates con la misma descripción (ej: "IVA General") pero distinto ID
-        List<com.proconsi.electrobazar.model.TaxRate> oldRates = taxRateRepository.findByDescriptionAndIdNot(newRate.getDescription(), newTaxRateId);
-        
-        if (oldRates.isEmpty()) return;
+        // Buscar todos los TaxRates con la misma descripción (ej: "IVA General") pero
+        // distinto ID
+        List<com.proconsi.electrobazar.model.TaxRate> oldRates = taxRateRepository
+                .findByDescriptionAndIdNot(newRate.getDescription(), newTaxRateId);
 
-        List<Long> oldIds = oldRates.stream().map(com.proconsi.electrobazar.model.TaxRate::getId).collect(java.util.stream.Collectors.toList());
+        if (oldRates.isEmpty())
+            return;
+
+        List<Long> oldIds = oldRates.stream().map(com.proconsi.electrobazar.model.TaxRate::getId)
+                .collect(java.util.stream.Collectors.toList());
 
         // Actualizar todos los productos que apuntan a esos IDs viejos
         productRepository.updateTaxRateForIds(oldIds, newRate);
@@ -217,7 +241,8 @@ public class ProductServiceImpl implements ProductService {
 
         activityLogService.logActivity(
                 "APLICAR_IVA_MASIVO",
-                "Se ha aplicado el nuevo " + newRate.getDescription() + " (" + newRate.getVatRate().multiply(new java.math.BigDecimal(100)) + "%) de forma masiva.",
+                "Se ha aplicado el nuevo " + newRate.getDescription() + " ("
+                        + newRate.getVatRate().multiply(new java.math.BigDecimal(100)) + "%) de forma masiva.",
                 "Admin",
                 "TAX_RATE",
                 newTaxRateId);

@@ -113,47 +113,31 @@ public class SaleServiceImpl implements SaleService {
         // Determine if RE applies for this sale
         boolean applyRecargo = customer != null && Boolean.TRUE.equals(customer.getHasRecargoEquivalencia());
 
-        // ── Calculate line totals with discount applied ─────────────────────
+        // ── Calculate line totals — unit prices are already final (set by the frontend) ──
         BigDecimal total = BigDecimal.ZERO;
         BigDecimal totalBase = BigDecimal.ZERO;
         BigDecimal totalVat = BigDecimal.ZERO;
         BigDecimal totalRecargo = BigDecimal.ZERO;
-        BigDecimal totalDiscount = BigDecimal.ZERO;
+        BigDecimal totalDiscount = BigDecimal.ZERO; // kept for record; prices are pre-discounted
 
         for (SaleLine line : lines) {
-            // Catalogue (original) gross price
-            BigDecimal originalPrice = line.getUnitPrice();
-            line.setOriginalUnitPrice(originalPrice.setScale(SCALE, ROUNDING));
-            line.setDiscountPercentage(discountPct.setScale(SCALE, ROUNDING));
+            BigDecimal finalPrice = line.getUnitPrice().setScale(SCALE, ROUNDING);
 
-            // Apply discount to gross price
-            BigDecimal discountedPrice;
-            if (discountPct.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal discountFactor = BigDecimal.ONE
-                        .subtract(discountPct.divide(new BigDecimal("100"), 10, ROUNDING));
-                discountedPrice = originalPrice.multiply(discountFactor).setScale(SCALE, ROUNDING);
-            } else {
-                discountedPrice = originalPrice.setScale(SCALE, ROUNDING);
-            }
-            line.setUnitPrice(discountedPrice);
+            // Record original as the price received (already final — no further discount)
+            line.setOriginalUnitPrice(finalPrice);
+            line.setDiscountPercentage(BigDecimal.ZERO);
+            line.setUnitPrice(finalPrice);
 
-            // The discount Amount to track and display MUST be the net amount (without
-            // VAT), to show the true loss of revenue/value.
-            // Using a simple reverse VAT calculation to get the net discount
             BigDecimal vatRate = line.getVatRate() != null ? line.getVatRate()
-                    : (line.getProduct() != null && line.getProduct().getTaxRate() != null && line.getProduct().getTaxRate().getVatRate() != null
-                            ? line.getProduct().getTaxRate().getVatRate()
-                            : new BigDecimal("0.21"));
-            BigDecimal perUnitGrossDiscount = originalPrice.subtract(discountedPrice);
-            BigDecimal divisor = BigDecimal.ONE.add(vatRate);
-            BigDecimal perUnitNetDiscount = perUnitGrossDiscount.divide(divisor, 10, ROUNDING).setScale(SCALE,
-                    ROUNDING);
-            totalDiscount = totalDiscount.add(perUnitNetDiscount.multiply(new BigDecimal(line.getQuantity())));
+                    : (line.getProduct() != null && line.getProduct().getTaxRate() != null
+                            && line.getProduct().getTaxRate().getVatRate() != null
+                                    ? line.getProduct().getTaxRate().getVatRate()
+                                    : new BigDecimal("0.21"));
 
             com.proconsi.electrobazar.dto.TaxBreakdown breakdown = recargoCalculator.calculateLineBreakdown(
                     line.getProduct().getId(),
                     line.getProduct().getName(),
-                    discountedPrice, // use discounted price for tax calculation
+                    finalPrice,
                     line.getQuantity(),
                     vatRate,
                     applyRecargo);

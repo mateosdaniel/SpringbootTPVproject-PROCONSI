@@ -64,6 +64,10 @@
             border-radius: 6px;
             font-size: 0.75rem;
         }
+
+        .group-start {
+            border-left: 2px solid var(--border) !important;
+        }
     </style>
 </head>
 
@@ -107,12 +111,14 @@
                             <th>Producto</th>
                             <th>Precio Base</th>
                             <th>Descuento %</th>
-                            <th>Precio Neto</th>
-                            <th>IVA</th>
+                            <th class="group-start">Precio Neto (c/dto.)</th>
+                            <th class="group-start">IVA</th>
+                            <th>Cuota IVA</th>
                             <th>P. con IVA</th>
-                            <th>RE</th>
+                            <th class="group-start">RE</th>
+                            <th>Cuota RE</th>
                             <th>P. con RE</th>
-                            <th>Vigencia</th>
+                            <th class="group-start">Vigencia</th>
                             <th>Estado</th>
                         </tr>
                     </thead>
@@ -124,12 +130,14 @@
                             </td>
                             <td class="price-tag" th:text="${#numbers.formatDecimal(h.basePrice, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
                             <td th:text="${#numbers.formatDecimal(h.discountPercent, 1, 1, 'COMMA') + '%'}">0,0%</td>
-                            <td class="fw-bold" th:text="${#numbers.formatDecimal(h.netPrice, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
-                            <td th:text="${#numbers.formatDecimal(h.vatRate * 100, 1, 0, 'COMMA') + '%'}">21%</td>
+                            <td class="fw-bold group-start" th:text="${#numbers.formatDecimal(h.netPrice, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
+                            <td class="group-start" th:text="${#numbers.formatDecimal(h.vatRate * 100, 1, 0, 'COMMA') + '%'}">21%</td>
+                            <td th:text="${#numbers.formatDecimal(h.vatAmount, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
                             <td class="price-tag" th:text="${#numbers.formatDecimal(h.priceWithVat, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
-                            <td th:text="${#numbers.formatDecimal(h.reRate * 100, 1, 1, 'COMMA') + '%'}">5,2%</td>
+                            <td class="group-start" th:text="${#numbers.formatDecimal(h.reRate * 100, 1, 1, 'COMMA') + '%'}">5,2%</td>
+                            <td th:text="${#numbers.formatDecimal(h.reAmount, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
                             <td class="price-tag fw-bold" th:text="${#numbers.formatDecimal(h.priceWithRe, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
-                            <td class="validity-period">
+                            <td class="validity-period group-start">
                                 <i class="bi bi-calendar-check me-1"></i>
                                 <span th:text="${#temporals.format(h.validFrom, 'dd/MM/yyyy')}">01/01/2024</span>
                                 <span th:if="${h.validTo != null}">

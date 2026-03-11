@@ -1,4 +1,4 @@
-﻿const productModal = new bootstrap.Modal(document.getElementById('productModal'));
+const productModal = new bootstrap.Modal(document.getElementById('productModal'));
 const categoryModal = new bootstrap.Modal(document.getElementById('categoryModal'));
 
 function showToast(msg, type = 'success') {
@@ -88,30 +88,16 @@ function saveProduct() {
     const ivaEl = document.getElementById('productIvaRate');
     const taxRateId = ivaEl ? parseInt(ivaEl.value) : null;
     
-    let body;
-    if (id) {
-        // PUT request - use taxRate object format
-        body = {
-            name, price: parseFloat(price),
-            description: document.getElementById('productDescription').value.trim() || null,
-            stock: parseInt(document.getElementById('productStock').value) || 0,
-            active: document.getElementById('productActive').checked,
-            imageUrl: document.getElementById('productImageUrl').value.trim() || null,
-            taxRate: taxRateId ? { id: taxRateId } : null,
-            category: document.getElementById('productCategory').value ? { id: parseInt(document.getElementById('productCategory').value) } : null
-        };
-    } else {
-        // POST request - use taxRateId format
-        body = {
-            name, price: parseFloat(price),
-            description: document.getElementById('productDescription').value.trim() || null,
-            stock: parseInt(document.getElementById('productStock').value) || 0,
-            active: document.getElementById('productActive').checked,
-            imageUrl: document.getElementById('productImageUrl').value.trim() || null,
-            taxRateId: taxRateId,
-            category: document.getElementById('productCategory').value ? { id: parseInt(document.getElementById('productCategory').value) } : null
-        };
-    }
+    const body = {
+        name, 
+        price: parseFloat(price),
+        description: document.getElementById('productDescription').value.trim() || null,
+        stock: parseInt(document.getElementById('productStock').value) || 0,
+        active: document.getElementById('productActive').checked,
+        imageUrl: document.getElementById('productImageUrl').value.trim() || null,
+        taxRateId: taxRateId,
+        categoryId: document.getElementById('productCategory').value ? parseInt(document.getElementById('productCategory').value) : null
+    };
 
     fetch(id ? '/api/products/' + id : '/api/products', {
         method: id ? 'PUT' : 'POST',

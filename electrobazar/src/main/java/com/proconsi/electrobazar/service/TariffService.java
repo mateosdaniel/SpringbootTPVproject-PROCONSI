@@ -1,5 +1,6 @@
 package com.proconsi.electrobazar.service;
 
+import com.proconsi.electrobazar.model.Product;
 import com.proconsi.electrobazar.model.Tariff;
 
 import java.math.BigDecimal;
@@ -45,8 +46,20 @@ public interface TariffService {
     void activate(Long id);
 
     /**
-     * Returns a map of tariffId → customerCount for all tariffs
+     * Returns a map of tariffId -> customerCount for all tariffs
      * (only active customers are counted).
      */
     Map<Long, Long> getCustomerCountPerTariff();
+
+    /**
+     * Closes open tariff_price_history records for the given products and
+     * regenerates new records for every active tariff using the VAT rate
+     * already stored in each product entity.
+     *
+     * <p>Intended to be called by the scheduler immediately after a new VAT
+     * rate has been applied to the affected products.</p>
+     *
+     * @param affectedProducts products whose VAT rate was just updated
+     */
+    void regenerateTariffHistoryForProducts(List<Product> affectedProducts);
 }

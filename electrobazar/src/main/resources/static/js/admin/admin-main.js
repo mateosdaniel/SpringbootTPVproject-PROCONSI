@@ -156,32 +156,16 @@ function saveProduct() {
     var ivaEl = document.getElementById('productIvaRate');
     var taxRateId = ivaEl ? parseInt(ivaEl.value) : null;
 
-    let body;
-    if (id) {
-        // PUT request - use taxRate object format
-        body = {
-            name: name,
-            description: document.getElementById('productDescription').value.trim() || null,
-            price: parseFloat(price),
-            taxRate: taxRateId ? { id: taxRateId } : null,
-            stock: parseInt(document.getElementById('productStock').value) || 0,
-            active: document.getElementById('productActive').checked,
-            imageUrl: document.getElementById('productImageUrl').value.trim() || null,
-            category: catId ? { id: parseInt(catId) } : null
-        };
-    } else {
-        // POST request - use taxRateId format
-        body = {
-            name: name,
-            description: document.getElementById('productDescription').value.trim() || null,
-            price: parseFloat(price),
-            taxRateId: taxRateId,
-            stock: parseInt(document.getElementById('productStock').value) || 0,
-            active: document.getElementById('productActive').checked,
-            imageUrl: document.getElementById('productImageUrl').value.trim() || null,
-            category: catId ? { id: parseInt(catId) } : null
-        };
-    }
+    const body = {
+        name: name,
+        description: document.getElementById('productDescription').value.trim() || null,
+        price: parseFloat(price),
+        taxRateId: taxRateId,
+        stock: parseInt(document.getElementById('productStock').value) || 0,
+        active: document.getElementById('productActive').checked,
+        imageUrl: document.getElementById('productImageUrl').value.trim() || null,
+        categoryId: catId ? parseInt(catId) : null
+    };
 
     var method = id ? 'PUT' : 'POST';
     var url = id ? '/api/products/' + id : '/api/products';

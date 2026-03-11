@@ -22,7 +22,7 @@ public interface ProductService {
 
     Product save(Product product);
 
-    Product update(Long id, Product product);
+    Product update(Long id, com.proconsi.electrobazar.dto.ProductRequest request);
 
     void delete(Long id);
 

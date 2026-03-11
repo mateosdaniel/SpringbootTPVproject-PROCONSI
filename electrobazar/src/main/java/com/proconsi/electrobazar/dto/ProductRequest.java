@@ -29,4 +29,6 @@ public class ProductRequest {
     private Long categoryId;
 
     private String imageUrl;
+
+    private Boolean active;
 }

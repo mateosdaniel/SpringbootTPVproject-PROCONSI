@@ -14,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 import com.proconsi.electrobazar.util.NifCifValidator;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -77,6 +79,7 @@ public class CustomerServiceImpl implements CustomerService {
     public Customer update(Long id, Customer updated) {
         if (updated.getTaxId() != null && !updated.getTaxId().trim().isEmpty()) {
             if (!nifCifValidator.isValid(updated.getTaxId())) {
+                log.warn("Customer update id={} rejected: invalid taxId='{}'", id, updated.getTaxId());
                 throw new IllegalArgumentException("El NIF/CIF o NIE introducido no es válido.");
             }
         }
