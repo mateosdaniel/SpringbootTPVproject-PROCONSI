@@ -132,23 +132,34 @@ function saveProduct() {
 
 function deleteProduct(id, name) {
     if (confirm('¿Seguro que quieres eliminar definitivamente el producto "' + name + '"?')) {
-        fetch('/admin/products/' + id + '/hard', { method: 'DELETE' })
+        fetch('/admin/products/' + id + '/hard', { method: 'DELETE', credentials: 'include', cache: 'no-store' })
             .then(function (r) {
-                if (r.status === 409) {
-                    return r.text().then(function (msg) { showToast(msg, 'error'); });
-                }
-                if (!r.ok) throw new Error();
+                console.log('Delete response status:', r.status);
+                r.text().then(function (text) {
+                    console.log('Delete response body:', text);
+                    if (r.status === 409) {
+                        showToast(text || 'Conflicto al eliminar', 'error');
+                        return;
+                    }
+                    if (!r.ok) {
+                        showToast('Error al eliminar el producto', 'error');
+                        return;
+                    }
 
-                showToast('Producto "' + name + '" eliminado definitivamente');
+                    showToast('Producto "' + name + '" eliminado definitivamente');
 
-                // Remove row from DOM
-                var btn = document.querySelector('button.danger[data-id="' + id + '"]');
-                if (btn) {
-                    var row = btn.closest('tr');
-                    if (row) row.remove();
-                }
+                    // Remove row from DOM
+                    var btn = document.querySelector('button.danger[data-id="' + id + '"]');
+                    if (btn) {
+                        var row = btn.closest('tr');
+                        if (row) row.remove();
+                    }
+                });
             })
-            .catch(function () { showToast('Error al eliminar el producto', 'error'); });
+            .catch(function (err) { 
+                console.error('Delete error:', err);
+                showToast('Error al eliminar el producto', 'error'); 
+            });
     }
 }
 

@@ -50,7 +50,8 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/sales/with-tax/**").hasAuthority("TPV_CLIENT")
                                                 .requestMatchers("/api/sales/stats/today").hasAuthority("TPV_CLIENT")
 
-                                                // ADMIN
+                                                 // ADMIN
+                                                .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/admin/products/**").hasAuthority("ADMIN_ACCESS")
                                                 .requestMatchers("/api/activity-log/**").hasAuthority("ADMIN_ACCESS")
                                                 .requestMatchers(org.springframework.http.HttpMethod.POST,
                                                                 "/api/product-prices/bulk-schedule")

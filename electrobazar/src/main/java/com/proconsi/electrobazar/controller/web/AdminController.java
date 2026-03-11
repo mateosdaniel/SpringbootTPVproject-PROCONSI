@@ -109,6 +109,22 @@ public class AdminController {
         return org.springframework.http.ResponseEntity.ok().build();
     }
 
+    @DeleteMapping("/admin/products/{id}/hard")
+    @ResponseBody
+    public org.springframework.http.ResponseEntity<?> deleteProductHard(@PathVariable Long id, HttpSession session) {
+        com.proconsi.electrobazar.model.Worker worker = (com.proconsi.electrobazar.model.Worker) session.getAttribute("worker");
+        if (worker == null) {
+            return org.springframework.http.ResponseEntity.status(401).build();
+        }
+        boolean hasPermission = worker.getEffectivePermissions().contains("MANAGE_PRODUCTS_TPV") ||
+                worker.getEffectivePermissions().contains("ADMIN_ACCESS");
+        if (!hasPermission) {
+            return org.springframework.http.ResponseEntity.status(403).build();
+        }
+        productService.hardDeleteProduct(id);
+        return org.springframework.http.ResponseEntity.ok().build();
+    }
+
     @org.springframework.web.bind.annotation.PostMapping("/admin/upload-csv")
     @org.springframework.web.bind.annotation.ResponseBody
     public org.springframework.http.ResponseEntity<?> uploadCsv(

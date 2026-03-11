@@ -3,6 +3,7 @@ package com.proconsi.electrobazar.repository;
 import com.proconsi.electrobazar.model.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,10 +16,12 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
     List<Product> findByActiveTrueOrderByNameAsc();
 
     // Productos activos por categoría
-    List<Product> findByCategoryIdAndActiveTrueOrderByNameAsc(Long categoryId);
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE p.category.id = :categoryId AND p.active = true ORDER BY p.name ASC")
+    List<Product> findByCategoryIdAndActiveTrueOrderByNameAsc(@Param("categoryId") Long categoryId);
 
     // Buscador por nombre (contiene, ignorando mayúsculas)
-    List<Product> findByNameContainingIgnoreCaseAndActiveTrue(String name);
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%')) AND p.active = true")
+    List<Product> findByNameContainingIgnoreCaseAndActiveTrue(@Param("name") String name);
 
     // Productos con su categoría en una sola query — solo activos (TPV)
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE p.active = true ORDER BY p.name ASC")

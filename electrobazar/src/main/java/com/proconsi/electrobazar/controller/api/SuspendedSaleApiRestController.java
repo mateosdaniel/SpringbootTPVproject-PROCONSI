@@ -44,13 +44,14 @@ public class SuspendedSaleApiRestController {
     // ── Endpoints ──────────────────────────────────────────────────────────────
 
     /**
-     * GET /tpv/suspended-sales
+     * GET /api/suspended-sales
      * Returns all sales currently in SUSPENDED status, newest first.
      */
     @GetMapping
     public ResponseEntity<?> listSuspended(
-            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-        Worker worker = authenticateAndGetWorker(authorizationHeader, "HOLD_SALES");
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+            HttpSession session) {
+        Worker worker = authenticateAndGetWorker(authorizationHeader, session, "HOLD_SALES");
         if (worker == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Falta token o sesión inválida"));
@@ -63,13 +64,14 @@ public class SuspendedSaleApiRestController {
     }
 
     /**
-     * POST /tpv/suspended-sales
+     * POST /api/suspended-sales
      * Persists the current cart and returns the new suspended sale as a DTO.
      */
     @PostMapping
     public ResponseEntity<?> suspend(@RequestBody SuspendRequest body,
-            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-        Worker worker = authenticateAndGetWorker(authorizationHeader, "HOLD_SALES");
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+            HttpSession session) {
+        Worker worker = authenticateAndGetWorker(authorizationHeader, session, "HOLD_SALES");
         if (worker == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Falta token o sesión inválida"));
@@ -86,14 +88,15 @@ public class SuspendedSaleApiRestController {
     }
 
     /**
-     * POST /tpv/suspended-sales/{id}/resume
+     * POST /api/suspended-sales/{id}/resume
      * Marks the sale as RESUMED and returns full line data so the JS can reload the
      * cart.
      */
     @PostMapping("/{id}/resume")
     public ResponseEntity<?> resume(@PathVariable Long id,
-            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-        Worker worker = authenticateAndGetWorker(authorizationHeader, "HOLD_SALES");
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+            HttpSession session) {
+        Worker worker = authenticateAndGetWorker(authorizationHeader, session, "HOLD_SALES");
         if (worker == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Falta token o sesión inválida"));
@@ -112,13 +115,14 @@ public class SuspendedSaleApiRestController {
     }
 
     /**
-     * POST /tpv/suspended-sales/{id}/cancel
+     * POST /api/suspended-sales/{id}/cancel
      * Marks the sale as CANCELLED (no stock movement needed).
      */
     @PostMapping("/{id}/cancel")
     public ResponseEntity<?> cancel(@PathVariable Long id,
-            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-        Worker worker = authenticateAndGetWorker(authorizationHeader, "HOLD_SALES");
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+            HttpSession session) {
+        Worker worker = authenticateAndGetWorker(authorizationHeader, session, "HOLD_SALES");
         if (worker == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Falta token o sesión inválida"));
@@ -138,32 +142,34 @@ public class SuspendedSaleApiRestController {
 
     // ── Utils & Mapper ────────────────────────────────────────────────────────
 
-    private Worker authenticateAndGetWorker(String authorizationHeader, String requiredPermission) {
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            return null;
+    private Worker authenticateAndGetWorker(String authorizationHeader, HttpSession session, String requiredPermission) {
+        // 1. Try JWT (External TPV/JavaFX)
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            String token = authorizationHeader.substring(7);
+            try {
+                Long workerId = jwtService.extractClaim(token, claims -> claims.get("workerId", Long.class));
+                @SuppressWarnings("unchecked")
+                Set<String> permissions = jwtService.extractClaim(token, claims -> claims.get("permissions", Set.class));
+
+                if (workerId != null && (requiredPermission == null || (permissions != null && permissions.contains(requiredPermission)))) {
+                    return workerService.findById(workerId).orElse(null);
+                }
+            } catch (Exception e) {
+                // FALL THROUGH to session check
+            }
         }
 
-        String token = authorizationHeader.substring(7);
-
-        Long workerId;
-        Set<String> permissions;
-        try {
-            workerId = jwtService.extractClaim(token, claims -> claims.get("workerId", Long.class));
-            @SuppressWarnings("unchecked")
-            Set<String> rawPermissions = jwtService.extractClaim(token,
-                    claims -> claims.get("permissions", Set.class));
-            permissions = rawPermissions;
-        } catch (Exception e) {
-            return null;
+        // 2. Try Session (Web Frontend)
+        if (session != null) {
+            Worker worker = (Worker) session.getAttribute("worker");
+            if (worker != null) {
+                if (requiredPermission == null || worker.getEffectivePermissions().contains(requiredPermission)) {
+                    return worker;
+                }
+            }
         }
 
-        if (workerId == null
-                || (requiredPermission != null && (permissions == null || !permissions.contains(requiredPermission)))) {
-            return null;
-        }
-
-        Optional<Worker> workerOpt = workerService.findById(workerId);
-        return workerOpt.orElse(null);
+        return null;
     }
 
     /**

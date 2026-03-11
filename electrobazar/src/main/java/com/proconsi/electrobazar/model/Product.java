@@ -24,6 +24,15 @@ public class Product {
     private String description;
 
     /**
+     * The gross price (VAT included) stored in the database.
+     * This field is kept in sync with basePriceNet and taxRate automatically.
+     * Calculated as: base_price_net * (1 + taxRate.vatRate)
+     */
+    @Column(name = "price", nullable = false, precision = 10, scale = 2)
+    @Builder.Default
+    private java.math.BigDecimal price = java.math.BigDecimal.ZERO;
+
+    /**
      * The net base price (before VAT).
      * Convention: This is the primary stored value.
      */
@@ -46,14 +55,32 @@ public class Product {
     /**
      * Sets the Net price based on a Gross price input.
      * basePriceNet = grossPrice / (1 + ivaRate)
+     * Also updates the persisted price field.
      */
     public void setPrice(java.math.BigDecimal grossPrice) {
         if (grossPrice == null) {
             this.basePriceNet = java.math.BigDecimal.ZERO;
+            this.price = java.math.BigDecimal.ZERO;
             return;
         }
         java.math.BigDecimal rate = taxRate != null && taxRate.getVatRate() != null ? taxRate.getVatRate() : java.math.BigDecimal.ZERO;
         this.basePriceNet = grossPrice.divide(java.math.BigDecimal.ONE.add(rate), 10, java.math.RoundingMode.HALF_UP)
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+        this.price = grossPrice.setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Callback method to synchronize the price field before persist/update.
+     * Ensures price = basePriceNet * (1 + taxRate.vatRate)
+     */
+    @PrePersist
+    @PreUpdate
+    private void syncPrice() {
+        if (basePriceNet == null) {
+            basePriceNet = java.math.BigDecimal.ZERO;
+        }
+        java.math.BigDecimal rate = taxRate != null && taxRate.getVatRate() != null ? taxRate.getVatRate() : java.math.BigDecimal.ZERO;
+        this.price = basePriceNet.multiply(java.math.BigDecimal.ONE.add(rate))
                 .setScale(2, java.math.RoundingMode.HALF_UP);
     }
 

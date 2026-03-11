@@ -1,4 +1,4 @@
-﻿// -- Estado del ticket --
+// -- Estado del ticket --
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof attachNifCifValidator === 'function') {
         attachNifCifValidator('newCustomerTaxId');
@@ -662,14 +662,18 @@ document.querySelectorAll('.cat-btn[data-category-id]').forEach(function (btn) {
     var error = document.getElementById('pinError');
     var btn = document.getElementById('adminLockBtn');
 
+    // Expose globally so onclick in HTML works
+    window.openAdminPinModal = function () {
+        if (!overlay || !input || !error) return;
+        input.value = '';
+        error.textContent = '';
+        input.classList.remove('error');
+        overlay.classList.add('open');
+        setTimeout(function () { input.focus(); }, 100);
+    };
+
     if (btn) {
-        btn.addEventListener('click', function () {
-            input.value = '';
-            error.textContent = '';
-            input.classList.remove('error');
-            overlay.classList.add('open');
-            setTimeout(function () { input.focus(); }, 100);
-        });
+        btn.addEventListener('click', window.openAdminPinModal);
     }
 
     if (document.getElementById('pinCancel')) {
@@ -867,7 +871,7 @@ function confirmSuspend() {
     var confirmBtn = document.getElementById('btnConfirmSuspend');
     if (confirmBtn) confirmBtn.disabled = true;
 
-    fetch('/tpv/suspended-sales', {
+    fetch('/api/suspended-sales', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lines: lines, label: label || null })
@@ -910,7 +914,7 @@ function resumeSale(id) {
             };
         });
 
-        fetch('/tpv/suspended-sales', {
+        fetch('/api/suspended-sales', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ lines: lines, label: label.trim() || 'Venta interrumpida' })
@@ -922,7 +926,7 @@ function resumeSale(id) {
             .then(function () {
                 clearTicket();
                 loadSuspendedCount();
-                return fetch('/tpv/suspended-sales/' + id + '/resume', { method: 'POST' });
+                return fetch('/api/suspended-sales/' + id + '/resume', { method: 'POST' });
             })
             .then(function (r) {
                 if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Error al reabrir'); });
@@ -952,7 +956,7 @@ function resumeSale(id) {
     }
 
     // Sin artículos en el ticket, reanudar directamente
-    fetch('/tpv/suspended-sales/' + id + '/resume', { method: 'POST' })
+    fetch('/api/suspended-sales/' + id + '/resume', { method: 'POST' })
         .then(function (r) {
             if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Error al reabrir'); });
             return r.json();
@@ -984,7 +988,7 @@ function resumeSale(id) {
  */
 function cancelSuspendedSale(id) {
     if (!confirm('\u00BFEliminar esta venta en espera?')) return;
-    fetch('/tpv/suspended-sales/' + id + '/cancel', { method: 'POST' })
+    fetch('/api/suspended-sales/' + id + '/cancel', { method: 'POST' })
         .then(function (r) {
             if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'Error al cancelar'); });
             return r.json();
@@ -1004,7 +1008,7 @@ function cancelSuspendedSale(id) {
  * Fetches count of currently suspended sales and updates the header badge.
  */
 function loadSuspendedCount() {
-    fetch('/tpv/suspended-sales')
+    fetch('/api/suspended-sales')
         .then(function (r) { return r.json(); })
         .then(function (sales) {
             var badge = document.getElementById('suspendedBadge');
@@ -1026,7 +1030,7 @@ function openSuspendedModal() {
     var container = document.getElementById('suspendedListContainer');
     container.innerHTML = '<div style="padding:1.5rem; text-align:center; color:var(--text-muted);"><i class="bi bi-hourglass"></i> Cargando...</div>';
 
-    fetch('/tpv/suspended-sales')
+    fetch('/api/suspended-sales')
         .then(function (r) { return r.json(); })
         .then(function (sales) { renderSuspendedList(sales, container); })
         .catch(function () {

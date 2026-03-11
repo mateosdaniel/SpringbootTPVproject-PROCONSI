@@ -111,10 +111,12 @@
                                     th:text="${#numbers.formatDecimal(p.price,1,2)} + ' &euro;'">
                                 </td>
                                 <td>
-                                    <span th:text="${p.stock}"
-                                        th:classappend="${p.stock < 5} ? 'fw-bold text-danger' : ''"></span>
-                                    <span th:if="${p.stock < 5}" class="badge-stock-low ms-1"
-                                        style="font-size: 0.7rem;">Bajo</span>
+                                    <div class="d-flex flex-column align-items-center" style="gap: 0.2rem;">
+                                        <span th:text="${p.stock}"
+                                            th:classappend="${p.stock < 5} ? 'fw-bold text-danger' : ''"></span>
+                                        <span th:if="${p.stock < 5}" class="badge-stock-low"
+                                            style="font-size: 0.7rem;">Bajo</span>
+                                    </div>
                                 </td>
                                 <td>
                                     <span th:if="${p.category != null}" th:text="${p.category.name}"
@@ -330,7 +332,7 @@
                 products.forEach(p => {
                     const formattedPrice = (p.price || 0).toFixed(2) + ' €';
                     const stockStyle = p.stock < 5 ? 'fw-bold text-danger' : '';
-                    const badgeLowStock = p.stock < 5 ? '<span class="badge-stock-low ms-1" style="font-size: 0.7rem;">Bajo</span>' : '';
+                    const badgeLowStock = p.stock < 5 ? '<span class="badge-stock-low" style="font-size: 0.7rem;">Bajo</span>' : '';
                     const catName = p.category ? p.category.name : '—';
                     const imgHtml = p.imageUrl
                         ? `<img src="${p.imageUrl}" class="thumb" alt="">`
@@ -351,7 +353,7 @@
                         <td><div style="font-size:0.78rem;color:var(--text-muted)">${descTruncated}</div></td>
                         <td style="font-size:0.9rem; font-weight: 500;">${ivaDisplay}</td>
                         <td class="fw-bold text-accent">${formattedPrice}</td>
-                        <td><span class="${stockStyle}">${p.stock}</span> ${badgeLowStock}</td>
+                        <td><div class="d-flex flex-column align-items-center" style="gap: 0.2rem;"><span class="${stockStyle}">${p.stock}</span> ${badgeLowStock}</div></td>
                         <td><span style="font-size:0.8rem; background:var(--surface); padding:2px 8px; border-radius:5px;">${catName}</span></td>
                         <td>${activeBadge}</td>
                         <td style="text-align:right">

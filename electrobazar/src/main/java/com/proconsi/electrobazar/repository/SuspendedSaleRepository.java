@@ -12,6 +12,7 @@ import java.util.Optional;
 public interface SuspendedSaleRepository extends JpaRepository<SuspendedSale, Long> {
 
     /** All currently suspended sales, newest first. */
+    @EntityGraph(attributePaths = { "lines", "lines.product", "worker" })
     List<SuspendedSale> findByStatusOrderByCreatedAtDesc(SuspendedSale.SuspendedSaleStatus status);
 
     /** Fetch a suspended sale with its lines and products eagerly to avoid N+1. */
