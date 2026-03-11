@@ -441,11 +441,3 @@ public class ProductPriceServiceImpl implements ProductPriceService {
         return results;
     }
 }
-                        + effectiveDate.toString().replace("T", " ") + ")",
-                "Admin",
-                "PRODUCT",
-                null);
-
-        return results;
-    }
-}
