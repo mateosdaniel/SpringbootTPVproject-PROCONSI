@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS tax_rates (
 );
 
 -- Seed initial tax rates
-INSERT INTO tax_rates (vat_rate, re_rate, description, active, valid_from) VALUES (0.21, 0.052, 'IVA General', TRUE, CURRENT_DATE);
-INSERT INTO tax_rates (vat_rate, re_rate, description, active, valid_from) VALUES (0.10, 0.014, 'IVA Reducido', TRUE, CURRENT_DATE);
-INSERT INTO tax_rates (vat_rate, re_rate, description, active, valid_from) VALUES (0.05, 0.0062, 'IVA Reducido Especial', TRUE, CURRENT_DATE);
-INSERT INTO tax_rates (vat_rate, re_rate, description, active, valid_from) VALUES (0.04, 0.005, 'IVA Superreducido', TRUE, CURRENT_DATE);
-INSERT INTO tax_rates (vat_rate, re_rate, description, active, valid_from) VALUES (0.02, 0.0026, 'IVA Superreducido Especial', TRUE, CURRENT_DATE);
+INSERT IGNORE INTO tax_rates (vat_rate, re_rate, description, active, valid_from) VALUES (0.21, 0.052, 'IVA General', TRUE, CURRENT_DATE);
+INSERT IGNORE INTO tax_rates (vat_rate, re_rate, description, active, valid_from) VALUES (0.10, 0.014, 'IVA Reducido', TRUE, CURRENT_DATE);
+INSERT IGNORE INTO tax_rates (vat_rate, re_rate, description, active, valid_from) VALUES (0.05, 0.0062, 'IVA Reducido Especial', TRUE, CURRENT_DATE);
+INSERT IGNORE INTO tax_rates (vat_rate, re_rate, description, active, valid_from) VALUES (0.04, 0.005, 'IVA Superreducido', TRUE, CURRENT_DATE);
+INSERT IGNORE INTO tax_rates (vat_rate, re_rate, description, active, valid_from) VALUES (0.02, 0.0026, 'IVA Superreducido Especial', TRUE, CURRENT_DATE);
