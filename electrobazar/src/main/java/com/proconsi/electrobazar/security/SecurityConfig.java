@@ -11,6 +11,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
@@ -39,10 +44,10 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/workers/login").permitAll()
 
                                                 // TPV PUBLIC CATALOG (GET only)
-                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                                .requestMatchers(HttpMethod.GET,
                                                                 "/api/categories/**")
                                                 .permitAll()
-                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                                .requestMatchers(HttpMethod.GET,
                                                                 "/api/products/**")
                                                 .permitAll()
 
@@ -51,12 +56,12 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/sales/stats/today").hasAnyAuthority("TPV_CLIENT", "ADMIN_ACCESS", "SALE_VIEW")
 
                                                 // ADMIN
-                                                .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/admin/products/**").hasAuthority("ADMIN_ACCESS")
+                                                .requestMatchers(HttpMethod.DELETE, "/admin/products/**").hasAuthority("ADMIN_ACCESS")
                                                 .requestMatchers("/api/activity-log/**").hasAuthority("ADMIN_ACCESS")
-                                                .requestMatchers(org.springframework.http.HttpMethod.POST,
+                                                .requestMatchers(HttpMethod.POST,
                                                                 "/api/product-prices/bulk-schedule")
                                                 .hasAuthority("ADMIN_ACCESS")
-                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                                .requestMatchers(HttpMethod.GET,
                                                                 "/api/product-prices/future")
                                                 .hasAuthority("ADMIN_ACCESS")
                                                 .requestMatchers("/admin/**").hasAuthority("ADMIN_ACCESS")
@@ -71,24 +76,19 @@ public class SecurityConfig {
                                 .exceptionHandling(exceptions -> exceptions
                                                 // API routes should return 401 instead of redirecting to /login
                                                 .defaultAuthenticationEntryPointFor(
-                                                                new org.springframework.security.web.authentication.HttpStatusEntryPoint(org.springframework.http.HttpStatus.UNAUTHORIZED),
-                                                                new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/**"))
+                                                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                                                                new AntPathRequestMatcher("/api/**"))
                                                 // Redirect unauthenticated HTML requests to login
                                                 .defaultAuthenticationEntryPointFor(
-                                                                new org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint(
-                                                                                "/login"),
+                                                                new LoginUrlAuthenticationEntryPoint("/login"),
                                                                 request -> request.getServletPath().startsWith("/tpv"))
                                                 .defaultAuthenticationEntryPointFor(
-                                                                new org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint(
-                                                                                "/login"),
-                                                                request -> request.getServletPath()
-                                                                                .startsWith("/admin"))
+                                                                new LoginUrlAuthenticationEntryPoint("/login"),
+                                                                request -> request.getServletPath().startsWith("/admin"))
                                                 // Redirect unauthorized HTML requests to TPV
                                                 .defaultAccessDeniedHandlerFor(
-                                                                (request, response, accessDeniedException) -> response
-                                                                                .sendRedirect("/tpv"),
-                                                                request -> request.getServletPath()
-                                                                                .startsWith("/admin")))
+                                                                (request, response, accessDeniedException) -> response.sendRedirect("/tpv"),
+                                                                request -> request.getServletPath().startsWith("/admin")))
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

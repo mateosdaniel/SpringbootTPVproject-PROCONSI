@@ -26,9 +26,6 @@ public interface SaleService {
                         Customer customer,
                         com.proconsi.electrobazar.model.Worker worker);
 
-        Sale createMixedSale(List<SaleLine> lines, String notes, BigDecimal cashAmount, BigDecimal cardAmount,
-                        BigDecimal receivedCashAmount, Customer customer,
-                        com.proconsi.electrobazar.model.Worker worker);
 
         /**
          * Creates a sale with an explicit tariff override.

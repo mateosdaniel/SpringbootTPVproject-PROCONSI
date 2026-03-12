@@ -37,8 +37,6 @@ public class SaleWithTaxRequest {
     /** The list of items being sold. */
     private List<SaleLineRequest> lines;
 
-    private BigDecimal cashAmount;
-    private BigDecimal cardAmount;
 
     /**
      * Represents a single line item in the sale request.
