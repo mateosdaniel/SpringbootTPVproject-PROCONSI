@@ -209,13 +209,26 @@ public class SaleWithTaxApiRestController {
                 // unitPrice (Gross)
                 // and whether RE applies.
 
-                Sale savedSale = saleService.createSale(
-                                saleLines,
-                                request.getPaymentMethod(),
-                                request.getNotes(),
-                                request.getReceivedAmount(),
-                                customer,
-                                worker);
+                // ── 5. Persist the sale ───────────────────────────────────────────────
+                Sale savedSale;
+                if (request.getPaymentMethod() == PaymentMethod.MIXED) {
+                        savedSale = saleService.createMixedSale(
+                                        saleLines,
+                                        request.getNotes(),
+                                        request.getCashAmount(),
+                                        request.getCardAmount(),
+                                        request.getReceivedAmount(),
+                                        customer,
+                                        worker);
+                } else {
+                        savedSale = saleService.createSale(
+                                        saleLines,
+                                        request.getPaymentMethod(),
+                                        request.getNotes(),
+                                        request.getReceivedAmount(),
+                                        customer,
+                                        worker);
+                }
 
                 // ── 6. Build and return the response ──────────────────────────────────
                 SaleWithTaxResponse response = SaleWithTaxResponse.builder()

@@ -47,6 +47,12 @@ public class Sale {
     @Column(precision = 10, scale = 2)
     private BigDecimal changeAmount;
 
+    @Column(precision = 10, scale = 2)
+    private BigDecimal cashAmount;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal cardAmount;
+
     @Column(nullable = false, precision = 10, scale = 2, name = "total_base")
     @Builder.Default
     private BigDecimal totalBase = BigDecimal.ZERO;

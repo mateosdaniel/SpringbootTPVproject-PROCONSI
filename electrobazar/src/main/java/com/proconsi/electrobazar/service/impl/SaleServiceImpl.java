@@ -158,18 +158,27 @@ public class SaleServiceImpl implements SaleService {
             totalRecargo = totalRecargo.add(line.getRecargoAmount());
         }
 
+        BigDecimal finalTotal = total.setScale(SCALE, ROUNDING);
         BigDecimal changeAmount = null;
-        if (paymentMethod == PaymentMethod.CASH && receivedAmount != null) {
-            changeAmount = receivedAmount.subtract(total);
-            if (changeAmount.compareTo(BigDecimal.ZERO) < 0) {
-                throw new IllegalArgumentException("La cantidad recibida es menor que el total de la venta.");
+        BigDecimal cashAmount = BigDecimal.ZERO;
+        BigDecimal cardAmount = BigDecimal.ZERO;
+
+        if (paymentMethod == PaymentMethod.CASH) {
+            cashAmount = finalTotal;
+            if (receivedAmount != null) {
+                changeAmount = receivedAmount.subtract(finalTotal);
+                if (changeAmount.compareTo(BigDecimal.ZERO) < 0) {
+                    throw new IllegalArgumentException("La cantidad recibida es menor que el total de la venta.");
+                }
             }
+        } else if (paymentMethod == PaymentMethod.CARD) {
+            cardAmount = finalTotal;
         }
 
         // Construir la venta
         Sale sale = Sale.builder()
                 .paymentMethod(paymentMethod)
-                .totalAmount(total.setScale(SCALE, ROUNDING))
+                .totalAmount(finalTotal)
                 .totalBase(totalBase.setScale(SCALE, ROUNDING))
                 .totalVat(totalVat.setScale(SCALE, ROUNDING))
                 .totalRecargo(totalRecargo.setScale(SCALE, ROUNDING))
@@ -177,6 +186,8 @@ public class SaleServiceImpl implements SaleService {
                 .applyRecargo(applyRecargo)
                 .receivedAmount(receivedAmount)
                 .changeAmount(changeAmount)
+                .cashAmount(cashAmount)
+                .cardAmount(cardAmount)
                 .notes(notes)
                 .customer(customer)
                 .worker(worker)
@@ -193,11 +204,110 @@ public class SaleServiceImpl implements SaleService {
         String username = worker != null ? worker.getUsername() : "Anónimo";
         activityLogService.logActivity(
                 "VENTA",
-                "Venta realizada por " + username + " (Total: " + total.setScale(SCALE, ROUNDING)
+                "Venta realizada por " + username + " (Total: " + finalTotal
                         + " €, Tarifa: " + tariffName + ")",
                 username,
                 "SALE",
                 savedSale.getId());
+
+        return savedSale;
+    }
+
+    @Override
+    public Sale createMixedSale(List<SaleLine> lines, String notes, BigDecimal cashAmount, BigDecimal cardAmount,
+                                BigDecimal receivedCashAmount, com.proconsi.electrobazar.model.Customer customer,
+                                com.proconsi.electrobazar.model.Worker worker) {
+        
+        if (lines == null || lines.isEmpty()) {
+            throw new IllegalArgumentException("Una venta debe tener al menos un producto.");
+        }
+
+        // Resolve effective tariff (Default: MINORISTA)
+        Tariff effectiveTariff = (customer != null && customer.getTariff() != null) ? customer.getTariff() :
+                tariffRepository.findByName(Tariff.MINORISTA).orElse(null);
+
+        BigDecimal discountPct = (effectiveTariff != null && effectiveTariff.getDiscountPercentage() != null)
+                ? effectiveTariff.getDiscountPercentage() : BigDecimal.ZERO;
+        String tariffName = effectiveTariff != null ? effectiveTariff.getName() : Tariff.MINORISTA;
+
+        // Decrease stock
+        for (SaleLine line : lines) {
+            productService.decreaseStock(line.getProduct().getId(), line.getQuantity());
+        }
+
+        boolean applyRecargo = customer != null && Boolean.TRUE.equals(customer.getHasRecargoEquivalencia());
+
+        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal totalBase = BigDecimal.ZERO;
+        BigDecimal totalVat = BigDecimal.ZERO;
+        BigDecimal totalRecargo = BigDecimal.ZERO;
+
+        for (SaleLine line : lines) {
+            BigDecimal finalPrice = line.getUnitPrice().setScale(SCALE, ROUNDING);
+            line.setOriginalUnitPrice(finalPrice);
+            line.setDiscountPercentage(BigDecimal.ZERO);
+            line.setUnitPrice(finalPrice);
+
+            BigDecimal vatRate = line.getVatRate() != null ? line.getVatRate() :
+                    (line.getProduct() != null && line.getProduct().getTaxRate() != null ? 
+                        line.getProduct().getTaxRate().getVatRate() : new BigDecimal("0.21"));
+
+            com.proconsi.electrobazar.dto.TaxBreakdown breakdown = recargoCalculator.calculateLineBreakdown(
+                    line.getProduct().getId(), line.getProduct().getName(), finalPrice, line.getQuantity(), vatRate, applyRecargo);
+
+            line.setBasePriceNet(breakdown.getUnitPrice());
+            line.setBaseAmount(breakdown.getBaseAmount());
+            line.setVatAmount(breakdown.getVatAmount());
+            line.setRecargoRate(breakdown.getRecargoRate());
+            line.setRecargoAmount(breakdown.getRecargoAmount());
+            BigDecimal lineTotal = finalPrice.multiply(BigDecimal.valueOf(line.getQuantity())).setScale(SCALE, ROUNDING).add(line.getRecargoAmount());
+            line.setSubtotal(lineTotal);
+
+            total = total.add(lineTotal);
+            totalBase = totalBase.add(line.getBaseAmount());
+            totalVat = totalVat.add(line.getVatAmount());
+            totalRecargo = totalRecargo.add(line.getRecargoAmount());
+        }
+
+        BigDecimal finalTotal = total.setScale(SCALE, ROUNDING);
+        // Validation for MIXED payment
+        BigDecimal sum = cashAmount.add(cardAmount).setScale(SCALE, ROUNDING);
+        if (sum.compareTo(finalTotal) != 0) {
+            throw new IllegalArgumentException("La suma de efectivo (" + cashAmount + ") y tarjeta (" + cardAmount + 
+                    ") debe ser igual al total (" + finalTotal + ").");
+        }
+
+        BigDecimal changeAmount = (receivedCashAmount != null) ? receivedCashAmount.subtract(cashAmount) : BigDecimal.ZERO;
+        if (changeAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("El efectivo entregado es menor que la parte de efectivo asignada.");
+        }
+
+        Sale sale = Sale.builder()
+                .paymentMethod(PaymentMethod.MIXED)
+                .totalAmount(finalTotal)
+                .totalBase(totalBase.setScale(SCALE, ROUNDING))
+                .totalVat(totalVat.setScale(SCALE, ROUNDING))
+                .totalRecargo(totalRecargo.setScale(SCALE, ROUNDING))
+                .totalDiscount(BigDecimal.ZERO)
+                .applyRecargo(applyRecargo)
+                .receivedAmount(receivedCashAmount)
+                .changeAmount(changeAmount)
+                .cashAmount(cashAmount)
+                .cardAmount(cardAmount)
+                .notes(notes)
+                .customer(customer)
+                .worker(worker)
+                .lines(lines)
+                .appliedTariff(tariffName)
+                .appliedDiscountPercentage(discountPct.setScale(SCALE, ROUNDING))
+                .build();
+
+        lines.forEach(line -> line.setSale(sale));
+        Sale savedSale = saleRepository.save(sale);
+
+        String username = worker != null ? worker.getUsername() : "Anónimo";
+        activityLogService.logActivity("VENTA", "Venta MIXTA realizada por " + username + " (Cash: " + cashAmount + 
+                " €, Card: " + cardAmount + " €, Total: " + finalTotal + ")", username, "SALE", savedSale.getId());
 
         return savedSale;
     }
