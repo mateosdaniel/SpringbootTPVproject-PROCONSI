@@ -10,6 +10,7 @@ var ticket = {}; // { productId: { name, price, quantity, stock } }
 var currentTariffId = null;
 var currentDiscountPct = 0; // 0–100
 var currentTariffLabel = 'MINORISTA';
+var currentHasRE = false;
 
 
 function addToTicket(card) {
@@ -30,13 +31,17 @@ function addToTicket(card) {
         ticket[id] = { name: name, price: price, quantity: 1, stock: stock };
     }
 
-    // If a customer with a tariff is active, fetch the final tariff price before rendering
-    if (window.currentTariffId) {
-        fetch('/tpv/api/products/' + id + '/price?tariffId=' + window.currentTariffId)
+    // If a customer or tariff is active, fetch the final prices before rendering
+    if (window.currentTariffId || window.currentHasRE) {
+        var url = '/tpv/api/products/' + id + '/price';
+        if (window.currentTariffId) url += '?tariffId=' + window.currentTariffId;
+
+        fetch(url)
             .then(function(r) { return r.json(); })
-            .then(function(tariffPrice) {
+            .then(function(priceData) {
                 if (ticket[id]) {
-                    ticket[id].price = tariffPrice;
+                    ticket[id].price = priceData.price;
+                    ticket[id].priceWithRe = priceData.priceWithRe;
                 }
                 renderTicket();
             })
@@ -174,6 +179,31 @@ function renderTicket() {
     var discountRow = document.getElementById('discountRow');
     if (originalTotalRow) { originalTotalRow.style.display = 'none'; }
     if (discountRow) { discountRow.style.display = 'none'; }
+
+    // Recargo de Equivalencia (RE)
+    var reRow = document.getElementById('reRow');
+    var reAmountEl = document.getElementById('reAmount');
+    if (window.currentHasRE) {
+        var totalRe = 0;
+        ids.forEach(function(id) {
+            var item = ticket[id];
+            if (item.priceWithRe && item.price) {
+                totalRe += (item.priceWithRe - item.price) * item.quantity;
+            }
+        });
+        if (totalRe > 0) {
+            totalAmount += totalRe;
+            if (reRow && reAmountEl) {
+                reAmountEl.textContent = '+' + totalRe.toFixed(2) + '\u20AC';
+                reRow.style.display = 'flex';
+            }
+        } else {
+            if (reRow) reRow.style.display = 'none';
+        }
+    } else {
+        if (reRow) reRow.style.display = 'none';
+    }
+
     totalEl.textContent = totalAmount.toFixed(2) + '\u20AC';
 
     cobrarBtn.disabled = false;
@@ -701,6 +731,8 @@ function selectCustomer(c) {
     document.getElementById('selectedCustomerCard').style.display = 'block';
     document.getElementById('customerSelectionControls').style.display = 'none';
 
+    window.currentHasRE = !!c.hasRecargoEquivalencia;
+
     // Auto-apply the customer's tariff and update ticket prices
     if (c.tariff) {
         window.currentTariffId = c.tariff.id; // expose for addToTicket
@@ -716,6 +748,7 @@ function clearSelectedCustomer() {
     document.getElementById('selectedCustomerCard').style.display = 'none';
     document.getElementById('customerSelectionControls').style.display = 'block';
     window.currentTariffId = null; // clear so addToTicket uses base prices again
+    window.currentHasRE = false;
     resetTicketPrices();
 }
 
@@ -734,9 +767,10 @@ function updateTicketPricesForTariff(tariffId, tariffName, discountPct) {
     var promises = productIds.map(function(id) {
         return fetch('/tpv/api/products/' + id + '/price?tariffId=' + tariffId)
             .then(function(r) { return r.json(); })
-            .then(function(price) {
+            .then(function(priceData) {
                 if (ticket[id]) {
-                    ticket[id].price = price; // already the final price from backend
+                    ticket[id].price = priceData.price; // already the final price from backend
+                    ticket[id].priceWithRe = priceData.priceWithRe;
                 }
             });
     });
@@ -771,9 +805,10 @@ function resetTicketPrices() {
     var promises = productIds.map(function(id) {
         return fetch('/tpv/api/products/' + id + '/price') // endpoint returns base price if no tariffId
             .then(function(r) { return r.json(); })
-            .then(function(price) {
+            .then(function(priceData) {
                 if (ticket[id]) {
-                    ticket[id].price = price;
+                    ticket[id].price = priceData.price;
+                    ticket[id].priceWithRe = priceData.priceWithRe;
                 }
             });
     });

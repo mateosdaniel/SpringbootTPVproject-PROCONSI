@@ -137,8 +137,10 @@ public class ProductPriceServiceImpl implements ProductPriceService {
         // ── Step 2: Create and persist the new scheduled price ─────────────────
         BigDecimal vatRate = request.getVatRate() != null
                 ? request.getVatRate()
-                : (product.getTaxRate() != null && product.getTaxRate().getVatRate() != null ? product.getTaxRate().getVatRate() : new BigDecimal("0.21")); // Default to Spanish
-                                                                                                  // standard VAT rate
+                : (product.getTaxRate() != null && product.getTaxRate().getVatRate() != null
+                        ? product.getTaxRate().getVatRate()
+                        : new BigDecimal("0.21")); // Default to Spanish
+        // standard VAT rate
 
         ProductPrice newPrice = ProductPrice.builder()
                 .product(product)
@@ -303,7 +305,8 @@ public class ProductPriceServiceImpl implements ProductPriceService {
         List<ProductPriceResponse> results = new ArrayList<>();
         Set<Long> affectedProductIds = productIds.stream().collect(Collectors.toSet());
 
-        List<com.proconsi.electrobazar.model.Tariff> allActiveTariffs = tariffRepository.findByActiveTrueOrderByNameAsc();
+        List<com.proconsi.electrobazar.model.Tariff> allActiveTariffs = tariffRepository
+                .findByActiveTrueOrderByNameAsc();
         List<Long> selectedTariffIds = request.getTariffIds() != null ? request.getTariffIds() : new ArrayList<>();
 
         // Process each product
@@ -313,121 +316,129 @@ public class ProductPriceServiceImpl implements ProductPriceService {
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Producto no encontrado con id: " + productId));
 
-                // Find current open price
-                ProductPrice currentPrice = productPriceRepository.findCurrentOpenPrice(productId)
-                        .orElse(null);
+            // Find current open price
+            ProductPrice currentPrice = productPriceRepository.findCurrentOpenPrice(productId)
+                    .orElse(null);
 
-                BigDecimal basePrice;
-                BigDecimal currentVat;
+            BigDecimal basePrice;
+            BigDecimal currentVat;
 
-                if (currentPrice != null) {
-                    basePrice = currentPrice.getPrice();
-                    currentVat = currentPrice.getVatRate();
+            if (currentPrice != null) {
+                basePrice = currentPrice.getPrice();
+                currentVat = currentPrice.getVatRate();
 
-                    // Close current price
-                    currentPrice.setEndDate(closingDate);
-                    productPriceRepository.save(currentPrice);
-                    log.info("Closed existing price (id={}) for product '{}' (id={}). EndDate set to {}",
-                            currentPrice.getId(), product.getName(), productId, closingDate);
-                } else {
-                    // Use product's base price if no price history exists
-                    basePrice = product.getPrice();
-                    currentVat = product.getTaxRate() != null && product.getTaxRate().getVatRate() != null ? product.getTaxRate().getVatRate() : new BigDecimal("0.21");
+                // Close current price
+                currentPrice.setEndDate(closingDate);
+                productPriceRepository.save(currentPrice);
+                log.info("Closed existing price (id={}) for product '{}' (id={}). EndDate set to {}",
+                        currentPrice.getId(), product.getName(), productId, closingDate);
+            } else {
+                // Use product's base price if no price history exists
+                basePrice = product.getPrice();
+                currentVat = product.getTaxRate() != null && product.getTaxRate().getVatRate() != null
+                        ? product.getTaxRate().getVatRate()
+                        : new BigDecimal("0.21");
+            }
+
+            // Calculate new price
+            BigDecimal newPrice;
+            if (request.getPercentage() != null) {
+                // Percentage increase: newPrice = basePrice * (1 + percentage/100)
+                BigDecimal multiplier = BigDecimal.ONE.add(request.getPercentage()
+                        .divide(BigDecimal.valueOf(100), 6, java.math.RoundingMode.HALF_UP));
+                newPrice = basePrice.multiply(multiplier)
+                        .setScale(2, RoundingMode.HALF_UP);
+            } else {
+                // Fixed amount increase
+                newPrice = basePrice.add(request.getFixedAmount())
+                        .setScale(2, RoundingMode.HALF_UP);
+            }
+
+            // Determine VAT rate (use existing or new if provided)
+            BigDecimal vatRate = request.getVatRate() != null ? request.getVatRate() : currentVat;
+
+            // Calculate base_price_net: newPrice / (1 + vatRate)
+            BigDecimal basePriceNet = newPrice.divide(BigDecimal.ONE.add(vatRate), 10, RoundingMode.HALF_UP).setScale(2,
+                    RoundingMode.HALF_UP);
+
+            // Create new scheduled price
+            ProductPrice newPriceEntity = ProductPrice.builder()
+                    .product(product)
+                    .vatRate(vatRate)
+                    .startDate(effectiveDate)
+                    .endDate(null)
+                    .label(request.getLabel())
+                    .basePriceNet(basePriceNet)
+                    .price(basePriceNet.multiply(BigDecimal.ONE.add(vatRate)).setScale(2, RoundingMode.HALF_UP))
+                    .build();
+
+            ProductPrice saved = productPriceRepository.save(newPriceEntity);
+
+            // Also update the base product price so TPV shows the correct price immediately
+            product.setPrice(newPrice);
+            productRepository.save(product);
+
+            // ── Update TariffPriceHistory for all active tariffs ──
+            for (com.proconsi.electrobazar.model.Tariff tariff : allActiveTariffs) {
+                com.proconsi.electrobazar.model.TariffPriceHistory currentHistory = tariffPriceHistoryRepository
+                        .findCurrentByProductAndTariff(productId, tariff.getId()).orElse(null);
+
+                BigDecimal oldBase = currentHistory != null ? currentHistory.getBasePrice() : basePrice;
+
+                if (currentHistory != null) {
+                    currentHistory.setValidTo(closingDate.toLocalDate());
+                    tariffPriceHistoryRepository.save(currentHistory);
                 }
 
-                // Calculate new price
-                BigDecimal newPrice;
-                if (request.getPercentage() != null) {
-                    // Percentage increase: newPrice = basePrice * (1 + percentage/100)
-                    BigDecimal multiplier = BigDecimal.ONE.add(request.getPercentage()
-                            .divide(BigDecimal.valueOf(100), 6, java.math.RoundingMode.HALF_UP));
-                    newPrice = basePrice.multiply(multiplier)
-                            .setScale(2, RoundingMode.HALF_UP);
+                BigDecimal newTariffBase;
+                if (selectedTariffIds.contains(tariff.getId())) {
+                    if (request.getPercentage() != null) {
+                        BigDecimal multiplier = BigDecimal.ONE.add(request.getPercentage()
+                                .divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
+                        newTariffBase = oldBase.multiply(multiplier).setScale(2, RoundingMode.HALF_UP);
+                    } else {
+                        newTariffBase = oldBase.add(request.getFixedAmount()).setScale(2, RoundingMode.HALF_UP);
+                    }
                 } else {
-                    // Fixed amount increase
-                    newPrice = basePrice.add(request.getFixedAmount())
-                            .setScale(2, RoundingMode.HALF_UP);
+                    newTariffBase = oldBase;
                 }
 
-                // Determine VAT rate (use existing or new if provided)
-                BigDecimal vatRate = request.getVatRate() != null ? request.getVatRate() : currentVat;
+                BigDecimal tariffDiscount = tariff.getDiscountPercentage() != null ? tariff.getDiscountPercentage()
+                        : BigDecimal.ZERO;
 
-                // Calculate base_price_net: newPrice / (1 + vatRate)
-                BigDecimal basePriceNet = newPrice.divide(BigDecimal.ONE.add(vatRate), 10, RoundingMode.HALF_UP).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal discountMultiplier = BigDecimal.ONE
+                        .subtract(tariffDiscount.divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
+                BigDecimal newNetPrice = newTariffBase.multiply(discountMultiplier).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal newPriceWithVat = newNetPrice.multiply(BigDecimal.ONE.add(vatRate)).setScale(2,
+                        RoundingMode.HALF_UP);
+                BigDecimal newReRate = recargoCalculator.getRecargoRate(vatRate);
+                BigDecimal newPriceWithRe = newNetPrice.multiply(BigDecimal.ONE.add(vatRate).add(newReRate)).setScale(2,
+                        RoundingMode.HALF_UP);
 
-                // Create new scheduled price
-                ProductPrice newPriceEntity = ProductPrice.builder()
+                com.proconsi.electrobazar.model.TariffPriceHistory newHistory = com.proconsi.electrobazar.model.TariffPriceHistory
+                        .builder()
                         .product(product)
+                        .tariff(tariff)
+                        .basePrice(newTariffBase)
+                        .netPrice(newNetPrice)
                         .vatRate(vatRate)
-                        .startDate(effectiveDate)
-                        .endDate(null)
-                        .label(request.getLabel())
-                        .basePriceNet(basePriceNet)
-                        .price(basePriceNet.multiply(BigDecimal.ONE.add(vatRate)).setScale(2, RoundingMode.HALF_UP))
+                        .priceWithVat(newPriceWithVat)
+                        .reRate(newReRate)
+                        .priceWithRe(newPriceWithRe)
+                        .discountPercent(tariffDiscount)
+                        .validFrom(effectiveDate.toLocalDate())
+                        .validTo(null)
                         .build();
 
-                ProductPrice saved = productPriceRepository.save(newPriceEntity);
+                tariffPriceHistoryRepository.save(newHistory);
+            }
 
-                // Also update the base product price so TPV shows the correct price immediately
-                product.setPrice(newPrice);
-                productRepository.save(product);
+            log.info("Scheduled bulk price update for product '{}' (id={}): {} € (VAT {}%) starting {}",
+                    product.getName(), productId,
+                    saved.getPrice(), vatRate.multiply(new BigDecimal("100")).stripTrailingZeros().toPlainString(),
+                    effectiveDate);
 
-                // ── Update TariffPriceHistory for all active tariffs ──
-                for (com.proconsi.electrobazar.model.Tariff tariff : allActiveTariffs) {
-                    com.proconsi.electrobazar.model.TariffPriceHistory currentHistory = tariffPriceHistoryRepository
-                            .findCurrentByProductAndTariff(productId, tariff.getId()).orElse(null);
-
-                    BigDecimal oldBase = currentHistory != null ? currentHistory.getBasePrice() : basePrice;
-
-                    if (currentHistory != null) {
-                        currentHistory.setValidTo(closingDate.toLocalDate());
-                        tariffPriceHistoryRepository.save(currentHistory);
-                    }
-
-                    BigDecimal newTariffBase;
-                    if (selectedTariffIds.contains(tariff.getId())) {
-                        if (request.getPercentage() != null) {
-                            BigDecimal multiplier = BigDecimal.ONE.add(request.getPercentage()
-                                    .divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
-                            newTariffBase = oldBase.multiply(multiplier).setScale(2, RoundingMode.HALF_UP);
-                        } else {
-                            newTariffBase = oldBase.add(request.getFixedAmount()).setScale(2, RoundingMode.HALF_UP);
-                        }
-                    } else {
-                        newTariffBase = oldBase;
-                    }
-
-                    BigDecimal tariffDiscount = tariff.getDiscountPercentage() != null ? tariff.getDiscountPercentage() : BigDecimal.ZERO;
-
-                    BigDecimal discountMultiplier = BigDecimal.ONE.subtract(tariffDiscount.divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
-                    BigDecimal newNetPrice = newTariffBase.multiply(discountMultiplier).setScale(2, RoundingMode.HALF_UP);
-                    BigDecimal newPriceWithVat = newNetPrice.multiply(BigDecimal.ONE.add(vatRate)).setScale(2, RoundingMode.HALF_UP);
-                    BigDecimal newReRate = recargoCalculator.getRecargoRate(vatRate);
-                    BigDecimal newPriceWithRe = newNetPrice.multiply(BigDecimal.ONE.add(vatRate).add(newReRate)).setScale(2, RoundingMode.HALF_UP);
-
-                    com.proconsi.electrobazar.model.TariffPriceHistory newHistory = com.proconsi.electrobazar.model.TariffPriceHistory.builder()
-                            .product(product)
-                            .tariff(tariff)
-                            .basePrice(newTariffBase)
-                            .netPrice(newNetPrice)
-                            .vatRate(vatRate)
-                            .priceWithVat(newPriceWithVat)
-                            .reRate(newReRate)
-                            .priceWithRe(newPriceWithRe)
-                            .discountPercent(tariffDiscount)
-                            .validFrom(effectiveDate.toLocalDate())
-                            .validTo(null)
-                            .build();
-
-                    tariffPriceHistoryRepository.save(newHistory);
-                }
-
-                log.info("Scheduled bulk price update for product '{}' (id={}): {} € (VAT {}%) starting {}",
-                        product.getName(), productId,
-                        saved.getPrice(), vatRate.multiply(new BigDecimal("100")).stripTrailingZeros().toPlainString(),
-                        effectiveDate);
-
-                results.add(toResponse(saved, false));
+            results.add(toResponse(saved, false));
         }
 
         activityLogService.logActivity(

@@ -490,7 +490,7 @@
                     <td class="lbl">Base imponible:</td>
                     <td class="amt" th:text="${#numbers.formatDecimal(totalBase, 1, 2)} + ' &euro;'">0.00 &euro;</td>
                 </tr>
-                <tr th:if="${sale.appliedDiscountPercentage != null and sale.appliedDiscountPercentage > 0}">
+                <tr th:if="${sale.appliedDiscountPercentage != null and sale.appliedDiscountPercentage > 0 and sale.totalDiscount > 0}">
                     <td class="lbl" style="color: #27ae60;">Descuento aplicado (<span
                             th:text="${sale.appliedTariff}"></span> <span
                             th:text="${#numbers.formatDecimal(sale.appliedDiscountPercentage, 1, 0)}"></span>% dto.):

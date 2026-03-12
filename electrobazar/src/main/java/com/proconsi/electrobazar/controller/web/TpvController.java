@@ -699,40 +699,59 @@ public class TpvController {
      */
     @GetMapping("/api/products/{productId}/price")
     @ResponseBody
-    public java.math.BigDecimal getProductEffectivePrice(
+    public java.util.Map<String, BigDecimal> getProductEffectivePrice(
             @PathVariable Long productId,
             @RequestParam(required = false) Long tariffId) {
 
         Product product = productService.findById(productId);
         if (product == null) {
-            return BigDecimal.ZERO;
+            return java.util.Collections.emptyMap();
         }
 
         // Get current active base price (from ProductPrice scheduling system)
         ProductPrice activePrice = productPriceService.getCurrentPrice(productId, LocalDateTime.now());
         BigDecimal basePrice = (activePrice != null) ? activePrice.getPrice() : product.getPrice();
+        BigDecimal vatRate = (activePrice != null) ? activePrice.getVatRate() : 
+                (product.getTaxRate() != null && product.getTaxRate().getVatRate() != null 
+                ? product.getTaxRate().getVatRate() : new BigDecimal("0.21"));
+
+        BigDecimal finalPrice;
+        BigDecimal priceWithRe;
 
         if (tariffId == null) {
-            return basePrice.setScale(2, RoundingMode.HALF_UP);
+            finalPrice = basePrice.setScale(2, RoundingMode.HALF_UP);
+            BigDecimal reRate = recargoCalculator.getRecargoRate(vatRate);
+            BigDecimal netPrice = finalPrice.divide(BigDecimal.ONE.add(vatRate), 10, RoundingMode.HALF_UP);
+            priceWithRe = netPrice.multiply(BigDecimal.ONE.add(vatRate).add(reRate)).setScale(2, RoundingMode.HALF_UP);
+        } else {
+            // 1. Look up the active price from tariff_price_history first
+            var historyEntry = tariffPriceHistoryRepository.findCurrentByProductAndTariff(productId, tariffId);
+            if (historyEntry.isPresent()) {
+                finalPrice = historyEntry.get().getPriceWithVat();
+                priceWithRe = historyEntry.get().getPriceWithRe();
+            } else {
+                // 2. Fallback: apply tariff discount % to the base price
+                finalPrice = tariffService.findById(tariffId)
+                        .map(tariff -> {
+                            BigDecimal discount = tariff.getDiscountPercentage();
+                            if (discount == null || discount.compareTo(BigDecimal.ZERO) == 0) {
+                                return basePrice.setScale(2, RoundingMode.HALF_UP);
+                            }
+                            BigDecimal factor = BigDecimal.ONE.subtract(
+                                    discount.divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP));
+                            return basePrice.multiply(factor).setScale(2, RoundingMode.HALF_UP);
+                        })
+                        .orElse(basePrice.setScale(2, RoundingMode.HALF_UP));
+                
+                BigDecimal reRate = recargoCalculator.getRecargoRate(vatRate);
+                BigDecimal netPrice = finalPrice.divide(BigDecimal.ONE.add(vatRate), 10, RoundingMode.HALF_UP);
+                priceWithRe = netPrice.multiply(BigDecimal.ONE.add(vatRate).add(reRate)).setScale(2, RoundingMode.HALF_UP);
+            }
         }
 
-        // 1. Look up the active price from tariff_price_history first
-        var historyEntry = tariffPriceHistoryRepository.findCurrentByProductAndTariff(productId, tariffId);
-        if (historyEntry.isPresent()) {
-            return historyEntry.get().getPriceWithVat();
-        }
-
-        // 2. Fallback: apply tariff discount % to the base price
-        return tariffService.findById(tariffId)
-                .map(tariff -> {
-                    BigDecimal discount = tariff.getDiscountPercentage();
-                    if (discount == null || discount.compareTo(BigDecimal.ZERO) == 0) {
-                        return basePrice.setScale(2, RoundingMode.HALF_UP);
-                    }
-                    BigDecimal factor = BigDecimal.ONE.subtract(
-                            discount.divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP));
-                    return basePrice.multiply(factor).setScale(2, RoundingMode.HALF_UP);
-                })
-                .orElse(basePrice.setScale(2, RoundingMode.HALF_UP));
+        java.util.Map<String, BigDecimal> response = new java.util.HashMap<>();
+        response.put("price", finalPrice);
+        response.put("priceWithRe", priceWithRe);
+        return response;
     }
 }

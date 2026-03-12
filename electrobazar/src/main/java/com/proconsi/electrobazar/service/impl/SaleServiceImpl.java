@@ -147,9 +147,12 @@ public class SaleServiceImpl implements SaleService {
             line.setVatAmount(breakdown.getVatAmount());
             line.setRecargoRate(breakdown.getRecargoRate());
             line.setRecargoAmount(breakdown.getRecargoAmount());
-            line.setSubtotal(breakdown.getTotalAmount());
+            // Total for this line MUST match frontend: (unitPrice * quantity) + recargoAmount
+            BigDecimal lineTotal = finalPrice.multiply(BigDecimal.valueOf(line.getQuantity())).setScale(SCALE, ROUNDING)
+                    .add(line.getRecargoAmount());
+            line.setSubtotal(lineTotal);
 
-            total = total.add(line.getSubtotal());
+            total = total.add(lineTotal);
             totalBase = totalBase.add(line.getBaseAmount());
             totalVat = totalVat.add(line.getVatAmount());
             totalRecargo = totalRecargo.add(line.getRecargoAmount());
