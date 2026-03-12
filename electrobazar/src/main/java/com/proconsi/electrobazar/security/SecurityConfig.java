@@ -13,7 +13,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpMethod;
 
@@ -77,7 +76,7 @@ public class SecurityConfig {
                                                 // API routes should return 401 instead of redirecting to /login
                                                 .defaultAuthenticationEntryPointFor(
                                                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
-                                                                new AntPathRequestMatcher("/api/**"))
+                                                                new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/**"))
                                                 // Redirect unauthenticated HTML requests to login
                                                 .defaultAuthenticationEntryPointFor(
                                                                 new LoginUrlAuthenticationEntryPoint("/login"),
