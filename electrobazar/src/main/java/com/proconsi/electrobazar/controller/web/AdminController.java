@@ -33,7 +33,10 @@ public class AdminController {
     private final com.proconsi.electrobazar.service.TariffPriceHistoryService tariffPriceHistoryService;
 
     @GetMapping("/productos-categorias")
-    public String productsCategories(Model model, HttpSession session) {
+    public String productsCategories(
+            @RequestParam(required = false, defaultValue = "productsView") String returnView,
+            Model model,
+            HttpSession session) {
         // Permitimos acceso si tiene el permiso específico O es admin total
         com.proconsi.electrobazar.model.Worker worker = (com.proconsi.electrobazar.model.Worker) session
                 .getAttribute("worker");
@@ -48,14 +51,20 @@ public class AdminController {
 
         model.addAttribute("products", productService.findAllWithCategory());
         model.addAttribute("categories", categoryService.findAll());
+        model.addAttribute("returnView", returnView);
         return "admin/productos-categorias";
     }
 
     @GetMapping("/admin")
-    public String index(Model model, HttpSession session) {
+    public String index(
+            @RequestParam(required = false) String view,
+            Model model,
+            HttpSession session) {
         if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
             return "redirect:/tpv";
         }
+
+        model.addAttribute("activeView", view);
 
         // Cargar todos los datos requeridos por las distintas vistas del Admin
         // Dashboard
@@ -230,21 +239,64 @@ public class AdminController {
     }
 
     @GetMapping("/admin/tariffs/{id}/history")
-    public String tariffHistory(@PathVariable Long id, Model model, HttpSession session) {
+    public String tariffHistory(
+            @PathVariable Long id,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date,
+            @RequestParam(required = false, defaultValue = "tarifasView") String returnView,
+            Model model,
+            HttpSession session) {
         if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
             return "redirect:/tpv";
         }
         com.proconsi.electrobazar.model.Tariff tariff = tariffService.findById(id)
                 .orElseThrow(() -> new RuntimeException("Tarifa no encontrada"));
 
+        java.time.LocalDate targetDate = date;
+        java.util.List<java.time.LocalDate> availableDates = tariffPriceHistoryService.getDistinctValidFromDates(id);
+        
+        // Default to most recent if no date provided
+        if (targetDate == null && !availableDates.isEmpty()) {
+            targetDate = availableDates.get(0);
+        } else if (targetDate == null) {
+            targetDate = java.time.LocalDate.now();
+        }
+
+        java.time.LocalDate prevDate = null;
+        java.time.LocalDate nextDate = null;
+
+        boolean dateExists = false;
+        for (int i = 0; i < availableDates.size(); i++) {
+            java.time.LocalDate d = availableDates.get(i);
+            if (d.equals(targetDate)) {
+                dateExists = true;
+                if (i > 0)
+                    nextDate = availableDates.get(i - 1);
+                if (i < availableDates.size() - 1)
+                    prevDate = availableDates.get(i + 1);
+                break;
+            }
+        }
+
         model.addAttribute("tariff", tariff);
-        model.addAttribute("history", tariffPriceHistoryService.getCurrentPricesForTariff(id));
+        model.addAttribute("history", tariffPriceHistoryService.getPricesForTariffAtDate(id, targetDate));
+        model.addAttribute("selectedDate", targetDate);
+        model.addAttribute("availableDates", availableDates);
+        model.addAttribute("prevDate", prevDate);
+        model.addAttribute("nextDate", nextDate);
+        model.addAttribute("firstDate", availableDates.isEmpty() ? null : availableDates.get(availableDates.size() - 1));
+        model.addAttribute("lastDate", availableDates.isEmpty() ? null : availableDates.get(0));
+        model.addAttribute("dateExists", dateExists || availableDates.isEmpty()); // If empty we don't show error, just empty table
+        model.addAttribute("returnView", returnView);
+        
         return "admin/tariff-price-history";
     }
 
     @GetMapping("/admin/tariffs/{id}/history/pdf")
     @ResponseBody
-    public org.springframework.http.ResponseEntity<?> downloadTariffPdf(@PathVariable Long id, HttpSession session) {
+    public org.springframework.http.ResponseEntity<?> downloadTariffPdf(
+            @PathVariable Long id,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date,
+            HttpSession session) {
         if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
             return org.springframework.http.ResponseEntity.status(401).build();
         }
@@ -252,11 +304,13 @@ public class AdminController {
         try {
             com.proconsi.electrobazar.model.Tariff tariff = tariffService.findById(id)
                     .orElseThrow(() -> new RuntimeException("Tarifa no encontrada"));
+
+            java.time.LocalDate targetDate = date != null ? date : java.time.LocalDate.now();
             java.util.List<com.proconsi.electrobazar.dto.TariffPriceEntryDTO> history = tariffPriceHistoryService
-                    .getCurrentPricesForTariff(id);
+                    .getPricesForTariffAtDate(id, targetDate);
 
             byte[] pdfData = pdfReportService.generateTariffSheet(tariff, history);
-            String filename = String.format("Tarifa_%s_%s.pdf", tariff.getName(), java.time.LocalDate.now());
+            String filename = String.format("Tarifa_%s_%s.pdf", tariff.getName(), targetDate);
 
             org.springframework.core.io.Resource resource = new org.springframework.core.io.ByteArrayResource(pdfData);
             return org.springframework.http.ResponseEntity.ok()

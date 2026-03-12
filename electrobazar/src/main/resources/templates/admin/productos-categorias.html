@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 
 <head>
@@ -52,9 +52,9 @@
             <div class="tab-pane fade show active" id="products-pane">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="m-0 fw-bold">
-                        <button class="btn-icon me-2" onclick="window.history.back()" title="Volver">
+                        <a th:href="@{'/admin?view=' + ${returnView}}" class="btn-icon me-2" style="text-decoration:none;" title="Volver">
                             <i class="bi bi-arrow-left"></i>
-                        </button>
+                        </a>
                         Gestión de Productos
                     </h5>
                     <div class="d-flex gap-2">
@@ -148,9 +148,9 @@
             <div class="tab-pane fade" id="categories-pane">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="m-0 fw-bold">
-                        <button class="btn-icon me-2" onclick="window.history.back()" title="Volver">
+                        <a th:href="@{'/admin?view=' + ${returnView}}" class="btn-icon me-2" style="text-decoration:none;" title="Volver">
                             <i class="bi bi-arrow-left"></i>
-                        </button>
+                        </a>
                         Gestión de Categorías
                     </h5>
                     <button class="btn-nuevo" onclick="openCategoryModal()">

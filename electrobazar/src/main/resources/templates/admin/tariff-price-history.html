@@ -75,36 +75,89 @@
     <div class="container-fluid py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <a href="/admin" class="btn btn-sm btn-outline-secondary mb-2">
+                <a th:href="@{'/admin?view=' + ${returnView}}" class="btn btn-sm btn-outline-secondary mb-2">
                     <i class="bi bi-arrow-left"></i> Volver al panel
                 </a>
                 <h2 class="h3 mb-0">Historial de Precios: <span th:text="${tariff.name}" class="text-primary">TARIFA</span></h2>
                 <p class="text-muted mb-0">Listado histórico de variaciones de precios para esta tarifa.</p>
             </div>
             <div>
-                <a th:href="@{'/admin/tariffs/' + ${tariff.id} + '/history/pdf'}" class="btn btn-primary">
-                    <i class="bi bi-file-earmark-pdf"></i> Descargar Tarifa PDF
+                <a th:href="@{'/admin/tariffs/' + ${tariff.id} + '/history/pdf' + '?date=' + ${selectedDate}}" class="btn btn-primary">
+                    <i class="bi bi-file-earmark-pdf"></i> Descargar PDF de este día
                 </a>
             </div>
         </div>
 
         <div class="history-card">
-            <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <label class="form-label small text-muted">Filtrar por Producto</label>
-                    <input type="text" id="filterProduct" class="form-control" placeholder="Escribe nombre del producto..." onkeyup="filterTable()">
+            <!-- Date Pagination & Filter -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="pagination-container d-flex align-items-center">
+                        <!-- Primero (más antiguo) -->
+                        <a th:if="${firstDate != null}" 
+                           th:href="@{'/admin/tariffs/' + ${tariff.id} + '/history?date=' + ${firstDate}}"
+                           class="btn btn-outline-secondary btn-sm me-1" 
+                           th:classappend="${selectedDate.equals(firstDate)} ? 'disabled' : ''" title="Primero (más antiguo)">
+                            &laquo;
+                        </a>
+
+                        <!-- Anterior -->
+                        <a th:if="${prevDate != null}" 
+                           th:href="@{'/admin/tariffs/' + ${tariff.id} + '/history?date=' + ${prevDate}}" 
+                           class="btn btn-outline-secondary btn-sm me-1" title="Anterior">
+                            &lsaquo;
+                        </a>
+                        <button th:if="${prevDate == null}" class="btn btn-sm btn-outline-secondary disabled me-1">&lsaquo;</button>
+                        
+                        <div class="current-date-badge mx-2 px-3 py-2 bg-primary text-white rounded-3 fw-bold shadow-sm">
+                            <i class="bi bi-calendar-event me-2"></i>
+                            <span th:text="${#temporals.format(selectedDate, 'dd/MM/yyyy')}">12/03/2026</span>
+                        </div>
+
+                        <!-- Siguiente -->
+                        <a th:if="${nextDate != null}" 
+                           th:href="@{'/admin/tariffs/' + ${tariff.id} + '/history?date=' + ${nextDate}}" 
+                           class="btn btn-outline-secondary btn-sm me-1" title="Siguiente">
+                            &rsaquo;
+                        </a>
+                        <button th:if="${nextDate == null}" class="btn btn-sm btn-outline-secondary disabled me-1">&rsaquo;</button>
+
+                        <!-- Último / Hoy (más reciente) -->
+                        <a th:href="@{'/admin/tariffs/' + ${tariff.id} + '/history'}"
+                           class="btn btn-outline-secondary btn-sm px-3" 
+                           th:classappend="${nextDate == null} ? 'btn-primary active text-white' : ''"
+                           title="Volver al más reciente">
+                            Hoy
+                        </a>
+                    </div>
+                    
+                    <div class="date-selector ms-3 border-start ps-3">
+                        <label class="form-label small text-muted mb-1 d-block">Buscar fecha:</label>
+                        <input type="date" id="dateFilter" class="form-control form-control-sm" th:value="${selectedDate}" 
+                               list="availableDatesList"
+                               th:onchange="'window.location.href=\'/admin/tariffs/' + ${tariff.id} + '/history?date=\' + this.value'">
+                        <datalist id="availableDatesList">
+                            <option th:each="d : ${availableDates}" th:value="${d}"></option>
+                        </datalist>
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Fecha Desde</label>
-                    <input type="date" id="filterDateFrom" class="form-control" onchange="filterTable()">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label small text-muted">Fecha Hasta</label>
-                    <input type="date" id="filterDateTo" class="form-control" onchange="filterTable()">
+
+                <div class="search-box">
+                    <label class="form-label small text-muted mb-1 d-block">Filtrar por nombre:</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                        <input type="text" id="filterProduct" class="form-control" placeholder="Producto..." onkeyup="filterTable()">
+                    </div>
                 </div>
             </div>
 
-            <div class="table-responsive">
+            <!-- Error Message if Date Doesn't Exist -->
+            <div th:if="${!dateExists}" class="alert alert-warning d-flex align-items-center mt-3" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <div>No hay tarifario registrado para esta fecha específica. Por favor, selecciona una de las fechas con historial.</div>
+            </div>
+
+            <div class="table-responsive" th:if="${dateExists}">
                 <table class="table table-custom mb-0" id="historyTable">
                     <thead>
                         <tr>
@@ -160,20 +213,11 @@
     <script>
         function filterTable() {
             const productFilter = document.getElementById('filterProduct').value.toLowerCase();
-            const dateFrom = document.getElementById('filterDateFrom').value;
-            const dateTo = document.getElementById('filterDateTo').value;
             const rows = document.querySelectorAll('.history-row');
 
             rows.forEach(row => {
                 const productName = row.cells[0].textContent.toLowerCase();
-                const validFrom = row.querySelector('.validity-period span:nth-child(2)').textContent.split('/').reverse().join('-');
-                
-                let matchesProduct = productName.includes(productFilter);
-                let matchesFrom = !dateFrom || validFrom >= dateFrom;
-                let matchesTo = true; 
-                // Simplified date filtering for history
-
-                if (matchesProduct && matchesFrom) {
+                if (productName.includes(productFilter)) {
                     row.style.display = '';
                 } else {
                     row.style.display = 'none';

@@ -87,7 +87,7 @@
                 <i class="bi bi-tags"></i> Tarifas
             </button>
             <button class="nav-link sidebar-menu-btn" onclick="switchView('tiposIvaView', this)">
-                <i class="bi bi-percent"></i> Tipos de IVA
+                <i class="bi bi-calculator"></i> Tipos de IVA
             </button>
         </nav>
 
@@ -175,6 +175,16 @@
                         style="background: var(--surface); color: var(--text-main); border-radius: 8px; border: 1px solid var(--border);"
                         onclick="openCustomerModal()">
                         <i class="bi bi-person-badge me-1"></i> Nuevo Cliente
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm px-3 py-2"
+                        style="background: var(--surface); color: var(--text-main); border-radius: 8px; border: 1px solid var(--border);"
+                        onclick="openCreateTariffModal()">
+                        <i class="bi bi-tag me-1"></i> Nueva Tarifa
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm px-3 py-2"
+                        style="background: var(--surface); color: var(--text-main); border-radius: 8px; border: 1px solid var(--border);"
+                        onclick="openCreateTaxRateModal()">
+                        <i class="bi bi-calculator me-1"></i> Nuevo Tipo IVA
                     </button>
                     <button class="btn btn-outline-secondary btn-sm px-3 py-2"
                         style="background: var(--surface); color: var(--text-main); border-radius: 8px; border: 1px solid var(--border);"
@@ -279,6 +289,27 @@
                     <i class="bi bi-percent"></i>
                     <h3>Precios Masivos</h3>
                     <p>Aplica incrementos o descuentos a múltiples productos.</p>
+                </div>
+
+                <div class="dashboard-card"
+                    onclick="switchView('tarifasView', document.querySelector('[onclick*=\'tarifasView\']'))">
+                    <i class="bi bi-tags"></i>
+                    <h3>Tarifas</h3>
+                    <p>Configura descuentos especiales y tarifas personalizadas por cliente.</p>
+                </div>
+
+                <div class="dashboard-card"
+                    onclick="switchView('tiposIvaView', document.querySelector('[onclick*=\'tiposIvaView\']'))">
+                    <i class="bi bi-calculator"></i>
+                    <h3>Tipos de IVA</h3>
+                    <p>Administra los tipos impositivos de IVA y Recargo de Equivalencia.</p>
+                </div>
+
+                <div class="dashboard-card"
+                    onclick="switchView('settingsView', document.querySelector('[onclick*=\'settingsView\']'))">
+                    <i class="bi bi-gear"></i>
+                    <h3>Configuración</h3>
+                    <p>Ajustes generales del sistema y seguridad de acceso por PIN.</p>
                 </div>
             </div>
         </div>
@@ -2405,6 +2436,22 @@
     <script th:src="@{/js/util/nif-cif-validator.js}"></script>
     <script th:src="@{/js/shared/inventory-filter.js}"></script>
     <script th:src="@{/js/admin/admin-main.js}"></script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        document.addEventListener('DOMContentLoaded', function() {
+            const activeView = /*[[${activeView}]]*/ null;
+            if (activeView) {
+                // Find matching button to apply active class and switch view
+                // We check for various ways the switchView might be called in onclick
+                const btn = document.querySelector(`button[onclick*="'${activeView}'"]`) || 
+                            document.querySelector(`.dashboard-card[onclick*="'${activeView}'"]`);
+                if (activeView !== 'dashboardView') {
+                    switchView(activeView, btn);
+                }
+            }
+        });
+        /*]]>*/
+    </script>
     <script>
         // ── TARIFF MANAGEMENT ────────────────────────────────────────────────────
         function openCreateTariffModal() {
