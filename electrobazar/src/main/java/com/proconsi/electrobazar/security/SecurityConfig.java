@@ -46,11 +46,11 @@ public class SecurityConfig {
                                                                 "/api/products/**")
                                                 .permitAll()
 
-                                                // TPV SECURED ACTION (Requires X-TPV-TOKEN)
-                                                .requestMatchers("/api/sales/with-tax/**").hasAuthority("TPV_CLIENT")
-                                                .requestMatchers("/api/sales/stats/today").hasAuthority("TPV_CLIENT")
+                                                // TPV SECURED ACTION (Requires X-TPV-TOKEN or valid Worker JWT)
+                                                .requestMatchers("/api/sales/with-tax/**").authenticated()
+                                                .requestMatchers("/api/sales/stats/today").hasAnyAuthority("TPV_CLIENT", "ADMIN_ACCESS", "SALE_VIEW")
 
-                                                 // ADMIN
+                                                // ADMIN
                                                 .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/admin/products/**").hasAuthority("ADMIN_ACCESS")
                                                 .requestMatchers("/api/activity-log/**").hasAuthority("ADMIN_ACCESS")
                                                 .requestMatchers(org.springframework.http.HttpMethod.POST,
@@ -69,6 +69,10 @@ public class SecurityConfig {
                                                 // Catch-all
                                                 .anyRequest().authenticated())
                                 .exceptionHandling(exceptions -> exceptions
+                                                // API routes should return 401 instead of redirecting to /login
+                                                .defaultAuthenticationEntryPointFor(
+                                                                new org.springframework.security.web.authentication.HttpStatusEntryPoint(org.springframework.http.HttpStatus.UNAUTHORIZED),
+                                                                new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/**"))
                                                 // Redirect unauthenticated HTML requests to login
                                                 .defaultAuthenticationEntryPointFor(
                                                                 new org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint(
