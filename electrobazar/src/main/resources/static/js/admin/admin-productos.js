@@ -31,7 +31,7 @@ function openProductModal(id) {
     previewImage(null);
 
     // Fetch active tax rates every time the modal opens
-    fetch('/api/tax-rates/active')
+    fetch('/admin/api/tax-rates/active')
         .then(function (res) { return res.json(); })
         .then(function (rates) {
             if (ivaEl) {

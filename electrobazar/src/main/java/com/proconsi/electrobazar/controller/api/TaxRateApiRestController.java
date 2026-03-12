@@ -9,12 +9,15 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/tax-rates")
+@RequestMapping("/admin/api/tax-rates")
 @RequiredArgsConstructor
 public class TaxRateApiRestController {
 
     private final TaxRateRepository taxRateRepository;
     private final com.proconsi.electrobazar.service.ActivityLogService activityLogService;
+    private final com.proconsi.electrobazar.service.ProductService productService;
+    private final com.proconsi.electrobazar.service.TariffService tariffService;
+    private final com.proconsi.electrobazar.repository.ProductRepository productRepository;
 
     @GetMapping
     public List<TaxRate> getAll() {
@@ -75,5 +78,50 @@ public class TaxRateApiRestController {
             activityLogService.logActivity("ELIMINAR_IVA", "Tipo de IVA eliminado: " + tr.getDescription(), "Admin", "TAX_RATE", id);
         });
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/apply-selective")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<?> applySelectiveTaxRate(@RequestBody ApplySelectiveTaxRateRequest request) {
+        com.proconsi.electrobazar.model.TaxRate taxRate = taxRateRepository.findById(request.getTaxRateId())
+                .orElseThrow(() -> new com.proconsi.electrobazar.exception.ResourceNotFoundException("TaxRate no encontrado: " + request.getTaxRateId()));
+
+        java.util.Set<com.proconsi.electrobazar.model.Product> affectedProducts = new java.util.HashSet<>();
+
+        if (request.getProductIds() != null && !request.getProductIds().isEmpty()) {
+            affectedProducts.addAll(productRepository.findAllById(request.getProductIds()));
+        }
+
+        if (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) {
+            for (Long categoryId : request.getCategoryIds()) {
+                affectedProducts.addAll(productRepository.findByCategoryIdAndActiveTrueOrderByNameAsc(categoryId));
+            }
+        }
+
+        if (affectedProducts.isEmpty()) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", "No se seleccionaron productos ni categorías válidas o sin productos."));
+        }
+
+        java.util.List<com.proconsi.electrobazar.model.Product> productsList = new java.util.ArrayList<>(affectedProducts);
+        productService.applyTaxRateToProducts(productsList.stream().map(com.proconsi.electrobazar.model.Product::getId).collect(java.util.stream.Collectors.toList()), taxRate);
+        
+        tariffService.regenerateTariffHistoryForProducts(productsList);
+
+        activityLogService.logActivity(
+                "APLICAR_IVA_SELECTIVO",
+                "IVA aplicado selectivamente: " + taxRate.getDescription() + " a " + productsList.size() + " productos.",
+                "Admin",
+                "TAX_RATE",
+                taxRate.getId()
+        );
+
+        return ResponseEntity.ok(java.util.Map.of("success", true, "count", productsList.size()));
+    }
+
+    @lombok.Data
+    public static class ApplySelectiveTaxRateRequest {
+        private Long taxRateId;
+        private java.util.List<Long> productIds;
+        private java.util.List<Long> categoryIds;
     }
 }

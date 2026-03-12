@@ -19,24 +19,7 @@
             border-radius: 12px;
             padding: 1.5rem;
             margin-bottom: 2rem;
-        }
-
-        .table-custom {
             color: var(--text-main);
-        }
-
-        .table-custom th {
-            font-family: 'Barlow Condensed', sans-serif;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-            border-bottom: 2px solid var(--border);
-        }
-
-        .table-custom td {
-            vertical-align: middle;
-            border-bottom: 1px solid var(--border);
-            padding: 1rem 0.75rem;
         }
 
         .price-tag {
@@ -50,23 +33,30 @@
         }
 
         .badge-active {
-            background: rgba(46, 204, 113, 0.1);
+            background: rgba(46, 204, 113, 0.15);
             color: #2ecc71;
-            padding: 4px 8px;
+            padding: 4px 10px;
             border-radius: 6px;
             font-size: 0.75rem;
+            font-weight: 600;
         }
 
         .badge-expired {
-            background: rgba(231, 76, 60, 0.1);
+            background: rgba(231, 76, 60, 0.15);
             color: #e74c3c;
-            padding: 4px 8px;
+            padding: 4px 10px;
             border-radius: 6px;
             font-size: 0.75rem;
+            font-weight: 600;
         }
 
         .group-start {
             border-left: 2px solid var(--border) !important;
+        }
+        
+        body {
+            background-color: var(--primary) !important;
+            color: var(--text-main) !important;
         }
     </style>
 </head>
@@ -158,46 +148,51 @@
                 <div>No hay tarifario registrado para esta fecha específica. Por favor, selecciona una de las fechas con historial.</div>
             </div>
 
-            <div class="table-responsive" th:if="${dateExists}">
-                <table class="table table-custom mb-0" id="historyTable">
+            <div class="admin-table-wrap" th:if="${dateExists}">
+                <table class="admin-table" id="historyTable" style="margin-bottom: 0;">
                     <thead>
                         <tr>
                             <th>Producto</th>
-                            <th>Precio Base</th>
-                            <th>Descuento %</th>
-                            <th class="group-start">Precio Neto (c/dto.)</th>
-                            <th class="group-start">IVA</th>
-                            <th>Cuota IVA</th>
-                            <th>P. con IVA</th>
-                            <th class="group-start">RE</th>
-                            <th>Cuota RE</th>
-                            <th>P. con RE</th>
+                            <th class="text-end">Precio Base</th>
+                            <th class="text-end">Dto. %</th>
+                            <th class="group-start text-end">Neto</th>
+                            <th class="group-start text-center">IVA</th>
+                            <th class="text-end">Cuota IVA</th>
+                            <th class="text-end">P. IVA</th>
+                            <th class="group-start text-center">RE</th>
+                            <th class="text-end">Cuota RE</th>
+                            <th class="text-end">P. RE</th>
                             <th class="group-start">Vigencia</th>
-                            <th>Estado</th>
+                            <th class="text-center">Estado</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr th:each="h : ${history}" class="history-row">
                             <td>
-                                <strong th:text="${h.productName}">Producto</strong>
+                                <strong th:text="${h.productName}" style="color: var(--text-main);">Producto</strong>
                                 <div class="small text-muted" th:text="${h.categoryName}">Categoría</div>
                             </td>
-                            <td class="price-tag" th:text="${#numbers.formatDecimal(h.basePrice, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
-                            <td th:text="${#numbers.formatDecimal(h.discountPercent, 1, 1, 'COMMA') + '%'}">0,0%</td>
-                            <td class="fw-bold group-start" th:text="${#numbers.formatDecimal(h.netPrice, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
-                            <td class="group-start" th:text="${#numbers.formatDecimal(h.vatRate * 100, 1, 0, 'COMMA') + '%'}">21%</td>
-                            <td th:text="${#numbers.formatDecimal(h.vatAmount, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
-                            <td class="price-tag" th:text="${#numbers.formatDecimal(h.priceWithVat, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
-                            <td class="group-start" th:text="${#numbers.formatDecimal(h.reRate * 100, 1, 1, 'COMMA') + '%'}">5,2%</td>
-                            <td th:text="${#numbers.formatDecimal(h.reAmount, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
-                            <td class="price-tag fw-bold" th:text="${#numbers.formatDecimal(h.priceWithRe, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
+                            <td class="text-end" style="font-family:'Barlow Condensed',sans-serif;font-weight:600;color:var(--text-muted)" 
+                                th:text="${#numbers.formatDecimal(h.basePrice, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
+                            <td class="text-end" style="color:var(--text-muted)" 
+                                th:text="${#numbers.formatDecimal(h.discountPercent, 1, 1, 'COMMA') + '%'}">0,0%</td>
+                            <td class="fw-bold group-start text-end" style="color:var(--text-main)" 
+                                th:text="${#numbers.formatDecimal(h.netPrice, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
+                            <td class="group-start text-center" style="color:var(--text-muted)" 
+                                th:text="${#numbers.formatDecimal(h.vatRate * 100, 1, 0, 'COMMA') + '%'}">21%</td>
+                            <td class="text-end" style="color:var(--text-muted)" 
+                                th:text="${#numbers.formatDecimal(h.vatAmount, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
+                            <td class="price-tag text-end" 
+                                th:text="${#numbers.formatDecimal(h.priceWithVat, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
+                            <td class="group-start text-center" style="color:var(--text-muted)" 
+                                th:text="${#numbers.formatDecimal(h.reRate * 100, 1, 1, 'COMMA') + '%'}">5,2%</td>
+                            <td class="text-end" style="color:var(--text-muted)" 
+                                th:text="${#numbers.formatDecimal(h.reAmount, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
+                            <td class="price-tag fw-bold text-end" 
+                                th:text="${#numbers.formatDecimal(h.priceWithRe, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
                             <td class="validity-period group-start">
-                                <i class="bi bi-calendar-check me-1"></i>
-                                <span th:text="${#temporals.format(h.validFrom, 'dd/MM/yyyy')}">01/01/2024</span>
-                                <span th:if="${h.validTo != null}">
-                                    <br><i class="bi bi-calendar-x me-1"></i>
-                                    <span th:text="${#temporals.format(h.validTo, 'dd/MM/yyyy')}">31/12/2024</span>
-                                </span>
+                                <div><i class="bi bi-calendar-check me-1"></i><span th:text="${#temporals.format(h.validFrom, 'dd/MM/yyyy')}"></span></div>
+                                <div th:if="${h.validTo != null}"><i class="bi bi-calendar-x me-1"></i><span th:text="${#temporals.format(h.validTo, 'dd/MM/yyyy')}"></span></div>
                             </td>
                             <td class="text-center">
                                 <span th:if="${!h.isFromHistory}" class="badge bg-secondary">AL VUELO</span>

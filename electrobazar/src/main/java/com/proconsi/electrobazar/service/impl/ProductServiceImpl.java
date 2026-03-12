@@ -250,4 +250,15 @@ public class ProductServiceImpl implements ProductService {
                 "TAX_RATE",
                 newTaxRateId);
     }
+
+    @Override
+    @Transactional
+    public void applyTaxRateToProducts(List<Long> productIds, com.proconsi.electrobazar.model.TaxRate taxRate) {
+        if (productIds == null || productIds.isEmpty()) return;
+        List<Product> products = productRepository.findAllById(productIds);
+        for (Product product : products) {
+            product.setTaxRate(taxRate);
+        }
+        productRepository.saveAll(products);
+    }
 }

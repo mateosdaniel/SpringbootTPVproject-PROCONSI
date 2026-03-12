@@ -36,5 +36,8 @@ public interface ProductService {
     void adjustStock(Long productId, Integer quantity);
 
     List<Product> getTopProducts(int limit);
+
     void applyNewTaxRate(Long newTaxRateId);
+
+    void applyTaxRateToProducts(List<Long> productIds, com.proconsi.electrobazar.model.TaxRate taxRate);
 }

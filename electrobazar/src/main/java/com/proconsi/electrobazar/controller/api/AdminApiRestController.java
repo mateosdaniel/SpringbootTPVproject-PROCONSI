@@ -1,3 +1,5 @@
+package com.proconsi.electrobazar.controller.api;
+
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.proconsi.electrobazar.dto.*;
 import com.proconsi.electrobazar.model.*;
@@ -61,7 +63,8 @@ public class AdminApiRestController {
     @GetMapping("/download/invoice/{id}")
     public ResponseEntity<Resource> downloadInvoicePdf(@PathVariable Long id) {
         Sale sale = saleService.findById(id);
-        if (sale == null) return ResponseEntity.notFound().build();
+        if (sale == null)
+            return ResponseEntity.notFound().build();
 
         Context context = new Context();
         context.setVariable("sale", sale);
@@ -74,7 +77,8 @@ public class AdminApiRestController {
             ticketService.findBySaleId(id).ifPresent(t -> context.setVariable("ticket", t));
         }
 
-        boolean applyRecargo = sale.getCustomer() != null && Boolean.TRUE.equals(sale.getCustomer().getHasRecargoEquivalencia());
+        boolean applyRecargo = sale.getCustomer() != null
+                && Boolean.TRUE.equals(sale.getCustomer().getHasRecargoEquivalencia());
         List<TaxBreakdown> breakdowns = new ArrayList<>();
         for (SaleLine line : sale.getLines()) {
             BigDecimal vatRate = line.getVatRate() != null ? line.getVatRate() : new BigDecimal("0.21");
@@ -84,21 +88,26 @@ public class AdminApiRestController {
         }
         context.setVariable("taxBreakdowns", breakdowns);
         context.setVariable("applyRecargo", applyRecargo);
-        context.setVariable("totalBase", breakdowns.stream().map(TaxBreakdown::getBaseAmount).reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
-        context.setVariable("totalVat", breakdowns.stream().map(TaxBreakdown::getVatAmount).reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
-        context.setVariable("totalRecargo", breakdowns.stream().map(TaxBreakdown::getRecargoAmount).reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
+        context.setVariable("totalBase", breakdowns.stream().map(TaxBreakdown::getBaseAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
+        context.setVariable("totalVat", breakdowns.stream().map(TaxBreakdown::getVatAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
+        context.setVariable("totalRecargo", breakdowns.stream().map(TaxBreakdown::getRecargoAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
 
         String template = invoiceOpt.isPresent() ? "tpv/invoice" : "tpv/receipt";
         byte[] pdfBytes = generatePdfFromTemplate(template, context);
 
-        String filename = (invoiceOpt.isPresent() ? "Factura_" + invoiceOpt.get().getInvoiceNumber() : "Ticket_" + id) + ".pdf";
+        String filename = (invoiceOpt.isPresent() ? "Factura_" + invoiceOpt.get().getInvoiceNumber() : "Ticket_" + id)
+                + ".pdf";
         return createPdfResponse(pdfBytes, filename);
     }
 
     @GetMapping("/download/return/{id}")
     public ResponseEntity<Resource> downloadReturnPdf(@PathVariable Long id) {
         Optional<SaleReturn> returnOpt = returnService.findById(id);
-        if (returnOpt.isEmpty()) return ResponseEntity.notFound().build();
+        if (returnOpt.isEmpty())
+            return ResponseEntity.notFound().build();
         SaleReturn saleReturn = returnOpt.get();
 
         Context context = new Context();
@@ -122,13 +131,18 @@ public class AdminApiRestController {
             List<TaxBreakdown> negativeBreakdowns = standardBreakdowns.stream().map(bd -> TaxBreakdown.builder()
                     .productId(bd.getProductId()).productName(bd.getProductName()).unitPrice(bd.getUnitPrice())
                     .quantity(bd.getQuantity() * -1).baseAmount(bd.getBaseAmount().negate()).vatRate(bd.getVatRate())
-                    .vatAmount(bd.getVatAmount().negate()).recargoRate(bd.getRecargoRate()).recargoAmount(bd.getRecargoAmount().negate())
-                    .totalAmount(bd.getTotalAmount().negate()).recargoApplied(applyRecargo).build()).collect(Collectors.toList());
+                    .vatAmount(bd.getVatAmount().negate()).recargoRate(bd.getRecargoRate())
+                    .recargoAmount(bd.getRecargoAmount().negate())
+                    .totalAmount(bd.getTotalAmount().negate()).recargoApplied(applyRecargo).build())
+                    .collect(Collectors.toList());
             context.setVariable("taxBreakdowns", negativeBreakdowns);
-            context.setVariable("totalBase", negativeBreakdowns.stream().map(TaxBreakdown::getBaseAmount).reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
-            context.setVariable("totalVat", negativeBreakdowns.stream().map(TaxBreakdown::getVatAmount).reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
-            context.setVariable("totalRecargo", negativeBreakdowns.stream().map(TaxBreakdown::getRecargoAmount).reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
-            
+            context.setVariable("totalBase", negativeBreakdowns.stream().map(TaxBreakdown::getBaseAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
+            context.setVariable("totalVat", negativeBreakdowns.stream().map(TaxBreakdown::getVatAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
+            context.setVariable("totalRecargo", negativeBreakdowns.stream().map(TaxBreakdown::getRecargoAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
+
             List<Map<String, Object>> negativeLines = new ArrayList<>();
             for (ReturnLine line : saleReturn.getLines()) {
                 Map<String, Object> map = new HashMap<>();
@@ -145,9 +159,12 @@ public class AdminApiRestController {
         } else {
             template = "tpv/return-receipt";
             context.setVariable("taxBreakdowns", standardBreakdowns);
-            context.setVariable("totalBase", standardBreakdowns.stream().map(TaxBreakdown::getBaseAmount).reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
-            context.setVariable("totalVat", standardBreakdowns.stream().map(TaxBreakdown::getVatAmount).reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
-            context.setVariable("totalRecargo", standardBreakdowns.stream().map(TaxBreakdown::getRecargoAmount).reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
+            context.setVariable("totalBase", standardBreakdowns.stream().map(TaxBreakdown::getBaseAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
+            context.setVariable("totalVat", standardBreakdowns.stream().map(TaxBreakdown::getVatAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
+            context.setVariable("totalRecargo", standardBreakdowns.stream().map(TaxBreakdown::getRecargoAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
         }
         context.setVariable("applyRecargo", applyRecargo);
 
@@ -172,11 +189,13 @@ public class AdminApiRestController {
     public ResponseEntity<?> uploadCsv(@RequestParam("file") MultipartFile file) {
         try {
             String result = csvImportService.importProductsCsv(file);
-            activityLogService.logActivity("IMPORTAR_CSV", "Importación CSV realizada: " + result, "Admin", "IMPORT", null);
+            activityLogService.logActivity("IMPORTAR_CSV", "Importación CSV realizada: " + result, "Admin", "IMPORT",
+                    null);
             return ResponseEntity.ok(Map.of("ok", true, "message", result));
         } catch (Exception e) {
             log.error("Error processing CSV upload", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("ok", false, "message", "Error al procesar: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("ok", false, "message", "Error al procesar: " + e.getMessage()));
         }
     }
 
@@ -201,7 +220,8 @@ public class AdminApiRestController {
         workerService.findById(id).ifPresent(w -> {
             w.setActive(false);
             workerService.save(w);
-            activityLogService.logActivity("DESACTIVAR_TRABAJADOR", "Trabajador desactivado: " + w.getUsername(), "Admin", "WORKER", id);
+            activityLogService.logActivity("DESACTIVAR_TRABAJADOR", "Trabajador desactivado: " + w.getUsername(),
+                    "Admin", "WORKER", id);
         });
         return ResponseEntity.ok().build();
     }
@@ -224,13 +244,14 @@ public class AdminApiRestController {
     }
 
     private String cleanHtmlForPdf(String html) {
-        if (html == null) return "";
+        if (html == null)
+            return "";
         String cleaned = html.replaceAll("<(meta|br|hr|img|input|link)([^>]*?)(?<!/)>", "<$1$2 />");
         return cleaned.replace("&copy;", "&#169;")
-                      .replace("&reg;", "&#174;")
-                      .replace("&trade;", "&#8482;")
-                      .replace("&nbsp;", "&#160;")
-                      .replace("&euro;", "&#8364;");
+                .replace("&reg;", "&#174;")
+                .replace("&trade;", "&#8482;")
+                .replace("&nbsp;", "&#160;")
+                .replace("&euro;", "&#8364;");
     }
 
     private ResponseEntity<Resource> createPdfResponse(byte[] pdfBytes, String filename) {

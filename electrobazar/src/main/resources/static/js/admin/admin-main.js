@@ -96,7 +96,7 @@ function openProductModal(id) {
 
     // Fetch active tax rates and populate dropdown
     const ivaEl = document.getElementById('productIvaRate');
-    fetch('/api/tax-rates/active')
+    fetch('/admin/api/tax-rates/active')
         .then(function (res) { return res.json(); })
         .then(function (rates) {
             if (ivaEl) {
