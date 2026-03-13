@@ -66,4 +66,7 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
                         "FROM Sale s WHERE s.createdAt BETWEEN :from AND :to")
         com.proconsi.electrobazar.dto.SaleSummaryResponse getSummaryBetween(@Param("from") LocalDateTime from,
                         @Param("to") LocalDateTime to);
+
+        @Query(value = "SELECT p.name FROM sales s JOIN sale_lines sl ON s.id = sl.sale_id JOIN products p ON sl.product_id = p.id WHERE s.created_at BETWEEN :from AND :to AND s.status = 'ACTIVE' GROUP BY p.name ORDER BY SUM(sl.quantity) DESC LIMIT 1", nativeQuery = true)
+        String findTopProductNameBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

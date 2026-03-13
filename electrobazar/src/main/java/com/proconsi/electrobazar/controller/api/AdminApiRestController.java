@@ -49,6 +49,11 @@ public class AdminApiRestController {
     private final RecargoEquivalenciaCalculator recargoCalculator;
     private final TemplateEngine templateEngine;
 
+    @GetMapping("/dashboard/stats")
+    public ResponseEntity<DashboardStatsDTO> getDashboardStats() {
+        return ResponseEntity.ok(cashRegisterService.getDashboardStats());
+    }
+
     @PostMapping("/verify-pin")
     public ResponseEntity<?> verifyPin(@RequestBody Map<String, String> body) {
         String pin = body.get("pin");

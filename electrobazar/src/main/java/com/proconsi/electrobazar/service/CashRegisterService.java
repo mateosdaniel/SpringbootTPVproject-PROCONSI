@@ -50,4 +50,6 @@ public interface CashRegisterService {
      * register.
      */
     BigDecimal getCurrentCashBalance();
+
+    com.proconsi.electrobazar.dto.DashboardStatsDTO getDashboardStats();
 }

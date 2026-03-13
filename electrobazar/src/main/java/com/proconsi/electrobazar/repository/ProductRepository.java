@@ -36,4 +36,6 @@ public interface ProductRepository extends JpaRepository<Product, Long>,
     void updateTaxRateForIds(@Param("oldRateIds") List<Long> oldRateIds, @Param("newRate") com.proconsi.electrobazar.model.TaxRate newRate);
 
     List<Product> findByTaxRateIdIn(List<Long> taxRateIds);
+
+    long countByStockLessThan(Integer threshold);
 }

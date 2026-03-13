@@ -1,10 +1,11 @@
 package com.proconsi.electrobazar.service.impl;
 
-import com.proconsi.electrobazar.dto.CashRegisterOpenSuggestion;
+import com.proconsi.electrobazar.dto.DashboardStatsDTO;
 import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import com.proconsi.electrobazar.model.CashRegister;
 import com.proconsi.electrobazar.model.PaymentMethod;
 import com.proconsi.electrobazar.repository.CashRegisterRepository;
+import com.proconsi.electrobazar.repository.ProductRepository;
 import com.proconsi.electrobazar.repository.SaleRepository;
 import com.proconsi.electrobazar.repository.SaleReturnRepository;
 import com.proconsi.electrobazar.service.ActivityLogService;
@@ -26,6 +27,7 @@ public class CashRegisterServiceImpl implements CashRegisterService {
         private final CashRegisterRepository cashRegisterRepository;
         private final SaleRepository saleRepository;
         private final SaleReturnRepository saleReturnRepository;
+        private final ProductRepository productRepository;
         private final ActivityLogService activityLogService;
 
         @Override
@@ -253,6 +255,39 @@ public class CashRegisterServiceImpl implements CashRegisterService {
                 return getOpenRegister()
                                 .map(this::calculateExpectedCashBalance)
                                 .orElse(BigDecimal.ZERO);
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public DashboardStatsDTO getDashboardStats() {
+                java.util.Optional<CashRegister> openRegister = getOpenRegister();
+                LocalDateTime from;
+                LocalDateTime to = LocalDateTime.now();
+                boolean shiftActive = openRegister.isPresent();
+                BigDecimal openingBalance = BigDecimal.ZERO;
+
+                if (shiftActive) {
+                        from = openRegister.get().getOpeningTime() != null ? openRegister.get().getOpeningTime()
+                                        : LocalDate.now().atStartOfDay();
+                        openingBalance = openRegister.get().getOpeningBalance();
+                } else {
+                        from = LocalDate.now().atStartOfDay();
+                }
+
+                BigDecimal revenue = saleRepository.sumTotalBetween(from, to);
+                long salesCount = saleRepository.countByCreatedAtBetween(from, to);
+                String topProduct = saleRepository.findTopProductNameBetween(from, to);
+                long lowStockCount = productRepository.countByStockLessThan(5);
+
+                return DashboardStatsDTO.builder()
+                                .shiftActive(shiftActive)
+                                .shiftOpeningTime(shiftActive ? openRegister.get().getOpeningTime() : null)
+                                .revenue(revenue != null ? revenue : BigDecimal.ZERO)
+                                .salesCount((int) salesCount)
+                                .topProduct(topProduct != null ? topProduct : "—")
+                                .lowStockCount((int) lowStockCount)
+                                .openingBalance(openingBalance)
+                                .build();
         }
 
 }
