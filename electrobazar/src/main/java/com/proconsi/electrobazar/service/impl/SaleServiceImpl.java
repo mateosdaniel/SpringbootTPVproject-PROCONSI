@@ -166,8 +166,10 @@ public class SaleServiceImpl implements SaleService {
         if (paymentMethod == PaymentMethod.CASH) {
             cashAmount = finalTotal;
             if (receivedAmount != null) {
+                // Add 0.01 tolerance to account for rounding differences between client and server
+                BigDecimal tolerance = new BigDecimal("0.01");
                 changeAmount = receivedAmount.subtract(finalTotal);
-                if (changeAmount.compareTo(BigDecimal.ZERO) < 0) {
+                if (receivedAmount.add(tolerance).compareTo(finalTotal) < 0) {
                     throw new IllegalArgumentException("La cantidad recibida es menor que el total de la venta.");
                 }
             }
