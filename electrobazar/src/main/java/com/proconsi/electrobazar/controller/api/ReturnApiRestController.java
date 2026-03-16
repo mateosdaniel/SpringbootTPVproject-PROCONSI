@@ -124,12 +124,13 @@ public class ReturnApiRestController {
         String token = authorizationHeader.substring(7);
 
         Long workerId;
-        Set<String> permissions;
+        List<String> permissions;
         try {
-            workerId = jwtService.extractClaim(token, claims -> claims.get("workerId", Long.class));
+            Number workerIdNum = jwtService.extractClaim(token, claims -> claims.get("workerId", Number.class));
+            workerId = workerIdNum != null ? workerIdNum.longValue() : null;
             @SuppressWarnings("unchecked")
-            Set<String> rawPermissions = jwtService.extractClaim(token,
-                    claims -> claims.get("permissions", Set.class));
+            List<String> rawPermissions = jwtService.extractClaim(token,
+                    claims -> claims.get("permissions", List.class));
             permissions = rawPermissions;
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

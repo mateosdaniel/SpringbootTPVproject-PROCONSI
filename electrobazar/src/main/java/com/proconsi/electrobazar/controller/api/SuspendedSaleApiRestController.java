@@ -147,9 +147,10 @@ public class SuspendedSaleApiRestController {
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             String token = authorizationHeader.substring(7);
             try {
-                Long workerId = jwtService.extractClaim(token, claims -> claims.get("workerId", Long.class));
+                Number workerIdNum = jwtService.extractClaim(token, claims -> claims.get("workerId", Number.class));
+                Long workerId = workerIdNum != null ? workerIdNum.longValue() : null;
                 @SuppressWarnings("unchecked")
-                Set<String> permissions = jwtService.extractClaim(token, claims -> claims.get("permissions", Set.class));
+                List<String> permissions = (List<String>) jwtService.extractClaim(token, claims -> claims.get("permissions", List.class));
 
                 if (workerId != null && (requiredPermission == null || (permissions != null && permissions.contains(requiredPermission)))) {
                     return workerService.findById(workerId).orElse(null);
