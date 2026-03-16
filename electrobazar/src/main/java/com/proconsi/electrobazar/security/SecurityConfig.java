@@ -56,17 +56,23 @@ public class SecurityConfig {
 
                                                 // ADMIN
                                                 .requestMatchers(HttpMethod.DELETE, "/admin/products/**").hasAuthority("ADMIN_ACCESS")
-                                                .requestMatchers("/api/activity-log/**").hasAuthority("ADMIN_ACCESS")
                                                 .requestMatchers(HttpMethod.POST,
                                                                 "/api/product-prices/bulk-schedule")
                                                 .hasAuthority("ADMIN_ACCESS")
                                                 .requestMatchers(HttpMethod.GET,
                                                                 "/api/product-prices/future")
                                                 .hasAuthority("ADMIN_ACCESS")
+                                                .requestMatchers("/api/product-prices/**")
+                                                .hasAnyAuthority("ADMIN_ACCESS", "TPV_CLIENT")
                                                 .requestMatchers("/api/suspended-sales/**").hasAnyAuthority("HOLD_SALES", "ADMIN_ACCESS")
                                                 .requestMatchers("/api/roles/**").hasAuthority("ADMIN_ACCESS")
                                                 .requestMatchers("/api/sales/range").hasAnyAuthority("SALE_VIEW", "ADMIN_ACCESS")
                                                 .requestMatchers("/api/workers/**").hasAuthority("ADMIN_ACCESS")
+                                                .requestMatchers("/api/activity-log/**").hasAuthority("ADMIN_ACCESS")
+                                                .requestMatchers("/api/cash-registers/**").hasAnyAuthority("CASH_REGISTER", "ADMIN_ACCESS")
+                                                .requestMatchers("/api/returns/**").hasAnyAuthority("RETURNS", "ADMIN_ACCESS")
+                                                .requestMatchers("/api/tariffs/**").hasAnyAuthority("ADMIN_ACCESS", "TPV_CLIENT")
+                                                .requestMatchers("/api/customers/**").hasAnyAuthority("CRM_ACCESS", "ADMIN_ACCESS", "TPV_CLIENT")
                                                 .requestMatchers("/admin/**").hasAuthority("ADMIN_ACCESS")
                                                 .requestMatchers("/api/admin/**").hasAuthority("ADMIN_ACCESS")
 
