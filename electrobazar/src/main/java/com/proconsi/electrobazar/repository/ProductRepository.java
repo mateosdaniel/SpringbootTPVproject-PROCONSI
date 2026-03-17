@@ -1,41 +1,68 @@
 package com.proconsi.electrobazar.repository;
 
 import com.proconsi.electrobazar.model.Product;
+import com.proconsi.electrobazar.model.TaxRate;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+/**
+ * Repository for {@link Product} entities.
+ * Handles the product catalog, stock tracking, and bulk fiscal adjustments.
+ * Utilizes FETCH joins to optimize performance for listing and search operations.
+ */
 @Repository
-public interface ProductRepository extends JpaRepository<Product, Long>,
-        org.springframework.data.jpa.repository.JpaSpecificationExecutor<Product> {
+public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
 
-    // Productos activos para el TPV
+    /**
+     * Finds active products for the TPV interface, ordered alphabetically.
+     */
     List<Product> findByActiveTrueOrderByNameAsc();
 
-    // Productos activos por categoría
+    /**
+     * Finds active products within a category, eagerly fetching associations.
+     */
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE p.category.id = :categoryId AND p.active = true ORDER BY p.name ASC")
     List<Product> findByCategoryIdAndActiveTrueOrderByNameAsc(@Param("categoryId") Long categoryId);
 
-    // Buscador por nombre (contiene, ignorando mayúsculas)
+    /**
+     * Generic search for active products by name.
+     */
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%')) AND p.active = true")
     List<Product> findByNameContainingIgnoreCaseAndActiveTrue(@Param("name") String name);
 
-    // Productos con su categoría en una sola query — solo activos (TPV)
+    /**
+     * Lists all active products with category and tax data in a single query.
+     */
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE p.active = true ORDER BY p.name ASC")
     List<Product> findAllActiveWithCategory();
 
-    // Todos los productos con su categoría — activos e inactivos (Admin)
+    /**
+     * Lists all products (including inactive ones) with their associations.
+     */
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate ORDER BY p.name ASC")
     List<Product> findAllWithCategory();
 
-    @org.springframework.data.jpa.repository.Modifying
-    @org.springframework.data.jpa.repository.Query("UPDATE Product p SET p.taxRate = :newRate WHERE p.taxRate.id IN :oldRateIds")
-    void updateTaxRateForIds(@Param("oldRateIds") List<Long> oldRateIds, @Param("newRate") com.proconsi.electrobazar.model.TaxRate newRate);
+    /**
+     * Updates the tax rate for all products matching specific old rate IDs.
+     * Used when a fiscal rate (e.g., General VAT) changes globally.
+     */
+    @Modifying
+    @Query("UPDATE Product p SET p.taxRate = :newRate WHERE p.taxRate.id IN :oldRateIds")
+    void updateTaxRateForIds(@Param("oldRateIds") List<Long> oldRateIds, @Param("newRate") TaxRate newRate);
 
+    /**
+     * Finds products currently assigned to specific tax rates.
+     */
     List<Product> findByTaxRateIdIn(List<Long> taxRateIds);
 
+    /**
+     * Counts products whose stock level is below a given threshold.
+     */
     long countByStockLessThan(Integer threshold);
 }

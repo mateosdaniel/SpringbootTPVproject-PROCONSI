@@ -2,16 +2,13 @@ package com.proconsi.electrobazar.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * A sale that has been suspended mid-process by a worker.
- * Persisted in the DB so the cart survives page reloads.
- * The sale can later be resumed (loaded back into the JS cart)
- * or cancelled (discarded without completing a sale).
+ * Persisted so the cart survives page reloads.
  */
 @Entity
 @Table(name = "suspended_sales", indexes = {
@@ -29,16 +26,11 @@ public class SuspendedSale {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * Timestamp when the sale was first suspended. Set automatically on persist.
-     */
+    /** Timestamp when the sale was first suspended. */
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    /**
-     * Timestamp of the last status change (suspend → resume / cancel).
-     * Set on every save via @PrePersist and @PreUpdate.
-     */
+    /** Timestamp of the last status change. */
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
@@ -47,21 +39,24 @@ public class SuspendedSale {
     @JoinColumn(name = "worker_id")
     private Worker worker;
 
-    /** Optional descriptive label, e.g. "Cliente esperando tarjeta". */
+    /** Optional descriptive label for the suspended sale. */
     @Column(length = 100)
     private String label;
 
-    /** Lifecycle status. */
+    /** Lifecycle status (SUSPENDED, RESUMED, or CANCELLED). */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
     private SuspendedSaleStatus status = SuspendedSaleStatus.SUSPENDED;
 
-    /** The product lines that were in the cart when the sale was suspended. */
+    /** The product lines in the cart when suspended. */
     @OneToMany(mappedBy = "suspendedSale", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<SuspendedSaleLine> lines = new ArrayList<>();
 
+    /**
+     * Enumeration for suspended sale lifecycle.
+     */
     public enum SuspendedSaleStatus {
         SUSPENDED,
         RESUMED,
@@ -80,3 +75,5 @@ public class SuspendedSale {
         this.updatedAt = LocalDateTime.now();
     }
 }
+
+

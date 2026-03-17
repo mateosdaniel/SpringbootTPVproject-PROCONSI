@@ -4,86 +4,97 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.context.annotation.Bean;
+import org.springframework.boot.CommandLineRunner;
+import com.proconsi.electrobazar.service.WorkerService;
+import com.proconsi.electrobazar.repository.RoleRepository;
+import com.proconsi.electrobazar.model.Role;
+import com.proconsi.electrobazar.model.Worker;
+import jakarta.annotation.PostConstruct;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Set;
+import java.util.TimeZone;
 
 /**
- * Main entry point for the Electrobazar POS application.
- *
- * <p>
- * Enabled features:
- * </p>
- * <ul>
- * <li>{@code @EnableCaching} — Activates Spring's annotation-driven cache
- * management.
- * Used by {@code ProductPriceService.getCurrentPrice()} via
- * {@code @Cacheable}.</li>
- * <li>{@code @EnableScheduling} — Activates Spring's scheduled task execution.
- * Used by {@code PriceSchedulerTask} for daily price transition
- * verification.</li>
- * </ul>
+ * Main entry point for the Electrobazar POS system.
+ * 
+ * This class initializes the Spring Boot context and configures core infrastructure:
+ * 1. Caching: Enabled for high-performance pricing and catalog lookups.
+ * 2. Scheduling: Enabled for daily automated tax changes and log maintenance.
+ * 3. Environment: Loads localized settings (.env) and sets the systemic timezone to Europe/Madrid.
+ * 4. Security: Auto-provisions the root administrator account.
  */
 @SpringBootApplication
 @EnableCaching
 @EnableScheduling
 public class ElectrobazarApplication {
-	@jakarta.annotation.PostConstruct
-	public void init() {
-		java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Europe/Madrid"));
-	}
 
-	public static void main(String[] args) {
-		// Manual loading of .env for reliability in local dev
-		try {
-			java.io.File envFile = new java.io.File(".env");
-			if (envFile.exists()) {
-				java.nio.file.Files.lines(envFile.toPath())
-						.filter(line -> line.contains("=") && !line.trim().startsWith("#"))
-						.forEach(line -> {
-							String[] parts = line.split("=", 2);
-							System.setProperty(parts[0].trim(), parts[1].trim());
-						});
-				System.out.println(">>> Profile variables loaded manually from .env");
-			}
-		} catch (java.io.IOException e) {
-			System.err.println("Could not load .env file manually: " + e.getMessage());
-		}
-		SpringApplication.run(ElectrobazarApplication.class, args);
-	}
+    /**
+     * Standardizes the application timezone to Madrid (GMT+1/GMT+2).
+     * This ensures all receipts, logs, and schedule calculations are consistent.
+     */
+    @PostConstruct
+    public void init() {
+        TimeZone.setDefault(TimeZone.getTimeZone("Europe/Madrid"));
+    }
 
-	@org.springframework.context.annotation.Bean
-	public org.springframework.boot.CommandLineRunner initData(
-			com.proconsi.electrobazar.service.WorkerService workerService,
-			com.proconsi.electrobazar.repository.RoleRepository roleRepository) {
-		return args -> {
-			com.proconsi.electrobazar.model.Role adminRole = roleRepository.findByName("ADMIN").orElseGet(() -> {
-				com.proconsi.electrobazar.model.Role newRole = new com.proconsi.electrobazar.model.Role();
-				newRole.setName("ADMIN");
-				newRole.setDescription("Administrator with full access");
-				return newRole;
-			});
-			// Ensure it has all permissions
-			adminRole.setPermissions(java.util.Set.of("MANAGE_PRODUCTS_TPV", "CASH_CLOSE", "ADMIN_ACCESS"));
-			final com.proconsi.electrobazar.model.Role finalAdminRole = roleRepository.save(adminRole);
+    /**
+     * Bootstraps the application.
+     * Manually loads .env variables into System properties for local development flexibility.
+     */
+    public static void main(String[] args) {
+        try {
+            File envFile = new File(".env");
+            if (envFile.exists()) {
+                Files.lines(envFile.toPath())
+                    .filter(line -> line.contains("=") && !line.trim().startsWith("#"))
+                    .forEach(line -> {
+                        String[] parts = line.split("=", 2);
+                        System.setProperty(parts[0].trim(), parts[1].trim());
+                    });
+            }
+        } catch (IOException e) {
+            // Silently fail if .env is missing or inaccessible
+        }
+        SpringApplication.run(ElectrobazarApplication.class, args);
+    }
 
-			workerService.findAll().stream()
-					.filter(w -> "root".equals(w.getUsername()))
-					.findFirst()
-					.ifPresentOrElse(w -> {
-						// Update existing root
-						w.setRole(finalAdminRole);
-						w.setActive(true);
-						workerService.save(w);
-						System.out.println(">>> Usuario ROOT actualizado con rol ADMIN");
-					}, () -> {
-						// Create new root
-						com.proconsi.electrobazar.model.Worker defaultWorker = new com.proconsi.electrobazar.model.Worker();
-						defaultWorker.setUsername("root");
-						defaultWorker.setPassword("r00t");
-						defaultWorker.setActive(true);
-						defaultWorker.setRole(finalAdminRole);
-						workerService.save(defaultWorker);
-						System.out.println(">>> Usuario ROOT creado por defecto (root/r00t) con rol ADMIN");
-					});
-		};
-	}
+    /**
+     * Ensures the presence of a 'root' user and 'ADMIN' role on every startup.
+     * Use case: Automatic disaster recovery if the database is reset or compromised.
+     */
+    @Bean
+    public CommandLineRunner initData(WorkerService workerService, RoleRepository roleRepository) {
+        return args -> {
+            // 1. Ensure ADMIN role with core permissions exists
+            Role adminRole = roleRepository.findByName("ADMIN").orElseGet(() -> {
+                Role newRole = new Role();
+                newRole.setName("ADMIN");
+                newRole.setDescription("Administrator with full access");
+                return newRole;
+            });
+            
+            adminRole.setPermissions(Set.of("MANAGE_PRODUCTS_TPV", "CASH_CLOSE", "ADMIN_ACCESS"));
+            final Role finalAdminRole = roleRepository.save(adminRole);
 
+            // 2. Ensure root worker is active and has the ADMIN role
+            workerService.findAll().stream()
+                .filter(w -> "root".equals(w.getUsername()))
+                .findFirst()
+                .ifPresentOrElse(w -> {
+                    w.setRole(finalAdminRole);
+                    w.setActive(true);
+                    workerService.save(w);
+                }, () -> {
+                    Worker defaultWorker = new Worker();
+                    defaultWorker.setUsername("root");
+                    defaultWorker.setPassword("r00t");
+                    defaultWorker.setActive(true);
+                    defaultWorker.setRole(finalAdminRole);
+                    workerService.save(defaultWorker);
+                });
+        };
+    }
 }

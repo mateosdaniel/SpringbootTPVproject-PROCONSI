@@ -45,7 +45,7 @@ public class Invoice {
     @Column(name = "sequence_number", nullable = false)
     private int sequenceNumber;
 
-    /** The sale this invoice is associated with. One sale → one invoice. */
+    /** The sale this invoice is associated with. One sale -> one invoice. */
     @JsonIgnore
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "sale_id", nullable = false, unique = true)
@@ -55,7 +55,7 @@ public class Invoice {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    /** Invoice lifecycle status. */
+    /** Invoice lifecycle status (ACTIVE or RECTIFIED). */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
@@ -69,6 +69,9 @@ public class Invoice {
     @JoinColumn(name = "rectified_by_id")
     private Invoice rectifiedBy;
 
+    /**
+     * Possible statuses for an invoice.
+     */
     public enum InvoiceStatus {
         ACTIVE,
         RECTIFIED

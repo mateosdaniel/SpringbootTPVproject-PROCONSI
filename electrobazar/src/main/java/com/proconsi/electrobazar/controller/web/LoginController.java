@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
+/**
+ * Handles user authentication for the storefront (TPV).
+ */
 @Controller
 @RequiredArgsConstructor
 public class LoginController {
@@ -47,17 +50,20 @@ public class LoginController {
                     org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                     context);
 
-            // Si tiene permiso de acceso admin, le damos la sesión de admin
+            // If has admin access permission, set admin session attribute
             if (w.getEffectivePermissions().contains("ADMIN_ACCESS")) {
                 session.setAttribute("admin", true);
             }
             return "redirect:/tpv";
         } else {
-            model.addAttribute("error", "Usuario o contraseña incorrectos");
+            model.addAttribute("error", "Invalid username or password");
             return "login";
         }
     }
 
+    /**
+     * Invalidate session and redirect to login page.
+     */
     @GetMapping("/logout")
     public String logout(HttpSession session) {
         session.invalidate();

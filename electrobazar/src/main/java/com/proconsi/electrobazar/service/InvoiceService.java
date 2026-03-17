@@ -2,27 +2,28 @@ package com.proconsi.electrobazar.service;
 
 import com.proconsi.electrobazar.model.Invoice;
 import com.proconsi.electrobazar.model.Sale;
-
 import java.util.Optional;
 
+/**
+ * Interface defining operations for managing legal invoices.
+ * Handles sequence generation and associations with sales.
+ */
 public interface InvoiceService {
 
     /**
-     * Atomically creates a new invoice for the given sale, assigning the next
-     * correlative number in the current year's series.
-     * This method is transactional and uses pessimistic locking on the sequence row
-     * to prevent duplicate invoice numbers under concurrent requests.
+     * Creates a new legal invoice for the specified sale.
+     * Uses pessimistic locking to ensure unique sequence numbers.
      *
-     * @param sale The completed sale to invoice
-     * @return The newly created and persisted Invoice
+     * @param sale The completed sale to be invoiced.
+     * @return The newly created and persisted Invoice.
      */
     Invoice createInvoice(Sale sale);
 
     /**
-     * Returns the invoice associated with the given sale ID, if one exists.
+     * Looks up the invoice associated with a specific sale.
      *
-     * @param saleId The sale ID to look up
-     * @return An Optional containing the Invoice, or empty if none
+     * @param saleId The ID of the sale.
+     * @return An Optional containing the Invoice, if found.
      */
     Optional<Invoice> findBySaleId(Long saleId);
 }

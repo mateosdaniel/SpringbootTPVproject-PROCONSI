@@ -9,11 +9,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Safe serialisation view of a
- * {@link com.proconsi.electrobazar.model.SuspendedSale}.
- * Contains only primitive/value fields; avoids returning lazy-loaded JPA
- * proxies
- * or the full {@link com.proconsi.electrobazar.model.Worker} entity.
+ * Safe serialization view of a {@link com.proconsi.electrobazar.model.SuspendedSale}.
+ * Contains only primitive/value fields to avoid returning lazy-loaded JPA proxies.
  */
 @Data
 @Builder

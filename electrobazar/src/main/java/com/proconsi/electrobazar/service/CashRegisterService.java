@@ -1,55 +1,91 @@
 package com.proconsi.electrobazar.service;
 
 import com.proconsi.electrobazar.dto.CashRegisterOpenSuggestion;
+import com.proconsi.electrobazar.dto.DashboardStatsDTO;
 import com.proconsi.electrobazar.model.CashRegister;
+import com.proconsi.electrobazar.model.Worker;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
+/**
+ * Interface defining operations for managing the shop's cash register shifts.
+ * Includes opening, closing, and auditing financial movements.
+ */
 public interface CashRegisterService {
+
+    /**
+     * Finds a specific cash register by its ID.
+     * @param id The primary key.
+     * @return The found CashRegister.
+     */
     CashRegister findById(Long id);
 
+    /**
+     * Retrieves all closed cash registers for historical analysis.
+     * @return A list of closed CashRegister entities.
+     */
     List<CashRegister> findAllClosed();
 
+    /**
+     * Finds the register for today if it is already closed.
+     * @return The CashRegister if closed, null otherwise.
+     */
     CashRegister findTodayIfClosed();
 
     /**
-     * Closes the open cash register.
+     * Closes the currently open cash register.
      *
-     * @param closingBalance total cash counted in the drawer.
-     * @param notes          optional freetext observation.
-     * @param worker         the worker performing the close.
-     * @param retainedAmount optional amount to keep in the drawer for the next
-     *                       shift. When non-null, stored as
-     *                       {@code retainedForNextShift} on the register and
-     *                       used as a suggested opening balance for the next
-     *                       {@link #getOpenSuggestion()} call.
+     * @param closingBalance Total cash counted in the drawer.
+     * @param notes          Optional observations.
+     * @param worker         The worker performing the close operation.
+     * @param retainedAmount Amount to keep in the drawer for the next shift.
+     * @return The updated CashRegister.
      */
     CashRegister closeCashRegister(BigDecimal closingBalance, String notes,
-            com.proconsi.electrobazar.model.Worker worker,
+            Worker worker,
             BigDecimal retainedAmount);
 
-    java.util.Optional<CashRegister> getOpenRegister();
-
-    CashRegister openCashRegister(BigDecimal openingBalance, com.proconsi.electrobazar.model.Worker worker);
+    /**
+     * Retrieves the currently open cash register, if any.
+     * @return An Optional containing the active CashRegister.
+     */
+    Optional<CashRegister> getOpenRegister();
 
     /**
-     * Looks at the most recently closed register. If it had a
-     * {@code retainedForNextShift} value, returns a suggestion carrying that
-     * amount so the open-register form can pre-fill the balance input.
+     * Opens a new cash register shift.
+     *
+     * @param openingBalance Starting cash amount in the drawer.
+     * @param worker         The worker opening the shift.
+     * @return The newly created CashRegister.
+     */
+    CashRegister openCashRegister(BigDecimal openingBalance, Worker worker);
+
+    /**
+     * Suggests an opening balance based on the last shift's retained amount.
+     * @return A DTO with the suggested opening values.
      */
     CashRegisterOpenSuggestion getOpenSuggestion();
 
     /**
-     * Calculates the expected cash balance currently in the drawer for the given
-     * register.
+     * Calculates the theoretical cash balance that should be in the drawer.
+     * @param register The register to audit.
+     * @return The expected BigDecimal total.
      */
     BigDecimal calculateExpectedCashBalance(CashRegister register);
 
     /**
-     * Convenience method to get the expected cash balance for the currently open
-     * register.
+     * Convenience method to get the expected balance for the current shift.
+     * @return The current expected cash total.
      */
     BigDecimal getCurrentCashBalance();
 
-    com.proconsi.electrobazar.dto.DashboardStatsDTO getDashboardStats(String period);
+    /**
+     * Aggregates financial statistics for dashboard visualizations.
+     * @param period The time range (e.g., "today", "week").
+     * @return A DTO with aggregated statistics.
+     */
+    DashboardStatsDTO getDashboardStats(String period);
 }
+
+

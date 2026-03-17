@@ -6,22 +6,33 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * DTO for bulk price update requests.
+ * Allows updating prices for multiple products by a percentage or fixed amount.
+ */
 @Data
 public class BulkPriceUpdateRequest {
     
+    /** List of product IDs to update. */
     @NotEmpty
     private List<Long> productIds;
     
-    // Use either percentage OR fixedAmount (not both)
-    private BigDecimal percentage;    // e.g., 10 for +10%
-    private BigDecimal fixedAmount;   // e.g., 5.00 for +€5
+    /** Percentage to increase/decrease the price. E.g., 10 for +10%. */
+    private BigDecimal percentage;
     
+    /** Fixed amount to increase/decrease the price. E.g., 5.00 for +€5. */
+    private BigDecimal fixedAmount;
+    
+    /** Date and time when the new prices become effective. */
     @NotNull @Future
     private LocalDateTime effectiveDate;
     
+    /** Optional label for the batch update. */
     private String label;
     
-    private BigDecimal vatRate;       // Optional: change VAT too
+    /** Optional: also update the VAT rate for these products. */
+    private BigDecimal vatRate;
     
-    private List<Long> tariffIds;     // Tariffs to apply the change
+    /** Optional: specific tariffs to which this change applies. */
+    private List<Long> tariffIds;
 }

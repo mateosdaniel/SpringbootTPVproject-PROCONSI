@@ -11,6 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Implementation of {@link RoleService}.
+ * Manages user roles and their associated system permissions.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -38,7 +42,7 @@ public class RoleServiceImpl implements RoleService {
 
         activityLogService.logActivity(
                 isNew ? "CREAR_ROL" : "ACTUALIZAR_ROL",
-                (isNew ? "Nuevo rol creado: " : "Rol actualizado: ") + saved.getName(),
+                (isNew ? "New role created: " : "Role updated: ") + saved.getName(),
                 "Admin",
                 "ROLE",
                 saved.getId());
@@ -48,11 +52,11 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public void delete(Long id) {
-        roleRepository.findById(id).ifPresent(r -> {
+        roleRepository.findById(id).ifPresent(role -> {
             roleRepository.deleteById(id);
             activityLogService.logActivity(
                     "ELIMINAR_ROL",
-                    "Rol eliminado definitivamente: " + r.getName(),
+                    "Role permanently deleted: " + role.getName(),
                     "Admin",
                     "ROLE",
                     id);
@@ -61,7 +65,9 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional(readOnly = true)
-    public java.util.List<String> findAllPermissions() {
+    public List<String> findAllPermissions() {
         return roleRepository.findAllPermissions();
     }
 }
+
+

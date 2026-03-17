@@ -3,48 +3,54 @@ package com.proconsi.electrobazar.service;
 import com.proconsi.electrobazar.dto.SuspendedSaleLineRequest;
 import com.proconsi.electrobazar.model.SuspendedSale;
 import com.proconsi.electrobazar.model.Worker;
-
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Interface defining operations for managing suspended sales (pending carts).
+ * Allows workers to pause a transaction and resume it later.
+ */
 public interface SuspendedSaleService {
 
     /**
-     * Persists a new suspended sale with the given cart lines.
+     * Persists a new suspended sale with the current cart state.
      *
-     * @param lines  Cart lines from the JS cart
-     * @param label  Optional descriptive label
-     * @param worker The worker who suspended the sale
-     * @return The persisted SuspendedSale
+     * @param lines  The product lines currently in the cart.
+     * @param label  Optional descriptive label for easy identification.
+     * @param worker The worker who is suspending the transaction.
+     * @return The newly persisted SuspendedSale entity.
      */
     SuspendedSale suspend(List<SuspendedSaleLineRequest> lines, String label, Worker worker);
 
     /**
-     * Marks the suspended sale as RESUMED. The caller (JS) is responsible
-     * for loading the lines back into the cart.
+     * Marks a suspended sale as RESUMED.
+     * The front-end is expected to reconstruct the cart using the returned data.
      *
-     * @param id     ID of the suspended sale
-     * @param worker The worker resuming it
-     * @return The updated SuspendedSale with its lines for the JS cart to consume
+     * @param id     Target ID.
+     * @param worker The worker resuming the sale.
+     * @return The updated SuspendedSale entity.
      */
     SuspendedSale resume(Long id, Worker worker);
 
     /**
-     * Marks the suspended sale as CANCELLED (discarded without completing).
+     * Marks a suspended sale as CANCELLED, effectively discarding the cart.
      *
-     * @param id     ID of the suspended sale
-     * @param worker The worker cancelling it
-     * @return The updated SuspendedSale
+     * @param id     Target ID.
+     * @param worker The worker performing the cancellation.
+     * @return The updated SuspendedSale entity.
      */
     SuspendedSale cancel(Long id, Worker worker);
 
     /**
-     * Returns all sales with status SUSPENDED, ordered by createdAt descending.
+     * Retrieves all sales currently in SUSPENDED status.
+     * @return A list of pending suspended sales history.
      */
     List<SuspendedSale> findAllSuspended();
 
     /**
-     * Finds a suspended sale by ID.
+     * Finds a specific suspended sale by ID.
+     * @param id Primary key.
+     * @return An Optional containing the SuspendedSale.
      */
     Optional<SuspendedSale> findById(Long id);
 }

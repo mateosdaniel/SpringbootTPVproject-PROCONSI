@@ -1,16 +1,15 @@
 package com.proconsi.electrobazar.service.impl;
 
+import com.proconsi.electrobazar.dto.TaxBreakdown;
 import com.proconsi.electrobazar.exception.ResourceNotFoundException;
-import com.proconsi.electrobazar.model.PaymentMethod;
-import com.proconsi.electrobazar.model.Sale;
-import com.proconsi.electrobazar.model.SaleLine;
-import com.proconsi.electrobazar.model.Tariff;
+import com.proconsi.electrobazar.model.*;
 import com.proconsi.electrobazar.repository.CashRegisterRepository;
 import com.proconsi.electrobazar.repository.SaleRepository;
 import com.proconsi.electrobazar.repository.TariffRepository;
 import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.ProductService;
 import com.proconsi.electrobazar.service.SaleService;
+import com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +20,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Implementation of {@link SaleService}.
+ * Central service for processing TPV sales, managing tax breakdowns, stock deductions,
+ * and linking sales with customers, workers, and tariffs.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -33,14 +37,14 @@ public class SaleServiceImpl implements SaleService {
     private final ProductService productService;
     private final CashRegisterRepository cashRegisterRepository;
     private final ActivityLogService activityLogService;
-    private final com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator recargoCalculator;
+    private final RecargoEquivalenciaCalculator recargoCalculator;
     private final TariffRepository tariffRepository;
 
     @Override
     @Transactional(readOnly = true)
     public Sale findById(Long id) {
         return saleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Venta no encontrada con id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Sale not found with id: " + id));
     }
 
     @Override
@@ -62,97 +66,56 @@ public class SaleServiceImpl implements SaleService {
     }
 
     @Override
-    public Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, BigDecimal receivedAmount,
-            com.proconsi.electrobazar.model.Worker worker) {
+    public Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, BigDecimal receivedAmount, Worker worker) {
         return createSale(lines, paymentMethod, notes, receivedAmount, null, worker);
     }
 
     @Override
-    public Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, BigDecimal receivedAmount,
-            com.proconsi.electrobazar.model.Customer customer, com.proconsi.electrobazar.model.Worker worker) {
+    public Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, BigDecimal receivedAmount, Customer customer, Worker worker) {
         return createSaleWithTariff(lines, paymentMethod, notes, receivedAmount, customer, worker, null);
     }
 
-    /**
-     * Creates a sale with an explicit tariff override.
-     * If {@code tariffOverride} is null, the customer's own tariff is used
-     * (or MINORISTA if the customer has none).
-     */
     @Override
-    public Sale createSaleWithTariff(List<SaleLine> lines, PaymentMethod paymentMethod, String notes,
-            BigDecimal receivedAmount, com.proconsi.electrobazar.model.Customer customer,
-            com.proconsi.electrobazar.model.Worker worker, Tariff tariffOverride) {
-
+    public Sale createSaleWithTariff(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, BigDecimal receivedAmount, Customer customer, Worker worker, Tariff tariffOverride) {
         if (lines == null || lines.isEmpty()) {
-            throw new IllegalArgumentException("Una venta debe tener al menos un producto.");
+            throw new IllegalArgumentException("A sale must contain at least one line.");
         }
 
-        // ── Resolve effective tariff ────────────────────────────────────────
-        Tariff effectiveTariff;
-        if (tariffOverride != null) {
-            effectiveTariff = tariffOverride;
-        } else if (customer != null && customer.getTariff() != null) {
-            effectiveTariff = customer.getTariff();
-        } else {
-            // Default: MINORISTA (no discount)
-            effectiveTariff = tariffRepository.findByName(Tariff.MINORISTA)
-                    .orElse(null);
-        }
+        // 1. Resolve effective tariff
+        Tariff effective = (tariffOverride != null) ? tariffOverride : 
+                          ((customer != null && customer.getTariff() != null) ? customer.getTariff() : 
+                          tariffRepository.findByName(Tariff.MINORISTA).orElse(null));
 
-        BigDecimal discountPct = (effectiveTariff != null && effectiveTariff.getDiscountPercentage() != null)
-                ? effectiveTariff.getDiscountPercentage()
-                : BigDecimal.ZERO;
+        String tariffName = (effective != null) ? effective.getName() : Tariff.MINORISTA;
+        BigDecimal discountPct = (effective != null && effective.getDiscountPercentage() != null) ? effective.getDiscountPercentage() : BigDecimal.ZERO;
 
-        String tariffName = effectiveTariff != null ? effectiveTariff.getName() : Tariff.MINORISTA;
-
-        // Reduce stock before creating the sale
-        for (SaleLine line : lines) {
-            productService.decreaseStock(line.getProduct().getId(), line.getQuantity());
-        }
-
-        // Determine if RE applies for this sale
-        boolean applyRecargo = customer != null && Boolean.TRUE.equals(customer.getHasRecargoEquivalencia());
-
-        // ── Calculate line totals — unit prices are already final (set by the frontend) ──
+        // 2. Process stock and build tax breakdown
         BigDecimal total = BigDecimal.ZERO;
         BigDecimal totalBase = BigDecimal.ZERO;
         BigDecimal totalVat = BigDecimal.ZERO;
         BigDecimal totalRecargo = BigDecimal.ZERO;
-        BigDecimal totalDiscount = BigDecimal.ZERO; // kept for record; prices are pre-discounted
+        boolean applyRE = (customer != null && Boolean.TRUE.equals(customer.getHasRecargoEquivalencia()));
 
         for (SaleLine line : lines) {
-            BigDecimal finalPrice = line.getUnitPrice().setScale(SCALE, ROUNDING);
+            productService.decreaseStock(line.getProduct().getId(), line.getQuantity());
 
-            // Record original as the price received (already final — no further discount)
-            line.setOriginalUnitPrice(finalPrice);
-            line.setDiscountPercentage(BigDecimal.ZERO);
-            line.setUnitPrice(finalPrice);
+            BigDecimal finalGross = line.getUnitPrice().setScale(SCALE, ROUNDING);
+            line.setOriginalUnitPrice(finalGross);
+            line.setDiscountPercentage(BigDecimal.ZERO); // Applied beforehand by TPV logic
+            line.setUnitPrice(finalGross);
 
-            BigDecimal vatRate = line.getVatRate() != null ? line.getVatRate()
-                    : (line.getProduct() != null && line.getProduct().getTaxRate() != null
-                            && line.getProduct().getTaxRate().getVatRate() != null
-                                    ? line.getProduct().getTaxRate().getVatRate()
-                                    : new BigDecimal("0.21"));
+            BigDecimal vatRate = (line.getVatRate() != null) ? line.getVatRate() : 
+                                 (line.getProduct().getTaxRate() != null ? line.getProduct().getTaxRate().getVatRate() : new BigDecimal("0.21"));
 
-            com.proconsi.electrobazar.dto.TaxBreakdown breakdown = recargoCalculator.calculateLineBreakdown(
-                    line.getProduct().getId(),
-                    line.getProduct().getName(),
-                    finalPrice,
-                    line.getQuantity(),
-                    vatRate,
-                    applyRecargo);
+            TaxBreakdown breakdown = recargoCalculator.calculateLineBreakdown(line.getProduct().getId(), line.getProduct().getName(), finalGross, line.getQuantity(), vatRate, applyRE);
 
             line.setBasePriceNet(breakdown.getUnitPrice());
             line.setBaseAmount(breakdown.getBaseAmount());
             line.setVatAmount(breakdown.getVatAmount());
             line.setRecargoRate(breakdown.getRecargoRate());
             line.setRecargoAmount(breakdown.getRecargoAmount());
-            // The line total must be exactly (Gross Price * Quantity) + Recargo de Equivalencia.
-            // We use the gross price (finalPrice) as the source of truth for the amount charged
-            // to the customer, avoiding the "VAT on top of net" rounding discrepancies.
-            // recargoAmount is then added according to tax rules.
-            BigDecimal lineTotal = finalPrice.multiply(BigDecimal.valueOf(line.getQuantity())).setScale(SCALE, ROUNDING)
-                    .add(line.getRecargoAmount());
+            
+            BigDecimal lineTotal = finalGross.multiply(BigDecimal.valueOf(line.getQuantity())).setScale(SCALE, ROUNDING).add(line.getRecargoAmount());
             line.setSubtotal(lineTotal);
 
             total = total.add(lineTotal);
@@ -162,153 +125,92 @@ public class SaleServiceImpl implements SaleService {
         }
 
         BigDecimal finalTotal = total.setScale(SCALE, ROUNDING);
-        BigDecimal changeAmount = null;
-        BigDecimal cashAmount = BigDecimal.ZERO;
-        BigDecimal cardAmount = BigDecimal.ZERO;
-
-        if (paymentMethod == PaymentMethod.CASH) {
-            cashAmount = finalTotal;
-            if (receivedAmount != null) {
-                // Add 0.01 tolerance to account for rounding differences between client and server
-                BigDecimal tolerance = new BigDecimal("0.01");
-                changeAmount = receivedAmount.subtract(finalTotal);
-                if (receivedAmount.add(tolerance).compareTo(finalTotal) < 0) {
-                    throw new IllegalArgumentException("La cantidad recibida es menor que el total de la venta.");
-                }
+        BigDecimal change = null;
+        if (paymentMethod == PaymentMethod.CASH && receivedAmount != null) {
+            // Tolerance to handle tiny rounding deviations between JS client and Server
+            if (receivedAmount.add(new BigDecimal("0.01")).compareTo(finalTotal) < 0) {
+                throw new IllegalArgumentException("Received amount is less than total sale amount.");
             }
-        } else if (paymentMethod == PaymentMethod.CARD) {
-            cardAmount = finalTotal;
+            change = receivedAmount.subtract(finalTotal);
         }
 
-        // Construir la venta
         Sale sale = Sale.builder()
-                .paymentMethod(paymentMethod)
-                .totalAmount(finalTotal)
-                .totalBase(totalBase.setScale(SCALE, ROUNDING))
-                .totalVat(totalVat.setScale(SCALE, ROUNDING))
-                .totalRecargo(totalRecargo.setScale(SCALE, ROUNDING))
-                .totalDiscount(totalDiscount.setScale(SCALE, ROUNDING))
-                .applyRecargo(applyRecargo)
-                .receivedAmount(receivedAmount)
-                .changeAmount(changeAmount)
-                .cashAmount(cashAmount)
-                .cardAmount(cardAmount)
-                .notes(notes)
-                .customer(customer)
-                .worker(worker)
-                .lines(lines)
-                .appliedTariff(tariffName)
-                .appliedDiscountPercentage(discountPct.setScale(SCALE, ROUNDING))
-                .build();
+                .paymentMethod(paymentMethod).totalAmount(finalTotal).totalBase(totalBase.setScale(SCALE, ROUNDING))
+                .totalVat(totalVat.setScale(SCALE, ROUNDING)).totalRecargo(totalRecargo.setScale(SCALE, ROUNDING))
+                .totalDiscount(BigDecimal.ZERO).applyRecargo(applyRE).receivedAmount(receivedAmount).changeAmount(change)
+                .cashAmount(paymentMethod == PaymentMethod.CASH ? finalTotal : BigDecimal.ZERO)
+                .cardAmount(paymentMethod == PaymentMethod.CARD ? finalTotal : BigDecimal.ZERO)
+                .notes(notes).customer(customer).worker(worker).lines(lines).appliedTariff(tariffName)
+                .appliedDiscountPercentage(discountPct.setScale(SCALE, ROUNDING)).build();
 
-        // Link each line to the sale
-        lines.forEach(line -> line.setSale(sale));
+        lines.forEach(l -> l.setSale(sale));
+        Sale saved = saleRepository.save(sale);
 
-        Sale savedSale = saleRepository.save(sale);
+        String username = (worker != null) ? worker.getUsername() : "Anonymous";
+        activityLogService.logActivity("VENTA", String.format("Sale processed by %s. Total: %.2f € (Tariff: %s)", username, finalTotal, tariffName), username, "SALE", saved.getId());
 
-        String username = worker != null ? worker.getUsername() : "Anónimo";
-        activityLogService.logActivity(
-                "VENTA",
-                "Venta realizada por " + username + " (Total: " + finalTotal
-                        + " €, Tarifa: " + tariffName + ")",
-                username,
-                "SALE",
-                savedSale.getId());
-
-        return savedSale;
+        return saved;
     }
 
     @Override
     @Transactional(readOnly = true)
     public BigDecimal sumTotalToday() {
-        LocalDate today = LocalDate.now();
-        LocalDateTime startTime = cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc()
-                .filter(cr -> cr.getOpeningTime() != null)
-                .map(cr -> cr.getOpeningTime())
-                .orElse(today.atStartOfDay());
-
-        LocalDateTime endOfDay = today.atStartOfDay().plusDays(1).minusNanos(1);
-        return saleRepository.sumTotalBetween(startTime, endOfDay);
+        LocalDateTime start = getShiftStart();
+        return saleRepository.sumTotalBetween(start, LocalDateTime.now());
     }
 
     @Override
     @Transactional(readOnly = true)
     public long countToday() {
-        LocalDate today = LocalDate.now();
-        LocalDateTime startTime = cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc()
-                .filter(cr -> cr.getOpeningTime() != null)
-                .map(cr -> cr.getOpeningTime())
-                .orElse(today.atStartOfDay());
-
-        LocalDateTime endOfDay = today.atStartOfDay().plusDays(1).minusNanos(1);
-        return saleRepository.countByCreatedAtBetween(startTime, endOfDay);
+        return saleRepository.countByCreatedAtBetween(getShiftStart(), LocalDateTime.now());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public BigDecimal sumTotalByPaymentMethodToday(PaymentMethod paymentMethod) {
-        LocalDate today = LocalDate.now();
-        LocalDateTime startTime = cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc()
-                .filter(cr -> cr.getOpeningTime() != null)
-                .map(cr -> cr.getOpeningTime())
-                .orElse(today.atStartOfDay());
-
-        LocalDateTime endOfDay = today.atStartOfDay().plusDays(1).minusNanos(1);
-        return saleRepository.sumTotalBetweenByPaymentMethod(startTime, endOfDay, paymentMethod)
-                .orElse(BigDecimal.ZERO);
+    public BigDecimal sumTotalByPaymentMethodToday(PaymentMethod method) {
+        return saleRepository.sumTotalBetweenByPaymentMethod(getShiftStart(), LocalDateTime.now(), method).orElse(BigDecimal.ZERO);
     }
 
     @Override
     @Transactional(readOnly = true)
     public com.proconsi.electrobazar.dto.SaleSummaryResponse getSummaryToday() {
-        LocalDate today = LocalDate.now();
-        LocalDateTime startTime = cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc()
+        return saleRepository.getSummaryBetween(getShiftStart(), LocalDateTime.now());
+    }
+
+    private LocalDateTime getShiftStart() {
+        return cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc()
                 .filter(cr -> cr.getOpeningTime() != null)
                 .map(cr -> cr.getOpeningTime())
-                .orElse(today.atStartOfDay());
-
-        LocalDateTime endOfDay = today.atStartOfDay().plusDays(1).minusNanos(1);
-        return saleRepository.getSummaryBetween(startTime, endOfDay);
+                .orElse(LocalDate.now().atStartOfDay());
     }
 
     @Override
     @Transactional
-    public void saveApplyRecargo(Long saleId, boolean applyRecargo) {
-        saleRepository.findById(saleId).ifPresent(sale -> {
-            boolean old = sale.isApplyRecargo();
-            if (old != applyRecargo) {
-                sale.setApplyRecargo(applyRecargo);
-                saleRepository.save(sale);
+    public void saveApplyRecargo(Long saleId, boolean apply) {
+        saleRepository.findById(saleId).ifPresent(s -> {
+            if (s.isApplyRecargo() != apply) {
+                s.setApplyRecargo(apply);
+                saleRepository.save(s);
                 activityLogService.logActivity("MODIFICAR_RECARGO", 
-                    "Recargo de equivalencia modificado en Venta #" + saleId + (applyRecargo ? " (Activado)" : " (Desactivado)"), 
-                    "Admin", "SALE", saleId);
+                        "RE status changed on Sale #" + saleId + (apply ? " (Enabled)" : " (Disabled)"), "Admin", "SALE", saleId);
             }
         });
     }
 
     @Override
     @Transactional
-    public void cancelSale(Long id, com.proconsi.electrobazar.model.Worker worker, String reason) {
+    public void cancelSale(Long id, Worker worker, String reason) {
         Sale sale = findById(id);
-        if (sale.getStatus() == Sale.SaleStatus.CANCELLED) {
-            throw new IllegalStateException("La venta ya está anulada.");
-        }
+        if (sale.getStatus() == Sale.SaleStatus.CANCELLED) throw new IllegalStateException("Sale already cancelled.");
 
-        // Restore stock
-        for (SaleLine line : sale.getLines()) {
-            productService.increaseStock(line.getProduct().getId(), line.getQuantity());
-        }
+        // Inventory Restoration
+        sale.getLines().forEach(l -> productService.increaseStock(l.getProduct().getId(), l.getQuantity()));
 
         sale.setStatus(Sale.SaleStatus.CANCELLED);
-        sale.setNotes((sale.getNotes() != null ? sale.getNotes() + " | " : "") + "ANULADA: " + reason);
+        sale.setNotes((sale.getNotes() != null ? sale.getNotes() + " | " : "") + "ANNULLED: " + reason);
         saleRepository.save(sale);
 
-        String username = worker != null ? worker.getUsername() : "Sistema";
-        activityLogService.logActivity(
-                "ANULAR_VENTA",
-                String.format("Venta #%d anulada por %s. Motivo: %s", id, username, reason),
-                username,
-                "SALE",
-                id);
+        String username = (worker != null) ? worker.getUsername() : "System";
+        activityLogService.logActivity("ANULAR_VENTA", String.format("Sale #%d annulled by %s. Reason: %s", id, username, reason), username, "SALE", id);
     }
 }

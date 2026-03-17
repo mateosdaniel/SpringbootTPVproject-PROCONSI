@@ -11,6 +11,11 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Scheduled task for database maintenance of activity logs.
+ * Ensures the audit trail doesn't grow indefinitely by purging old records
+ * based on their importance (operational vs. audit).
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -20,8 +25,10 @@ public class ActivityLogScheduler {
 
     /**
      * Daily maintenance of the activity log.
-     * Deletes operational logs older than 90 days and audit logs older than 365 days.
-     * Runs every day at 02:00 AM.
+     * Deletes high-volume operational logs older than 90 days.
+     * Deletes critical audit logs older than 365 days.
+     * 
+     * Cron schedule: Runs every day at 02:00 AM.
      */
     @Scheduled(cron = "0 0 2 * * *")
     @Transactional
@@ -39,13 +46,11 @@ public class ActivityLogScheduler {
         );
 
         try {
-            // 1. Delete operational events older than 90 days
             activityLogRepository.deleteByTimestampBeforeAndActionIn(ninetyDaysAgo, operationalActions);
-            log.info("Deleted operational logs older than 90 days (before {})", ninetyDaysAgo);
+            log.info("Deleted operational logs older than 90 days.");
 
-            // 2. Delete all other events (audit) older than 365 days
             activityLogRepository.deleteByTimestampBeforeAndActionNotIn(oneYearAgo, operationalActions);
-            log.info("Deleted audit logs older than 365 days (before {})", oneYearAgo);
+            log.info("Deleted audit logs older than 365 days.");
 
             log.info("Activity Log cleanup task completed successfully.");
         } catch (Exception e) {

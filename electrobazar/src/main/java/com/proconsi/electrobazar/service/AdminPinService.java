@@ -13,10 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
  * Service responsible for validating and managing the operational admin PIN.
  *
  * <p>
- * The PIN is primarily stored in the database ({@code app_settings} table).
- * On startup, if no PIN is found in the database, it falls back to the
- * {@code ADMIN_PIN} environment variable (resolved through {@code admin.pin})
- * and seeds it into the database for future runtime updates.
+ * The PIN is primarily stored in the database.
+ * On startup, if no PIN is found, it falls back to the ADMIN_PIN environment
+ * variable and seeds it into the database for future updates.
  * </p>
  */
 @Service
@@ -35,12 +34,8 @@ public class AdminPinService {
     }
 
     /**
-     * Fail-fast validation and initial seeding executed on application startup.
-     *
-     * <p>
-     * If the PIN is missing from the database, it seeds it using the environment
-     * variable (if present) or a default safe PIN ('12345').
-     * </p>
+     * Initial seeding executed on application startup.
+     * Seeds the database with the fallback PIN if none is found.
      */
     @PostConstruct
     @Transactional
@@ -65,8 +60,8 @@ public class AdminPinService {
     /**
      * Verifies whether the supplied PIN matches the configured admin PIN.
      *
-     * @param pin the PIN attempt to verify; {@code null} is treated as invalid
-     * @return {@code true} if the PIN matches, {@code false} otherwise
+     * @param pin The PIN attempt to verify.
+     * @return true if matches, false otherwise.
      */
     public boolean verifyPin(String pin) {
         if (pin == null || pin.isBlank()) {
@@ -78,10 +73,9 @@ public class AdminPinService {
     /**
      * Updates the admin PIN in the database after validating the current one.
      *
-     * @param currentPin the current PIN for validation
-     * @param newPin     the new PIN to set
-     * @throws IllegalArgumentException if the current PIN is incorrect or new PIN
-     *                                  is invalid
+     * @param currentPin The current PIN for validation.
+     * @param newPin     The new PIN to set.
+     * @throws IllegalArgumentException If validation fails.
      */
     @Transactional
     public void updatePin(String currentPin, String newPin) {
@@ -96,6 +90,6 @@ public class AdminPinService {
                 .orElse(AppSetting.builder().key(PIN_KEY).build());
         setting.setValue(newPin);
         appSettingRepository.save(setting);
-        log.info("[SECURITY] Admin PIN updated successfully by an administrator.");
+        log.info("[SECURITY] Admin PIN updated successfully.");
     }
 }

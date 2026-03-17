@@ -27,39 +27,14 @@ import java.util.List;
 
 /**
  * REST controller for processing sales with full Spanish tax calculation.
+ * This controller integrates the temporal pricing system with the
+ * Recargo de Equivalencia (RE) surcharge logic for specialized B2B customers.
  *
- * <p>This controller integrates the temporal pricing system with the
- * Recargo de Equivalencia (RE) tax calculation to produce a complete
- * tax-aware sale response.</p>
- *
- * <p>Base path: {@code /api/sales/with-tax}</p>
- *
- * <h3>Tax Calculation Flow:</h3>
- * <ol>
- * <li>For each line item, the current active price is fetched from the
- * temporal pricing system (with caching).</li>
- * <li>If the customer has {@code hasRecargoEquivalencia=true}, the RE surcharge
- * is applied on top of the standard VAT.</li>
- * <li>The sale is persisted using the existing {@link SaleService}.</li>
- * <li>A detailed {@link SaleWithTaxResponse} is returned with per-line
- * breakdowns
- * and aggregated totals.</li>
- * </ol>
- *
- * <h3>Example Request:</h3>
- * <pre>{@code
- * POST /api/sales/with-tax
- * {
- * "customerId": 5,
- * "paymentMethod": "CASH",
- * "receivedAmount": 100.00,
- * "workerId": 1,
- * "lines": [
- * { "productId": 10, "quantity": 2 },
- * { "productId": 15, "quantity": 1, "overridePrice": 49.99 }
- * ]
- * }
- * }</pre>
+ * Tax Calculation Flow:
+ * 1. Resolves prices from the temporal system (ProductPriceService).
+ * 2. Checks Customer RE eligibility (hasRecargoEquivalencia).
+ * 3. Calculates tax breakdowns per line (VAT + optional RE).
+ * 4. Persists the sale and generates the official document (Invoice or Ticket).
  */
 @Slf4j
 @RestController
@@ -80,24 +55,11 @@ public class SaleWithTaxApiRestController {
         private final TicketService ticketService;
 
         /**
-         * Processes a sale with full VAT and optional Recargo de Equivalencia
-         * calculation.
-         *
-         * <p>
-         * The endpoint:
-         * </p>
-         * <ol>
-         * <li>Resolves the customer (if provided) and checks RE eligibility.</li>
-         * <li>For each line, resolves the active price from the temporal pricing
-         * system.</li>
-         * <li>Calculates the tax breakdown per line using
-         * {@link RecargoEquivalenciaCalculator}.</li>
-         * <li>Persists the sale via {@link SaleService#createSale}.</li>
-         * <li>Returns a {@link SaleWithTaxResponse} with full tax details.</li>
-         * </ol>
-         *
-         * @param request the sale request with customer, payment, and line items
-         * @return 201 with the complete {@link SaleWithTaxResponse}
+         * Finalizes a sale with detailed tax calculations and persistence.
+         * Resolves current prices, calculates VAT/RE breakdowns, and persists the transaction.
+         * 
+         * @param request Sale details including customer, lines, and payment info.
+         * @return 201 Created with the full Sale details including tax breakdowns.
          */
         @PostMapping
         public ResponseEntity<SaleWithTaxResponse> processSaleWithTax(
@@ -114,7 +76,7 @@ public class SaleWithTaxApiRestController {
                 if (request.getCustomerId() != null) {
                         customer = customerRepository.findById(request.getCustomerId())
                                         .orElseThrow(() -> new ResourceNotFoundException(
-                                                        "Cliente no encontrado con id: " + request.getCustomerId()));
+                                                         "Cliente no encontrado con id: " + request.getCustomerId()));
                         applyRecargo = Boolean.TRUE.equals(customer.getHasRecargoEquivalencia());
                         log.debug("Customer '{}' (id={}): hasRecargoEquivalencia={}",
                                         customer.getName(), customer.getId(), applyRecargo);
@@ -134,15 +96,11 @@ public class SaleWithTaxApiRestController {
                 for (SaleWithTaxRequest.SaleLineRequest lineReq : request.getLines()) {
                         Product product = productService.findById(lineReq.getProductId());
 
-                        // Resolve price: use override if provided, otherwise use temporal pricing
-                        // system
                         BigDecimal unitPrice;
                         BigDecimal vatRate;
 
                         if (lineReq.getOverridePrice() != null) {
                                 unitPrice = lineReq.getOverridePrice();
-                                // For overridden prices, use the product's current active price VAT rate if
-                                // available
                                 ProductPrice activePrice = productPriceService.getCurrentPrice(product.getId(), now);
                                 vatRate = activePrice != null ? activePrice.getVatRate()
                                                 : (product.getTaxRate() != null && product.getTaxRate().getVatRate() != null ? product.getTaxRate().getVatRate()
@@ -158,16 +116,14 @@ public class SaleWithTaxApiRestController {
                                                         unitPrice, activePrice.getId(), product.getName(),
                                                         product.getId());
                                 } else {
-                                        // Fallback to the product's base price if no temporal price is configured
                                         unitPrice = product.getPrice();
                                         vatRate = product.getTaxRate() != null && product.getTaxRate().getVatRate() != null ? product.getTaxRate().getVatRate()
-                                                        : new BigDecimal("0.21"); // Default Spanish standard VAT rate
+                                                        : new BigDecimal("0.21"); 
                                         log.warn("No temporal price found for product '{}' (id={}). Using base price: {}",
                                                         product.getName(), product.getId(), unitPrice);
                                 }
                         }
 
-                        // Calculate tax breakdown for this line
                         TaxBreakdown breakdown = recargoCalculator.calculateLineBreakdown(
                                         product.getId(),
                                         product.getName(),
@@ -178,7 +134,6 @@ public class SaleWithTaxApiRestController {
 
                         taxBreakdowns.add(breakdown);
 
-                        // Build the SaleLine for persistence (uses base price, taxes are informational)
                         SaleLine saleLine = SaleLine.builder()
                                         .product(product)
                                         .quantity(lineReq.getQuantity())
@@ -206,12 +161,6 @@ public class SaleWithTaxApiRestController {
 
                 BigDecimal grandTotal = totalBase.add(totalVat).add(totalRecargo)
                                 .setScale(MONETARY_SCALE, ROUNDING_MODE);
-
-                // Note: SaleServiceImpl will now handle setting all breakdown fields (base,
-                // vat, recargo)
-                // and calculating the correct subtotal for each line based on the input
-                // unitPrice (Gross)
-                // and whether RE applies.
 
                 // ── 5. Persist the sale ───────────────────────────────────────────────
                 Sale savedSale = saleService.createSale(
@@ -261,15 +210,11 @@ public class SaleWithTaxApiRestController {
         }
 
         /**
-         * Calculates a tax preview for a sale without persisting it.
-         * Useful for front-end price display before the customer confirms the purchase.
-         *
-         * <p>
-         * Example: {@code POST /api/sales/with-tax/preview}
-         * </p>
-         *
-         * @param request the sale request (same format as the main endpoint)
-         * @return 200 with the tax breakdown preview (no sale is created)
+         * Calculates a tax preview for a potential sale without creating it.
+         * Used for front-end price display calculations before final confirmation.
+         * 
+         * @param request Proposed sale details.
+         * @return 200 OK with the calculated preview.
          */
         @PostMapping("/preview")
         public ResponseEntity<SaleWithTaxResponse> previewSaleWithTax(
@@ -279,14 +224,13 @@ public class SaleWithTaxApiRestController {
                         throw new IllegalArgumentException("La venta debe tener al menos una línea de producto.");
                 }
 
-                // Resolve customer RE eligibility
                 Customer customer = null;
                 boolean applyRecargo = false;
 
                 if (request.getCustomerId() != null) {
                         customer = customerRepository.findById(request.getCustomerId())
                                         .orElseThrow(() -> new ResourceNotFoundException(
-                                                        "Cliente no encontrado con id: " + request.getCustomerId()));
+                                                         "Cliente no encontrado con id: " + request.getCustomerId()));
                         applyRecargo = Boolean.TRUE.equals(customer.getHasRecargoEquivalencia());
                 }
 
@@ -346,7 +290,7 @@ public class SaleWithTaxApiRestController {
                 BigDecimal grandTotal = totalBase.add(totalVat).add(totalRecargo)
                                 .setScale(MONETARY_SCALE, ROUNDING_MODE);
 
-                SaleWithTaxResponse preview = SaleWithTaxResponse.builder()
+                return ResponseEntity.ok(SaleWithTaxResponse.builder()
                                 .customerId(customer != null ? customer.getId() : null)
                                 .customerName(customer != null ? customer.getName() : null)
                                 .recargoEquivalenciaApplied(applyRecargo)
@@ -357,8 +301,6 @@ public class SaleWithTaxApiRestController {
                                 .totalRecargo(totalRecargo)
                                 .grandTotal(grandTotal)
                                 .notes(request.getNotes())
-                                .build();
-
-                return ResponseEntity.ok(preview);
+                                .build());
         }
 }

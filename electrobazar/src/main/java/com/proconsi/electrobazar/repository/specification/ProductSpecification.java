@@ -1,32 +1,47 @@
 package com.proconsi.electrobazar.repository.specification;
 
 import com.proconsi.electrobazar.model.Product;
-import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
+
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * JPA Specifications for advanced {@link Product} filtering.
+ * Supports multi-parameter search, stock thresholds, and status filtering.
+ */
 public class ProductSpecification {
 
+    /**
+     * Dynamically builds a product filter based on multiple optional criteria.
+     * 
+     * @param search Keyword matching name, description, or exact ID.
+     * @param category Exact name of the product category.
+     * @param stockFilter "low" ( < 5 units ) or "normal" ( >= 5 units ).
+     * @param active Only active, inactive, or all products if null.
+     * @return Specification for the search request.
+     */
     public static Specification<Product> filterProducts(String search, String category, String stockFilter,
             Boolean active) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Evitar N+1 queries forzando un JOIN FETCH con categoria
-            // solo en queries transaccionales, no en cuentas
+            // Optimization: Eager load category if results are requested (not just counting)
             if (Long.class != query.getResultType()) {
-                root.fetch("category", jakarta.persistence.criteria.JoinType.LEFT);
+                root.fetch("category", JoinType.LEFT);
             }
 
-            // 1. Buscador global (Por nombre, descripción o ID exacto)
+            // 1. Global keyword search
             if (search != null && !search.trim().isEmpty()) {
-                String searchPattern = "%" + search.toLowerCase().trim() + "%";
+                String searchParam = search.trim();
+                String searchPattern = "%" + searchParam.toLowerCase() + "%";
                 Predicate namePredicate = cb.like(cb.lower(root.get("name")), searchPattern);
                 Predicate descPredicate = cb.like(cb.lower(root.get("description")), searchPattern);
 
                 try {
-                    Long idSearch = Long.parseLong(search.trim());
+                    Long idSearch = Long.parseLong(searchParam);
                     Predicate idPredicate = cb.equal(root.get("id"), idSearch);
                     predicates.add(cb.or(namePredicate, descPredicate, idPredicate));
                 } catch (NumberFormatException e) {
@@ -34,12 +49,12 @@ public class ProductSpecification {
                 }
             }
 
-            // 2. Filtro por Categoría (Nombre tal como lo usa el frontend)
+            // 2. Category classification
             if (category != null && !category.trim().isEmpty()) {
                 predicates.add(cb.equal(root.get("category").get("name"), category));
             }
 
-            // 3. Filtro de Stock
+            // 3. Stock levels threshold
             if (stockFilter != null && !stockFilter.trim().isEmpty()) {
                 if ("low".equalsIgnoreCase(stockFilter)) {
                     predicates.add(cb.lessThan(root.get("stock"), 5));
@@ -48,14 +63,15 @@ public class ProductSpecification {
                 }
             }
 
-            // 4. Estado "Activo"
+            // 4. Activation status
             if (active != null) {
                 predicates.add(cb.equal(root.get("active"), active));
             }
 
-            // Ordenamiento por defecto
             query.orderBy(cb.asc(root.get("name")));
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }
 }
+
+

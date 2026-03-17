@@ -11,9 +11,10 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 
 /**
- * Seeds the three system tariffs on every application startup.
- * If they already exist, their discount percentages are kept as-is
- * (admin may have changed them); only the systemTariff flag is enforced.
+ * Master data initializer for Tariffs.
+ * Runs on application startup (CommandLineRunner).
+ * Creates default tariffs (Retail, Wholesale, Employee) if they don't exist in the database.
+ * If they already exist, it ensures the 'systemTariff' flag is active.
  */
 @Slf4j
 @Component

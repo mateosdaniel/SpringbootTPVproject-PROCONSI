@@ -4,15 +4,20 @@ import com.proconsi.electrobazar.exception.DuplicateResourceException;
 import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import com.proconsi.electrobazar.model.Category;
 import com.proconsi.electrobazar.repository.CategoryRepository;
+import com.proconsi.electrobazar.repository.specification.CategorySpecification;
 import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.CategoryService;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * Implementation of {@link CategoryService}.
+ * Provides standard CRUD and filtering logic using JPA Specifications.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -36,8 +41,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional(readOnly = true)
     public List<Category> getFilteredCategories(String search) {
-        org.springframework.data.jpa.domain.Specification<Category> spec = com.proconsi.electrobazar.repository.specification.CategorySpecification
-                .filterCategories(search);
+        Specification<Category> spec = CategorySpecification.filterCategories(search);
         return categoryRepository.findAll(spec);
     }
 
@@ -45,18 +49,18 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional(readOnly = true)
     public Category findById(Long id) {
         return categoryRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
     }
 
     @Override
     public Category save(Category category) {
         if (categoryRepository.existsByNameIgnoreCase(category.getName())) {
-            throw new DuplicateResourceException("Ya existe una categoría con el nombre: " + category.getName());
+            throw new DuplicateResourceException("A category with name '" + category.getName() + "' already exists.");
         }
         Category saved = categoryRepository.save(category);
         activityLogService.logActivity(
                 "CREAR_CATEGORIA",
-                "Nueva categoría creada: " + saved.getName(),
+                "New category created: " + saved.getName(),
                 "Admin",
                 "CATEGORY",
                 saved.getId());
@@ -67,10 +71,9 @@ public class CategoryServiceImpl implements CategoryService {
     public Category update(Long id, Category updated) {
         Category existing = findById(id);
 
-        // Comprobar duplicado de nombre solo si ha cambiado
         if (!existing.getName().equalsIgnoreCase(updated.getName())
                 && categoryRepository.existsByNameIgnoreCase(updated.getName())) {
-            throw new DuplicateResourceException("Ya existe una categoría con el nombre: " + updated.getName());
+            throw new DuplicateResourceException("A category with name '" + updated.getName() + "' already exists.");
         }
 
         existing.setName(updated.getName());
@@ -80,7 +83,7 @@ public class CategoryServiceImpl implements CategoryService {
         Category saved = categoryRepository.save(existing);
         activityLogService.logActivity(
                 "ACTUALIZAR_CATEGORIA",
-                "Categoría actualizada: " + saved.getName(),
+                "Category updated: " + saved.getName(),
                 "Admin",
                 "CATEGORY",
                 saved.getId());
@@ -95,7 +98,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         activityLogService.logActivity(
                 "DESACTIVAR_CATEGORIA",
-                "Categoría desactivada: " + category.getName(),
+                "Category deactivated: " + category.getName(),
                 "Admin",
                 "CATEGORY",
                 category.getId());
@@ -104,14 +107,14 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public void hardDelete(Long id) {
         Category category = findById(id);
-        if (!category.getProducts().isEmpty()) {
-            throw new IllegalStateException("No se puede eliminar una categoría que tiene productos asociados.");
+        if (category.getProducts() != null && !category.getProducts().isEmpty()) {
+            throw new IllegalStateException("Cannot delete a category that still contains products.");
         }
         categoryRepository.delete(category);
 
         activityLogService.logActivity(
                 "ELIMINAR_CATEGORIA_HARD",
-                "Categoría eliminada definitivamente: " + category.getName(),
+                "Category permanently deleted: " + category.getName(),
                 "Admin",
                 "CATEGORY",
                 id);

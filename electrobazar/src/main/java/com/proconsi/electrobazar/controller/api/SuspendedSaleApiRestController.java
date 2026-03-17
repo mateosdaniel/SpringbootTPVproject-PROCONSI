@@ -5,26 +5,21 @@ import com.proconsi.electrobazar.dto.SuspendedSaleResponse;
 import com.proconsi.electrobazar.model.SuspendedSale;
 import com.proconsi.electrobazar.model.Worker;
 import com.proconsi.electrobazar.service.SuspendedSaleService;
+import com.proconsi.electrobazar.service.WorkerService;
+import com.proconsi.electrobazar.security.JwtService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.proconsi.electrobazar.security.JwtService;
-import com.proconsi.electrobazar.service.WorkerService;
-import java.util.Optional;
-import java.util.Set;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * REST API for the cart suspend/resume system.
- * All endpoints require a valid JWT with HOLD_SALES permission and return
- * 401/403 otherwise.
- * All successful responses use {@link SuspendedSaleResponse} — never the raw
- * entity.
+ * REST Controller for the Cart Reservation (Suspend/Resume) system.
+ * Allows workers to 'park' a current sale and resume it later, or on a different device.
+ * Requires HOLD_SALES permission.
  */
 @RestController
 @RequestMapping("/api/suspended-sales")
@@ -35,17 +30,12 @@ public class SuspendedSaleApiRestController {
     private final WorkerService workerService;
     private final JwtService jwtService;
 
-    // ── Request body DTO ───────────────────────────────────────────────────────
-
-    /** Body shape for the suspend endpoint: { lines: [...], label: "..." } */
-    public record SuspendRequest(List<SuspendedSaleLineRequest> lines, String label) {
-    }
-
-    // ── Endpoints ──────────────────────────────────────────────────────────────
+    /** Request body for suspending a cart. */
+    public record SuspendRequest(List<SuspendedSaleLineRequest> lines, String label) { }
 
     /**
-     * GET /api/suspended-sales
-     * Returns all sales currently in SUSPENDED status, newest first.
+     * Lists all sales currently in 'SUSPENDED' status.
+     * @return List of {@link SuspendedSaleResponse} DTOs.
      */
     @GetMapping
     public ResponseEntity<?> listSuspended(
@@ -53,8 +43,7 @@ public class SuspendedSaleApiRestController {
             HttpSession session) {
         Worker worker = authenticateAndGetWorker(authorizationHeader, session, "HOLD_SALES");
         if (worker == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Falta token o sesión inválida"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
         List<SuspendedSaleResponse> dtos = suspendedSaleService.findAllSuspended()
                 .stream()
@@ -64,8 +53,9 @@ public class SuspendedSaleApiRestController {
     }
 
     /**
-     * POST /api/suspended-sales
-     * Persists the current cart and returns the new suspended sale as a DTO.
+     * Temporarily saves a cart state.
+     * @param body Cart lines and an optional identifying label.
+     * @return 201 Created with the suspended sale DTO.
      */
     @PostMapping
     public ResponseEntity<?> suspend(@RequestBody SuspendRequest body,
@@ -73,24 +63,21 @@ public class SuspendedSaleApiRestController {
             HttpSession session) {
         Worker worker = authenticateAndGetWorker(authorizationHeader, session, "HOLD_SALES");
         if (worker == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Falta token o sesión inválida"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
         try {
             SuspendedSale saved = suspendedSaleService.suspend(body.lines(), body.label(), worker);
             return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(saved));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Error interno: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     /**
-     * POST /api/suspended-sales/{id}/resume
-     * Marks the sale as RESUMED and returns full line data so the JS can reload the
-     * cart.
+     * Resumes a previously suspended sale, making it available for checkout.
+     * This marks the status as 'RESUMED'.
+     * @param id The ID of the suspended sale.
+     * @return 200 OK with full cart data.
      */
     @PostMapping("/{id}/resume")
     public ResponseEntity<?> resume(@PathVariable Long id,
@@ -98,25 +85,20 @@ public class SuspendedSaleApiRestController {
             HttpSession session) {
         Worker worker = authenticateAndGetWorker(authorizationHeader, session, "HOLD_SALES");
         if (worker == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Falta token o sesión inválida"));
+             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
         try {
             SuspendedSale resumed = suspendedSaleService.resume(id, worker);
             return ResponseEntity.ok(toResponse(resumed));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Error interno: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     /**
-     * POST /api/suspended-sales/{id}/cancel
-     * Marks the sale as CANCELLED (no stock movement needed).
+     * Discards a suspended sale without processing it.
+     * @param id The ID to cancel.
+     * @return 200 OK.
      */
     @PostMapping("/{id}/cancel")
     public ResponseEntity<?> cancel(@PathVariable Long id,
@@ -124,26 +106,17 @@ public class SuspendedSaleApiRestController {
             HttpSession session) {
         Worker worker = authenticateAndGetWorker(authorizationHeader, session, "HOLD_SALES");
         if (worker == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Falta token o sesión inválida"));
+             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
         try {
             SuspendedSale cancelled = suspendedSaleService.cancel(id, worker);
             return ResponseEntity.ok(toResponse(cancelled));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Error interno: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    // ── Utils & Mapper ────────────────────────────────────────────────────────
-
     private Worker authenticateAndGetWorker(String authorizationHeader, HttpSession session, String requiredPermission) {
-        // 1. Try JWT (External TPV/JavaFX)
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             String token = authorizationHeader.substring(7);
             try {
@@ -155,32 +128,17 @@ public class SuspendedSaleApiRestController {
                 if (workerId != null && (requiredPermission == null || (permissions != null && permissions.contains(requiredPermission)))) {
                     return workerService.findById(workerId).orElse(null);
                 }
-            } catch (Exception e) {
-                // FALL THROUGH to session check
-            }
+            } catch (Exception ignored) { }
         }
-
-        // 2. Try Session (Web Frontend)
         if (session != null) {
             Worker worker = (Worker) session.getAttribute("worker");
-            if (worker != null) {
-                if (requiredPermission == null || worker.getEffectivePermissions().contains(requiredPermission)) {
-                    return worker;
-                }
+            if (worker != null && (requiredPermission == null || worker.getEffectivePermissions().contains(requiredPermission))) {
+                return worker;
             }
         }
-
         return null;
     }
 
-    /**
-     * Converts a {@link SuspendedSale} entity to a safe
-     * {@link SuspendedSaleResponse} DTO.
-     * All field accesses use the already-loaded state; no lazy collections are
-     * triggered
-     * beyond what was already fetched by the service (via @EntityGraph on findById,
-     * or the cascade-loaded lines from the suspend/resume operations).
-     */
     private SuspendedSaleResponse toResponse(SuspendedSale sale) {
         List<SuspendedSaleResponse.SuspendedSaleLineResponse> lineResponses = sale.getLines() == null ? List.of()
                 : sale.getLines().stream()

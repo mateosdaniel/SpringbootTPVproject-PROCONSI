@@ -4,16 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 /**
- * Tracks the last used sequence number for a given invoice serie + year
- * combination.
- * Used as the single source of truth for correlative invoice numbering.
- *
- * <p>
- * The row for (serie="F", year=2026) is locked pessimistically when a new
- * invoice
- * is created to guarantee no duplicate sequence numbers under concurrent
- * requests.
- * </p>
+ * Tracks the last used sequence number for a given invoice serie + year combination.
  */
 @Entity
 @Table(name = "invoice_sequences", uniqueConstraints = @UniqueConstraint(name = "uc_invoice_sequence_serie_year", columnNames = {

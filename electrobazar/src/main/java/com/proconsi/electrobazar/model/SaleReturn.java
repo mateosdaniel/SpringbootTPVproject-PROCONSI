@@ -2,7 +2,6 @@ package com.proconsi.electrobazar.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -10,9 +9,7 @@ import java.util.List;
 
 /**
  * Represents a return/refund operation linked to an original sale.
- * Sales are never deleted; returns are compensatory movements that restore
- * stock and issue a refund. Named SaleReturn to avoid collision with
- * the Java keyword 'return'.
+ * Sales are never deleted; returns are compensatory movements.
  */
 @Entity
 @Table(name = "returns", indexes = {
@@ -38,7 +35,7 @@ public class SaleReturn {
     @JoinColumn(name = "sale_id", nullable = false)
     private Sale originalSale;
 
-    /** Timestamp of when the return was processed. Set automatically on persist. */
+    /** Timestamp of when the return was processed. */
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -47,7 +44,7 @@ public class SaleReturn {
     @JoinColumn(name = "worker_id")
     private Worker worker;
 
-    /** Reason for the return, as stated by the worker. */
+    /** Reason for the return. */
     @Column(length = 500)
     private String reason;
 
@@ -60,12 +57,12 @@ public class SaleReturn {
     @Column(name = "total_refunded", nullable = false, precision = 10, scale = 2)
     private BigDecimal totalRefunded;
 
-    /** How the refund was paid back to the customer. */
+    /** How the refund was paid back. */
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false, length = 20)
     private PaymentMethod paymentMethod;
 
-    /** Status of the return (e.g. PROCESSED). */
+    /** Status of the return (e.g. COMPLETED). */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
@@ -80,11 +77,17 @@ public class SaleReturn {
     @Builder.Default
     private List<ReturnLine> lines = new ArrayList<>();
 
+    /**
+     * Enumeration for return scope.
+     */
     public enum ReturnType {
         TOTAL,
         PARTIAL
     }
 
+    /**
+     * Enumeration for return lifecycle status.
+     */
     public enum ReturnStatus {
         COMPLETED,
         CANCELLED
@@ -95,3 +98,5 @@ public class SaleReturn {
         this.createdAt = LocalDateTime.now();
     }
 }
+
+

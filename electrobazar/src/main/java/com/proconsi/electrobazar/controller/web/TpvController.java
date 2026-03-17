@@ -2,10 +2,13 @@ package com.proconsi.electrobazar.controller.web;
 
 import com.proconsi.electrobazar.dto.TaxBreakdown;
 import com.proconsi.electrobazar.model.*;
-import com.proconsi.electrobazar.model.CashWithdrawal;
 import com.proconsi.electrobazar.repository.TariffPriceHistoryRepository;
 import com.proconsi.electrobazar.service.*;
 import com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator;
+import com.proconsi.electrobazar.exception.InsufficientCashException;
+import com.proconsi.electrobazar.dto.ReturnLineRequest;
+import com.proconsi.electrobazar.dto.CashRegisterOpenSuggestion;
+import com.proconsi.electrobazar.dto.SaleSummaryResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.servlet.http.HttpSession;
@@ -13,13 +16,18 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDate;
+import java.util.*;
 
+/**
+ * Controller for the Point of Sale (TPV) interface.
+ * Manages sales processing, cash register operations, returns, and receipt generation.
+ */
 @Slf4j
 @Controller
 @RequestMapping("/tpv")
@@ -31,7 +39,6 @@ public class TpvController {
     private final SaleService saleService;
     private final CustomerService customerService;
     private final CashRegisterService cashRegisterService;
-    private final PdfReportService pdfReportService;
     private final ProductPriceService productPriceService;
     private final RecargoEquivalenciaCalculator recargoCalculator;
     private final InvoiceService invoiceService;
@@ -101,7 +108,7 @@ public class TpvController {
             return "redirect:/login";
         }
 
-        // Procesar cliente
+        // Process customer
         Customer customer = null;
         if (customerId != null) {
             customer = customerService.findById(customerId);
@@ -121,7 +128,7 @@ public class TpvController {
             tariffOverride = tariffService.findById(tariffId).orElse(null);
         }
 
-        // Determinar si aplica Recargo de Equivalencia
+        // Determine if Equivalency Surcharge applies
         boolean applyRecargo = customer != null && Boolean.TRUE.equals(customer.getHasRecargoEquivalencia());
 
         // Build sale lines using the unit prices sent by the frontend ticket.
@@ -171,15 +178,14 @@ public class TpvController {
         BigDecimal maxPosibleAmount = lines.stream()
                 .map(l -> l.getUnitPrice().multiply(new BigDecimal(l.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // Validar límite de pago en efectivo (Ley 11/2021)
+        // Validate cash payment limit (Law 11/2021)
         if (paymentMethod == PaymentMethod.CASH && maxPosibleAmount.compareTo(new BigDecimal("1000")) >= 0) {
             activityLogService.logActivity("CASH_LIMIT_VIOLATION",
-                    "Intento de pago en efectivo bloqueado por importe >= 1000€ (Total estimado: " + maxPosibleAmount
+                    "Cash payment attempt blocked for amount >= 1000€ (Estimated total: " + maxPosibleAmount
                             + "€)",
                     worker.getUsername(), "SALE", null);
             redirectAttributes.addFlashAttribute("errorMessage",
-                    "El pago en efectivo no está permitido para importes iguales o superiores a 1.000 € según la Ley 11/2021 de prevención del fraude fiscal. Seleccione otro método de pago.");
+                    "Cash payment is not permitted for amounts equal to or greater than 1,000 € according to Law 11/2021 on fiscal fraud prevention. Please select another payment method.");
             return "redirect:/tpv";
         }
 
@@ -201,8 +207,7 @@ public class TpvController {
         // Generate and Store PDF in DB
         try {
             Invoice invoice = null;
-            // Solo creamos la factura si se solicita explícitamente Y hay un cliente
-            // seleccionado
+            // Only create invoice if explicitly requested AND a customer is selected
             if (Boolean.TRUE.equals(requestInvoice) && customer != null) {
                 invoice = invoiceService.createInvoice(sale);
                 redirectAttributes.addFlashAttribute("invoice", invoice);
@@ -211,21 +216,30 @@ public class TpvController {
             if (invoice != null) {
                 // For invoices: update success message
                 redirectAttributes.addFlashAttribute("successMessage",
-                        "Factura " + invoice.getInvoiceNumber() + " generada.");
+                        "Invoice " + invoice.getInvoiceNumber() + " generated.");
             } else {
-                // For tickets: save recargo flag and create ticket record
+                // For tickets: save surcharge flag and create ticket record
                 saleService.saveApplyRecargo(sale.getId(), applyRecargo);
                 ticketService.createTicket(sale, applyRecargo);
             }
         } catch (Exception e) {
             log.error("Error creating document record for sale " + sale.getId(), e);
             redirectAttributes.addFlashAttribute("errorMessage",
-                    "Venta completada pero hubo un error al generar el documento PDF.");
+                    "Sale completed but there was an error generating the PDF document.");
         }
 
         return "redirect:/tpv/receipt/" + sale.getId();
     }
 
+    /**
+     * Displays the receipt for a completed sale.
+     *
+     * @param saleId The ID of the sale to display the receipt for.
+     * @param autoPrint Flag to indicate if the receipt should be automatically printed.
+     * @param session The current HTTP session to retrieve worker information.
+     * @param model The model to pass data to the view.
+     * @return The receipt view (ticket or invoice).
+     */
     @GetMapping("/receipt/{saleId}")
     public String showReceipt(
             @PathVariable Long saleId,
@@ -289,6 +303,13 @@ public class TpvController {
         return "tpv/receipt";
     }
 
+    /**
+     * Displays the cash register closing form, including summary of daily cash movements.
+     *
+     * @param session The current HTTP session to retrieve worker information.
+     * @param model The model to pass data to the view.
+     * @return The cash close form view or a redirect if no register is open or permissions are insufficient.
+     */
     @GetMapping("/cash-close")
     public String cashCloseForm(HttpSession session, Model model) {
         Worker worker = (Worker) session.getAttribute("worker");
@@ -299,39 +320,39 @@ public class TpvController {
             return "redirect:/tpv";
         }
 
-        java.util.Optional<CashRegister> openRegisterOpt = cashRegisterService.getOpenRegister();
+        Optional<CashRegister> openRegisterOpt = cashRegisterService.getOpenRegister();
         if (openRegisterOpt.isEmpty()) {
             return "redirect:/tpv/open-register";
         }
 
         CashRegister openRegister = openRegisterOpt.get();
-        java.math.BigDecimal cashSalesToday = saleService.sumTotalByPaymentMethodToday(PaymentMethod.CASH);
-        java.math.BigDecimal cashRefundsToday = returnService.sumTotalRefundedTodayByPaymentMethod(PaymentMethod.CASH);
+        BigDecimal cashSalesToday = saleService.sumTotalByPaymentMethodToday(PaymentMethod.CASH);
+        BigDecimal cashRefundsToday = returnService.sumTotalRefundedTodayByPaymentMethod(PaymentMethod.CASH);
 
         List<CashWithdrawal> movements = cashWithdrawalService.findByRegisterId(openRegister.getId());
-        java.math.BigDecimal totalWithdrawals = movements.stream()
+        BigDecimal totalWithdrawals = movements.stream()
                 .filter(m -> m.getType() == null || m.getType() == CashWithdrawal.MovementType.WITHDRAWAL)
                 .map(m -> m.getAmount() != null ? m.getAmount() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        java.math.BigDecimal totalEntries = movements.stream()
+        BigDecimal totalEntries = movements.stream()
                 .filter(m -> m.getType() == CashWithdrawal.MovementType.ENTRY)
                 .map(m -> m.getAmount() != null ? m.getAmount() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        java.time.LocalDateTime startOfShift = openRegister.getOpeningTime() != null
+        LocalDateTime startOfShift = openRegister.getOpeningTime() != null
                 ? openRegister.getOpeningTime()
-                : java.time.LocalDate.now().atStartOfDay();
+                : LocalDate.now().atStartOfDay();
         model.addAttribute("returnsToday",
-                returnService.findByCreatedAtBetween(startOfShift, java.time.LocalDateTime.now()));
+                returnService.findByCreatedAtBetween(startOfShift, LocalDateTime.now()));
 
-        java.math.BigDecimal expectedCashInDrawer = openRegister.getOpeningBalance()
+        BigDecimal expectedCashInDrawer = openRegister.getOpeningBalance()
                 .add(cashSalesToday)
                 .add(totalEntries)
                 .subtract(totalWithdrawals)
                 .subtract(cashRefundsToday);
 
-        com.proconsi.electrobazar.dto.SaleSummaryResponse summary = saleService.getSummaryToday();
+        SaleSummaryResponse summary = saleService.getSummaryToday();
         model.addAttribute("cancelledCount", summary.getTotalCancelledCount());
         model.addAttribute("cancelledTotal", summary.getTotalCancelledAmount());
 
@@ -349,6 +370,16 @@ public class TpvController {
         return "tpv/cash-close";
     }
 
+    /**
+     * Processes a cash withdrawal or entry movement for the open cash register.
+     *
+     * @param amount The amount of the movement.
+     * @param reason Optional reason for the movement.
+     * @param type The type of movement (WITHDRAWAL or ENTRY).
+     * @param session The current HTTP session to retrieve worker information.
+     * @param redirectAttributes Attributes for redirecting with messages.
+     * @return A redirect to the TPV main page with a success or error message.
+     */
     @PostMapping("/withdrawal")
     public String processWithdrawal(
             @RequestParam String amount,
@@ -362,14 +393,14 @@ public class TpvController {
             return "redirect:/login";
 
         if (!worker.getEffectivePermissions().contains("CASH_CLOSE")) {
-            redirectAttributes.addFlashAttribute("errorMessage", "No tiene permiso para realizar movimientos de caja.");
+            redirectAttributes.addFlashAttribute("errorMessage", "You do not have permission to perform cash movements.");
             return "redirect:/tpv";
         }
 
         try {
-            java.util.Optional<CashRegister> openRegister = cashRegisterService.getOpenRegister();
+            Optional<CashRegister> openRegister = cashRegisterService.getOpenRegister();
             if (openRegister.isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "No hay ninguna caja abierta.");
+                redirectAttributes.addFlashAttribute("errorMessage", "There is no open cash register.");
                 return "redirect:/tpv";
             }
 
@@ -379,16 +410,22 @@ public class TpvController {
             cashWithdrawalService.processMovement(openRegister.get().getId(), amountDecimal, reason, movementType,
                     worker);
 
-            String msg = (movementType == CashWithdrawal.MovementType.ENTRY ? "Entrada" : "Retirada")
-                    + " de " + amountDecimal.setScale(2, RoundingMode.HALF_UP) + " \u20ac realizada correctamente.";
+            String msg = (movementType == CashWithdrawal.MovementType.ENTRY ? "Entry" : "Withdrawal")
+                    + " of " + amountDecimal.setScale(2, RoundingMode.HALF_UP) + " \u20ac performed successfully.";
             redirectAttributes.addFlashAttribute("successMessage", msg);
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Error al procesar el movimiento: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Error processing movement: " + e.getMessage());
         }
 
         return "redirect:/tpv";
     }
 
+    /**
+     * Displays the TPV preferences page.
+     *
+     * @param session The current HTTP session to retrieve worker information.
+     * @return The preferences view or a redirect to login.
+     */
     @GetMapping("/preferences")
     public String preferences(HttpSession session) {
         if (session.getAttribute("worker") == null) {
@@ -397,6 +434,13 @@ public class TpvController {
         return "tpv/preferences";
     }
 
+    /**
+     * Displays the form to open a new cash register.
+     *
+     * @param session The current HTTP session to retrieve worker information.
+     * @param model The model to pass data to the view.
+     * @return The open-register form view or a redirect to the TPV main page if a register is already open.
+     */
     @GetMapping("/open-register")
     public String openRegisterForm(HttpSession session, Model model) {
         if (session.getAttribute("worker") == null)
@@ -404,12 +448,19 @@ public class TpvController {
         if (cashRegisterService.getOpenRegister().isPresent()) {
             return "redirect:/tpv";
         }
-        com.proconsi.electrobazar.dto.CashRegisterOpenSuggestion suggestion = cashRegisterService.getOpenSuggestion();
+        CashRegisterOpenSuggestion suggestion = cashRegisterService.getOpenSuggestion();
         model.addAttribute("hasSuggestion", suggestion.isHasSuggestion());
         model.addAttribute("suggestedOpeningBalance", suggestion.getSuggestedBalance());
         return "tpv/open-register";
     }
 
+    /**
+     * Processes the opening of a new cash register.
+     *
+     * @param openingBalance The initial balance for the cash register.
+     * @param session The current HTTP session to retrieve worker information.
+     * @return A redirect to the TPV main page.
+     */
     @PostMapping("/open-register")
     public String processOpenRegister(
             @RequestParam String openingBalance,
@@ -419,17 +470,27 @@ public class TpvController {
             return "redirect:/login";
 
         String normalizedBalance = openingBalance.replace(",", ".");
-        java.math.BigDecimal openingBalanceDecimal;
+        BigDecimal openingBalanceDecimal;
         try {
-            openingBalanceDecimal = new java.math.BigDecimal(normalizedBalance);
+            openingBalanceDecimal = new BigDecimal(normalizedBalance);
         } catch (NumberFormatException e) {
-            openingBalanceDecimal = java.math.BigDecimal.ZERO;
+            openingBalanceDecimal = BigDecimal.ZERO;
         }
 
         cashRegisterService.openCashRegister(openingBalanceDecimal, worker);
         return "redirect:/tpv";
     }
 
+    /**
+     * Processes the closing of the current cash register.
+     *
+     * @param closingBalance The final balance counted in the cash register.
+     * @param notes Optional notes for the closing.
+     * @param retainedAmount Optional amount to be retained in the cash register for the next opening.
+     * @param session The current HTTP session to retrieve worker information.
+     * @param redirectAttributes Attributes for redirecting with messages.
+     * @return A redirect to the open-register form with a success or error message.
+     */
     @PostMapping("/cash-close")
     public String processCashClose(
             @RequestParam String closingBalance,
@@ -447,12 +508,12 @@ public class TpvController {
         }
 
         String normalizedBalance = closingBalance.replace(",", ".");
-        java.math.BigDecimal closingBalanceDecimal = new java.math.BigDecimal(normalizedBalance);
+        BigDecimal closingBalanceDecimal = new BigDecimal(normalizedBalance);
 
-        java.math.BigDecimal retainedAmountDecimal = null;
+        BigDecimal retainedAmountDecimal = null;
         if (retainedAmount != null && !retainedAmount.isBlank()) {
             try {
-                retainedAmountDecimal = new java.math.BigDecimal(retainedAmount.replace(",", "."));
+                retainedAmountDecimal = new BigDecimal(retainedAmount.replace(",", "."));
             } catch (NumberFormatException e) {
                 // Ignore malformed values — treat as no retention
             }
@@ -462,23 +523,29 @@ public class TpvController {
                 closingBalanceDecimal, notes, worker, retainedAmountDecimal);
 
         try {
-            // Ya no generamos ni guardamos el PDF aquí. Se regenera al descargar.
+            // We no longer generate or save the PDF here. It's regenerated on download.
 
             redirectAttributes.addFlashAttribute("successMessage",
-                    "Cierre de caja realizado. Diferencia: " + register.getDifference()
-                            + "\u20AC. PDF almacenado en base de datos.");
+                    "Cash register closed. Difference: " + register.getDifference()
+                            + "\u20AC. PDF stored in database.");
         } catch (Exception e) {
             log.error("Error generating/storing cash close PDF for register " + register.getId(), e);
             redirectAttributes.addFlashAttribute("errorMessage",
-                    "Cierre realizado pero hubo un error al generar el documento PDF.");
+                    "Closing performed but there was an error generating the PDF document.");
         }
 
         return "redirect:/tpv/open-register";
     }
 
+    /**
+     * Checks for a ticket by ID or ticket number for a return operation.
+     *
+     * @param query The ticket ID or ticket number to search for.
+     * @return A ResponseEntity with a redirect URL if found, or an error message if not.
+     */
     @GetMapping("/return/check")
     @ResponseBody
-    public org.springframework.http.ResponseEntity<?> checkTicketForReturn(@RequestParam String query) {
+    public ResponseEntity<?> checkTicketForReturn(@RequestParam String query) {
         try {
             Long saleId = null;
             // 1. Try searching by ID
@@ -498,20 +565,27 @@ public class TpvController {
             }
 
             if (saleId != null) {
-                return org.springframework.http.ResponseEntity
-                        .ok(java.util.Collections.singletonMap("redirectUrl", "/tpv/return/" + saleId));
+                return ResponseEntity
+                        .ok(Collections.singletonMap("redirectUrl", "/tpv/return/" + saleId));
             } else {
-                return org.springframework.http.ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
-                        .body(java.util.Collections.singletonMap("errorMessage", "Ticket no encontrado: " + query));
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Collections.singletonMap("errorMessage", "Ticket not found: " + query));
             }
         } catch (Exception e) {
-            return org.springframework.http.ResponseEntity
-                    .status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(java.util.Collections.singletonMap("errorMessage",
-                            "Error al buscar el ticket: " + e.getMessage()));
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.singletonMap("errorMessage",
+                            "Error searching for ticket: " + e.getMessage()));
         }
     }
 
+    /**
+     * Searches for a ticket by ID or ticket number and redirects to the return form if found.
+     *
+     * @param query The ticket ID or ticket number to search for.
+     * @param redirectAttributes Attributes for redirecting with messages.
+     * @return A redirect to the return form or the TPV main page with an error message.
+     */
     @GetMapping("/return/search")
     public String searchTicketForReturn(@RequestParam String query, RedirectAttributes redirectAttributes) {
         try {
@@ -527,15 +601,23 @@ public class TpvController {
             return ticketService.findByTicketNumber(query)
                     .map(t -> "redirect:/tpv/return/" + t.getSale().getId())
                     .orElseGet(() -> {
-                        redirectAttributes.addFlashAttribute("errorMessage", "Ticket no encontrado: " + query);
+                        redirectAttributes.addFlashAttribute("errorMessage", "Ticket not found: " + query);
                         return "redirect:/tpv";
                     });
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Error al buscar el ticket: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Error searching for ticket: " + e.getMessage());
             return "redirect:/tpv";
         }
     }
 
+    /**
+     * Displays the return form for a specific sale.
+     *
+     * @param saleId The ID of the original sale for which to process a return.
+     * @param session The current HTTP session to retrieve worker information.
+     * @param model The model to pass data to the view.
+     * @return The return form view or a redirect to login.
+     */
     @GetMapping("/return/{saleId}")
     public String showReturnForm(@PathVariable Long saleId, HttpSession session, Model model) {
         if (session.getAttribute("worker") == null) {
@@ -545,12 +627,12 @@ public class TpvController {
         model.addAttribute("sale", sale);
         model.addAttribute("paymentMethods", PaymentMethod.values());
 
-        java.util.Map<Long, Integer> alreadyReturned = new java.util.HashMap<>();
+        Map<Long, Integer> alreadyReturned = new HashMap<>();
         for (SaleLine line : sale.getLines()) {
             int returned = returnService.findByOriginalSaleId(saleId).stream()
                     .flatMap(r -> r.getLines().stream())
                     .filter(rl -> rl.getSaleLine().getId().equals(line.getId()))
-                    .mapToInt(com.proconsi.electrobazar.model.ReturnLine::getQuantity)
+                    .mapToInt(ReturnLine::getQuantity)
                     .sum();
             alreadyReturned.put(line.getId(), returned);
         }
@@ -558,6 +640,18 @@ public class TpvController {
         return "tpv/return-form";
     }
 
+    /**
+     * Processes a return for a sale.
+     *
+     * @param saleId The ID of the original sale.
+     * @param saleLineIds List of IDs of the sale lines to return.
+     * @param quantities List of quantities to return for each sale line.
+     * @param reason Optional reason for the return.
+     * @param paymentMethod The payment method used for the refund.
+     * @param session The current HTTP session to retrieve worker information.
+     * @param redirectAttributes Attributes for redirecting with messages.
+     * @return A redirect to the return receipt or the return form with an error message.
+     */
     @PostMapping("/return")
     public String processReturn(
             @RequestParam Long saleId,
@@ -573,9 +667,9 @@ public class TpvController {
             return "redirect:/login";
         }
 
-        List<com.proconsi.electrobazar.dto.ReturnLineRequest> lineRequests = new ArrayList<>();
+        List<ReturnLineRequest> lineRequests = new ArrayList<>();
         for (int i = 0; i < saleLineIds.size(); i++) {
-            lineRequests.add(new com.proconsi.electrobazar.dto.ReturnLineRequest(
+            lineRequests.add(new ReturnLineRequest(
                     saleLineIds.get(i), quantities.get(i)));
         }
 
@@ -584,12 +678,21 @@ public class TpvController {
                     saleId, lineRequests, reason, paymentMethod, worker);
             redirectAttributes.addFlashAttribute("saleReturn", saleReturn);
             return "redirect:/tpv/return-receipt/" + saleReturn.getId();
-        } catch (IllegalArgumentException | com.proconsi.electrobazar.exception.InsufficientCashException e) {
+        } catch (IllegalArgumentException | InsufficientCashException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
             return "redirect:/tpv/return/" + saleId;
         }
     }
 
+    /**
+     * Displays the receipt for a processed return.
+     *
+     * @param returnId The ID of the return to display the receipt for.
+     * @param autoPrint Flag to indicate if the receipt should be automatically printed.
+     * @param session The current HTTP session to retrieve worker information.
+     * @param model The model to pass data to the view.
+     * @return The return receipt view (standard or rectificative invoice).
+     */
     @GetMapping("/return-receipt/{returnId}")
     public String showReturnReceipt(
             @PathVariable Long returnId,
@@ -662,11 +765,11 @@ public class TpvController {
                     .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
 
             // Prepare negative lines for the table
-            List<java.util.Map<String, Object>> negativeLines = new ArrayList<>();
+            List<Map<String, Object>> negativeLines = new ArrayList<>();
             for (ReturnLine line : saleReturn.getLines()) {
                 if (line.getSaleLine() == null || line.getSaleLine().getProduct() == null)
                     continue;
-                java.util.Map<String, Object> map = new java.util.HashMap<>();
+                Map<String, Object> map = new HashMap<>();
                 map.put("name", line.getSaleLine().getProduct().getName());
                 map.put("unitPrice", line.getUnitPrice());
                 map.put("quantity", line.getQuantity() * -1);
@@ -702,20 +805,20 @@ public class TpvController {
      */
     @GetMapping("/api/products/{productId}/price")
     @ResponseBody
-    public java.util.Map<String, BigDecimal> getProductEffectivePrice(
+    public Map<String, BigDecimal> getProductEffectivePrice(
             @PathVariable Long productId,
             @RequestParam(required = false) Long tariffId) {
 
         Product product = productService.findById(productId);
         if (product == null) {
-            return java.util.Collections.emptyMap();
+            return Collections.emptyMap();
         }
 
         // Get current active base price (from ProductPrice scheduling system)
         ProductPrice activePrice = productPriceService.getCurrentPrice(productId, LocalDateTime.now());
         BigDecimal basePrice = (activePrice != null) ? activePrice.getPrice() : product.getPrice();
-        BigDecimal vatRate = (activePrice != null) ? activePrice.getVatRate() : 
-                (product.getTaxRate() != null && product.getTaxRate().getVatRate() != null 
+        BigDecimal vatRate = (activePrice != null) ? activePrice.getVatRate() :
+                (product.getTaxRate() != null && product.getTaxRate().getVatRate() != null
                 ? product.getTaxRate().getVatRate() : new BigDecimal("0.21"));
 
         BigDecimal finalPrice;
@@ -745,14 +848,14 @@ public class TpvController {
                             return basePrice.multiply(factor).setScale(2, RoundingMode.HALF_UP);
                         })
                         .orElse(basePrice.setScale(2, RoundingMode.HALF_UP));
-                
+
                 BigDecimal reRate = recargoCalculator.getRecargoRate(vatRate);
                 BigDecimal netPrice = finalPrice.divide(BigDecimal.ONE.add(vatRate), 10, RoundingMode.HALF_UP);
                 priceWithRe = netPrice.multiply(BigDecimal.ONE.add(vatRate).add(reRate)).setScale(2, RoundingMode.HALF_UP);
             }
         }
 
-        java.util.Map<String, BigDecimal> response = new java.util.HashMap<>();
+        Map<String, BigDecimal> response = new HashMap<>();
         response.put("price", finalPrice);
         response.put("priceWithRe", priceWithRe);
         return response;

@@ -23,7 +23,7 @@ public class CashRegisterOpenSuggestion {
 
     /**
      * The suggested opening balance — equals the retained amount from the
-     * previous shift. {@code null} when hasSuggestion is false.
+     * previous shift. Returns {@code null} when hasSuggestion is false.
      */
     private BigDecimal suggestedBalance;
 }

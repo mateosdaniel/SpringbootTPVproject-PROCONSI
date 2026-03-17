@@ -2,15 +2,12 @@ package com.proconsi.electrobazar.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.math.BigDecimal;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * One product line within a suspended sale.
- * Stores the product, quantity and unit price at the time of suspension
- * so the cart can be fully reconstructed when resumed.
+ * Stores information needed to reconstruct the cart later.
  */
 @Entity
 @Table(name = "suspended_sale_lines")
@@ -36,11 +33,13 @@ public class SuspendedSaleLine {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    /** Quantity of units in the cart at suspension time. */
+    /** Quantity of units in the cart. */
     @Column(nullable = false)
     private Integer quantity;
 
-    /** Unit price at suspension time (could differ from current price later). */
+    /** Unit price at recovery time. */
     @Column(name = "unit_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal unitPrice;
 }
+
+

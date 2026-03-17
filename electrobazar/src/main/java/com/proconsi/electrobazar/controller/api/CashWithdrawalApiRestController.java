@@ -14,21 +14,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 /**
- * REST wrapper for cash movements (withdrawals / entries) from the TPV.
- *
- * Mirrors the behavior of {@code TpvController.processWithdrawal}, but exposes
- * it as a JSON API:
- *
- * <ul>
- *   <li>Uses the currently open {@link CashRegister}.</li>
- *   <li>Parses {@code amount} and {@code type} in the same way as the MVC controller.</li>
- *   <li>Resolves the {@link Worker} from the JWT {@code workerId} claim.</li>
- *   <li>Requires the {@code CASH_CLOSE} permission present in the JWT.</li>
- * </ul>
+ * REST Controller for non-sale cash movements (Entries and Withdrawals).
+ * Used for auditing cash drawer adjustments during a shift.
+ * Requires 'CASH_CLOSE' permission.
  */
 @RestController
 @RequestMapping("/api/cash-withdrawals")
@@ -40,45 +31,41 @@ public class CashWithdrawalApiRestController {
     private final WorkerService workerService;
     private final JwtService jwtService;
 
-    /**
-     * Request body for creating a cash movement.
-     * Fields mirror those used by {@code TpvController.processWithdrawal}.
-     */
-    public record CashWithdrawalRequest(
-            String amount,
-            String reason,
-            String type) {
-    }
+    /** Request body DTO for cash movements. */
+    public record CashWithdrawalRequest(String amount, String reason, String type) { }
 
+    /**
+     * Records a new cash movement (Entry or Withdrawal) in the currently open register.
+     * 
+     * @param body Import and metadata for the movement.
+     * @param authorizationHeader Bearer JWT token.
+     * @return 201 Created with the movement details.
+     */
     @PostMapping
     public ResponseEntity<?> createMovement(
             @RequestBody CashWithdrawalRequest body,
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
 
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Missing or invalid Authorization header"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
         }
 
         String token = authorizationHeader.substring(7);
 
-        // Extract workerId and permissions from JWT (same pattern as JwtAuthenticationFilter)
         Long workerId;
         Set<String> permissions;
         try {
-            workerId = jwtService.extractClaim(token, claims -> claims.get("workerId", Long.class));
+            Number workerIdNum = jwtService.extractClaim(token, claims -> claims.get("workerId", Number.class));
+            workerId = workerIdNum != null ? workerIdNum.longValue() : null;
             @SuppressWarnings("unchecked")
-            Set<String> rawPermissions = jwtService.extractClaim(token,
-                    claims -> claims.get("permissions", Set.class));
+            Set<String> rawPermissions = jwtService.extractClaim(token, claims -> claims.get("permissions", Set.class));
             permissions = rawPermissions;
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Invalid JWT token"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid token"));
         }
 
         if (workerId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Token does not contain workerId"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid token data"));
         }
 
         if (permissions == null || !permissions.contains("CASH_CLOSE")) {
@@ -86,48 +73,27 @@ public class CashWithdrawalApiRestController {
                     .body(Map.of("error", "No tiene permiso para realizar movimientos de caja."));
         }
 
-        Optional<Worker> workerOpt = workerService.findById(workerId);
-        if (workerOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Trabajador no encontrado para el token proporcionado"));
-        }
-        Worker worker = workerOpt.get();
+        Worker worker = workerService.findById(workerId)
+                .orElseThrow(() -> new com.proconsi.electrobazar.exception.ResourceNotFoundException("Trabajador no encontrado"));
 
-        Optional<CashRegister> openRegisterOpt = cashRegisterService.getOpenRegister();
-        if (openRegisterOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", "No hay ninguna caja abierta."));
-        }
+        CashRegister openRegister = cashRegisterService.getOpenRegister()
+                .orElseThrow(() -> new IllegalStateException("No hay ninguna caja abierta."));
 
         if (body == null || body.amount == null || body.amount.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "El importe es obligatorio."));
         }
 
         try {
-            String normalizedAmount = body.amount.replace(",", ".");
-            BigDecimal amountDecimal = new BigDecimal(normalizedAmount);
-
-            String typeValue = body.type != null && !body.type.isBlank()
-                    ? body.type
-                    : CashWithdrawal.MovementType.WITHDRAWAL.name();
-
-            CashWithdrawal.MovementType movementType = CashWithdrawal.MovementType
-                    .valueOf(typeValue);
+            BigDecimal amountDecimal = new BigDecimal(body.amount.replace(",", "."));
+            String typeValue = (body.type != null && !body.type.isBlank()) ? body.type : CashWithdrawal.MovementType.WITHDRAWAL.name();
+            CashWithdrawal.MovementType movementType = CashWithdrawal.MovementType.valueOf(typeValue);
 
             CashWithdrawal movement = cashWithdrawalService.processMovement(
-                    openRegisterOpt.get().getId(),
-                    amountDecimal,
-                    body.reason,
-                    movementType,
-                    worker);
+                    openRegister.getId(), amountDecimal, body.reason, movementType, worker);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(movement);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Error al procesar el movimiento: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }
-

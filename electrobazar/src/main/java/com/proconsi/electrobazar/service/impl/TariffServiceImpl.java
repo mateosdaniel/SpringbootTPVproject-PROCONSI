@@ -7,6 +7,7 @@ import com.proconsi.electrobazar.model.TariffPriceHistory;
 import com.proconsi.electrobazar.repository.CustomerRepository;
 import com.proconsi.electrobazar.repository.TariffPriceHistoryRepository;
 import com.proconsi.electrobazar.repository.TariffRepository;
+import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.TariffService;
 import com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,11 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.*;
 
+/**
+ * Implementation of {@link TariffService}.
+ * Orchestrates tariff management and ensures that price history across all tariffs 
+ * remains in sync whenever product prices or VAT rates are updated.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -29,7 +35,7 @@ public class TariffServiceImpl implements TariffService {
     private final CustomerRepository customerRepository;
     private final TariffPriceHistoryRepository tariffPriceHistoryRepository;
     private final RecargoEquivalenciaCalculator recargoCalculator;
-    private final com.proconsi.electrobazar.service.ActivityLogService activityLogService;
+    private final ActivityLogService activityLogService;
 
     @Override
     @Transactional(readOnly = true)
@@ -59,186 +65,117 @@ public class TariffServiceImpl implements TariffService {
     @Transactional(readOnly = true)
     public Tariff getDefault() {
         return tariffRepository.findByName(Tariff.MINORISTA)
-                .orElseThrow(() -> new IllegalStateException(
-                        "System tariff MINORISTA not found \u2013 data initializer may have failed."));
+                .orElseThrow(() -> new IllegalStateException("Critical: Default tariff MINORISTA missing."));
     }
 
     @Override
-    public Tariff create(String name, BigDecimal discountPercentage, String description) {
-        if (tariffRepository.findByName(name.toUpperCase()).isPresent()) {
-            throw new IllegalArgumentException("Ya existe una tarifa con el nombre: " + name);
+    public Tariff create(String name, BigDecimal discount, String description) {
+        String upperName = name.toUpperCase();
+        if (tariffRepository.findByName(upperName).isPresent()) {
+            throw new IllegalArgumentException("A tariff named " + upperName + " already exists.");
         }
         Tariff tariff = Tariff.builder()
-                .name(name.toUpperCase())
-                .discountPercentage(discountPercentage != null ? discountPercentage : BigDecimal.ZERO)
-                .description(description)
-                .active(true)
-                .systemTariff(false)
-                .build();
+                .name(upperName).discountPercentage(discount != null ? discount : BigDecimal.ZERO)
+                .description(description).active(true).systemTariff(false).build();
         Tariff saved = tariffRepository.save(tariff);
-        activityLogService.logActivity("CREAR_TARIFA", "Nueva tarifa creada: " + saved.getName() + " (" + saved.getDiscountPercentage() + "%)", "Admin", "TARIFF", saved.getId());
+        activityLogService.logActivity("CREAR_TARIFA", String.format("Tariff created: %s (Discount: %.2f%%)", upperName, saved.getDiscountPercentage()), "Admin", "TARIFF", saved.getId());
         return saved;
     }
 
     @Override
-    public Tariff update(Long id, BigDecimal discountPercentage, String description) {
-        Tariff tariff = tariffRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Tarifa no encontrada con id: " + id));
-        tariff.setDiscountPercentage(discountPercentage != null ? discountPercentage : BigDecimal.ZERO);
+    public Tariff update(Long id, BigDecimal discount, String description) {
+        Tariff tariff = tariffRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Tariff #" + id + " not found."));
+        tariff.setDiscountPercentage(discount != null ? discount : BigDecimal.ZERO);
         tariff.setDescription(description);
         Tariff saved = tariffRepository.save(tariff);
-        activityLogService.logActivity("ACTUALIZAR_TARIFA", "Tarifa actualizada: " + saved.getName() + " (Nuevo desc: " + saved.getDiscountPercentage() + "%)", "Admin", "TARIFF", saved.getId());
+        activityLogService.logActivity("ACTUALIZAR_TARIFA", String.format("Tariff updated: %s (New Discount: %.2f%%)", saved.getName(), saved.getDiscountPercentage()), "Admin", "TARIFF", saved.getId());
         return saved;
     }
 
     @Override
     public void deactivate(Long id) {
-        Tariff tariff = tariffRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Tarifa no encontrada con id: " + id));
+        Tariff tariff = tariffRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Tariff #" + id + " not found."));
         if (Boolean.TRUE.equals(tariff.getSystemTariff())) {
-            throw new IllegalStateException("No se puede desactivar una tarifa del sistema: " + tariff.getName());
+            throw new IllegalStateException("Cannot deactivate system tariff: " + tariff.getName());
         }
         tariff.setActive(false);
         tariffRepository.save(tariff);
 
-        activityLogService.logActivity("DESACTIVAR_TARIFA", "Tarifa desactivada: " + tariff.getName(), "Admin", "TARIFF", tariff.getId());
-
-        // Move all customers using this tariff back to MINORISTA
-        Tariff minorista = getDefault();
-        List<Customer> affected = customerRepository.findAll().stream()
-                .filter(c -> tariff.equals(c.getTariff()))
-                .toList();
-        affected.forEach(c -> c.setTariff(minorista));
+        // Safety: Reassign customers to default MINORISTA tariff
+        Tariff defaultTariff = getDefault();
+        List<Customer> affected = customerRepository.findAll().stream().filter(c -> tariff.equals(c.getTariff())).toList();
+        affected.forEach(c -> c.setTariff(defaultTariff));
         customerRepository.saveAll(affected);
-        log.info("Tariff '{}' deactivated. {} customers moved to MINORISTA.", tariff.getName(), affected.size());
+
+        activityLogService.logActivity("DESACTIVAR_TARIFA", "Tariff deactivated: " + tariff.getName(), "Admin", "TARIFF", tariff.getId());
     }
 
     @Override
     public void activate(Long id) {
-        Tariff tariff = tariffRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Tarifa no encontrada con id: " + id));
-        tariff.setActive(true);
-        tariffRepository.save(tariff);
+        tariffRepository.findById(id).ifPresent(t -> {
+            t.setActive(true);
+            tariffRepository.save(t);
+        });
     }
 
     @Override
     @Transactional(readOnly = true)
     public Map<Long, Long> getCustomerCountPerTariff() {
-        Map<Long, Long> result = new HashMap<>();
-        tariffRepository.countCustomersPerTariff()
-                .forEach(row -> result.put((Long) row[0], (Long) row[1]));
-        return result;
+        Map<Long, Long> stats = new HashMap<>();
+        tariffRepository.countCustomersPerTariff().forEach(row -> stats.put((Long) row[0], (Long) row[1]));
+        return stats;
     }
 
-    /**
-     * Closes any open tariff_price_history records for the affected products and
-     * creates fresh records for every active tariff using the new VAT rate already
-     * stored in {@code product.getTaxRate()}.
-     *
-     * <p>Algorithm (per product x tariff pair):
-     * <ol>
-     *   <li>Close existing open record: set {@code valid_to = today - 1 day}</li>
-     *   <li>Compute from {@code product.price} (gross price inclusive of VAT):
-     *       <pre>
-     *       net_price      = (product.price / (1 + newVatRate)) * (1 - discount% / 100)
-     *       price_with_vat = net_price * (1 + newVatRate)
-     *       price_with_re  = net_price * (1 + newVatRate + reRate)
-     *       </pre>
-     *   </li>
-     *   <li>Bulk-insert all new records via {@code saveAll()}</li>
-     * </ol>
-     * </p>
-     *
-     * @param affectedProducts products whose VAT rate has just been updated
-     */
     @Override
     public void regenerateTariffHistoryForProducts(List<Product> affectedProducts) {
-        if (affectedProducts == null || affectedProducts.isEmpty()) {
-            return;
-        }
+        if (affectedProducts == null || affectedProducts.isEmpty()) return;
+        List<Tariff> activeTariffs = findAllActive();
+        if (activeTariffs.isEmpty()) return;
 
-        List<Tariff> activeTariffs = tariffRepository.findByActiveTrueOrderByNameAsc();
-        if (activeTariffs.isEmpty()) {
-            return;
-        }
-
-        LocalDate today     = LocalDate.now();
+        LocalDate today = LocalDate.now();
         LocalDate yesterday = today.minusDays(1);
 
-        // ── 1. Close all currently open records for every affected product x tariff ──
+        // 1. Close current histories
         List<TariffPriceHistory> toClose = new ArrayList<>();
         for (Product product : affectedProducts) {
             for (Tariff tariff : activeTariffs) {
-                tariffPriceHistoryRepository
-                        .findCurrentByProductAndTariff(product.getId(), tariff.getId())
+                tariffPriceHistoryRepository.findCurrentByProductAndTariff(product.getId(), tariff.getId())
                         .ifPresent(h -> {
                             h.setValidTo(yesterday);
                             toClose.add(h);
                         });
             }
         }
-        if (!toClose.isEmpty()) {
-            tariffPriceHistoryRepository.saveAll(toClose);
-        }
+        if (!toClose.isEmpty()) tariffPriceHistoryRepository.saveAll(toClose);
 
-        // ── 2. Build new records for every product x tariff ──────────────────────────
+        // 2. Open new histories with current VAT and product prices
         List<TariffPriceHistory> newRecords = new ArrayList<>();
-
         for (Product product : affectedProducts) {
             if (product.getPrice() == null) continue;
 
-            // New VAT rate is already persisted on the product entity at this point
-            BigDecimal newVatRate = (product.getTaxRate() != null && product.getTaxRate().getVatRate() != null)
-                    ? product.getTaxRate().getVatRate()
-                    : new BigDecimal("0.21");
-
-            BigDecimal reRate     = recargoCalculator.getRecargoRate(newVatRate);
-            BigDecimal grossPrice = product.getPrice(); // product.price = gross (VAT-inclusive) base
+            BigDecimal vatRate = (product.getTaxRate() != null) ? product.getTaxRate().getVatRate() : new BigDecimal("0.21");
+            BigDecimal reRate = recargoCalculator.getRecargoRate(vatRate);
+            BigDecimal baseGross = product.getPrice();
 
             for (Tariff tariff : activeTariffs) {
-                BigDecimal discountPct = tariff.getDiscountPercentage() != null
-                        ? tariff.getDiscountPercentage()
-                        : BigDecimal.ZERO;
-
-                // net_price = (product.price / (1 + vatRate)) x (1 - discount% / 100)
-                BigDecimal discountMultiplier = BigDecimal.ONE
-                        .subtract(discountPct.divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP));
-                BigDecimal netPrice = grossPrice
-                        .divide(BigDecimal.ONE.add(newVatRate), 10, RoundingMode.HALF_UP)
-                        .multiply(discountMultiplier)
-                        .setScale(2, RoundingMode.HALF_UP);
-
-                BigDecimal priceWithVat = netPrice
-                        .multiply(BigDecimal.ONE.add(newVatRate))
-                        .setScale(2, RoundingMode.HALF_UP);
-                BigDecimal priceWithRe  = netPrice
-                        .multiply(BigDecimal.ONE.add(newVatRate).add(reRate))
-                        .setScale(2, RoundingMode.HALF_UP);
+                BigDecimal discountMult = BigDecimal.ONE.subtract((tariff.getDiscountPercentage() != null ? tariff.getDiscountPercentage() : BigDecimal.ZERO).divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP));
+                
+                BigDecimal net = baseGross.divide(BigDecimal.ONE.add(vatRate), 10, RoundingMode.HALF_UP).multiply(discountMult).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal withVat = net.multiply(BigDecimal.ONE.add(vatRate)).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal withRecargo = net.multiply(BigDecimal.ONE.add(vatRate).add(reRate)).setScale(2, RoundingMode.HALF_UP);
 
                 newRecords.add(TariffPriceHistory.builder()
-                        .product(product)
-                        .tariff(tariff)
-                        .basePrice(grossPrice)
-                        .netPrice(netPrice)
-                        .vatRate(newVatRate)
-                        .priceWithVat(priceWithVat)
-                        .reRate(reRate)
-                        .priceWithRe(priceWithRe)
-                        .discountPercent(discountPct.setScale(2, RoundingMode.HALF_UP))
-                        .validFrom(today)
-                        .validTo(null)
-                        .build());
+                        .product(product).tariff(tariff).basePrice(baseGross).netPrice(net).vatRate(vatRate)
+                        .priceWithVat(withVat).reRate(reRate).priceWithRe(withRecargo)
+                        .discountPercent(tariff.getDiscountPercentage()).validFrom(today).build());
             }
         }
-
         if (!newRecords.isEmpty()) {
             tariffPriceHistoryRepository.saveAll(newRecords);
-            log.info("Regenerated {} tariff_price_history records for {} products x {} tariffs.",
-                    newRecords.size(), affectedProducts.size(), activeTariffs.size());
-
             activityLogService.logActivity("REGENERAR_PRECIOS_TARIFA", 
-                String.format("Precios regenerados para %d productos en todas las tarifas activas", affectedProducts.size()), 
-                "Sistema", "TARIFF", null);
+                String.format("Prices regenerated for %d products across %d active tariffs.", affectedProducts.size(), activeTariffs.size()), "System", "TARIFF", null);
         }
     }
 }
+
+

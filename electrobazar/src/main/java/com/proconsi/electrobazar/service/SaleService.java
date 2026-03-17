@@ -5,52 +5,122 @@ import com.proconsi.electrobazar.model.PaymentMethod;
 import com.proconsi.electrobazar.model.Sale;
 import com.proconsi.electrobazar.model.SaleLine;
 import com.proconsi.electrobazar.model.Tariff;
-
+import com.proconsi.electrobazar.model.Worker;
+import com.proconsi.electrobazar.dto.SaleSummaryResponse;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Interface defining core operations for processing and auditing sales.
+ */
 public interface SaleService {
-        Sale findById(Long id);
 
-        List<Sale> findAll();
+    /**
+     * Finds a sale by ID.
+     * @param id Primary key.
+     * @return The Sale entity.
+     */
+    Sale findById(Long id);
 
-        List<Sale> findToday();
+    /**
+     * Retrieves all sales records.
+     * @return List of sales.
+     */
+    List<Sale> findAll();
 
-        List<Sale> findBetween(LocalDateTime from, LocalDateTime to);
+    /**
+     * Retrieves sales processed on the current day.
+     * @return List of today's sales.
+     */
+    List<Sale> findToday();
 
-        Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, BigDecimal receivedAmount,
-                        com.proconsi.electrobazar.model.Worker worker);
+    /**
+     * Retrieves sales within a specific time range.
+     * @param from Start timestamp.
+     * @param to   End timestamp.
+     * @return List of sales in range.
+     */
+    List<Sale> findBetween(LocalDateTime from, LocalDateTime to);
 
-        Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, BigDecimal receivedAmount,
-                        Customer customer,
-                        com.proconsi.electrobazar.model.Worker worker);
+    /**
+     * Creates a standard sale for an anonymous customer.
+     *
+     * @param lines          Product lines.
+     * @param paymentMethod  CASH or CARD.
+     * @param notes          Optional notes.
+     * @param receivedAmount Cash provided by the customer.
+     * @param worker         The worker processing the sale.
+     * @return The persisted Sale.
+     */
+    Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, BigDecimal receivedAmount, Worker worker);
 
+    /**
+     * Creates a sale for a registered customer.
+     *
+     * @param lines          Product lines.
+     * @param paymentMethod  CASH or CARD.
+     * @param notes          Optional notes.
+     * @param receivedAmount Cash provided.
+     * @param customer       Associated customer.
+     * @param worker         The worker.
+     * @return The persisted Sale.
+     */
+    Sale createSale(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, BigDecimal receivedAmount, Customer customer, Worker worker);
 
-        /**
-         * Creates a sale with an explicit tariff override.
-         * If tariffOverride is null, the customer's own tariff is used
-         * (or MINORISTA if the customer has none).
-         */
-        Sale createSaleWithTariff(List<SaleLine> lines, PaymentMethod paymentMethod, String notes,
-                        BigDecimal receivedAmount, Customer customer,
-                        com.proconsi.electrobazar.model.Worker worker, Tariff tariffOverride);
+    /**
+     * Creates a sale with an explicit tariff override.
+     *
+     * @param lines          Product lines.
+     * @param paymentMethod  CASH or CARD.
+     * @param notes          Optional notes.
+     * @param receivedAmount Cash provided.
+     * @param customer       Associated customer.
+     * @param worker         The worker.
+     * @param tariffOverride Specific tariff to apply (overrides customer default).
+     * @return The persisted Sale.
+     */
+    Sale createSaleWithTariff(List<SaleLine> lines, PaymentMethod paymentMethod, String notes,
+            BigDecimal receivedAmount, Customer customer,
+            Worker worker, Tariff tariffOverride);
 
-        BigDecimal sumTotalToday();
+    /**
+     * Aggregates the total revenue from today's sales.
+     * @return Total BigDecimal amount.
+     */
+    BigDecimal sumTotalToday();
 
-        long countToday();
+    /**
+     * Counts the number of transactions processed today.
+     * @return Current day count.
+     */
+    long countToday();
 
-        BigDecimal sumTotalByPaymentMethodToday(PaymentMethod paymentMethod);
+    /**
+     * Aggregates revenue for a specific payment method today.
+     * @param paymentMethod CASH or CARD.
+     * @return Subtotal for that method.
+     */
+    BigDecimal sumTotalByPaymentMethodToday(PaymentMethod paymentMethod);
 
-        com.proconsi.electrobazar.dto.SaleSummaryResponse getSummaryToday();
+    /**
+     * Generates a high-level summary of today's commercial activity.
+     * @return A DTO with today's stats.
+     */
+    SaleSummaryResponse getSummaryToday();
 
-        /**
-         * Persists the applyRecargo flag to an existing sale.
-         *
-         * @param saleId       The sale ID
-         * @param applyRecargo Whether RE tax matches for this sale
-         */
-        void saveApplyRecargo(Long saleId, boolean applyRecargo);
+    /**
+     * Updates the Recargo de Equivalencia flag for an existing sale.
+     * @param saleId       Target sale.
+     * @param applyRecargo True if RE should be considered.
+     */
+    void saveApplyRecargo(Long saleId, boolean applyRecargo);
 
-        void cancelSale(Long id, com.proconsi.electrobazar.model.Worker worker, String reason);
+    /**
+     * Cancels a sale and restores stock levels.
+     * @param id     Sale ID.
+     * @param worker Worker authorizing cancellation.
+     * @param reason Why the sale is being cancelled.
+     */
+    void cancelSale(Long id, Worker worker, String reason);
 }

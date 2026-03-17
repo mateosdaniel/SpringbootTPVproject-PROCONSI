@@ -6,9 +6,19 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+/**
+ * Repository for {@link RectificativeInvoice} entities.
+ * Manages official corrective documents issued to rectify previously generated invoices.
+ */
 @Repository
 public interface RectificativeInvoiceRepository extends JpaRepository<RectificativeInvoice, Long> {
 
+    /**
+     * Finds the corrective invoice associated with a specific merchandise return.
+     * @param returnId ID of the SaleReturn.
+     * @return Optional containing the corrective invoice.
+     */
     Optional<RectificativeInvoice> findBySaleReturnId(Long returnId);
-
 }
+
+

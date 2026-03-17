@@ -2,16 +2,12 @@ package com.proconsi.electrobazar.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Represents a simplified ticket (factura simplificada) linked to a Sale.
  * Used for anonymous sales or when a full invoice is not requested.
- * Each ticket has a correlative number in the format T-YYYY-NNNN (e.g.
- * T-2026-0001).
- * PDF is regenerated on demand, no binary data is stored.
  */
 @Entity
 @Table(name = "tickets", indexes = {
@@ -45,19 +41,18 @@ public class Ticket {
     @Column(name = "sequence_number", nullable = false)
     private int sequenceNumber;
 
+    /** The sale this ticket is associated with. One sale -> one ticket. */
     @JsonIgnore
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "sale_id", nullable = false, unique = true)
     private Sale sale;
 
-    /** Timestamp of ticket creation. Set automatically on persist. */
+    /** Timestamp of ticket creation. */
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     /**
      * Whether RE tax was applied to this ticket.
-     * Stored here separately to ensure historical PDF regeneration matches original
-     * sale.
      */
     @Column(nullable = false)
     private boolean applyRecargo;

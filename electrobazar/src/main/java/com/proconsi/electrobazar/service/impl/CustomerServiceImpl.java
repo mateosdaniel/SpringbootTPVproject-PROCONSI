@@ -7,15 +7,19 @@ import com.proconsi.electrobazar.repository.CustomerRepository;
 import com.proconsi.electrobazar.repository.TariffRepository;
 import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.CustomerService;
+import com.proconsi.electrobazar.util.NifCifValidator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-import com.proconsi.electrobazar.util.NifCifValidator;
-import lombok.extern.slf4j.Slf4j;
-
+/**
+ * Implementation of {@link CustomerService}.
+ * Handles business logic for customer lifecycle, including NIF/CIF validation
+ * and default tariff assignment (MINORISTA).
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -43,24 +47,26 @@ public class CustomerServiceImpl implements CustomerService {
     @Transactional(readOnly = true)
     public Customer findById(Long id) {
         return customerRepository.findByIdAndActiveTrue(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
     }
 
     @Override
     public Customer save(Customer customer) {
         if (customer.getTaxId() != null && !customer.getTaxId().trim().isEmpty()) {
             if (!nifCifValidator.isValid(customer.getTaxId())) {
-                throw new IllegalArgumentException("El NIF/CIF o NIE introducido no es válido.");
+                throw new IllegalArgumentException("The provided NIF/CIF or NIE is invalid.");
             }
         }
-        // ensure required defaults as JPA column is not nullable
+        
+        // Ensure required defaults as JPA columns may be non-nullable
         if (customer.getType() == null) {
             customer.setType(Customer.CustomerType.INDIVIDUAL);
         }
         if (customer.getActive() == null) {
             customer.setActive(true);
         }
-        // Default to MINORISTA tariff if none is set
+        
+        // Default to MINORISTA tariff if none is specified
         if (customer.getTariff() == null) {
             tariffRepository.findByName(Tariff.MINORISTA).ifPresent(customer::setTariff);
         }
@@ -68,7 +74,7 @@ public class CustomerServiceImpl implements CustomerService {
         Customer saved = customerRepository.save(customer);
         activityLogService.logActivity(
                 "CREAR_CLIENTE",
-                "Nuevo cliente registrado: " + saved.getName(),
+                "New customer registered: " + saved.getName(),
                 "Admin",
                 "CUSTOMER",
                 saved.getId());
@@ -79,8 +85,8 @@ public class CustomerServiceImpl implements CustomerService {
     public Customer update(Long id, Customer updated) {
         if (updated.getTaxId() != null && !updated.getTaxId().trim().isEmpty()) {
             if (!nifCifValidator.isValid(updated.getTaxId())) {
-                log.warn("Customer update id={} rejected: invalid taxId='{}'", id, updated.getTaxId());
-                throw new IllegalArgumentException("El NIF/CIF o NIE introducido no es válido.");
+                log.warn("Update rejected for customer ID {}: invalid taxId='{}'", id, updated.getTaxId());
+                throw new IllegalArgumentException("The provided NIF/CIF or NIE is invalid.");
             }
         }
         Customer existing = findById(id);
@@ -94,22 +100,18 @@ public class CustomerServiceImpl implements CustomerService {
         existing.setPostalCode(updated.getPostalCode());
         existing.setType(updated.getType());
         existing.setActive(updated.getActive());
-        // Persist the Recargo de Equivalencia flag
-        existing.setHasRecargoEquivalencia(
-                updated.getHasRecargoEquivalencia() != null ? updated.getHasRecargoEquivalencia() : false);
+        existing.setHasRecargoEquivalencia(updated.getHasRecargoEquivalencia() != null ? updated.getHasRecargoEquivalencia() : false);
 
-        // Update tariff – resolve by id from the updated object
         if (updated.getTariff() != null && updated.getTariff().getId() != null) {
             tariffRepository.findById(updated.getTariff().getId()).ifPresent(existing::setTariff);
         } else if (existing.getTariff() == null) {
-            // Ensure MINORISTA is always set
             tariffRepository.findByName(Tariff.MINORISTA).ifPresent(existing::setTariff);
         }
 
         Customer saved = customerRepository.save(existing);
         activityLogService.logActivity(
                 "ACTUALIZAR_CLIENTE",
-                "Cliente actualizado: " + saved.getName(),
+                "Customer updated: " + saved.getName(),
                 "Admin",
                 "CUSTOMER",
                 saved.getId());
@@ -124,7 +126,7 @@ public class CustomerServiceImpl implements CustomerService {
 
         activityLogService.logActivity(
                 "ELIMINAR_CLIENTE",
-                "Cliente eliminado/desactivado: " + customer.getName(),
+                "Customer deactivated: " + customer.getName(),
                 "Admin",
                 "CUSTOMER",
                 customer.getId());
@@ -139,3 +141,5 @@ public class CustomerServiceImpl implements CustomerService {
         return customerRepository.findByNameContainingIgnoreCaseOrTaxIdContainingIgnoreCaseAndActiveTrue(query, query);
     }
 }
+
+

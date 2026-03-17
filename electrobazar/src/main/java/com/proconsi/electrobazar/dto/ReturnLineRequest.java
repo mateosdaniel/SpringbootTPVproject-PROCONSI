@@ -16,8 +16,8 @@ public class ReturnLineRequest {
     private Long saleLineId;
 
     /**
-     * Number of units to return. Must be > 0 and ≤ original quantity minus
-     * already-returned.
+     * Number of units to return. 
+     * Must be greater than 0 and less than or equal to the original quantity minus any units already returned.
      */
     private int quantity;
 }

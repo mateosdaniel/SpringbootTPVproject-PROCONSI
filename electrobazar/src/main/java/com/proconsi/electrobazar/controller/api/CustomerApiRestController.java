@@ -18,6 +18,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST Controller for managing Customers.
+ * Handles CRM-like operations, including search, details, and purchase history.
+ */
 @Slf4j
 @RestController
 @RequestMapping("/api/customers")
@@ -28,26 +32,44 @@ public class CustomerApiRestController {
     private final TariffRepository tariffRepository;
     private final SaleRepository saleRepository;
 
+    /**
+     * Retrieves all active customers.
+     * @return List of {@link Customer} entities.
+     */
     @GetMapping
     public ResponseEntity<List<Customer>> getAll() {
         return ResponseEntity.ok(customerService.findAllActive());
     }
 
+    /**
+     * Searches for customers by name, tax ID, or email.
+     * @param query Search string.
+     * @return List of matching customers.
+     */
     @GetMapping("/search")
     public ResponseEntity<List<Customer>> search(@RequestParam String query) {
         return ResponseEntity.ok(customerService.searchCustomers(query));
     }
 
+    /**
+     * Retrieves a single customer's details.
+     * @param id The customer ID.
+     * @return The requested {@link Customer}.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<Customer> getById(@PathVariable Long id) {
         return ResponseEntity.ok(customerService.findById(id));
     }
 
+    /**
+     * Registers a new customer in the system.
+     * @param body Map of customer properties.
+     * @return 201 Created with the saved {@link Customer}.
+     */
     @PostMapping
     public ResponseEntity<Customer> create(@RequestBody Map<String, Object> body) {
         Customer customer = buildCustomerFromBody(body, new Customer());
 
-        // minimal server-side validation
         if (customer.getName() == null || customer.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("El nombre es obligatorio");
         }
@@ -59,6 +81,12 @@ public class CustomerApiRestController {
         return ResponseEntity.status(HttpStatus.CREATED).body(customerService.save(customer));
     }
 
+    /**
+     * Updates an existing customer's information.
+     * @param id The customer ID.
+     * @param body Map with new customer properties.
+     * @return 200 OK with the updated entity.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<Customer> update(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         log.info("Customer update request for id={}: {}", id, body);
@@ -68,12 +96,22 @@ public class CustomerApiRestController {
         return ResponseEntity.ok(customerService.update(id, updated));
     }
 
+    /**
+     * Deactivates a customer (Soft Delete).
+     * @param id The customer ID.
+     * @return 204 No Content.
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         customerService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Retrieves the complete purchase history for a specific customer.
+     * @param id The customer ID.
+     * @return A list of sales with itemized lines formatted for UI display.
+     */
     @GetMapping("/{id}/sales")
     public ResponseEntity<List<Map<String, Object>>> getSalesByCustomer(@PathVariable Long id) {
         List<Sale> sales = saleRepository.findByCustomerIdOrderByCreatedAtDesc(id);
@@ -102,8 +140,6 @@ public class CustomerApiRestController {
         }
         return ResponseEntity.ok(result);
     }
-
-    // ── Helper ──────────────────────────────────────────────────────────────
 
     private Customer buildCustomerFromBody(Map<String, Object> body, Customer customer) {
         if (body.containsKey("name"))
@@ -140,7 +176,6 @@ public class CustomerApiRestController {
         if (customer.getHasRecargoEquivalencia() == null)
             customer.setHasRecargoEquivalencia(false);
 
-        // Resolve tariff
         Tariff tariff = null;
         if (body.containsKey("tariffId") && body.get("tariffId") != null) {
             Long tariffId = Long.parseLong(body.get("tariffId").toString());

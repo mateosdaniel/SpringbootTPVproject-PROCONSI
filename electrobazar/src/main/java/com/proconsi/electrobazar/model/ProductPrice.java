@@ -2,17 +2,13 @@ package com.proconsi.electrobazar.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
 /**
  * Represents a temporal price entry for a product (Price History Pattern).
- * A product can have multiple price records over time, each with a validity
- * window
- * defined by startDate and endDate. A null endDate means the price is currently
- * active
- * with no scheduled expiry.
+ * A product can have multiple price records over time.
  */
 @Entity
 @Table(name = "product_prices", indexes = {
@@ -41,38 +37,39 @@ public class ProductPrice {
 
     /**
      * The net base price (before VAT).
-     * Convention: This is the primary stored value.
      */
     @Column(name = "base_price_net", nullable = false, precision = 10, scale = 2)
     @Builder.Default
-    private java.math.BigDecimal basePriceNet = java.math.BigDecimal.ZERO;
+    private BigDecimal basePriceNet = BigDecimal.ZERO;
 
     /**
      * The Gross Price (VAT included).
-     * Mapped for database compatibility.
      */
     @Column(name = "price", nullable = false, precision = 10, scale = 2)
     @Builder.Default
-    private java.math.BigDecimal price = java.math.BigDecimal.ZERO;
+    private BigDecimal price = BigDecimal.ZERO;
 
-    public java.math.BigDecimal getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(java.math.BigDecimal grossPrice) {
+    /**
+     * Sets the gross price and calculates the net base price accordingly.
+     * @param grossPrice The price including VAT.
+     */
+    public void setPrice(BigDecimal grossPrice) {
         this.price = grossPrice;
         if (grossPrice == null) {
-            this.basePriceNet = java.math.BigDecimal.ZERO;
+            this.basePriceNet = BigDecimal.ZERO;
             return;
         }
-        java.math.BigDecimal rate = vatRate != null ? vatRate : new java.math.BigDecimal("0.21");
-        this.basePriceNet = grossPrice.divide(java.math.BigDecimal.ONE.add(rate), 10, java.math.RoundingMode.HALF_UP)
-                .setScale(2, java.math.RoundingMode.HALF_UP);
+        BigDecimal rate = vatRate != null ? vatRate : new BigDecimal("0.21");
+        this.basePriceNet = grossPrice.divide(BigDecimal.ONE.add(rate), 10, RoundingMode.HALF_UP)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
      * The VAT rate applicable to this product price (e.g., 0.21 for 21%).
-     * Stored as a decimal fraction.
      */
     @Column(nullable = false, precision = 5, scale = 4)
     @Builder.Default
@@ -86,19 +83,19 @@ public class ProductPrice {
 
     /**
      * The date and time until which this price is valid (inclusive).
-     * A null value means this price has no scheduled end date (currently active).
+     * A null value means this price is currently active with no scheduled end.
      */
     @Column(name = "end_date")
     private LocalDateTime endDate;
 
     /**
-     * Optional label for this price entry (e.g., "Tarifa 2025", "Oferta Verano").
+     * Optional label for this price entry (e.g., "Summer Sale").
      */
     @Column(length = 100)
     private String label;
 
     /**
-     * Timestamp when this price record was created (audit field).
+     * Timestamp when this price record was created.
      */
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

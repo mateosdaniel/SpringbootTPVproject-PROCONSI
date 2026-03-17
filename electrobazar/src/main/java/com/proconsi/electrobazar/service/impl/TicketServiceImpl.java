@@ -14,6 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.Optional;
 
+/**
+ * Implementation of {@link TicketService}.
+ * Responsible for generating simplified sales receipts (Tickets) with sequential numbering.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -27,45 +31,31 @@ public class TicketServiceImpl implements TicketService {
     @Override
     @Transactional
     public Ticket createTicket(Sale sale, boolean applyRecargo) {
-        int ticketYear = sale.getCreatedAt() != null ? sale.getCreatedAt().getYear() : LocalDate.now().getYear();
+        int ticketYear = (sale.getCreatedAt() != null) ? sale.getCreatedAt().getYear() : LocalDate.now().getYear();
         String serie = TICKET_SERIE;
 
         // Fetch (and lock) the sequence row for serie "T"
-        InvoiceSequence sequence = invoiceSequenceRepository
-                .findBySerieAndYearForUpdate(serie, ticketYear)
-                .orElseGet(() -> {
-                    InvoiceSequence newSeq = InvoiceSequence.builder()
-                            .serie(serie)
-                            .year(ticketYear)
-                            .lastNumber(0)
-                            .build();
-                    return invoiceSequenceRepository.save(newSeq);
-                });
+        InvoiceSequence sequence = invoiceSequenceRepository.findBySerieAndYearForUpdate(serie, ticketYear)
+                .orElseGet(() -> invoiceSequenceRepository.save(
+                        InvoiceSequence.builder().serie(serie).year(ticketYear).lastNumber(0).build()
+                ));
 
-        // Ensure no gaps by using a loop to find the next available sequence number.
-        // Usually sequence counters handle this, but for extra sequentiality and gap
-        // prevention:
         String ticketNumber;
         do {
             int nextNumber = sequence.getLastNumber() + 1;
             sequence.setLastNumber(nextNumber);
             invoiceSequenceRepository.save(sequence);
 
-            // Format: T-2026-1
+            // Format example: T-2026-1
             ticketNumber = String.format("%s-%d-%d", serie, ticketYear, nextNumber);
         } while (ticketRepository.findByTicketNumber(ticketNumber).isPresent());
 
         Ticket ticket = Ticket.builder()
-                .ticketNumber(ticketNumber)
-                .serie(serie)
-                .year(ticketYear)
-                .sequenceNumber(sequence.getLastNumber())
-                .sale(sale)
-                .applyRecargo(applyRecargo)
-                .build();
+                .ticketNumber(ticketNumber).serie(serie).year(ticketYear)
+                .sequenceNumber(sequence.getLastNumber()).sale(sale).applyRecargo(applyRecargo).build();
 
         Ticket saved = ticketRepository.save(ticket);
-        log.info("Ticket created: {} for sale #{}", ticketNumber, sale.getId());
+        log.info("Ticket created: {} for Sale #{}", ticketNumber, sale.getId());
         return saved;
     }
 
@@ -81,3 +71,5 @@ public class TicketServiceImpl implements TicketService {
         return ticketRepository.findByTicketNumber(ticketNumber);
     }
 }
+
+

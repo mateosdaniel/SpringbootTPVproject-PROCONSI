@@ -15,6 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 
+/**
+ * Implementation of {@link CashWithdrawalService}.
+ * Handles manual cash entries and withdrawals within an open shift.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -28,14 +32,14 @@ public class CashWithdrawalServiceImpl implements CashWithdrawalService {
     public CashWithdrawal processMovement(Long cashRegisterId, BigDecimal amount, String reason,
             CashWithdrawal.MovementType type, Worker worker) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Importe inválido");
+            throw new IllegalArgumentException("Amount must be greater than zero.");
         }
 
         CashRegister register = cashRegisterRepository.findById(cashRegisterId)
-                .orElseThrow(() -> new ResourceNotFoundException("Caja no encontrada con id: " + cashRegisterId));
+                .orElseThrow(() -> new ResourceNotFoundException("Cash register not found with id: " + cashRegisterId));
 
         if (register.getClosed()) {
-            throw new IllegalStateException("No se puede realizar un movimiento en una caja ya cerrada");
+            throw new IllegalStateException("Cannot perform movements on a closed shift.");
         }
 
         CashWithdrawal movement = CashWithdrawal.builder()
@@ -48,13 +52,12 @@ public class CashWithdrawalServiceImpl implements CashWithdrawalService {
 
         CashWithdrawal saved = cashWithdrawalRepository.save(movement);
 
-        String typeStr = type == CashWithdrawal.MovementType.ENTRY ? "ENTRADA" : "RETIRADA";
-        String username = worker != null ? worker.getUsername() : "Anónimo";
+        String typeLabel = type == CashWithdrawal.MovementType.ENTRY ? "ENTRY" : "WITHDRAWAL";
+        String username = worker != null ? worker.getUsername() : "Anonymous";
 
         activityLogService.logActivity(
-                typeStr + "_CAJA",
-                typeStr + " de caja de " + amount.setScale(2, java.math.RoundingMode.HALF_UP) + " \u20ac" +
-                        (reason != null && !reason.isEmpty() ? ". Motivo: " + reason : ""),
+                type == CashWithdrawal.MovementType.ENTRY ? "ENTRADA_CAJA" : "RETIRADA_CAJA",
+                String.format("%s of %.2f €. Reason: %s", typeLabel, amount, (reason != null ? reason : "N/A")),
                 username,
                 "CASH_REGISTER",
                 register.getId());
@@ -68,3 +71,5 @@ public class CashWithdrawalServiceImpl implements CashWithdrawalService {
         return cashWithdrawalRepository.findByCashRegisterId(registerId);
     }
 }
+
+

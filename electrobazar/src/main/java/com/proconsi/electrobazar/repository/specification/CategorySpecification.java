@@ -1,13 +1,23 @@
 package com.proconsi.electrobazar.repository.specification;
 
 import com.proconsi.electrobazar.model.Category;
-import org.springframework.data.jpa.domain.Specification;
 import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
+
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * JPA Specifications for complex {@link Category} filtering.
+ * Allows dynamic building of search criteria based on user input from the admin panel.
+ */
 public class CategorySpecification {
 
+    /**
+     * Filters categories by name or description.
+     * @param search The search token (partial match, case-insensitive).
+     * @return A Specification object for use with JpaSpecificationExecutor.
+     */
     public static Specification<Category> filterCategories(String search) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -24,3 +34,5 @@ public class CategorySpecification {
         };
     }
 }
+
+

@@ -6,10 +6,15 @@ import com.proconsi.electrobazar.dto.ProductPriceResponse;
 import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import com.proconsi.electrobazar.model.Product;
 import com.proconsi.electrobazar.model.ProductPrice;
+import com.proconsi.electrobazar.model.Tariff;
+import com.proconsi.electrobazar.model.TariffPriceHistory;
 import com.proconsi.electrobazar.repository.ProductPriceRepository;
 import com.proconsi.electrobazar.repository.ProductRepository;
+import com.proconsi.electrobazar.repository.TariffPriceHistoryRepository;
+import com.proconsi.electrobazar.repository.TariffRepository;
 import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.ProductPriceService;
+import com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -23,47 +28,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of {@link ProductPriceService} providing temporal price
- * management
- * with caching support.
- *
- * <h3>Caching Strategy</h3>
- * <p>
- * The {@code getCurrentPrice} method is cached under the key
- * {@code "productPrices::{productId}"}. The cache is evicted whenever a new
- * price
- * is scheduled for that product via {@code schedulePrice}.
- * </p>
- *
- * <h3>Price Scheduling Logic</h3>
- * <p>
- * When a new price is scheduled:
- * </p>
- * <ol>
- * <li>The existing open-ended price (endDate IS NULL) is found.</li>
- * <li>Its endDate is set to {@code newStartDate.minusSeconds(1)} (i.e., one
- * second
- * before the new price takes effect).</li>
- * <li>The new price is saved with the provided startDate and a null
- * endDate.</li>
- * </ol>
- *
- * <p>
- * Example for a Jan 1st price change:
- * </p>
- * 
- * <pre>
- *   Current price: €10.00, startDate=2025-01-01T00:00:00, endDate=null
- *   New price:     €12.00, startDate=2026-01-01T00:00:00
- *
- *   After scheduling:
- *   Current price: €10.00, startDate=2025-01-01T00:00:00, endDate=2025-12-31T23:59:59
- *   New price:     €12.00, startDate=2026-01-01T00:00:00, endDate=null
- * </pre>
+ * Implementation of {@link ProductPriceService}.
+ * Manages chronological price history and scheduling for products and tariffs.
+ * Integrates with Spring Caching to optimize real-time price lookups.
  */
 @Slf4j
 @Service
@@ -76,180 +46,101 @@ public class ProductPriceServiceImpl implements ProductPriceService {
     private final ProductPriceRepository productPriceRepository;
     private final ProductRepository productRepository;
     private final ActivityLogService activityLogService;
-    private final com.proconsi.electrobazar.repository.TariffRepository tariffRepository;
-    private final com.proconsi.electrobazar.repository.TariffPriceHistoryRepository tariffPriceHistoryRepository;
-    private final com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator recargoCalculator;
+    private final TariffRepository tariffRepository;
+    private final TariffPriceHistoryRepository tariffPriceHistoryRepository;
+    private final RecargoEquivalenciaCalculator recargoCalculator;
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>
-     * Uses Spring Cache with the key {@code #productId} under the cache named
-     * {@code "productPrices"}. The {@code at} parameter is intentionally excluded
-     * from the cache key to keep the cache simple — it is assumed callers pass
-     * {@code LocalDateTime.now()} for real-time lookups. For historical queries,
-     * call the repository directly.
-     * </p>
-     */
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = CACHE_NAME, key = "#productId", unless = "#result == null")
     public ProductPrice getCurrentPrice(Long productId, LocalDateTime at) {
-        log.debug("Cache miss for productId={} at {}", productId, at);
+        log.debug("Cache miss for current price of product ID: {}", productId);
         return productPriceRepository.findActivePriceAt(productId, at).orElse(null);
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>
-     * Evicts the cache entry for the product after scheduling the new price,
-     * ensuring the next call to {@code getCurrentPrice} fetches fresh data.
-     * </p>
-     */
     @Override
     @CacheEvict(value = CACHE_NAME, key = "#productId")
     public ProductPriceResponse schedulePrice(Long productId, ProductPriceRequest request) {
         if (request.getStartDate() == null) {
-            throw new IllegalArgumentException("La fecha de inicio (startDate) es obligatoria.");
+            throw new IllegalArgumentException("Price start date is mandatory.");
         }
 
-        // Validate the product exists
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Producto no encontrado con id: " + productId));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
 
         LocalDateTime newStartDate = request.getStartDate();
 
-        // ── Step 1: Close the current open-ended price ─────────────────────────
-        // Find the price with endDate IS NULL (the currently active open-ended price)
-        productPriceRepository.findCurrentOpenPrice(productId).ifPresent(currentPrice -> {
-            // Set its endDate to one second before the new price starts
-            // Example: new price starts 2026-01-01T00:00:00 → current ends
-            // 2025-12-31T23:59:59
-            LocalDateTime closingDate = newStartDate.minusSeconds(1);
-            currentPrice.setEndDate(closingDate);
-            productPriceRepository.save(currentPrice);
-            log.info("Closed existing price (id={}) for product '{}' (id={}). EndDate set to {}",
-                    currentPrice.getId(), product.getName(), productId, closingDate);
+        // 1. Close current open price ( endDate is NULL )
+        productPriceRepository.findCurrentOpenPrice(productId).ifPresent(current -> {
+            current.setEndDate(newStartDate.minusSeconds(1));
+            productPriceRepository.save(current);
         });
 
-        // ── Step 2: Create and persist the new scheduled price ─────────────────
-        BigDecimal vatRate = request.getVatRate() != null
-                ? request.getVatRate()
-                : (product.getTaxRate() != null && product.getTaxRate().getVatRate() != null
-                        ? product.getTaxRate().getVatRate()
-                        : new BigDecimal("0.21")); // Default to Spanish
-        // standard VAT rate
+        // 2. Schedule new price
+        BigDecimal vatRate = request.getVatRate() != null ? request.getVatRate() : 
+                (product.getTaxRate() != null ? product.getTaxRate().getVatRate() : new BigDecimal("0.21"));
 
         ProductPrice newPrice = ProductPrice.builder()
                 .product(product)
                 .vatRate(vatRate)
                 .startDate(newStartDate)
-                .endDate(null) // Open-ended: no scheduled expiry
                 .label(request.getLabel())
                 .build();
-
-        // Use setPrice to handle the Gross -> Net conversion automatically
-        newPrice.setPrice(request.getPrice());
+        newPrice.setPrice(request.getPrice()); // Gross to net conversion happens in setter
 
         ProductPrice saved = productPriceRepository.save(newPrice);
 
-        // Also update the base product price so TPV shows the correct price immediately
+        // Immediate sync with product table for TPV display
         product.setPrice(request.getPrice());
         productRepository.save(product);
 
-        log.info("Scheduled new price for product '{}' (id={}): {} € (VAT {}%) starting {}",
-                product.getName(), productId,
-                saved.getPrice(), vatRate.multiply(new BigDecimal("100")).stripTrailingZeros().toPlainString(),
-                newStartDate);
+        activityLogService.logActivity("PROGRAMAR_PRECIO", 
+                String.format("New price scheduled for '%s': %.2f € starting %s", 
+                product.getName(), saved.getPrice(), newStartDate), "Admin", "PRODUCT", productId);
 
-        activityLogService.logActivity(
-                "PROGRAMAR_PRECIO",
-                "Precio programado para '" + product.getName() + "': "
-                        + saved.getPrice().setScale(2, RoundingMode.HALF_UP) + " \u20ac a partir de "
-                        + newStartDate.toString().replace("T", " "),
-                "Admin",
-                "PRODUCT",
-                productId);
-
-        return toResponse(saved, false); // Not yet active if startDate is in the future
+        return toResponse(saved, false);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     @Transactional(readOnly = true)
     public List<ProductPriceResponse> getPriceHistory(Long productId) {
-        // Validate product exists
         if (!productRepository.existsById(productId)) {
-            throw new ResourceNotFoundException("Producto no encontrado con id: " + productId);
+            throw new ResourceNotFoundException("Product not found with id: " + productId);
         }
 
         LocalDateTime now = LocalDateTime.now();
-        ProductPrice activePrice = productPriceRepository.findActivePriceAt(productId, now).orElse(null);
+        ProductPrice activePrice = getCurrentPrice(productId, now);
 
-        // Get all prices sorted by startDate ascending (oldest first) for variation
-        // calculation
         List<ProductPrice> allPrices = productPriceRepository.findAllByProductId(productId).stream()
                 .sorted(Comparator.comparing(ProductPrice::getStartDate))
                 .collect(Collectors.toList());
 
-        // Calculate price changes (comparing chronologically)
         List<ProductPriceResponse> responses = new ArrayList<>();
         BigDecimal previousPrice = null;
 
         for (ProductPrice p : allPrices) {
-            BigDecimal priceChange = null;
-            BigDecimal priceChangePct = null;
+            BigDecimal diff = (previousPrice != null) ? p.getPrice().subtract(previousPrice) : null;
+            BigDecimal diffPct = (diff != null) ? diff.divide(previousPrice, 6, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP) : null;
 
-            if (previousPrice != null) {
-                priceChange = p.getPrice().subtract(previousPrice);
-                // Calculate percentage: (change / previous) * 100
-                priceChangePct = priceChange
-                        .divide(previousPrice, 6, java.math.RoundingMode.HALF_UP)
-                        .multiply(BigDecimal.valueOf(100))
-                        .setScale(2, java.math.RoundingMode.HALF_UP);
-            }
-
-            ProductPriceResponse response = toResponse(p, p.equals(activePrice)).toBuilder()
-                    .priceChange(priceChange)
-                    .priceChangePct(priceChangePct)
-                    .build();
-
-            responses.add(response);
+            responses.add(toResponse(p, p.equals(activePrice)).toBuilder()
+                    .priceChange(diff)
+                    .priceChangePct(diffPct)
+                    .build());
             previousPrice = p.getPrice();
         }
 
-        // Sort for display: active first, then by startDate descending (newest first)
-        responses.sort((a, b) -> {
-            if (a.isCurrentlyActive() && !b.isCurrentlyActive())
-                return -1;
-            if (!a.isCurrentlyActive() && b.isCurrentlyActive())
-                return 1;
-            // Both active or both not active - sort by startDate descending
-            return b.getStartDate().compareTo(a.getStartDate());
-        });
-
+        responses.sort((a, b) -> a.isCurrentlyActive() ? -1 : (b.isCurrentlyActive() ? 1 : b.getStartDate().compareTo(a.getStartDate())));
         return responses;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     @Transactional(readOnly = true)
     public List<ProductPriceResponse> getFuturePrices() {
-        LocalDateTime now = LocalDateTime.now();
-        return productPriceRepository.findAllFuturePrices(now).stream()
+        return productPriceRepository.findAllFuturePrices(LocalDateTime.now()).stream()
                 .map(p -> toResponse(p, false))
                 .collect(Collectors.toList());
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public ProductPriceResponse toResponse(ProductPrice price, boolean isActive) {
         return ProductPriceResponse.builder()
@@ -266,189 +157,74 @@ public class ProductPriceServiceImpl implements ProductPriceService {
                 .build();
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>
-     * Bulk schedules price updates for multiple products atomically.
-     * </p>
-     */
     @Override
     @Transactional
     @CacheEvict(value = CACHE_NAME, allEntries = true)
     public List<ProductPriceResponse> bulkSchedulePrice(BulkPriceUpdateRequest request) {
-        List<Long> productIds = request.getProductIds();
-        LocalDateTime effectiveDate = request.getEffectiveDate();
-
-        // Safety net: if no effective date provided, use current time (immediate
-        // application)
-        if (effectiveDate == null) {
-            effectiveDate = LocalDateTime.now();
-        }
-
-        if (productIds == null || productIds.isEmpty()) {
-            throw new IllegalArgumentException("La lista de IDs de productos no puede estar vacía.");
-        }
-
-        if (request.getPercentage() == null && request.getFixedAmount() == null) {
-            throw new IllegalArgumentException("Debe especificar either percentage or fixedAmount.");
-        }
-
-        if (request.getPercentage() != null && request.getFixedAmount() != null) {
-            throw new IllegalArgumentException(
-                    "No se puede especificar both percentage and fixedAmount. Use solo uno.");
-        }
-
-        // Calculate closing date (one second before effective date)
+        LocalDateTime effectiveDate = request.getEffectiveDate() != null ? request.getEffectiveDate() : LocalDateTime.now();
         LocalDateTime closingDate = effectiveDate.minusSeconds(1);
 
-        List<ProductPriceResponse> results = new ArrayList<>();
-        Set<Long> affectedProductIds = productIds.stream().collect(Collectors.toSet());
-
-        List<com.proconsi.electrobazar.model.Tariff> allActiveTariffs = tariffRepository
-                .findByActiveTrueOrderByNameAsc();
+        List<ProductPriceResponse> responses = new ArrayList<>();
+        List<Tariff> activeTariffs = tariffRepository.findByActiveTrueOrderByNameAsc();
         List<Long> selectedTariffIds = request.getTariffIds() != null ? request.getTariffIds() : new ArrayList<>();
 
-        // Process each product
-        for (Long productId : productIds) {
-            // Find product
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Producto no encontrado con id: " + productId));
+        for (Long productId : request.getProductIds()) {
+            Product product = productRepository.findById(productId).orElseThrow(() -> new ResourceNotFoundException("Product " + productId + " not found."));
 
-            // Find current open price
-            ProductPrice currentPrice = productPriceRepository.findCurrentOpenPrice(productId)
-                    .orElse(null);
+            ProductPrice current = productPriceRepository.findCurrentOpenPrice(productId).orElse(null);
+            BigDecimal oldGross = (current != null) ? current.getPrice() : product.getPrice();
+            BigDecimal vatRate = (request.getVatRate() != null) ? request.getVatRate() : 
+                                 ((current != null) ? current.getVatRate() : product.getTaxRate().getVatRate());
 
-            BigDecimal basePrice;
-            BigDecimal currentVat;
-
-            if (currentPrice != null) {
-                basePrice = currentPrice.getPrice();
-                currentVat = currentPrice.getVatRate();
-
-                // Close current price
-                currentPrice.setEndDate(closingDate);
-                productPriceRepository.save(currentPrice);
-                log.info("Closed existing price (id={}) for product '{}' (id={}). EndDate set to {}",
-                        currentPrice.getId(), product.getName(), productId, closingDate);
-            } else {
-                // Use product's base price if no price history exists
-                basePrice = product.getPrice();
-                currentVat = product.getTaxRate() != null && product.getTaxRate().getVatRate() != null
-                        ? product.getTaxRate().getVatRate()
-                        : new BigDecimal("0.21");
+            if (current != null) {
+                current.setEndDate(closingDate);
+                productPriceRepository.save(current);
             }
 
-            // Calculate new price
-            BigDecimal newPrice;
-            if (request.getPercentage() != null) {
-                // Percentage increase: newPrice = basePrice * (1 + percentage/100)
-                BigDecimal multiplier = BigDecimal.ONE.add(request.getPercentage()
-                        .divide(BigDecimal.valueOf(100), 6, java.math.RoundingMode.HALF_UP));
-                newPrice = basePrice.multiply(multiplier)
-                        .setScale(2, RoundingMode.HALF_UP);
-            } else {
-                // Fixed amount increase
-                newPrice = basePrice.add(request.getFixedAmount())
-                        .setScale(2, RoundingMode.HALF_UP);
-            }
+            BigDecimal newGross = (request.getPercentage() != null) 
+                    ? oldGross.multiply(BigDecimal.ONE.add(request.getPercentage().divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP)))
+                    : oldGross.add(request.getFixedAmount() != null ? request.getFixedAmount() : BigDecimal.ZERO);
+            newGross = newGross.setScale(2, RoundingMode.HALF_UP);
 
-            // Determine VAT rate (use existing or new if provided)
-            BigDecimal vatRate = request.getVatRate() != null ? request.getVatRate() : currentVat;
-
-            // Calculate base_price_net: newPrice / (1 + vatRate)
-            BigDecimal basePriceNet = newPrice.divide(BigDecimal.ONE.add(vatRate), 10, RoundingMode.HALF_UP).setScale(2,
-                    RoundingMode.HALF_UP);
-
-            // Create new scheduled price
-            ProductPrice newPriceEntity = ProductPrice.builder()
+            ProductPrice nextEntry = ProductPrice.builder()
                     .product(product)
                     .vatRate(vatRate)
                     .startDate(effectiveDate)
-                    .endDate(null)
-                    .label(request.getLabel())
-                    .basePriceNet(basePriceNet)
-                    .price(basePriceNet.multiply(BigDecimal.ONE.add(vatRate)).setScale(2, RoundingMode.HALF_UP))
                     .build();
+            nextEntry.setPrice(newGross);
+            ProductPrice saved = productPriceRepository.save(nextEntry);
 
-            ProductPrice saved = productPriceRepository.save(newPriceEntity);
-
-            // Also update the base product price so TPV shows the correct price immediately
-            product.setPrice(newPrice);
+            product.setPrice(newGross);
             productRepository.save(product);
 
-            // ── Update TariffPriceHistory for all active tariffs ──
-            for (com.proconsi.electrobazar.model.Tariff tariff : allActiveTariffs) {
-                com.proconsi.electrobazar.model.TariffPriceHistory currentHistory = tariffPriceHistoryRepository
-                        .findCurrentByProductAndTariff(productId, tariff.getId()).orElse(null);
+            // Sync with all active tariffs
+            for (Tariff t : activeTariffs) {
+                tariffPriceHistoryRepository.findCurrentByProductAndTariff(productId, t.getId()).ifPresent(h -> {
+                    h.setValidTo(closingDate.toLocalDate());
+                    tariffPriceHistoryRepository.save(h);
+                });
 
-                BigDecimal oldBase = currentHistory != null ? currentHistory.getBasePrice() : basePrice;
+                BigDecimal oldBase = product.getPrice(); // Simplified logic for bulk update
+                BigDecimal newBase = selectedTariffIds.contains(t.getId()) ? newGross : oldBase;
+                
+                BigDecimal discountMult = BigDecimal.ONE.subtract((t.getDiscountPercentage() != null ? t.getDiscountPercentage() : BigDecimal.ZERO).divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
+                BigDecimal net = newBase.multiply(discountMult).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal reRate = recargoCalculator.getRecargoRate(vatRate);
 
-                if (currentHistory != null) {
-                    currentHistory.setValidTo(closingDate.toLocalDate());
-                    tariffPriceHistoryRepository.save(currentHistory);
-                }
-
-                BigDecimal newTariffBase;
-                if (selectedTariffIds.contains(tariff.getId())) {
-                    if (request.getPercentage() != null) {
-                        BigDecimal multiplier = BigDecimal.ONE.add(request.getPercentage()
-                                .divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
-                        newTariffBase = oldBase.multiply(multiplier).setScale(2, RoundingMode.HALF_UP);
-                    } else {
-                        newTariffBase = oldBase.add(request.getFixedAmount()).setScale(2, RoundingMode.HALF_UP);
-                    }
-                } else {
-                    newTariffBase = oldBase;
-                }
-
-                BigDecimal tariffDiscount = tariff.getDiscountPercentage() != null ? tariff.getDiscountPercentage()
-                        : BigDecimal.ZERO;
-
-                BigDecimal discountMultiplier = BigDecimal.ONE
-                        .subtract(tariffDiscount.divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
-                BigDecimal newNetPrice = newTariffBase.multiply(discountMultiplier).setScale(2, RoundingMode.HALF_UP);
-                BigDecimal newPriceWithVat = newNetPrice.multiply(BigDecimal.ONE.add(vatRate)).setScale(2,
-                        RoundingMode.HALF_UP);
-                BigDecimal newReRate = recargoCalculator.getRecargoRate(vatRate);
-                BigDecimal newPriceWithRe = newNetPrice.multiply(BigDecimal.ONE.add(vatRate).add(newReRate)).setScale(2,
-                        RoundingMode.HALF_UP);
-
-                com.proconsi.electrobazar.model.TariffPriceHistory newHistory = com.proconsi.electrobazar.model.TariffPriceHistory
-                        .builder()
-                        .product(product)
-                        .tariff(tariff)
-                        .basePrice(newTariffBase)
-                        .netPrice(newNetPrice)
-                        .vatRate(vatRate)
-                        .priceWithVat(newPriceWithVat)
-                        .reRate(newReRate)
-                        .priceWithRe(newPriceWithRe)
-                        .discountPercent(tariffDiscount)
-                        .validFrom(effectiveDate.toLocalDate())
-                        .validTo(null)
+                TariffPriceHistory news = TariffPriceHistory.builder()
+                        .product(product).tariff(t).basePrice(newBase).netPrice(net).vatRate(vatRate)
+                        .priceWithVat(net.multiply(BigDecimal.ONE.add(vatRate)).setScale(2, RoundingMode.HALF_UP))
+                        .reRate(reRate).priceWithRe(net.multiply(BigDecimal.ONE.add(vatRate).add(reRate)).setScale(2, RoundingMode.HALF_UP))
+                        .discountPercent(t.getDiscountPercentage()).validFrom(effectiveDate.toLocalDate())
                         .build();
-
-                tariffPriceHistoryRepository.save(newHistory);
+                tariffPriceHistoryRepository.save(news);
             }
-
-            log.info("Scheduled bulk price update for product '{}' (id={}): {} € (VAT {}%) starting {}",
-                    product.getName(), productId,
-                    saved.getPrice(), vatRate.multiply(new BigDecimal("100")).stripTrailingZeros().toPlainString(),
-                    effectiveDate);
-
-            results.add(toResponse(saved, false));
+            responses.add(toResponse(saved, false));
         }
 
-        activityLogService.logActivity(
-                "PROGRAMAR_PRECIOS_MASIVOS",
-                "Actualización masiva de precios para " + results.size() + " productos (Efectivo: "
-                        + effectiveDate.toString().replace("T", " ") + ")",
-                "Admin",
-                "PRODUCT",
-                null);
+        activityLogService.logActivity("PROGRAMAR_PRECIOS_MASIVOS", 
+                "Bulk price update for " + responses.size() + " products.", "Admin", "PRODUCT", null);
 
-        return results;
+        return responses;
     }
 }

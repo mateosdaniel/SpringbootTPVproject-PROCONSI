@@ -13,6 +13,11 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Scheduled task for official Tax Rate transitions.
+ * Ensures that whenever a new VAT or RE rate is scheduled to take effect,
+ * the entire product catalog and price historian are updated automatically.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -23,8 +28,8 @@ public class TaxRateScheduler {
     private final TariffService tariffService;
 
     /**
-     * Checks daily at 00:01 if there are any new TaxRates that should be applied starting today.
-     * Cron: "0 1 0 * * *" (Seconds Minutes Hours Day Month DayOfWeek)
+     * Daily check for new TaxRates starting today.
+     * Runs every day at 00:01 AM.
      */
     @Scheduled(cron = "0 1 0 * * *")
     public void autoApplyTaxRates() {
@@ -42,9 +47,7 @@ public class TaxRateScheduler {
             try {
                 log.info("Auto-applying TaxRate: {} ({}%)", rate.getDescription(), rate.getVatRate());
                 productService.applyNewTaxRate(rate.getId());
-                log.info("Successfully applied TaxRate: {}", rate.getDescription());
 
-                // Regenerate tariff_price_history for all products that now use this new VAT rate
                 List<Product> affectedProducts = productService.findAllActiveWithCategory().stream()
                         .filter(p -> p.getTaxRate() != null && rate.getId().equals(p.getTaxRate().getId()))
                         .toList();
@@ -52,10 +55,7 @@ public class TaxRateScheduler {
                 if (!affectedProducts.isEmpty()) {
                     log.info("Regenerating tariff price history for {} affected products.", affectedProducts.size());
                     tariffService.regenerateTariffHistoryForProducts(affectedProducts);
-                } else {
-                    log.info("No active products found with the new TaxRate id={} after applying.", rate.getId());
                 }
-
             } catch (Exception e) {
                 log.error("Error auto-applying TaxRate {}: {}", rate.getId(), e.getMessage());
             }

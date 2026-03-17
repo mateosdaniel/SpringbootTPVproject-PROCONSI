@@ -10,14 +10,22 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+/**
+ * Repository for {@link InvoiceSequence} entities.
+ * CRITICAL: Manages atomic sequence counters for Invoices, Tickets, and Returns.
+ * Ensures no gaps or duplicates in official documentation.
+ */
 @Repository
 public interface InvoiceSequenceRepository extends JpaRepository<InvoiceSequence, Long> {
 
     /**
-     * Finds the sequence row for the given serie+year and acquires a
-     * PESSIMISTIC_WRITE lock
-     * to prevent concurrent threads from reading the same lastNumber before it is
-     * incremented.
+     * Acquires a PESSIMISTIC_WRITE lock on a sequence row for a specific series and year.
+     * This prevents race conditions where two threads might read the same lastNumber 
+     * before it is incremented during document generation.
+     * 
+     * @param serie The document series (e.g., "F", "T", "D").
+     * @param year The fiscal year.
+     * @return The locked sequence row.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM InvoiceSequence s WHERE s.serie = :serie AND s.year = :year")
@@ -25,3 +33,5 @@ public interface InvoiceSequenceRepository extends JpaRepository<InvoiceSequence
             @Param("serie") String serie,
             @Param("year") int year);
 }
+
+

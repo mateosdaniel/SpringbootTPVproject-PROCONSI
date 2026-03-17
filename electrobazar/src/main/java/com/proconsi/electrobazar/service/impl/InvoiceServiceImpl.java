@@ -15,6 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.Optional;
 
+/**
+ * Implementation of {@link InvoiceService}.
+ * Manages the generation of legal invoices with strict sequential numbering.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -27,12 +31,11 @@ public class InvoiceServiceImpl implements InvoiceService {
     private final ActivityLogService activityLogService;
 
     /**
-     * Atomically increments the invoice sequence for the current year and serie,
-     * then persists and returns the new Invoice.
+     * Atomically increments the invoice sequence for the current year and serie.
+     * Uses PESSIMISTIC_WRITE locking to prevent race conditions and duplicate numbering.
      *
-     * The PESSIMISTIC_WRITE lock on the InvoiceSequence row guarantees that two
-     * concurrent transactions cannot read the same lastNumber before one of them
-     * commits the increment, preventing duplicate invoice numbers.
+     * @param sale The sale entity to link with the invoice.
+     * @return The newly generated Invoice.
      */
     @Override
     @Transactional
@@ -40,7 +43,7 @@ public class InvoiceServiceImpl implements InvoiceService {
         int invoiceYear = sale.getCreatedAt() != null ? sale.getCreatedAt().getYear() : LocalDate.now().getYear();
         String serie = DEFAULT_SERIE;
 
-        // Fetch (and lock) the sequence row for this serie+year, creating it if absent.
+        // Fetch and lock the sequence row.
         InvoiceSequence sequence = invoiceSequenceRepository
                 .findBySerieAndYearForUpdate(serie, invoiceYear)
                 .orElseGet(() -> {
@@ -52,16 +55,13 @@ public class InvoiceServiceImpl implements InvoiceService {
                     return invoiceSequenceRepository.save(newSeq);
                 });
 
-        // Increment and persist the next available sequence number.
-        // We use a loop and checking current repository to ensure strict sequentiality
-        // and no gaps.
         String invoiceNumber;
         do {
             int nextNumber = sequence.getLastNumber() + 1;
             sequence.setLastNumber(nextNumber);
             invoiceSequenceRepository.save(sequence);
 
-            // Format: F-2026-1 (serie, year, sequence)
+            // Format example: F-2026-1
             invoiceNumber = String.format("%s-%d-%d", serie, invoiceYear, nextNumber);
         } while (invoiceRepository.findByInvoiceNumber(invoiceNumber).isPresent());
 
@@ -75,12 +75,12 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .build();
 
         Invoice saved = invoiceRepository.save(invoice);
-        log.info("Invoice created: {} for sale #{}", invoiceNumber, sale.getId());
+        log.info("Invoice generated: {} for Sale ID {}", invoiceNumber, sale.getId());
 
         activityLogService.logActivity(
                 "CREAR_FACTURA",
-                "Factura generada: " + invoiceNumber + " (Venta #" + sale.getId() + ")",
-                "Sistema",
+                String.format("Invoice %s generated for Sale #%d", invoiceNumber, sale.getId()),
+                "System",
                 "INVOICE",
                 saved.getId());
 
@@ -93,3 +93,5 @@ public class InvoiceServiceImpl implements InvoiceService {
         return invoiceRepository.findBySaleId(saleId);
     }
 }
+
+

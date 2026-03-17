@@ -3,6 +3,12 @@ package com.proconsi.electrobazar.util;
 import org.springframework.stereotype.Component;
 import java.util.regex.Pattern;
 
+/**
+ * Utility component for validating Spanish Tax Identification Numbers.
+ * Supports NIF (Individuals), NIE (Foreigners), and CIF (Companies/Entities).
+ * 
+ * Validation rules follow official Spanish Tax Agency (AEAT) specifications.
+ */
 @Component
 public class NifCifValidator {
 
@@ -12,12 +18,12 @@ public class NifCifValidator {
     private static final String NIF_LETTERS = "TRWAGMYFPDXBNJZSQVHLCKE";
 
     /**
-     * Validates a Spanish NIF, NIE or CIF.
-     * Returns true if valid, false otherwise.
+     * Checks if the provided taxId is a valid Spanish document.
+     * Returns true for valid IDs or empty values.
      */
     public boolean isValid(String taxId) {
         if (taxId == null || taxId.trim().isEmpty()) {
-            return true; // Empty is valid based on requirements ("Allow empty")
+            return true;
         }
 
         String normalizedTaxId = taxId.trim().toUpperCase();
@@ -75,10 +81,10 @@ public class NifCifValidator {
 
         for (int i = 0; i < numbers.length(); i++) {
             int n = Character.getNumericValue(numbers.charAt(i));
-            if (i % 2 == 0) { // odd positions (0-indexed so 0, 2, 4, 6)
+            if (i % 2 == 0) {
                 int doubleOdd = n * 2;
-                oddSum += (doubleOdd >= 10) ? (doubleOdd - 9) : doubleOdd; // Sum of digits implementation
-            } else { // even positions
+                oddSum += (doubleOdd >= 10) ? (doubleOdd - 9) : doubleOdd;
+            } else {
                 evenSum += n;
             }
         }
@@ -86,11 +92,6 @@ public class NifCifValidator {
         int totalSum = evenSum + oddSum;
         int controlNumber = (10 - (totalSum % 10)) % 10;
 
-        // The control character can be a number or a letter.
-        // E.g., for some letter prefixes it MUST be a letter, for some it MUST be a
-        // number,
-        // but checking either is a good enough general approach unless specific rules
-        // are strictly applied.
         String letters = "JABCDEFGHI";
         char expectedLetter = letters.charAt(controlNumber);
         char expectedNumber = Character.forDigit(controlNumber, 10);

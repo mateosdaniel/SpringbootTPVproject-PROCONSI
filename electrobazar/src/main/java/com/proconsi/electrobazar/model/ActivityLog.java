@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+/**
+ * Entity representing an activity log entry to track system actions.
+ */
 @Entity
 @Table(name = "activity_logs")
 @Getter
@@ -17,22 +20,28 @@ public class ActivityLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Action performed (e.g., "CREATE_PRODUCT", "SALE", "CASH_CLOSE"). */
     @Column(nullable = false, length = 50)
-    private String action; // e.g. "CREATE_PRODUCT", "SALE", "CASH_CLOSE"a
+    private String action;
 
+    /** Detailed description of the activity. */
     @Column(nullable = false, length = 255)
     private String description;
 
+    /** Username of the worker who performed the action. */
     @Column(length = 100)
     private String username;
 
+    /** Timestamp of the activity. */
     @Column(nullable = false)
     @Builder.Default
     private LocalDateTime timestamp = LocalDateTime.now();
 
+    /** Type of the entity affected (e.g., "PRODUCT", "SALE"). */
     @Column(length = 50)
-    private String entityType; // e.g. "PRODUCT", "SALE", "CASH_DRAWER"
+    private String entityType;
 
+    /** ID of the entity affected. */
     @Column
     private Long entityId;
 }

@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * Handles administrative specific login and PIN verification to escalate privileges.
+ */
 @Controller
 @RequestMapping("/admin")
 public class AdminLoginController {
@@ -18,6 +21,9 @@ public class AdminLoginController {
         this.adminPinService = adminPinService;
     }
 
+    /**
+     * Verifies the administrator PIN and escalates session privileges.
+     */
     @PostMapping("/login")
     @ResponseBody
     public ResponseEntity<?> login(@RequestBody Map<String, String> body, HttpSession session) {
@@ -55,15 +61,18 @@ public class AdminLoginController {
 
             return ResponseEntity.ok(Map.of("ok", true));
         }
-        return ResponseEntity.status(401).body(Map.of("ok", false, "message", "PIN incorrecto"));
+        return ResponseEntity.status(401).body(Map.of("ok", false, "message", "Incorrect PIN"));
     }
 
+    /**
+     * Updates the admin PIN after verifying current PIN and matching new PIN.
+     */
     @PostMapping("/settings/pin")
     @ResponseBody
     public ResponseEntity<?> changePin(@RequestBody Map<String, String> body, HttpSession session) {
         if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
             return ResponseEntity.status(403)
-                    .body(Map.of("message", "Acceso denegado. Se requiere ser administrador."));
+                    .body(Map.of("message", "Access denied. Admin session required."));
         }
 
         String currentPin = body.getOrDefault("currentPin", "");
@@ -71,17 +80,20 @@ public class AdminLoginController {
         String confirmPin = body.getOrDefault("confirmPin", "");
 
         if (!newPin.equals(confirmPin)) {
-            return ResponseEntity.badRequest().body(Map.of("message", "El nuevo PIN y la confirmación no coinciden."));
+            return ResponseEntity.badRequest().body(Map.of("message", "The new PIN and confirmation do not match."));
         }
 
         try {
             adminPinService.updatePin(currentPin, newPin);
-            return ResponseEntity.ok(Map.of("ok", true, "message", "PIN actualizado correctamente."));
+            return ResponseEntity.ok(Map.of("ok", true, "message", "PIN updated successfully."));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 
+    /**
+     * Log out from admin session and redirect to storefront.
+     */
     @GetMapping("/logout")
     public String logout(HttpSession session) {
         session.invalidate();

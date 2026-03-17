@@ -10,25 +10,22 @@ import com.proconsi.electrobazar.service.ReturnService;
 import com.proconsi.electrobazar.service.SaleService;
 import com.proconsi.electrobazar.service.TicketService;
 import com.proconsi.electrobazar.service.WorkerService;
+import com.proconsi.electrobazar.exception.InsufficientCashException;
+import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 
 /**
- * REST API for handling returns from external TPV clients.
- *
- * Mirrors the behavior of the TPV MVC return flow in {@link com.proconsi.electrobazar.controller.web.TpvController}:
- * <ul>
- *   <li>Ticket lookup logic from {@code /tpv/return/check}.</li>
- *   <li>Return processing via {@link ReturnService#processReturn(Long, List, String, PaymentMethod, Worker)}.</li>
- *   <li>Worker identity and permissions resolved from JWT ({@code workerId}, {@code permissions}).</li>
- * </ul>
+ * REST API for handling product returns.
+ * Delegates complex fiscal logic (rectificative invoices, stock restoration) to the ReturnService.
+ * Requires the 'RETURNS' permission in the JWT token.
  */
 @RestController
 @RequestMapping("/api/returns")
@@ -41,35 +38,28 @@ public class ReturnApiRestController {
     private final WorkerService workerService;
     private final JwtService jwtService;
 
-    /**
-     * Lightweight DTO for checking whether a ticket/sale can be returned.
-     */
-    public record ReturnCheckResponse(Long saleId, boolean canReturn) {
-    }
+    /** Response DTO for ticket capability checks. */
+    public record ReturnCheckResponse(Long saleId, boolean canReturn) { }
 
-    /**
-     * Request body for processing a return.
-     * Wraps the same data that {@code TpvController.processReturn} expects.
-     */
+    /** Request DTO for processing a return. */
     public record ReturnRequest(
             Long saleId,
             List<ReturnLineRequest> lines,
             String reason,
-            PaymentMethod paymentMethod) {
-    }
+            PaymentMethod paymentMethod) { }
 
     /**
-     * GET /api/returns/check?query=...
-     *
-     * Mirrors TpvController.checkTicketForReturn, but returns a JSON payload:
-     * { "saleId": 123, "canReturn": true } on success, or a JSON error on failure.
+     * Checks if a ticket exists and is eligible for a return.
+     * Searches by numeric Sale ID first, then by alphanumeric Ticket Number.
+     * 
+     * @param query The ID or Ticket Number.
+     * @return 200 OK with saleId if found.
      */
     @GetMapping("/check")
     public ResponseEntity<?> checkTicketForReturn(@RequestParam String query) {
         try {
             Long saleId = null;
 
-            // 1. Try searching by numeric sale ID
             if (query.matches("\\d+")) {
                 Long id = Long.parseLong(query);
                 Sale sale = saleService.findById(id);
@@ -78,7 +68,6 @@ public class ReturnApiRestController {
                 }
             }
 
-            // 2. Try searching by Ticket Number
             if (saleId == null) {
                 saleId = ticketService.findByTicketNumber(query)
                         .map(t -> t.getSale().getId())
@@ -99,11 +88,12 @@ public class ReturnApiRestController {
     }
 
     /**
-     * POST /api/returns
-     *
-     * Processes a return for a given sale, delegating to {@link ReturnService}.
-     * The worker is resolved from the JWT token and must have the {@code RETURNS}
-     * permission.
+     * Processes a return transaction.
+     * Ensures the worker has sufficient permissions and that the cash drawer can cover the refund.
+     * 
+     * @param request Return details (lines, amounts, payment method).
+     * @param authorizationHeader Bearer JWT token.
+     * @return 201 Created with the generated {@link SaleReturn}.
      */
     @PostMapping
     public ResponseEntity<?> processReturn(
@@ -129,17 +119,14 @@ public class ReturnApiRestController {
             Number workerIdNum = jwtService.extractClaim(token, claims -> claims.get("workerId", Number.class));
             workerId = workerIdNum != null ? workerIdNum.longValue() : null;
             @SuppressWarnings("unchecked")
-            List<String> rawPermissions = jwtService.extractClaim(token,
-                    claims -> claims.get("permissions", List.class));
+            List<String> rawPermissions = jwtService.extractClaim(token, claims -> claims.get("permissions", List.class));
             permissions = rawPermissions;
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Invalid JWT token"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid JWT token"));
         }
 
         if (workerId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Token does not contain workerId"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Token does not contain workerId"));
         }
 
         if (permissions == null || !permissions.contains("RETURNS")) {
@@ -147,52 +134,39 @@ public class ReturnApiRestController {
                     .body(Map.of("error", "No tiene permiso para procesar devoluciones."));
         }
 
-        Optional<Worker> workerOpt = workerService.findById(workerId);
-        if (workerOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Trabajador no encontrado para el token proporcionado"));
-        }
-        Worker worker = workerOpt.get();
+        Worker worker = workerService.findById(workerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Trabajador no encontrado"));
 
         try {
             SaleReturn saleReturn = returnService.processReturn(
-                    request.saleId,
-                    request.lines,
-                    request.reason,
-                    request.paymentMethod,
-                    worker);
+                    request.saleId, request.lines, request.reason, request.paymentMethod, worker);
             return ResponseEntity.status(HttpStatus.CREATED).body(saleReturn);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("errorMessage", e.getMessage()));
-        } catch (com.proconsi.electrobazar.exception.InsufficientCashException e) {
+        } catch (IllegalArgumentException | InsufficientCashException e) {
             return ResponseEntity.badRequest().body(Map.of("errorMessage", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("errorMessage", "Error al procesar la devolución: " + e.getMessage()));
         }
     }
+
     /**
-     * GET /api/returns
-     *
-     * Returns a list of all returns, optionally filtered by date range.
-     * Requires ADMIN_ACCESS or similar elevated permissions.
+     * Retrieves all returns within a specified time range for auditing.
+     * @return List of {@link SaleReturn} entities.
      */
     @GetMapping
     public ResponseEntity<?> getAllReturns(
-            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime from,
-            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime to) {
-        
-        java.time.LocalDateTime startTime = from != null ? from : java.time.LocalDateTime.now().minusYears(1);
-        java.time.LocalDateTime endTime = to != null ? to : java.time.LocalDateTime.now();
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
 
-        List<SaleReturn> returns = returnService.findByCreatedAtBetween(startTime, endTime);
-        return ResponseEntity.ok(returns);
+        LocalDateTime startTime = from != null ? from : LocalDateTime.now().minusYears(1);
+        LocalDateTime endTime = to != null ? to : LocalDateTime.now();
+        return ResponseEntity.ok(returnService.findByCreatedAtBetween(startTime, endTime));
     }
 
     /**
-     * GET /api/returns/{id}
-     *
-     * Returns the details of a specific return.
+     * Retrieves specific return details.
+     * @param id The return ID.
+     * @return The requested {@link SaleReturn}.
      */
     @GetMapping("/{id}")
     public ResponseEntity<?> getReturnById(@PathVariable Long id) {
@@ -201,4 +175,3 @@ public class ReturnApiRestController {
                 .orElse(ResponseEntity.notFound().build());
     }
 }
-

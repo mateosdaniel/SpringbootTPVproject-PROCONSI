@@ -19,30 +19,28 @@ public class SaleWithTaxRequest {
      */
     private Long customerId;
 
-    /** The payment method used for this sale. */
+    /** The payment method used for this sale (CASH or CARD). */
     private PaymentMethod paymentMethod;
 
-    /** Optional notes for the sale. */
+    /** Optional notes or comments for the sale. */
     private String notes;
 
     /**
      * If true and a customer is provided, an invoice (factura) will be generated
-     * instead of a standard ticket. Mirrors the web TPV's requestInvoice flag.
+     * instead of a standard ticket.
      */
     private Boolean requestInvoice;
 
     /**
-     * Amount received from the customer (required for CASH payments).
-     * Used to calculate change.
+     * Amount received from the customer. Required for CASH payments to calculate change.
      */
     private BigDecimal receivedAmount;
 
-    /** The worker ID processing this sale. */
+    /** The ID of the worker processing this sale. */
     private Long workerId;
 
-    /** The list of items being sold. */
+    /** The list of items (product + quantity) being sold. */
     private List<SaleLineRequest> lines;
-
 
     /**
      * Represents a single line item in the sale request.
@@ -50,15 +48,15 @@ public class SaleWithTaxRequest {
     @Data
     public static class SaleLineRequest {
 
-        /** The product ID. */
+        /** The ID of the product. */
         private Long productId;
 
-        /** The quantity to sell. */
+        /** The number of units to sell. */
         private Integer quantity;
 
         /**
-         * Optional: override the price for this line.
-         * If null, the current active price from the temporal pricing system will be used.
+         * Optional: override the default price for this specific line.
+         * If null, the system will use the currently active price.
          */
         private BigDecimal overridePrice;
     }

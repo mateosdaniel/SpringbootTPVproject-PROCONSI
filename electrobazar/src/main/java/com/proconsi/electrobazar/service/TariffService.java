@@ -2,64 +2,87 @@ package com.proconsi.electrobazar.service;
 
 import com.proconsi.electrobazar.model.Product;
 import com.proconsi.electrobazar.model.Tariff;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Interface defining operations for customer pricing tariffs.
+ */
 public interface TariffService {
 
-    /** Returns all tariffs (active and inactive). */
+    /**
+     * Retrieves all tariffs, regardless of status.
+     * @return List of all Tariff entities.
+     */
     List<Tariff> findAll();
 
-    /** Returns only active tariffs, sorted by name. */
+    /**
+     * Retrieves currently active tariffs.
+     * @return List of active tariffs.
+     */
     List<Tariff> findAllActive();
 
-    /** Looks up a tariff by its primary key. */
+    /**
+     * Finds a tariff by ID.
+     * @param id Primary key.
+     * @return Optional containing the Tariff.
+     */
     Optional<Tariff> findById(Long id);
 
-    /** Looks up a tariff by its unique name. */
+    /**
+     * Finds a tariff by its unique name.
+     * @param name The tariff name.
+     * @return Optional containing the Tariff.
+     */
     Optional<Tariff> findByName(String name);
 
     /**
-     * Returns the MINORISTA tariff (always exists).
-     * Used as the default when a customer has no tariff.
+     * Returns the system's default retail tariff (MINORISTA).
+     * @return The default Tariff entity.
      */
     Tariff getDefault();
 
-    /** Creates a new custom tariff. */
+    /**
+     * Creates a new custom tariff.
+     * @param name               Name of the tariff.
+     * @param discountPercentage Discount to apply on gross prices.
+     * @param description        Optional description.
+     * @return The saved Tariff.
+     */
     Tariff create(String name, BigDecimal discountPercentage, String description);
 
-    /** Updates the discount percentage and description of an existing tariff. */
+    /**
+     * Updates an existing custom tariff.
+     * @param id                 ID of the tariff.
+     * @param discountPercentage New discount value.
+     * @param description        New description.
+     * @return The updated Tariff.
+     */
     Tariff update(Long id, BigDecimal discountPercentage, String description);
 
     /**
-     * Deactivates a custom tariff (system tariffs cannot be deactivated).
-     * Customers using this tariff will be automatically moved to MINORISTA.
+     * Deactivates a tariff. Customers using it will revert to default.
+     * @param id ID to deactivate.
      */
     void deactivate(Long id);
 
     /**
-     * Re-activates a previously deactivated custom tariff.
+     * Activates a previously disabled tariff.
+     * @param id ID to activate.
      */
     void activate(Long id);
 
     /**
-     * Returns a map of tariffId -> customerCount for all tariffs
-     * (only active customers are counted).
+     * Counts how many customers are currently assigned to each tariff.
+     * @return A map of tariffId to customerCount.
      */
     Map<Long, Long> getCustomerCountPerTariff();
 
     /**
-     * Closes open tariff_price_history records for the given products and
-     * regenerates new records for every active tariff using the VAT rate
-     * already stored in each product entity.
-     *
-     * <p>Intended to be called by the scheduler immediately after a new VAT
-     * rate has been applied to the affected products.</p>
-     *
-     * @param affectedProducts products whose VAT rate was just updated
+     * Regenerates historical price snapshots for products, usually after a tax change.
+     * @param affectedProducts List of products to process.
      */
     void regenerateTariffHistoryForProducts(List<Product> affectedProducts);
 }

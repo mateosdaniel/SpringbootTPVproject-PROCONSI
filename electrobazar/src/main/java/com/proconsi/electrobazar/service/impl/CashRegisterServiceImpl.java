@@ -4,7 +4,9 @@ import com.proconsi.electrobazar.dto.CashRegisterOpenSuggestion;
 import com.proconsi.electrobazar.dto.DashboardStatsDTO;
 import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import com.proconsi.electrobazar.model.CashRegister;
+import com.proconsi.electrobazar.model.CashWithdrawal;
 import com.proconsi.electrobazar.model.PaymentMethod;
+import com.proconsi.electrobazar.model.Worker;
 import com.proconsi.electrobazar.repository.CashRegisterRepository;
 import com.proconsi.electrobazar.repository.ProductRepository;
 import com.proconsi.electrobazar.repository.SaleRepository;
@@ -19,292 +21,245 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
+/**
+ * Implementation of {@link CashRegisterService}.
+ * Manages the lifecycle of cash register shifts, including opening balances,
+ * sales tracking, and closing reconciliations with calculated differences.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class CashRegisterServiceImpl implements CashRegisterService {
 
-        private final CashRegisterRepository cashRegisterRepository;
-        private final SaleRepository saleRepository;
-        private final SaleReturnRepository saleReturnRepository;
-        private final ProductRepository productRepository;
-        private final ActivityLogService activityLogService;
+    private final CashRegisterRepository cashRegisterRepository;
+    private final SaleRepository saleRepository;
+    private final SaleReturnRepository saleReturnRepository;
+    private final ProductRepository productRepository;
+    private final ActivityLogService activityLogService;
 
-        @Override
-        @Transactional(readOnly = true)
-        public CashRegister findById(Long id) {
-                return cashRegisterRepository.findById(id)
-                                .orElseThrow(() -> new ResourceNotFoundException(
-                                                "Cierre de caja no encontrado con id: " + id));
+    @Override
+    @Transactional(readOnly = true)
+    public CashRegister findById(Long id) {
+        return cashRegisterRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cash register not found with id: " + id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CashRegister> findAllClosed() {
+        return cashRegisterRepository.findByClosedTrueOrderByRegisterDateDesc();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CashRegister findTodayIfClosed() {
+        return cashRegisterRepository.findByRegisterDateAndClosedTrue(LocalDate.now())
+                .orElseThrow(() -> new ResourceNotFoundException("No cash register closure found for today."));
+    }
+
+    @Override
+    public CashRegister closeCashRegister(BigDecimal closingBalance, String notes, Worker worker, BigDecimal retainedAmount) {
+        LocalDate today = LocalDate.now();
+
+        // Retrieve current open register or create a dummy one if none found (should not happen in normal flow)
+        CashRegister register = cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc()
+                .orElse(CashRegister.builder()
+                        .registerDate(today)
+                        .openingBalance(BigDecimal.ZERO)
+                        .build());
+
+        LocalDateTime startTime = register.getOpeningTime() != null ? register.getOpeningTime() : today.atStartOfDay();
+        LocalDateTime endOfDay = today.plusDays(1).atStartOfDay().minusNanos(1);
+
+        // Aggregate totals for the current shift
+        BigDecimal cashSales = saleRepository.sumTotalBetweenByPaymentMethod(startTime, endOfDay, PaymentMethod.CASH)
+                .orElse(BigDecimal.ZERO);
+        BigDecimal cardSales = saleRepository.sumTotalBetweenByPaymentMethod(startTime, endOfDay, PaymentMethod.CARD)
+                .orElse(BigDecimal.ZERO);
+        BigDecimal totalSales = cashSales.add(cardSales);
+
+        BigDecimal openingBal = register.getOpeningBalance() != null ? register.getOpeningBalance() : BigDecimal.ZERO;
+
+        BigDecimal totalWithdrawals = register.getWithdrawals().stream()
+                .filter(w -> w.getType() == CashWithdrawal.MovementType.WITHDRAWAL)
+                .map(CashWithdrawal::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalEntries = register.getWithdrawals().stream()
+                .filter(w -> w.getType() == CashWithdrawal.MovementType.ENTRY)
+                .map(CashWithdrawal::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal cashRefunds = saleReturnRepository.sumTotalRefundedBetweenByPaymentMethod(startTime, endOfDay, PaymentMethod.CASH);
+        BigDecimal cardRefunds = saleReturnRepository.sumTotalRefundedBetweenByPaymentMethod(startTime, endOfDay, PaymentMethod.CARD);
+
+        // Map values to entity
+        register.setCashSales(cashSales);
+        register.setCardSales(cardSales);
+        register.setTotalSales(totalSales);
+        register.setClosingBalance(closingBalance != null ? closingBalance : BigDecimal.ZERO);
+        register.setCashRefunds(cashRefunds);
+        register.setCardRefunds(cardRefunds);
+        register.setTotalWithdrawals(totalWithdrawals);
+        register.setTotalEntries(totalEntries);
+
+        // Calculate discrepancy
+        BigDecimal expected = openingBal.add(register.getCashSales())
+                .add(totalEntries)
+                .subtract(totalWithdrawals)
+                .subtract(register.getCashRefunds());
+        register.setDifference(register.getClosingBalance().subtract(expected));
+
+        register.setNotes(notes);
+        register.setClosedAt(LocalDateTime.now());
+        register.setClosed(true);
+        register.setWorker(worker);
+
+        if (retainedAmount != null) {
+            register.setRetainedForNextShift(retainedAmount);
+            register.setRetainedByWorker(worker);
         }
 
-        @Override
-        @Transactional(readOnly = true)
-        public List<CashRegister> findAllClosed() {
-                return cashRegisterRepository.findByClosedTrueOrderByRegisterDateDesc();
+        CashRegister saved = cashRegisterRepository.saveAndFlush(register);
+
+        // Audit Trail
+        String username = (worker != null) ? worker.getUsername() : "Anonymous";
+        BigDecimal diff = saved.getDifference() != null ? saved.getDifference() : BigDecimal.ZERO;
+        String logMsg = String.format("Shift closed by %s. Discrepancy: %.2f €", username, diff);
+        if (retainedAmount != null) {
+            logMsg += String.format(". Retained for next shift: %.2f €", retainedAmount);
         }
 
-        @Override
-        @Transactional(readOnly = true)
-        public CashRegister findTodayIfClosed() {
-                return cashRegisterRepository.findByRegisterDateAndClosedTrue(LocalDate.now())
-                                .orElseThrow(() -> new ResourceNotFoundException("No hay cierre de caja para hoy"));
+        activityLogService.logActivity("CIERRE_CAJA", logMsg, username, "CASH_REGISTER", saved.getId());
+
+        return saved;
+    }
+
+    @Override
+    public Optional<CashRegister> getOpenRegister() {
+        return cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc();
+    }
+
+    @Override
+    public CashRegister openCashRegister(BigDecimal openingBalance, Worker worker) {
+        if (getOpenRegister().isPresent()) {
+            throw new IllegalStateException("An open shift already exists.");
         }
 
-        @Override
-        public CashRegister closeCashRegister(BigDecimal closingBalance, String notes,
-                        com.proconsi.electrobazar.model.Worker worker,
-                        BigDecimal retainedAmount) {
-                try {
-                        LocalDate today = LocalDate.now();
+        CashRegister newRegister = CashRegister.builder()
+                .registerDate(LocalDate.now())
+                .openingBalance(openingBalance)
+                .openingTime(LocalDateTime.now())
+                .cashSales(BigDecimal.ZERO)
+                .cardSales(BigDecimal.ZERO)
+                .totalSales(BigDecimal.ZERO)
+                .closed(false)
+                .worker(worker)
+                .build();
 
-                        // Obtener registro abierto actual
-                        CashRegister register = cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc()
-                                        .orElse(CashRegister.builder()
-                                                        .registerDate(today)
-                                                        .openingBalance(BigDecimal.ZERO)
-                                                        .build());
+        CashRegister saved = cashRegisterRepository.save(newRegister);
+        String username = worker != null ? worker.getUsername() : "Anonymous";
 
-                        // Calcular totales solo desde la apertura de este registro
-                        LocalDateTime startTime = register.getOpeningTime() != null ? register.getOpeningTime()
-                                        : today.atStartOfDay();
-                        LocalDateTime endOfDay = today.plusDays(1).atStartOfDay().minusNanos(1);
+        activityLogService.logActivity(
+                "APERTURA_CAJA",
+                String.format("New shift opened by %s with %.2f €", username, openingBalance),
+                username,
+                "CASH_REGISTER",
+                saved.getId());
 
-                        BigDecimal cashSales = saleRepository
-                                        .sumTotalBetweenByPaymentMethod(startTime, endOfDay, PaymentMethod.CASH)
-                                        .orElse(BigDecimal.ZERO);
-                        BigDecimal cardSales = saleRepository
-                                        .sumTotalBetweenByPaymentMethod(startTime, endOfDay, PaymentMethod.CARD)
-                                        .orElse(BigDecimal.ZERO);
-                        BigDecimal totalSales = cashSales.add(cardSales);
+        return saved;
+    }
 
-                        BigDecimal openingBal = register.getOpeningBalance() != null ? register.getOpeningBalance()
-                                        : BigDecimal.ZERO;
+    @Override
+    @Transactional(readOnly = true)
+    public CashRegisterOpenSuggestion getOpenSuggestion() {
+        return cashRegisterRepository.findFirstByClosedTrueOrderByClosedAtDesc()
+                .filter(r -> r.getRetainedForNextShift() != null)
+                .map(r -> CashRegisterOpenSuggestion.builder()
+                        .hasSuggestion(true)
+                        .suggestedBalance(r.getRetainedForNextShift())
+                        .build())
+                .orElse(CashRegisterOpenSuggestion.builder()
+                        .hasSuggestion(false)
+                        .build());
+    }
 
-                        // Separate withdrawals (OUT) from entries (IN)
-                        BigDecimal totalWithdrawals = register.getWithdrawals().stream()
-                                        .filter(w -> w.getType() == com.proconsi.electrobazar.model.CashWithdrawal.MovementType.WITHDRAWAL)
-                                        .map(com.proconsi.electrobazar.model.CashWithdrawal::getAmount)
-                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+    @Override
+    public BigDecimal calculateExpectedCashBalance(CashRegister register) {
+        if (register == null) return BigDecimal.ZERO;
 
-                        BigDecimal totalEntries = register.getWithdrawals().stream()
-                                        .filter(w -> w.getType() == com.proconsi.electrobazar.model.CashWithdrawal.MovementType.ENTRY)
-                                        .map(com.proconsi.electrobazar.model.CashWithdrawal::getAmount)
-                                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+        LocalDateTime startTime = register.getOpeningTime() != null ? register.getOpeningTime() : register.getRegisterDate().atStartOfDay();
+        LocalDateTime now = LocalDateTime.now();
 
-                        BigDecimal cashRefunds = saleReturnRepository
-                                        .sumTotalRefundedBetweenByPaymentMethod(startTime, endOfDay,
-                                                        PaymentMethod.CASH);
-                        BigDecimal cardRefunds = saleReturnRepository
-                                        .sumTotalRefundedBetweenByPaymentMethod(startTime, endOfDay,
-                                                        PaymentMethod.CARD);
+        BigDecimal cashSales = saleRepository.sumTotalBetweenByPaymentMethod(startTime, now, PaymentMethod.CASH)
+                .orElse(BigDecimal.ZERO);
 
-                        register.setCashSales(cashSales != null ? cashSales : BigDecimal.ZERO);
-                        register.setCardSales(cardSales != null ? cardSales : BigDecimal.ZERO);
-                        register.setTotalSales(totalSales != null ? totalSales : BigDecimal.ZERO);
-                        register.setClosingBalance(closingBalance != null ? closingBalance : BigDecimal.ZERO);
-                        register.setCashRefunds(cashRefunds != null ? cashRefunds : BigDecimal.ZERO);
-                        register.setCardRefunds(cardRefunds != null ? cardRefunds : BigDecimal.ZERO);
+        BigDecimal totalWithdrawals = register.getWithdrawals().stream()
+                .filter(w -> w.getType() == CashWithdrawal.MovementType.WITHDRAWAL)
+                .map(CashWithdrawal::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                        // We use the subtracted sum of withdrawals and entries for the register's
-                        // totalWithdrawals field if we want to keep it simple,
-                        // but it's better to store just the net or the withdrawals only.
-                        // For now, I'll store the net effect: Withdrawals - Entries? No, let's keep
-                        // setTotalWithdrawals for actual withdrawals.
-                        register.setTotalWithdrawals(totalWithdrawals != null ? totalWithdrawals : BigDecimal.ZERO);
-                        register.setTotalEntries(totalEntries != null ? totalEntries : BigDecimal.ZERO);
+        BigDecimal totalEntries = register.getWithdrawals().stream()
+                .filter(w -> w.getType() == CashWithdrawal.MovementType.ENTRY)
+                .map(CashWithdrawal::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                        BigDecimal expected = openingBal.add(register.getCashSales())
-                                        .add(totalEntries)
-                                        .subtract(totalWithdrawals)
-                                        .subtract(register.getCashRefunds());
-                        register.setDifference(register.getClosingBalance().subtract(expected));
+        BigDecimal cashRefunds = saleReturnRepository.sumTotalRefundedBetweenByPaymentMethod(startTime, now, PaymentMethod.CASH);
 
-                        register.setNotes(notes);
-                        register.setClosedAt(LocalDateTime.now());
-                        register.setClosed(true);
-                        register.setWorker(worker);
+        return register.getOpeningBalance()
+                .add(cashSales)
+                .add(totalEntries)
+                .subtract(totalWithdrawals)
+                .subtract(cashRefunds);
+    }
 
-                        // Persist retained cash for the next shift if provided
-                        if (retainedAmount != null) {
-                                register.setRetainedForNextShift(retainedAmount);
-                                register.setRetainedByWorker(worker);
-                        }
+    @Override
+    public BigDecimal getCurrentCashBalance() {
+        return getOpenRegister()
+                .map(this::calculateExpectedCashBalance)
+                .orElse(BigDecimal.ZERO);
+    }
 
-                        // Force save and flush to catch DB errors here
-                        CashRegister closedRegister = cashRegisterRepository.saveAndFlush(register);
+    @Override
+    @Transactional(readOnly = true)
+    public DashboardStatsDTO getDashboardStats(String period) {
+        Optional<CashRegister> openRegister = getOpenRegister();
+        LocalDateTime from;
+        LocalDateTime to = LocalDateTime.now();
+        boolean shiftActive = openRegister.isPresent();
+        BigDecimal openingBalance = shiftActive ? openRegister.get().getOpeningBalance() : BigDecimal.ZERO;
 
-                        // Safety for logging
-                        try {
-                                String username = (worker != null) ? worker.getUsername() : "Anónimo";
-                                BigDecimal diff = closedRegister.getDifference() != null
-                                                ? closedRegister.getDifference()
-                                                : BigDecimal.ZERO;
-                                String difTxt = diff.setScale(2, java.math.RoundingMode.HALF_UP) + " \u20ac";
-
-                                String retainedTxt = retainedAmount != null
-                                                ? ". Retenido para siguiente turno: "
-                                                                + retainedAmount.setScale(2,
-                                                                                java.math.RoundingMode.HALF_UP)
-                                                                + " \u20ac"
-                                                : "";
-
-                                activityLogService.logActivity(
-                                                "CIERRE_CAJA",
-                                                "Cierre de caja completado por " + username + " con descuadre de "
-                                                                + difTxt + retainedTxt,
-                                                username,
-                                                "CASH_REGISTER",
-                                                closedRegister.getId());
-                        } catch (Exception logEx) {
-                                System.err.println("Error creating activity log for cash close: " + logEx.getMessage());
-                        }
-
-                        return closedRegister;
-                } catch (Exception e) {
-                        System.err.println("CRITICAL ERROR IN closeCashRegister: " + e.getMessage());
-                        e.printStackTrace();
-                        throw e;
-                }
+        if (period == null || period.equalsIgnoreCase("shift")) {
+            from = shiftActive ? openRegister.get().getOpeningTime() : LocalDate.now().atStartOfDay();
+        } else {
+            from = switch (period.toLowerCase()) {
+                case "today" -> LocalDate.now().atStartOfDay();
+                case "7days" -> LocalDateTime.now().minusDays(7);
+                case "1month" -> LocalDateTime.now().minusMonths(1);
+                case "6months" -> LocalDateTime.now().minusMonths(6);
+                case "1year" -> LocalDateTime.now().minusYears(1);
+                case "all" -> LocalDateTime.of(2000, 1, 1, 0, 0);
+                default -> LocalDate.now().atStartOfDay();
+            };
         }
 
-        @Override
-        public java.util.Optional<CashRegister> getOpenRegister() {
-                return cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc();
-        }
+        BigDecimal revenue = saleRepository.sumTotalBetween(from, to);
+        long salesCount = saleRepository.countByCreatedAtBetween(from, to);
+        String topProduct = saleRepository.findTopProductNameBetween(from, to);
+        long lowStockCount = productRepository.countByStockLessThan(5);
 
-        @Override
-        public CashRegister openCashRegister(BigDecimal openingBalance, com.proconsi.electrobazar.model.Worker worker) {
-                if (getOpenRegister().isPresent()) {
-                        throw new IllegalStateException("Ya hay una caja abierta");
-                }
-                CashRegister newRegister = CashRegister.builder()
-                                .registerDate(LocalDate.now())
-                                .openingBalance(openingBalance)
-                                .openingTime(LocalDateTime.now())
-                                .cashSales(BigDecimal.ZERO)
-                                .cardSales(BigDecimal.ZERO)
-                                .totalSales(BigDecimal.ZERO)
-                                .closed(false)
-                                .worker(worker)
-                                .build();
-                CashRegister saved = cashRegisterRepository.save(newRegister);
-                String username = worker != null ? worker.getUsername() : "Anónimo";
-                activityLogService.logActivity(
-                                "APERTURA_CAJA",
-                                "Apertura de caja realizada por " + username + " con saldo inicial de "
-                                                + openingBalance.setScale(2, java.math.RoundingMode.HALF_UP)
-                                                + " \u20ac",
-                                username,
-                                "CASH_REGISTER",
-                                saved.getId());
-                return saved;
-        }
-
-        @Override
-        @Transactional(readOnly = true)
-        public CashRegisterOpenSuggestion getOpenSuggestion() {
-                return cashRegisterRepository.findFirstByClosedTrueOrderByClosedAtDesc()
-                                .filter(r -> r.getRetainedForNextShift() != null)
-                                .map(r -> CashRegisterOpenSuggestion.builder()
-                                                .hasSuggestion(true)
-                                                .suggestedBalance(r.getRetainedForNextShift())
-                                                .build())
-                                .orElse(CashRegisterOpenSuggestion.builder()
-                                                .hasSuggestion(false)
-                                                .suggestedBalance(null)
-                                                .build());
-        }
-
-        @Override
-        public BigDecimal calculateExpectedCashBalance(CashRegister register) {
-                if (register == null) {
-                        return BigDecimal.ZERO;
-                }
-
-                LocalDateTime startTime = register.getOpeningTime() != null ? register.getOpeningTime()
-                                : register.getRegisterDate().atStartOfDay();
-                LocalDateTime now = LocalDateTime.now();
-
-                BigDecimal cashSales = saleRepository
-                                .sumTotalBetweenByPaymentMethod(startTime, now, PaymentMethod.CASH)
-                                .orElse(BigDecimal.ZERO);
-
-                BigDecimal totalWithdrawals = register.getWithdrawals().stream()
-                                .filter(w -> w.getType() == com.proconsi.electrobazar.model.CashWithdrawal.MovementType.WITHDRAWAL)
-                                .map(com.proconsi.electrobazar.model.CashWithdrawal::getAmount)
-                                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-                BigDecimal totalEntries = register.getWithdrawals().stream()
-                                .filter(w -> w.getType() == com.proconsi.electrobazar.model.CashWithdrawal.MovementType.ENTRY)
-                                .map(com.proconsi.electrobazar.model.CashWithdrawal::getAmount)
-                                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-                BigDecimal cashRefunds = saleReturnRepository
-                                .sumTotalRefundedBetweenByPaymentMethod(startTime, now, PaymentMethod.CASH);
-
-                return register.getOpeningBalance()
-                                .add(cashSales)
-                                .add(totalEntries)
-                                .subtract(totalWithdrawals)
-                                .subtract(cashRefunds);
-        }
-
-        @Override
-        public BigDecimal getCurrentCashBalance() {
-                return getOpenRegister()
-                                .map(this::calculateExpectedCashBalance)
-                                .orElse(BigDecimal.ZERO);
-        }
-
-        @Override
-        @Transactional(readOnly = true)
-        public DashboardStatsDTO getDashboardStats(String period) {
-                java.util.Optional<CashRegister> openRegister = getOpenRegister();
-                LocalDateTime from;
-                LocalDateTime to = LocalDateTime.now();
-                boolean shiftActive = openRegister.isPresent();
-                BigDecimal openingBalance = BigDecimal.ZERO;
-
-                if (period == null || period.equalsIgnoreCase("shift")) {
-                        if (shiftActive) {
-                                from = openRegister.get().getOpeningTime() != null ? openRegister.get().getOpeningTime()
-                                                : LocalDate.now().atStartOfDay();
-                                openingBalance = openRegister.get().getOpeningBalance();
-                        } else {
-                                from = LocalDate.now().atStartOfDay();
-                        }
-                } else if (period.equalsIgnoreCase("today")) {
-                        from = LocalDate.now().atStartOfDay();
-                } else if (period.equalsIgnoreCase("7days")) {
-                        from = LocalDateTime.now().minusDays(7);
-                } else if (period.equalsIgnoreCase("1month")) {
-                        from = LocalDateTime.now().minusMonths(1);
-                } else if (period.equalsIgnoreCase("6months")) {
-                        from = LocalDateTime.now().minusMonths(6);
-                } else if (period.equalsIgnoreCase("1year")) {
-                        from = LocalDateTime.now().minusYears(1);
-                } else if (period.equalsIgnoreCase("all")) {
-                        from = LocalDateTime.of(2000, 1, 1, 0, 0);
-                } else {
-                        from = LocalDate.now().atStartOfDay();
-                }
-
-                BigDecimal revenue = saleRepository.sumTotalBetween(from, to);
-                long salesCount = saleRepository.countByCreatedAtBetween(from, to);
-                String topProduct = saleRepository.findTopProductNameBetween(from, to);
-                long lowStockCount = productRepository.countByStockLessThan(5);
-
-                return DashboardStatsDTO.builder()
-                                .shiftActive(shiftActive)
-                                .shiftOpeningTime(shiftActive ? openRegister.get().getOpeningTime() : null)
-                                .revenue(revenue != null ? revenue : BigDecimal.ZERO)
-                                .salesCount((int) salesCount)
-                                .topProduct(topProduct != null ? topProduct : "—")
-                                .lowStockCount((int) lowStockCount)
-                                .openingBalance(openingBalance)
-                                .build();
-        }
-
+        return DashboardStatsDTO.builder()
+                .shiftActive(shiftActive)
+                .shiftOpeningTime(shiftActive ? openRegister.get().getOpeningTime() : null)
+                .revenue(revenue != null ? revenue : BigDecimal.ZERO)
+                .salesCount((int) salesCount)
+                .topProduct(topProduct != null ? topProduct : "—")
+                .lowStockCount((int) lowStockCount)
+                .openingBalance(openingBalance)
+                .build();
+    }
 }
+
+

@@ -16,20 +16,7 @@ import java.util.Map;
 
 /**
  * REST controller for managing temporal product prices.
- *
- * <p>Base path: {@code /api/product-prices}</p>
- *
- * <h3>Endpoints:</h3>
- * <ul>
- *   <li>{@code GET  /api/product-prices/{productId}/current}
- *       — Get the currently active price for a product</li>
- *   <li>{@code POST /api/product-prices/{productId}/schedule}
- *       — Schedule a new future price for a product</li>
- *   <li>{@code GET  /api/product-prices/{productId}/history}
- *       — Get the full price history for a product</li>
- *   <li>{@code GET  /api/product-prices/future}
- *       — Get all future-scheduled prices across all products</li>
- * </ul>
+ * Handles the historical tracking and future scheduling of product prices and VAT rates.
  */
 @RestController
 @RequestMapping("/api/product-prices")
@@ -40,14 +27,10 @@ public class ProductPriceApiRestController {
 
     /**
      * Returns the currently active price for a product at the current moment.
+     * This endpoint leverages caching in the service layer.
      *
-     * <p>This endpoint leverages the {@code @Cacheable} mechanism in the service layer,
-     * so repeated calls for the same product will be served from cache.</p>
-     *
-     * <p>Example: {@code GET /api/product-prices/42/current}</p>
-     *
-     * @param productId the ID of the product
-     * @return 200 with the active {@link ProductPriceResponse}, or 404 if no price is configured
+     * @param productId The ID of the product.
+     * @return 200 with the active price response, or 404 if not found.
      */
     @GetMapping("/{productId}/current")
     public ResponseEntity<ProductPriceResponse> getCurrentPrice(@PathVariable Long productId) {
@@ -59,29 +42,12 @@ public class ProductPriceApiRestController {
     }
 
     /**
-     * Schedules a new price for a product starting at the specified date.
+     * Schedules a new price for a product starting at a specific date.
+     * Existing open-ended prices are automatically closed to accommodate the new schedule.
      *
-     * <p>Business logic (handled by the service):</p>
-     * <ul>
-     *   <li>If a current open-ended price exists, its endDate is automatically set to
-     *       {@code startDate - 1 second}.</li>
-     *   <li>The new price is created with the provided startDate and a null endDate.</li>
-     *   <li>The product price cache is evicted after the operation.</li>
-     * </ul>
-     *
-     * <p>Example request body for a New Year price increase:</p>
-     * <pre>{@code
-     * {
-     *   "price": 29.99,
-     *   "vatRate": 0.21,
-     *   "startDate": "2026-01-01T00:00:00",
-     *   "label": "Tarifa 2026"
-     * }
-     * }</pre>
-     *
-     * @param productId the ID of the product
-     * @param request   the price scheduling request
-     * @return 201 with the newly created {@link ProductPriceResponse}
+     * @param productId The ID of the product.
+     * @param request Price details including effective start date.
+     * @return 201 Created with the new price schedule.
      */
     @PostMapping("/{productId}/schedule")
     public ResponseEntity<ProductPriceResponse> schedulePrice(
@@ -92,12 +58,9 @@ public class ProductPriceApiRestController {
     }
 
     /**
-     * Returns the complete price history for a product, ordered by startDate descending.
-     *
-     * <p>Example: {@code GET /api/product-prices/42/history}</p>
-     *
-     * @param productId the ID of the product
-     * @return 200 with the list of all {@link ProductPriceResponse} records
+     * Returns the complete price history for a product.
+     * @param productId The ID of the product.
+     * @return List of all historical and future price records.
      */
     @GetMapping("/{productId}/history")
     public ResponseEntity<List<ProductPriceResponse>> getPriceHistory(@PathVariable Long productId) {
@@ -105,13 +68,8 @@ public class ProductPriceApiRestController {
     }
 
     /**
-     * Returns all future-scheduled prices across all products.
-     *
-     * <p>Useful for administrative dashboards to preview upcoming price changes.</p>
-     *
-     * <p>Example: {@code GET /api/product-prices/future}</p>
-     *
-     * @return 200 with the list of future {@link ProductPriceResponse} records
+     * Retrieves all future-scheduled price changes across the entire catalog.
+     * @return List of upcoming price records.
      */
     @GetMapping("/future")
     public ResponseEntity<List<ProductPriceResponse>> getFuturePrices() {
@@ -119,12 +77,8 @@ public class ProductPriceApiRestController {
     }
 
     /**
-     * Returns the VAT-to-RE rate mapping for informational purposes.
-     * Useful for front-end display of applicable tax rates.
-     *
-     * <p>Example: {@code GET /api/product-prices/re-rates}</p>
-     *
-     * @return 200 with a map of VAT rates to RE rates
+     * Returns the informational mapping between standard VAT rates and RE surcharge rates.
+     * @return Map of VAT labels to RE labels.
      */
     @GetMapping("/re-rates")
     public ResponseEntity<Map<String, String>> getReRates() {
@@ -138,33 +92,11 @@ public class ProductPriceApiRestController {
     }
 
     /**
-     * Bulk schedules price updates for multiple products.
+     * Bulk schedules price updates for multiple products simultaneously.
+     * Supports both percentage-based and fixed-amount adjustments.
      *
-     * <p>Allows selecting multiple products and scheduling price changes (either by percentage
-     * or fixed amount increase) with a future effective date.</p>
-     *
-     * <p>Example request body:</p>
-     * <pre>{@code
-     * {
-     *   "productIds": [1, 5, 12, 20],
-     *   "percentage": 10,
-     *   "effectiveDate": "2026-04-01T00:00:00",
-     *   "label": "春季涨价"
-     * }
-     * }</pre>
-     *
-     * <p>Or with fixed amount:</p>
-     * <pre>{@code
-     * {
-     *   "productIds": [1, 5, 12],
-     *   "fixedAmount": 5.00,
-     *   "effectiveDate": "2026-04-01T00:00:00",
-     *   "label": "April increase"
-     * }
-     * }</pre>
-     *
-     * @param request the bulk price update request
-     * @return 201 with the list of newly created {@link ProductPriceResponse}
+     * @param request Bulk update details.
+     * @return 201 Created with the list of generated price schedules.
      */
     @PostMapping("/bulk-schedule")
     public ResponseEntity<List<ProductPriceResponse>> bulkSchedulePrice(
