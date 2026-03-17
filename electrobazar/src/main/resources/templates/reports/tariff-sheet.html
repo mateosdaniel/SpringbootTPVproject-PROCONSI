@@ -95,8 +95,12 @@
 
     <table class="info">
         <tr>
-            <td><strong>Fecha de generación:</strong> <span th:text="${#temporals.format(generationDate, 'dd/MM/yyyy HH:mm')}">11/03/2026</span></td>
-            <td style="text-align: right;"><strong>Descuento base:</strong> <span th:text="${#numbers.formatDecimal(tariff.discountPercentage, 1, 1, 'COMMA') + '%'}">0,0%</span></td>
+            <td><strong>Válido para el día:</strong> <span th:text="${#temporals.format(targetDate, 'dd/MM/yyyy')}">12/03/2026</span></td>
+            <td style="text-align: right;"><strong>Fecha de generación:</strong> <span th:text="${#temporals.format(generationDate, 'dd/MM/yyyy HH:mm')}">11/03/2026</span></td>
+        </tr>
+        <tr>
+            <td><strong>Descuento base:</strong> <span th:text="${#numbers.formatDecimal(tariff.discountPercentage, 1, 1, 'COMMA') + '%'}">0,0%</span></td>
+            <td></td>
         </tr>
     </table>
 

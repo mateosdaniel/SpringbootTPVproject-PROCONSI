@@ -31,6 +31,7 @@ public class PdfReportServiceImpl implements PdfReportService {
 
     private final TemplateEngine templateEngine;
     private final SaleReturnRepository saleReturnRepository;
+    private final com.proconsi.electrobazar.service.CompanySettingsService companySettingsService;
 
     @Override
     public byte[] generateCashCloseReport(CashRegister register) {
@@ -63,13 +64,15 @@ public class PdfReportServiceImpl implements PdfReportService {
     }
 
     @Override
-    public byte[] generateTariffSheet(Tariff tariff, List<TariffPriceEntryDTO> history) {
-        log.info("Generating tariff PDF sheet for Tariff ID {}", tariff.getId());
+    public byte[] generateTariffSheet(Tariff tariff, List<TariffPriceEntryDTO> history, java.time.LocalDate date) {
+        log.info("Generating tariff PDF sheet for Tariff ID {} at date {}", tariff.getId(), date);
         try {
             Context context = new Context();
             context.setVariable("tariff", tariff);
             context.setVariable("history", history);
             context.setVariable("generationDate", LocalDateTime.now());
+            context.setVariable("targetDate", date);
+            context.setVariable("companySettings", companySettingsService.getSettings());
 
             Map<String, List<TariffPriceEntryDTO>> grouped = history.stream()
                     .collect(Collectors.groupingBy(

@@ -49,13 +49,13 @@ public class TariffPriceHistoryServiceImpl implements TariffPriceHistoryService 
 
     @Override
     public List<TariffPriceEntryDTO> getPricesForTariffAtDate(Long tariffId, LocalDate date) {
-        List<TariffPriceHistory> histories = tariffPriceHistoryRepository.findByTariffIdAndValidFrom(tariffId, date);
+        List<TariffPriceHistory> histories = tariffPriceHistoryRepository.findByTariffIdAndDate(tariffId, date);
 
         return histories.stream()
                 .map(h -> TariffPriceEntryDTO.builder()
                         .productId(h.getProduct().getId()).productName(h.getProduct().getName())
                         .categoryName(h.getProduct().getCategory() != null ? h.getProduct().getCategory().getName() : "Uncategorized")
-                        .basePrice(h.getProduct().getPrice()).netPrice(h.getNetPrice()).vatRate(h.getVatRate()).priceWithVat(h.getPriceWithVat())
+                        .basePrice(h.getBasePrice()).netPrice(h.getNetPrice()).vatRate(h.getVatRate()).priceWithVat(h.getPriceWithVat())
                         .reRate(h.getReRate()).priceWithRe(h.getPriceWithRe() != null ? h.getPriceWithRe() : h.getPriceWithVat())
                         .vatAmount(h.getPriceWithVat().subtract(h.getNetPrice()))
                         .reAmount(h.getPriceWithRe() != null ? h.getPriceWithRe().subtract(h.getPriceWithVat()) : BigDecimal.ZERO)

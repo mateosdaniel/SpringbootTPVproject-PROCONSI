@@ -277,41 +277,68 @@ public class AdminController {
 
         LocalDate targetDate = date;
         List<LocalDate> availableDates = tariffPriceHistoryService.getDistinctValidFromDates(id);
+        
+        // Add TODAY to the list of relevant dates if it has active prices and is not already there
+        LocalDate today = LocalDate.now();
+        if (!availableDates.contains(today)) {
+             // We don't add it to the DB but to the list shown in the UI
+             availableDates.add(0, today); 
+        }
 
         // Default to most recent if no date provided
         if (targetDate == null && !availableDates.isEmpty()) {
             targetDate = availableDates.get(0);
         } else if (targetDate == null) {
-            targetDate = LocalDate.now();
+            targetDate = today;
         }
+
+        List<com.proconsi.electrobazar.dto.TariffPriceEntryDTO> history = tariffPriceHistoryService.getPricesForTariffAtDate(id, targetDate);
+        boolean dateExists = !history.isEmpty();
 
         LocalDate prevDate = null;
         LocalDate nextDate = null;
 
-        boolean dateExists = false;
+        // Find the index or position for navigation
+        int index = -1;
         for (int i = 0; i < availableDates.size(); i++) {
-            LocalDate d = availableDates.get(i);
-            if (d.equals(targetDate)) {
-                dateExists = true;
-                if (i > 0)
-                    nextDate = availableDates.get(i - 1);
-                if (i < availableDates.size() - 1)
-                    prevDate = availableDates.get(i + 1);
+            if (availableDates.get(i).equals(targetDate)) {
+                index = i;
                 break;
             }
         }
 
+        if (index != -1) {
+            if (index > 0) nextDate = availableDates.get(index - 1);
+            if (index < availableDates.size() - 1) prevDate = availableDates.get(index + 1);
+            
+            // Si el "día anterior real" no es la fecha de transición anterior, permitimos ir un día atrás
+            if (prevDate == null || !prevDate.equals(targetDate.minusDays(1))) {
+                 LocalDate dayBefore = targetDate.minusDays(1);
+                 // Solo si el día antes tiene historia (está después o es igual a la primera transición)
+                 if (!availableDates.isEmpty() && !dayBefore.isBefore(availableDates.get(availableDates.size()-1))) {
+                     prevDate = dayBefore;
+                 }
+            }
+        } else {
+            // Estamos navegando en un día "hueco" (sin cambios de precio)
+            nextDate = targetDate.plusDays(1);
+            prevDate = targetDate.minusDays(1);
+            
+            // No podemos ir más allá del primer registro histórico
+            if (!availableDates.isEmpty() && prevDate.isBefore(availableDates.get(availableDates.size()-1))) {
+                prevDate = null;
+            }
+        }
+
         model.addAttribute("tariff", tariff);
-        model.addAttribute("history", tariffPriceHistoryService.getPricesForTariffAtDate(id, targetDate));
+        model.addAttribute("history", history);
         model.addAttribute("selectedDate", targetDate);
         model.addAttribute("availableDates", availableDates);
         model.addAttribute("prevDate", prevDate);
         model.addAttribute("nextDate", nextDate);
-        model.addAttribute("firstDate",
-                availableDates.isEmpty() ? null : availableDates.get(availableDates.size() - 1));
+        model.addAttribute("firstDate", availableDates.isEmpty() ? null : availableDates.get(availableDates.size() - 1));
         model.addAttribute("lastDate", availableDates.isEmpty() ? null : availableDates.get(0));
-        model.addAttribute("dateExists", dateExists || availableDates.isEmpty()); // If empty we don't show error, just
-                                                                                  // empty table
+        model.addAttribute("dateExists", dateExists);
         model.addAttribute("returnView", returnView);
 
         return "admin/tariff-price-history";
@@ -335,7 +362,7 @@ public class AdminController {
             List<com.proconsi.electrobazar.dto.TariffPriceEntryDTO> history = tariffPriceHistoryService
                     .getPricesForTariffAtDate(id, targetDate);
 
-            byte[] pdfData = pdfReportService.generateTariffSheet(tariff, history);
+            byte[] pdfData = pdfReportService.generateTariffSheet(tariff, history, targetDate);
             String filename = String.format("Tariff_%s_%s.pdf", tariff.getName(), targetDate);
 
             Resource resource = new ByteArrayResource(pdfData);
