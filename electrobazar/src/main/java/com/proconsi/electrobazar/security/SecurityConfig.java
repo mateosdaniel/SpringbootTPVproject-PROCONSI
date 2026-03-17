@@ -90,17 +90,22 @@ public class SecurityConfig {
                 .requestMatchers("/api/product-prices/**").hasAnyAuthority("ADMIN_ACCESS", "TPV_CLIENT")
                 .requestMatchers("/api/suspended-sales/**").hasAnyAuthority("HOLD_SALES", "ADMIN_ACCESS")
                 .requestMatchers("/api/roles/**").hasAuthority("ADMIN_ACCESS")
+                .requestMatchers("/api/permissions/**").hasAuthority("ADMIN_ACCESS")
                 .requestMatchers("/api/sales/range").hasAnyAuthority("SALE_VIEW", "ADMIN_ACCESS")
+                .requestMatchers("/api/sales/**").hasAnyAuthority("SALE_VIEW", "ADMIN_ACCESS", "TPV_CLIENT")
                 .requestMatchers("/api/workers/**").hasAuthority("ADMIN_ACCESS")
                 .requestMatchers("/api/activity-log/**").hasAuthority("ADMIN_ACCESS")
                 .requestMatchers("/api/cash-registers/**").hasAnyAuthority("CASH_REGISTER", "ADMIN_ACCESS")
+                .requestMatchers("/api/cash-withdrawals/**").hasAnyAuthority("CASH_REGISTER", "ADMIN_ACCESS")
                 .requestMatchers("/api/returns/**").hasAnyAuthority("RETURNS", "ADMIN_ACCESS")
                 .requestMatchers("/api/tariffs/**").hasAnyAuthority("ADMIN_ACCESS", "TPV_CLIENT")
+                .requestMatchers("/api/ipc/**").hasAuthority("ADMIN_ACCESS")
                 .requestMatchers("/api/customers/**").hasAnyAuthority("CRM_ACCESS", "ADMIN_ACCESS", "TPV_CLIENT")
                 
                 // CATCH-ALL FOR ADMIN AND USER INTERFACES
                 .requestMatchers("/admin/**").hasAuthority("ADMIN_ACCESS")
                 .requestMatchers("/api/admin/**").hasAuthority("ADMIN_ACCESS")
+                .requestMatchers("/admin/api/**").hasAuthority("ADMIN_ACCESS")
 
                 // GENERAL AUTHENTICATED ACCESS (Requires valid token for all /tpv and general /api calls)
                 .requestMatchers("/tpv/**").authenticated()
