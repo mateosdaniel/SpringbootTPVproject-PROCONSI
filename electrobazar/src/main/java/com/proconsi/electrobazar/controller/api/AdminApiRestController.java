@@ -38,6 +38,8 @@ import java.util.stream.Collectors;
 public class AdminApiRestController {
 
     private final AdminPinService adminPinService;
+    private final AppSettingRepository appSettingRepository;
+    private final AesEncryptionUtil aesEncryptionUtil;
     private final ProductService productService;
     private final CsvImportService csvImportService;
     private final SaleService saleService;
@@ -248,6 +250,58 @@ public class AdminApiRestController {
     public ResponseEntity<?> saveSettings(@RequestBody CompanySettings companySettings) {
         companySettingsService.save(companySettings);
         return ResponseEntity.ok(Map.of("message", "Configuración de empresa actualizada correctamente."));
+    }
+
+    /**
+     * Retrieves the current SMTP mail settings.
+     * @return Map of mail configuration.
+     */
+    @GetMapping("/mail-settings")
+    public ResponseEntity<Map<String, String>> getMailSettings() {
+        Map<String, String> settings = new HashMap<>();
+        settings.put("host", appSettingRepository.findByKey("mail.host").map(AppSetting::getValue).orElse("smtp.gmail.com"));
+        settings.put("port", appSettingRepository.findByKey("mail.port").map(AppSetting::getValue).orElse("587"));
+        settings.put("username", appSettingRepository.findByKey("mail.username").map(AppSetting::getValue).orElse(""));
+        settings.put("password", appSettingRepository.findByKey("mail.password").isPresent() ? "********" : "");
+        return ResponseEntity.ok(settings);
+    }
+
+    /**
+     * Updates SMTP mail settings and encrypts the password.
+     * @param body Payload with host, port, username, and password.
+     * @return 200 OK.
+     */
+    @PostMapping("/mail-settings")
+    public ResponseEntity<?> saveMailSettings(@RequestBody Map<String, String> body) {
+        saveAppSetting("mail.host", body.get("host"));
+        saveAppSetting("mail.port", body.get("port"));
+        saveAppSetting("mail.username", body.get("username"));
+        if (body.get("password") != null && !body.get("password").isBlank() && !body.get("password").equals("********")) {
+            saveAppSetting("mail.password", aesEncryptionUtil.encrypt(body.get("password")));
+        }
+        return ResponseEntity.ok(Map.of("message", "Configuración de correo actualizada correctamente."));
+    }
+
+    /**
+     * Updates the admin PIN securely.
+     * @param body Payload with currentPin and newPin.
+     * @return 200 OK or error message.
+     */
+    @PostMapping("/update-pin")
+    public ResponseEntity<?> updatePin(@RequestBody Map<String, String> body) {
+        try {
+            adminPinService.updatePin(body.get("currentPin"), body.get("newPin"));
+            return ResponseEntity.ok(Map.of("message", "PIN de administrador actualizado correctamente."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    private void saveAppSetting(String key, String value) {
+        AppSetting setting = appSettingRepository.findByKey(key)
+                .orElse(AppSetting.builder().key(key).build());
+        setting.setValue(value);
+        appSettingRepository.save(setting);
     }
 
     /**

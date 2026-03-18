@@ -2,6 +2,7 @@ package com.proconsi.electrobazar.service;
 
 import com.proconsi.electrobazar.model.AppSetting;
 import com.proconsi.electrobazar.repository.AppSettingRepository;
+import com.proconsi.electrobazar.util.AesEncryptionUtil;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,11 +26,14 @@ public class AdminPinService {
     private static final String PIN_KEY = "admin_pin";
 
     private final AppSettingRepository appSettingRepository;
+    private final AesEncryptionUtil aesEncryptionUtil;
     private final String fallbackPin;
 
     public AdminPinService(AppSettingRepository appSettingRepository,
+            AesEncryptionUtil aesEncryptionUtil,
             @Value("${admin.pin:}") String fallbackPin) {
         this.appSettingRepository = appSettingRepository;
+        this.aesEncryptionUtil = aesEncryptionUtil;
         this.fallbackPin = (fallbackPin == null || fallbackPin.isBlank()) ? "12345" : fallbackPin;
     }
 
@@ -41,8 +45,9 @@ public class AdminPinService {
     @Transactional
     public void validateAndSeedPin() {
         if (appSettingRepository.findByKey(PIN_KEY).isEmpty()) {
-            log.info("[SECURITY] No initial PIN found in database. Seeding with provided value.");
-            appSettingRepository.save(AppSetting.builder().key(PIN_KEY).value(fallbackPin).build());
+            log.info("[SECURITY] No initial PIN found in database. Seeding with encrypted fallback value.");
+            String encryptedPin = aesEncryptionUtil.encrypt(fallbackPin);
+            appSettingRepository.save(AppSetting.builder().key(PIN_KEY).value(encryptedPin).build());
         } else {
             log.info("[SECURITY] Admin PIN configuration loaded from database.");
         }
@@ -53,7 +58,7 @@ public class AdminPinService {
      */
     private String getCurrentPin() {
         return appSettingRepository.findByKey(PIN_KEY)
-                .map(AppSetting::getValue)
+                .map(setting -> aesEncryptionUtil.decrypt(setting.getValue()))
                 .orElse(fallbackPin);
     }
 
@@ -88,7 +93,7 @@ public class AdminPinService {
 
         AppSetting setting = appSettingRepository.findByKey(PIN_KEY)
                 .orElse(AppSetting.builder().key(PIN_KEY).build());
-        setting.setValue(newPin);
+        setting.setValue(aesEncryptionUtil.encrypt(newPin));
         appSettingRepository.save(setting);
         log.info("[SECURITY] Admin PIN updated successfully.");
     }

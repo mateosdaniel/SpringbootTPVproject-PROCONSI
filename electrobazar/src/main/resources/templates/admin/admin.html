@@ -1298,8 +1298,54 @@
                         </div>
                     </div>
                 </div>
-
+                
                 <div class="col-md-6">
+                    <div class="card bg-surface border-border shadow-sm">
+                        <div class="card-header border-border bg-transparent py-3">
+                            <h5 class="mb-0 fw-bold"><i class="bi bi-envelope-at me-2 text-info"></i>Configuración SMTP (Emails)</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <p class="small mb-4" style="color: var(--text-muted);">
+                                Configura los datos del servidor de correo para enviar facturas y comprobantes a tus clientes.
+                                La contraseña se almacenará de forma cifrada (AES).
+                            </p>
+                            <form id="mailSettingsForm" onsubmit="event.preventDefault(); saveMailSettings();">
+                                <div class="row">
+                                    <div class="col-md-8 mb-3">
+                                        <label class="form-label small fw-bold">Host SMTP</label>
+                                        <input type="text" id="mailHost" class="form-control form-control-sm border-border" placeholder="smtp.gmail.com">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label small fw-bold">Puerto</label>
+                                        <input type="number" id="mailPort" class="form-control form-control-sm border-border" placeholder="587">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Usuario / Email</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-transparent border-border text-muted"><i class="bi bi-person"></i></span>
+                                        <input type="text" id="mailUsername" class="form-control border-border" placeholder="usuario@gmail.com">
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold">Contraseña SMTP</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-transparent border-border text-muted"><i class="bi bi-lock"></i></span>
+                                        <input type="password" id="mailPassword" class="form-control border-border" placeholder="••••••••">
+                                    </div>
+                                    <div class="form-text small" style="font-size: 0.7rem; color: var(--text-muted);">Deja vacío o con asteriscos para no cambiar.</div>
+                                </div>
+                                <button type="submit" class="btn btn-save w-100 py-2">
+                                    <i class="bi bi-send-check me-1"></i> Guardar Configuración SMTP
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-md-12">
                     <div class="card bg-surface border-border shadow-sm">
                         <div class="card-header border-border bg-transparent py-3">
                             <h5 class="mb-0 fw-bold"><i class="bi bi-building me-2 text-primary"></i>Datos de la Empresa</h5>

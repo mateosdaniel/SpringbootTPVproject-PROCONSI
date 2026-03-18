@@ -101,6 +101,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/tariffs/**").hasAnyAuthority("ADMIN_ACCESS", "TPV_CLIENT")
                 .requestMatchers("/api/ipc/**").hasAuthority("ADMIN_ACCESS")
                 .requestMatchers("/api/customers/**").hasAnyAuthority("CRM_ACCESS", "ADMIN_ACCESS", "TPV_CLIENT")
+                .requestMatchers("/api/email/**").hasAnyAuthority("CRM_ACCESS", "ADMIN_ACCESS", "TPV_CLIENT")
                 
                 // CATCH-ALL FOR ADMIN AND USER INTERFACES
                 .requestMatchers("/admin/**").hasAuthority("ADMIN_ACCESS")

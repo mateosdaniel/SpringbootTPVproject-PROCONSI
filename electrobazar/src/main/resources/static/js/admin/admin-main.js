@@ -48,6 +48,8 @@ function switchView(viewId, btnElement) {
         loadRoles();
     } else if (viewId === 'preciosMasivosView') {
         loadBulkProducts();
+    } else if (viewId === 'settingsView') {
+        loadMailSettings();
     }
 }
 
@@ -1968,4 +1970,92 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(() => func.apply(context, args), wait);
     };
+}
+
+// -- Settings Management (Mail & Security) ------------------------------
+function loadMailSettings() {
+    fetch('/api/admin/mail-settings')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            document.getElementById('mailHost').value = data.host || '';
+            document.getElementById('mailPort').value = data.port || '';
+            document.getElementById('mailUsername').value = data.username || '';
+            document.getElementById('mailPassword').value = ''; // Always clear on load for security
+            if (data.username) {
+                document.getElementById('mailPassword').placeholder = '•••••••• (Cifrado)';
+            }
+        })
+        .catch(function (e) { console.error('Error fetching mail settings:', e); });
+}
+
+function saveMailSettings() {
+    const host = document.getElementById('mailHost').value.trim();
+    const port = document.getElementById('mailPort').value.trim();
+    const username = document.getElementById('mailUsername').value.trim();
+    const password = document.getElementById('mailPassword').value;
+
+    if (!host || !port) {
+        showToast('Host y puerto son obligatorios', 'error');
+        return;
+    }
+
+    const body = {
+        host: host,
+        port: parseInt(port),
+        username: username,
+        password: password
+    };
+
+    fetch('/api/admin/mail-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    }).then(function (res) {
+        if (res.ok) {
+            showToast('Configuración SMTP guardada');
+            loadMailSettings();
+        } else {
+            showToast('Error al guardar configuración SMTP', 'error');
+        }
+    }).catch(function () {
+        showToast('Error de red', 'error');
+    });
+}
+
+function updateAdminPin() {
+    const current = document.getElementById('currentPin').value;
+    const newPin = document.getElementById('newPin').value;
+    const confirm = document.getElementById('confirmPin').value;
+
+    if (newPin !== confirm) {
+        showToast('Los PINs no coinciden', 'error');
+        return;
+    }
+
+    if (newPin.length < 4) {
+        showToast('El PIN debe tener al menos 4 caracteres', 'error');
+        return;
+    }
+
+    fetch('/api/admin/update-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            currentPin: current,
+            newPin: newPin
+        })
+    }).then(function (res) {
+        if (res.ok) {
+            showToast('PIN administrativo actualizado correctamente');
+            document.getElementById('changePinForm').reset();
+        } else {
+            res.json().then(function (err) {
+                showToast(err.message || 'Error al actualizar PIN', 'error');
+            }).catch(function () {
+                showToast('Error al actualizar PIN', 'error');
+            });
+        }
+    }).catch(function () {
+        showToast('Error de red', 'error');
+    });
 }

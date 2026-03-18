@@ -28,4 +28,18 @@ public interface PdfReportService {
      * @return The PDF data as a byte array.
      */
     byte[] generateTariffSheet(Tariff tariff, List<TariffPriceEntryDTO> history, LocalDate date);
+
+    /**
+     * Generates a PDF for a specific invoice.
+     * @param invoice The invoice entity.
+     * @return The PDF data as a byte array.
+     */
+    byte[] generateInvoicePdf(com.proconsi.electrobazar.model.Invoice invoice);
+
+    /**
+     * Generates a PDF for a specific sale receipt.
+     * @param sale The sale entity.
+     * @return The PDF data as a byte array.
+     */
+    byte[] generateReceiptPdf(com.proconsi.electrobazar.model.Sale sale);
 }
