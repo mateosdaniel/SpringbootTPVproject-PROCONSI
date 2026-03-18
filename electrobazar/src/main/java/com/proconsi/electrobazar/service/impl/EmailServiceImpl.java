@@ -38,12 +38,6 @@ public class EmailServiceImpl implements EmailService {
         String passwordEncrypted = appSettingRepository.findByKey("mail.password").map(AppSetting::getValue).orElse("");
         String password = aesEncryptionUtil.decrypt(passwordEncrypted);
 
-        // Diagnostic logging (password masked for security)
-        log.info("Mail config → host={}, port={}, username={}, passwordDecrypted={}",
-                host, portStr, username, (password != null && !password.isEmpty() ? "OK (length=" + password.length() + ")" : "EMPTY/NULL"));
-        log.debug("passwordEncrypted length={}, passwordDecrypted equals encrypted={}",
-                passwordEncrypted.length(), passwordEncrypted.equals(password));
-
         int port = Integer.parseInt(portStr);
         mailSender.setPort(port);
         mailSender.setHost(host);
@@ -61,7 +55,6 @@ public class EmailServiceImpl implements EmailService {
             props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
         } else {
             props.put("mail.smtp.starttls.enable", "true");
-            props.put("mail.smtp.starttls.required", "true");
         }
 
         return mailSender;
@@ -99,7 +92,8 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public void sendEmailWithAttachment(String to, String subject, String body, String attachmentName, byte[] attachmentContent) {
+    public void sendEmailWithAttachment(String to, String subject, String body, String attachmentName,
+            byte[] attachmentContent) {
         try {
             JavaMailSenderImpl mailSender = getMailSender();
             MimeMessage message = mailSender.createMimeMessage();
