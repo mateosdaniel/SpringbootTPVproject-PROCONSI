@@ -3,6 +3,7 @@ package com.proconsi.electrobazar.service.impl;
 import com.proconsi.electrobazar.model.AppSetting;
 import com.proconsi.electrobazar.repository.AppSettingRepository;
 import com.proconsi.electrobazar.util.AesEncryptionUtil;
+import com.proconsi.electrobazar.service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
