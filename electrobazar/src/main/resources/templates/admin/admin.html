@@ -69,6 +69,36 @@
             color: var(--primary) !important;
             border-color: var(--accent) !important;
         }
+
+        .section-badge {
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+            color: var(--accent);
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--accent);
+            display: inline-block;
+            margin-bottom: 1rem;
+            padding-bottom: 2px;
+            opacity: 0.9;
+        }
+
+        .card {
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            border-radius: 16px !important;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        .form-control:focus {
+            background-color: var(--secondary) !important;
+            border-color: var(--accent) !important;
+            color: var(--text-main) !important;
+            box-shadow: 0 0 0 0.25rem rgba(245, 166, 35, 0.15) !important;
+        }
     </style>
 </head>
 
@@ -1285,190 +1315,183 @@
                 </span>
             </div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card bg-surface border-border shadow-sm">
-                        <div class="card-header border-border bg-transparent py-3">
-                            <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2 text-warning"></i>Seguridad:
-                                Cambiar
-                                PIN Administrador</h5>
-                        </div>
-                        <div class="card-body p-4">
-                            <p class="small mb-4" style="color: var(--text-muted);">
-                                Este PIN se utiliza para acceder a funciones administrativas y realizar cierres de caja.
-                                Al cambiarlo, el nuevo PIN se aplicará inmediatamente sin necesidad de reiniciar.
-                            </p>
-                            <form id="changePinForm" onsubmit="event.preventDefault(); updateAdminPin();">
-                                <div class="mb-3">
-                                    <label class="form-label small fw-bold">PIN Actual</label>
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text"
-                                            style="background-color: var(--surface); border-color: var(--border); color: var(--text-muted);"><i
-                                                class="bi bi-key"></i></span>
-                                        <input type="password" id="currentPin"
-                                            class="form-control border-border shadow-none" required placeholder="••••">
-                                    </div>
-                                </div>
-                                <hr class="border-border my-4">
-                                <div class="mb-3">
-                                    <label class="form-label small fw-bold">Nuevo PIN</label>
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text"
-                                            style="background-color: var(--surface); border-color: var(--border); color: var(--text-muted);"><i
-                                                class="bi bi-shield-plus"></i></span>
-                                        <input type="password" id="newPin"
-                                            class="form-control border-border shadow-none" required minlength="4"
-                                            placeholder="Mínimo 4 caracteres">
-                                    </div>
-                                </div>
-                                <div class="mb-4">
-                                    <label class="form-label small fw-bold">Confirmar Nuevo PIN</label>
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text"
-                                            style="background-color: var(--surface); border-color: var(--border); color: var(--text-muted);"><i
-                                                class="bi bi-check-circle"></i></span>
-                                        <input type="password" id="confirmPin"
-                                            class="form-control border-border shadow-none" required
-                                            placeholder="Repite el nuevo PIN">
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn btn-save w-100 py-2">
-                                    <i class="bi bi-save me-1"></i> Actualizar PIN de Seguridad
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-6">
-                    <div class="card bg-surface border-border shadow-sm">
-                        <div class="card-header border-border bg-transparent py-3">
-                            <h5 class="mb-0 fw-bold"><i class="bi bi-building me-2 text-primary"></i>Datos de la Empresa
-                            </h5>
+            <div class="row g-4">
+                <!-- Column 1: Company Data (Primary Settings) -->
+                <div class="col-lg-7">
+                    <div class="card h-100 bg-surface border-border shadow-sm">
+                        <div class="card-header border-border bg-transparent py-3 d-flex align-items-center">
+                            <i class="bi bi-building fs-4 me-2 text-primary"></i>
+                            <h5 class="mb-0 fw-bold">Datos de la Empresa</h5>
                         </div>
                         <div class="card-body p-4">
                             <form th:action="@{/admin/settings}" th:object="${companySettings}" method="POST">
                                 <input type="hidden" th:field="*{id}">
+                                
+                                <div class="section-badge mb-3">IDENTIFICACIÓN</div>
                                 <div class="mb-3">
-                                    <label class="form-label small fw-bold">Nombre de la Aplicación (E.j:
-                                        ElectroBazar)</label>
+                                    <label class="form-label small fw-bold">Nombre de la Aplicación (E.j: ElectroBazar)</label>
                                     <input type="text" th:field="*{appName}"
                                         class="form-control form-control-sm border-border" required>
                                 </div>
-                                <div class="row">
-                                    <div class="col-md-8 mb-3">
+                                
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-8">
                                         <label class="form-label small fw-bold">Nombre / Razón Social</label>
                                         <input type="text" th:field="*{name}"
                                             class="form-control form-control-sm border-border" required>
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4">
                                         <label class="form-label small fw-bold">CIF / NIF</label>
                                         <input type="text" th:field="*{cif}"
                                             class="form-control form-control-sm border-border" required>
                                     </div>
                                 </div>
+
+                                <div class="section-badge mb-3 mt-4">UBICACIÓN Y CONTACTO</div>
                                 <div class="mb-3">
                                     <label class="form-label small fw-bold">Dirección</label>
                                     <input type="text" th:field="*{address}"
                                         class="form-control form-control-sm border-border" required>
                                 </div>
-                                <div class="row">
-                                    <div class="col-md-8 mb-3">
+                                
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-8">
                                         <label class="form-label small fw-bold">Ciudad</label>
                                         <input type="text" th:field="*{city}"
                                             class="form-control form-control-sm border-border" required>
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-4">
                                         <label class="form-label small fw-bold">Código Postal</label>
                                         <input type="text" th:field="*{postalCode}"
                                             class="form-control form-control-sm border-border" required>
                                     </div>
                                 </div>
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
+                                
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
                                         <label class="form-label small fw-bold">Teléfono</label>
                                         <input type="text" th:field="*{phone}"
                                             class="form-control form-control-sm border-border" required>
                                     </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label small fw-bold">Email</label>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold">Email de Contacto</label>
                                         <input type="email" th:field="*{email}"
                                             class="form-control form-control-sm border-border" required>
                                     </div>
                                 </div>
+                                
                                 <div class="mb-3">
                                     <label class="form-label small fw-bold">Sitio Web (Opcional)</label>
                                     <input type="text" th:field="*{website}"
                                         class="form-control form-control-sm border-border">
                                 </div>
+
+                                <div class="section-badge mb-3 mt-4">LEYENDAS DE FACTURACIÓN</div>
                                 <div class="mb-3">
                                     <label class="form-label small fw-bold">Registro Mercantil (Footer Factura)</label>
                                     <textarea th:field="*{registroMercantil}"
-                                        class="form-control form-control-sm border-border" rows="2"></textarea>
+                                        class="form-control form-control-sm border-border" rows="2" placeholder="Datos de registro para el pie de página..."></textarea>
                                 </div>
+                                
                                 <div class="mb-4">
                                     <label class="form-label small fw-bold">Texto Pie de Factura (Opcional)</label>
                                     <textarea th:field="*{invoiceFooterText}"
-                                        class="form-control form-control-sm border-border" rows="2"></textarea>
+                                        class="form-control form-control-sm border-border" rows="2" placeholder="Agradecimiento o aviso legal..."></textarea>
                                 </div>
-                                <button type="submit" class="btn btn-save w-100 py-2">
-                                    <i class="bi bi-save me-1"></i> Guardar Configuración
+                                
+                                <button type="submit" class="btn btn-save w-100 py-2 mt-2">
+                                    <i class="bi bi-save me-1"></i> Guardar Configuración General
                                 </button>
                             </form>
                         </div>
                     </div>
                 </div>
 
-                <!-- SECOND ROW: MAIL SETTINGS -->
-                <div class="row mt-4">
-                    <div class="col-md-6 mb-4">
-                        <div class="card h-100 border-0"
-                             style="background: var(--surface); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                            <div class="card-header border-border bg-transparent py-3">
-                                <h5 class="m-0 fw-bold" style="color: var(--accent); font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.5px;">
-                                    <i class="bi bi-envelope-at me-2"></i>CONFIGURACIÓN CORREO (SMTP)
-                                </h5>
+                <!-- Column 2: Security & Communication (Utility Settings) -->
+                <div class="col-lg-5">
+                    <div class="d-flex flex-column gap-4">
+                        
+                        <!-- Security / PIN Card -->
+                        <div class="card bg-surface border-border shadow-sm">
+                            <div class="card-header border-border bg-transparent py-3 d-flex align-items-center">
+                                <i class="bi bi-shield-lock fs-4 me-2 text-warning"></i>
+                                <h5 class="mb-0 fw-bold">Seguridad del Sistema</h5>
                             </div>
                             <div class="card-body p-4">
-                                <p class="text-muted small mb-4">Configura los datos del servidor para el envío automático de tickets y facturas.</p>
+                                <p class="small mb-4 text-muted">Ajusta el PIN de acceso para cierres de caja y funciones de administración.</p>
+                                <form id="changePinForm" onsubmit="event.preventDefault(); updateAdminPin();">
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold">PIN Actual</label>
+                                        <input type="password" id="currentPin"
+                                            class="form-control border-border shadow-none" required placeholder="••••">
+                                    </div>
+                                    <div class="row g-2 mb-4">
+                                        <div class="col-6">
+                                            <label class="form-label small fw-bold">Nuevo PIN</label>
+                                            <input type="password" id="newPin"
+                                                class="form-control border-border shadow-none" required minlength="4"
+                                                placeholder="Mínimo 4">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label small fw-bold">Confirmar</label>
+                                            <input type="password" id="confirmPin"
+                                                class="form-control border-border shadow-none" required
+                                                placeholder="Confirmar">
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-outline-warning w-100 py-2 border-2 fw-bold">
+                                        <i class="bi bi-key me-1"></i> Actualizar PIN
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Mail / SMTP Card -->
+                        <div class="card bg-surface border-border shadow-sm">
+                            <div class="card-header border-border bg-transparent py-3 d-flex align-items-center">
+                                <i class="bi bi-envelope-at fs-4 me-2 text-accent"></i>
+                                <h5 class="mb-0 fw-bold">Servidor SMTP (Correos)</h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <p class="small mb-4 text-muted">Configura el servidor para enviar tickets y facturas automáticamente.</p>
                                 
                                 <div class="mb-3">
-                                    <label class="form-label small fw-bold">Servidor SMTP (Host)</label>
-                                    <input type="text" id="mailHost" class="form-control" placeholder="smtp.gmail.com">
+                                    <label class="form-label small fw-bold">Host SMTP</label>
+                                    <input type="text" id="mailHost" class="form-control border-border" placeholder="smtp.gmail.com">
                                 </div>
                                 
-                                <div class="row">
-                                    <div class="col-md-4 mb-3">
+                                <div class="row g-2 mb-3">
+                                    <div class="col-4">
                                         <label class="form-label small fw-bold">Puerto</label>
-                                        <input type="text" id="mailPort" class="form-control" placeholder="587">
+                                        <input type="text" id="mailPort" class="form-control border-border" placeholder="587">
                                     </div>
-                                    <div class="col-md-8 mb-3">
+                                    <div class="col-8">
                                         <label class="form-label small fw-bold">Usuario / Email</label>
-                                        <input type="text" id="mailUsername" class="form-control" placeholder="email@ejemplo.com">
+                                        <input type="text" id="mailUsername" class="form-control border-border" placeholder="email@ejemplo.com">
                                     </div>
                                 </div>
                                 
-                                <div class="mb-3">
+                                <div class="mb-4">
                                     <label class="form-label small fw-bold">Contraseña / Token APP</label>
                                     <div class="input-group">
-                                        <input type="password" id="mailPassword" class="form-control" placeholder="********">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('mailPassword')">
+                                        <input type="password" id="mailPassword" class="form-control border-border" placeholder="••••••••••••">
+                                        <button class="btn btn-outline-secondary border-border" type="button" onclick="togglePassword('mailPassword')">
                                             <i class="bi bi-eye"></i>
                                         </button>
                                     </div>
                                 </div>
                                 
-                                <div class="d-flex justify-content-end mt-3">
-                                    <button class="btn-save" onclick="saveMailSettings()" style="padding: 0.6rem 1.5rem; border-radius: 8px;">
-                                        <i class="bi bi-check2-circle me-1"></i> Actualizar SMTP
-                                    </button>
-                                </div>
+                                <button class="btn btn-save w-100 py-2" onclick="saveMailSettings()">
+                                    <i class="bi bi-check2-circle me-1"></i> Actualizar SMTP
+                                </button>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
         </div>
+
 
         <!-- 3. CASH CLOSES VIEW (Hidden by default) -->
         <div id="cashCloseView" style="display: none;">
@@ -1865,9 +1888,20 @@
                     </button>
                     <i class="bi bi-person-badge me-2"></i>Gestión de Clientes (CRM)
                 </span>
-                <button class="btn-nuevo" onclick="openCustomerModal()">
-                    <i class="bi bi-plus-lg"></i> Nuevo Cliente
-                </button>
+                <div class="d-flex gap-2">
+                    <!-- Hidden file input for CSV import -->
+                    <input type="file" id="customersCsvFileInput" accept=".csv" style="display:none"
+                        onchange="uploadCustomersCsvFile(this)">
+                    <button class="btn-nuevo"
+                        style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border);"
+                        onclick="document.getElementById('customersCsvFileInput').click()"
+                        title="Importar clientes desde un archivo CSV">
+                        <i class="bi bi-file-earmark-person me-1"></i> Importar CSV
+                    </button>
+                    <button class="btn-nuevo" onclick="openCustomerModal()">
+                        <i class="bi bi-plus-lg"></i> Nuevo Cliente
+                    </button>
+                </div>
             </div>
 
             <div class="filter-bar mb-3 p-3 rounded"

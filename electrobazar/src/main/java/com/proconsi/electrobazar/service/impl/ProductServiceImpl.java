@@ -77,6 +77,12 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    public Product findByName(String name) {
+        return productRepository.findByNameIgnoreCase(name).orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<Product> getFilteredProducts(String search, String category, String stock, Boolean active) {
         Specification<Product> spec = ProductSpecification.filterProducts(search, category, stock, active);
         return productRepository.findAll(spec);

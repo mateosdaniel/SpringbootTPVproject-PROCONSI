@@ -179,6 +179,26 @@ public class AdminController {
         }
     }
 
+    @PostMapping("/admin/upload-customers-csv")
+    @ResponseBody
+    public ResponseEntity<?> uploadCustomersCsv(
+            @RequestParam("file") MultipartFile file,
+            HttpSession session) {
+        if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
+            return ResponseEntity.status(401)
+                    .body(Map.of("ok", false, "message", "Unauthorized"));
+        }
+
+        try {
+            String result = csvImportService.importCustomersCsv(file);
+            activityLogService.logActivity("IMPORT_CUSTOMERS_CSV", "CSV import clientes: " + result, "Admin", "IMPORT", null);
+            return ResponseEntity.ok(Map.of("ok", true, "message", result));
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                    .body(Map.of("ok", false, "message", "Error al procesar el CSV: " + e.getMessage()));
+        }
+    }
+
     @PostMapping("/admin/sales/cancel/{id}")
     @ResponseBody
     public ResponseEntity<?> cancelSale(

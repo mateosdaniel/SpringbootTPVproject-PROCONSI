@@ -332,6 +332,37 @@ function uploadCsvFile(input) {
         });
 }
 
+// -- Importar Clientes por CSV --
+function uploadCustomersCsvFile(input) {
+    if (!input.files || input.files.length === 0) return;
+    var file = input.files[0];
+    var formData = new FormData();
+    formData.append('file', file);
+
+    showToast('Importando clientes desde CSV...', 'success');
+
+    fetch('/admin/upload-customers-csv', {
+        method: 'POST',
+        body: formData
+    })
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+            if (data.ok) {
+                showToast(data.message, 'success');
+                setTimeout(function () { location.reload(); }, 2000);
+            } else {
+                showToast(data.message || 'Error al procesar el archivo de clientes.', 'error');
+            }
+        })
+        .catch(function (error) {
+            console.error('Error uploading customers CSV:', error);
+            showToast('Error de red al subir el archivo de clientes.', 'error');
+        })
+        .finally(() => {
+            input.value = '';
+        });
+}
+
 // -- Activity Log --------------------------------------------------------
 function loadActivityLog() {
     var container = document.getElementById('activityFeedContainer');
@@ -2010,4 +2041,19 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(() => func.apply(context, args), wait);
     };
+}
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const btn = event.currentTarget;
+    const icon = btn.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
 }

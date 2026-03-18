@@ -25,6 +25,11 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     List<Product> findByActiveTrueOrderByNameAsc();
 
     /**
+     * Finds a specific product by its exact name, ignoring case.
+     */
+    java.util.Optional<Product> findByNameIgnoreCase(String name);
+
+    /**
      * Finds active products within a category, eagerly fetching associations.
      */
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE p.category.id = :categoryId AND p.active = true ORDER BY p.name ASC")

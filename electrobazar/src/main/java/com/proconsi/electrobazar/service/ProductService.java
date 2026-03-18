@@ -49,6 +49,13 @@ public interface ProductService {
     List<Product> search(String name);
 
     /**
+     * Finds a specific product by its exact name.
+     * @param name Exact name.
+     * @return The found product or null.
+     */
+    Product findByName(String name);
+
+    /**
      * Advanced filtering for products based on multiple criteria.
      *
      * @param search   Name fragment.
