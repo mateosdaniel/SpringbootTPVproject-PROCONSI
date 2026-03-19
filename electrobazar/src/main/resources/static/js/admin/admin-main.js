@@ -475,7 +475,12 @@ function updateAnalytics() {
         chartTitle = 'Ventas Histórico Total';
     }
 
-    const url = fetchAll ? '/api/sales' : `/api/sales/range?from=${fromDate.toISOString().slice(0, 19)}&to=${now.toISOString().slice(0, 19)}`;
+    const toLocalISO = (d) => {
+        const off = d.getTimezoneOffset() * 60000;
+        return new Date(d.getTime() - off).toISOString().slice(0, 19);
+    };
+
+    const url = fetchAll ? '/api/sales' : `/api/sales/range?from=${toLocalISO(fromDate)}&to=${toLocalISO(now)}`;
 
     Promise.all([
         fetch(url).then(r => { if (!r.ok) throw new Error('Error al obtener ventas: ' + r.status); return r.json(); }),
