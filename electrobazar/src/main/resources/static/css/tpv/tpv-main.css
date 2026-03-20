@@ -320,15 +320,37 @@
 
         .tpv-logo {
             font-family: var(--main-font-family, 'Barlow', sans-serif);
-            font-size: 1.5rem;
+            font-size: 20px !important; /* FIXED px size to ignore global font scale */
             font-weight: 700;
             color: var(--accent);
-            letter-spacing: 1px;
-            white-space: nowrap;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            max-width: calc(var(--sidebar-width) - 0.5rem);
+            overflow: hidden;
+            text-decoration: none;
+            flex-shrink: 0;
+            transition: none;
+        }
+
+        .tpv-logo img {
+            max-width: 32px;
+            max-height: 32px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            flex-shrink: 0;
+            border-radius: 6px;
         }
 
         .tpv-logo span {
             color: var(--text-main);
+            overflow: hidden;
+            white-space: nowrap;
+            display: inline-block;
+            min-width: 0;
+            flex: 1;
         }
 
         .header-stats {

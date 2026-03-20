@@ -1,15 +1,4 @@
-        :root {
-            --primary: #1a1a2e;
-            --secondary: #16213e;
-            --accent: #f5a623;
-            --accent-hover: #e09400;
-            --surface: #0f3460;
-            --success: #2ecc71;
-            --danger: #e74c3c;
-            --text-muted: #8892a4;
-            --text-main: #e8eaf0;
-            --border: #1e2d45;
-        }
+
 
         * {
             box-sizing: border-box;
@@ -41,17 +30,33 @@
 
         .m-logo {
             font-family: var(--main-font-family, 'Barlow', sans-serif);
-            font-size: 1.4rem;
+            font-size: clamp(1rem, 1.4rem, 1.6rem);
             font-weight: 700;
             color: var(--accent);
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            overflow: hidden;
+            max-width: 300px;
+        }
+
+        .m-logo img {
+            max-width: 34px;
+            max-height: 34px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            flex-shrink: 0;
         }
 
         .m-logo span {
             color: var(--text-main);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            min-width: 0;
         }
 
         /* ── Body ── */
