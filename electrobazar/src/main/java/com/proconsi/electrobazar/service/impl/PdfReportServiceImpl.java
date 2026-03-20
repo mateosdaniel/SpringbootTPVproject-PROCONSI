@@ -92,7 +92,7 @@ public class PdfReportServiceImpl implements PdfReportService {
 
             try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
                 PdfRendererBuilder builder = new PdfRendererBuilder();
-                builder.withHtmlContent(htmlContent, "classpath:/templates/");
+                builder.withHtmlContent(htmlContent, "classpath:/static/");
                 builder.toStream(os);
                 builder.run();
 
@@ -117,7 +117,7 @@ public class PdfReportServiceImpl implements PdfReportService {
 
             try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
                 PdfRendererBuilder builder = new PdfRendererBuilder();
-                builder.withHtmlContent(htmlContent, "classpath:/templates/");
+                builder.withHtmlContent(htmlContent, "classpath:/static/");
                 builder.toStream(os);
                 builder.run();
                 return os.toByteArray();
@@ -139,7 +139,7 @@ public class PdfReportServiceImpl implements PdfReportService {
 
             try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
                 PdfRendererBuilder builder = new PdfRendererBuilder();
-                builder.withHtmlContent(htmlContent, "classpath:/templates/");
+                builder.withHtmlContent(htmlContent, "classpath:/static/");
                 builder.toStream(os);
                 builder.run();
                 return os.toByteArray();
