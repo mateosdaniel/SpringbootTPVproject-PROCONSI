@@ -368,12 +368,25 @@ public class AdminApiRestController {
     private String cleanHtmlForPdf(String html) {
         if (html == null)
             return "";
+        // Replace unclosed tags common in HTML but invalid in strict XML/XHTML
         String cleaned = html.replaceAll("<(meta|br|hr|img|input|link)([^>]*?)(?<!/)>", "<$1$2 />");
-        return cleaned.replace("&copy;", "&#169;")
+        return cleaned.replace("&middot;", "&#183;")
+                .replace("&copy;", "&#169;")
                 .replace("&reg;", "&#174;")
                 .replace("&trade;", "&#8482;")
                 .replace("&nbsp;", "&#160;")
-                .replace("&euro;", "&#8364;");
+                .replace("&euro;", "&#8364;")
+                .replace("&mdash;", "&#8212;")
+                .replace("&ndash;", "&#8211;")
+                .replace("&aacute;", "&#225;")
+                .replace("&eacute;", "&#233;")
+                .replace("&iacute;", "&#237;")
+                .replace("&oacute;", "&#243;")
+                .replace("&uacute;", "&#250;")
+                .replace("&ntilde;", "&#241;")
+                .replace("&iquest;", "&#191;")
+                .replace("&iexcl;", "&#161;")
+                .replaceAll("&(?!(?:[a-zA-Z0-9]+|#[0-9]+|#x[0-9a-fA-F]+);)", "&amp;");
     }
 
     private ResponseEntity<Resource> createPdfResponse(byte[] pdfBytes, String filename) {

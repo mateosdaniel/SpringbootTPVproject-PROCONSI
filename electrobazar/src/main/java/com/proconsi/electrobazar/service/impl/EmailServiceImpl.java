@@ -24,12 +24,6 @@ public class EmailServiceImpl implements EmailService {
     private final AppSettingRepository appSettingRepository;
     private final AesEncryptionUtil aesEncryptionUtil;
 
-    @org.springframework.beans.factory.annotation.Value("${MAIL_USERNAME:}")
-    private String defaultUsername;
-
-    @org.springframework.beans.factory.annotation.Value("${MAIL_PASSWORD:}")
-    private String defaultPassword;
-
     public EmailServiceImpl(AppSettingRepository appSettingRepository, AesEncryptionUtil aesEncryptionUtil) {
         this.appSettingRepository = appSettingRepository;
         this.aesEncryptionUtil = aesEncryptionUtil;
@@ -40,19 +34,9 @@ public class EmailServiceImpl implements EmailService {
 
         String host = appSettingRepository.findByKey("mail.host").map(AppSetting::getValue).orElse("smtp.gmail.com");
         String portStr = appSettingRepository.findByKey("mail.port").map(AppSetting::getValue).orElse("587");
-        String username = appSettingRepository.findByKey("mail.username").map(AppSetting::getValue).orElse(defaultUsername);
-        String passwordEncrypted = appSettingRepository.findByKey("mail.password").map(AppSetting::getValue).orElse(null);
-        
-        String password;
-        if (passwordEncrypted != null && !passwordEncrypted.isEmpty()) {
-            password = aesEncryptionUtil.decrypt(passwordEncrypted);
-        } else {
-            password = defaultPassword;
-        }
-
-        if (username == null || username.isEmpty() || password == null || password.isEmpty()) {
-            log.warn("SMTP credentials are missing (DB and Env). Email sending will likely fail.");
-        }
+        String username = appSettingRepository.findByKey("mail.username").map(AppSetting::getValue).orElse("");
+        String passwordEncrypted = appSettingRepository.findByKey("mail.password").map(AppSetting::getValue).orElse("");
+        String password = aesEncryptionUtil.decrypt(passwordEncrypted);
 
         int port = Integer.parseInt(portStr);
         mailSender.setPort(port);
