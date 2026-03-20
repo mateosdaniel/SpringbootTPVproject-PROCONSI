@@ -43,6 +43,10 @@ function switchView(viewId, btnElement) {
         const url = new URL(window.location);
         url.searchParams.set('view', viewId);
         window.history.replaceState({}, '', url);
+
+        // Reset scroll position to top
+        const adminBody = document.querySelector('.admin-body');
+        if (adminBody) adminBody.scrollTop = 0;
     }
 
     // Update active sidebar button state
