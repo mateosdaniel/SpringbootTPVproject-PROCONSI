@@ -6,12 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="'Devolución ' + ${saleReturn.returnNumber} + ' — ' + ${companySettings.name}">Albarán de Devolución — ElectroBazar
     </title>
-    <link rel="icon" type="image/svg+xml" th:href="@{/icons/favicon.svg}">
+    <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <th:block th:replace="~{fragments/theme :: themeScript}" />
-    <link rel="stylesheet" th:href="@{/css/tpv/tpv-receipt.css}">
-    <link rel="stylesheet" th:href="@{/css/tpv/tpv-return-receipt.css}">
+    <th:block th:if="${pdfMode == null}">
+        <th:block th:replace="~{fragments/theme :: themeScript}" />
+    </th:block>
+    <link rel="stylesheet" href="/css/tpv/tpv-receipt.css">
+    <link rel="stylesheet" href="/css/tpv/tpv-return-receipt.css">
 </head>
 
 <body>
