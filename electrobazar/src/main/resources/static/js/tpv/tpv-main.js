@@ -882,7 +882,7 @@ function createNewCustomerAjax() {
     var hasRecargo = document.getElementById('newCustomerHasRecargo').checked;
 
     if (!name) { showToast('El nombre es obligatorio', 'warning'); return; }
-    if (type === 'COMPANY' && !taxId) { showToast('El CIF de la empresa es obligatorio', 'warning'); return; }
+    if (!taxId) { showToast('El NIF/NIE es obligatorio', 'warning'); return; }
 
     var newCustomer = {
         name: name, taxId: taxId, address: address, city: city,

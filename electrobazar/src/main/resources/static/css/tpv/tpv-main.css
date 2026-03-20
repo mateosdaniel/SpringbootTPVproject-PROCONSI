@@ -319,7 +319,7 @@
         }
 
         .tpv-logo {
-            font-family: 'Barlow Condensed', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
             font-size: 1.5rem;
             font-weight: 700;
             color: var(--accent);
@@ -424,7 +424,7 @@
             border: none;
             background: transparent;
             color: var(--text-muted);
-            font-family: 'Barlow', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
             font-size: 0.88rem;
             font-weight: 500;
             text-align: left;
@@ -538,7 +538,7 @@
         }
 
         .product-price {
-            font-family: 'Barlow Condensed', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
             font-size: 1.15rem;
             font-weight: 700;
             color: var(--accent);
@@ -582,7 +582,7 @@
         }
 
         .ticket-title {
-            font-family: 'Barlow Condensed', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
             font-size: 1.1rem;
             font-weight: 700;
             text-transform: uppercase;
@@ -649,7 +649,7 @@
 
         .ticket-line-price {
             flex-shrink: 0;
-            font-family: 'Barlow Condensed', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
             font-size: 0.95rem;
             font-weight: 600;
             color: var(--accent);
@@ -815,7 +815,7 @@
             border: 2px solid var(--border);
             background: var(--primary);
             color: var(--text-muted);
-            font-family: 'Barlow', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
             font-size: 0.82rem;
             font-weight: 600;
             cursor: pointer;
@@ -877,7 +877,7 @@
             border: none;
             border-radius: 10px;
             color: var(--primary);
-            font-family: 'Barlow Condensed', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
             font-size: 1.2rem;
             font-weight: 700;
             letter-spacing: 1px;
@@ -908,7 +908,7 @@
             cursor: pointer;
             margin-top: 0.5rem;
             transition: all 0.15s;
-            font-family: 'Barlow', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
         }
 
         .btn-clear:hover {
@@ -942,7 +942,7 @@
         /* ── ADMIN LOCK BUTTON ── */
         .worker-info {
             color: var(--text-main);
-            font-family: 'Barlow', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
             transition: all 0.2s ease;
         }
 
@@ -1029,7 +1029,7 @@
             padding: 0.75rem;
             text-align: center;
             font-size: 1.8rem;
-            font-family: 'Barlow Condensed', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
             letter-spacing: 12px;
             background: var(--primary);
             border: 2px solid var(--border);
@@ -1074,7 +1074,7 @@
             border: none;
             border-radius: 10px;
             color: var(--primary);
-            font-family: 'Barlow Condensed', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
             font-size: 1.1rem;
             font-weight: 700;
             letter-spacing: 1px;
@@ -1095,7 +1095,7 @@
             margin-top: 0.75rem;
             cursor: pointer;
             font-size: 0.85rem;
-            font-family: 'Barlow', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
         }
 
         .pin-cancel:hover {

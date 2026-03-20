@@ -840,9 +840,9 @@ function saveCustomer() {
             ? parseInt(document.getElementById('customerTariffId').value) : null
     };
 
-    // additional validation for company
-    if (body.type === 'COMPANY' && !body.taxId) {
-        showToast('El CIF es obligatorio para empresas', 'error');
+    // validation
+    if (!body.taxId) {
+        showToast('El NIF/NIE es obligatorio', 'error');
         return;
     }
 

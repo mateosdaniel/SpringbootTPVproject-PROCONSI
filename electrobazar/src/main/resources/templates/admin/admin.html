@@ -2599,26 +2599,26 @@
                         </div>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label" id="lblAdminCustomerName" for="customerName">Nombre / Razón Social *</label>
+                                <label class="form-label" id="lblAdminCustomerName" for="customerName">Nombre y Apellidos <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="customerName" required
-                                    placeholder="Nombre completo">
+                                    placeholder="Nombre completo o Razón Social">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label" id="lblAdminCustomerTaxId" for="customerTaxId">NIF / CIF</label>
-                                <input type="text" class="form-control" id="customerTaxId" placeholder="12345678X">
+                                <label class="form-label" id="lblAdminCustomerTaxId" for="customerTaxId">NIF/NIE <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="customerTaxId" required placeholder="12345678X">
                             </div>
                             <div class="col-12">
-                                <label class="form-label" for="customerAddress">Dirección *</label>
-                                <input type="text" class="form-control" id="customerAddress"
+                                <label class="form-label" for="customerAddress">Dirección (Calle, Número...) <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="customerAddress" required
                                     placeholder="Calle, número, piso...">
                             </div>
                             <div class="col-md-8">
-                                <label class="form-label" for="customerCity">Ciudad *</label>
-                                <input type="text" class="form-control" id="customerCity" placeholder="Madrid">
+                                <label class="form-label" for="customerCity">Población / Ciudad <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="customerCity" required placeholder="Madrid">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label" for="customerPostalCode">C.P. *</label>
-                                <input type="text" class="form-control" id="customerPostalCode" placeholder="28001">
+                                <label class="form-label" for="customerPostalCode">Código Postal <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="customerPostalCode" required placeholder="28001">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="customerEmail">Email</label>

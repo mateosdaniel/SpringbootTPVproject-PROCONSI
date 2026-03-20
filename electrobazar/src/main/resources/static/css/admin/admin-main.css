@@ -57,7 +57,7 @@
         }
 
         .admin-logo {
-            font-family: 'Barlow Condensed', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
             font-size: 1.6rem;
             font-weight: 700;
             color: var(--accent);
@@ -189,7 +189,7 @@
             font-size: 1.25rem;
             font-weight: 700;
             color: var(--text-main);
-            font-family: 'Barlow Condensed', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
         }
 
         .stats-label {
@@ -331,7 +331,7 @@
         }
 
         .panel-title {
-            font-family: 'Barlow Condensed', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
             font-size: 1.1rem;
             font-weight: 700;
             text-transform: uppercase;
@@ -583,7 +583,7 @@
         }
 
         .modal-header .modal-title {
-            font-family: 'Barlow Condensed', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
             font-size: 1.1rem;
             font-weight: 700;
             text-transform: uppercase;
@@ -759,7 +759,7 @@
         }
 
         .dashboard-card h3 {
-            font-family: 'Barlow Condensed', sans-serif;
+            font-family: var(--main-font-family, 'Barlow', sans-serif);
             font-size: 1.5rem;
             font-weight: 700;
             margin-bottom: 0.75rem;
