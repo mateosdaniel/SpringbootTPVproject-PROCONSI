@@ -915,18 +915,17 @@
                 </div>
             </div>
 
-            <ul class="nav nav-tabs mt-3 mb-0" id="mgmtTabs" role="tablist" style="border-color: var(--border);">
+            <ul class="nav nav-tabs mt-4 mb-0" id="mgmtTabs" role="tablist" style="border:none">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="products-tab" data-bs-toggle="tab"
-                        data-bs-target="#products-pane" type="button" role="tab"
-                        style="color: var(--text-muted); border-color: var(--border);">
-                        <i class="bi bi-box-seam me-1"></i> Productos
+                    <button class="nav-link active fw-600 px-4" id="products-tab" data-bs-toggle="tab"
+                        data-bs-target="#products-pane" type="button" role="tab">
+                        <i class="bi bi-box-seam me-2"></i>Productos
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories-pane"
-                        type="button" role="tab" style="color: var(--text-muted); border-color: var(--border);">
-                        <i class="bi bi-tags me-1"></i> Categorías
+                    <button class="nav-link fw-600 px-4" id="categories-tab" data-bs-toggle="tab" data-bs-target="#categories-pane"
+                        type="button" role="tab">
+                        <i class="bi bi-tags me-2"></i>Categorías
                     </button>
                 </li>
             </ul>
@@ -1025,19 +1024,16 @@
 
                 <!-- Tab: Categorías -->
                 <div class="tab-pane fade" id="categories-pane" role="tabpanel">
-                    <div class="filter-bar mb-3 p-3 rounded"
-                        style="background: var(--surface); border: 1px solid var(--border);">
-                        <div class="row g-2">
-                            <div class="col-md-10">
-                                <label class="form-label small mb-1" style="color: var(--text-main);">Buscar
-                                    categoría</label>
+                    <div class="filter-bar mb-3 p-4 rounded" style="background: var(--surface); border: 1px solid var(--border);">
+                        <div class="row g-3">
+                            <div class="col-md-9">
+                                <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-search me-2"></i>Buscar categoría</label>
                                 <input type="text" id="categoryFilterSearch" class="form-control form-control-sm"
-                                    placeholder="Nombre o descripción..." oninput="debounceSharedFilter()"
-                                    style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                                    placeholder="Nombre o descripción..." oninput="debounceSharedFilter()">
                             </div>
-                            <div class="col-md-2 d-flex align-items-end">
+                            <div class="col-md-3 d-flex align-items-end">
                                 <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetCategoryFilters()">
-                                    <i class="bi bi-arrow-counterclockwise"></i> Reset
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                                 </button>
                             </div>
                         </div>
@@ -1110,43 +1106,36 @@
                 </span>
             </div>
 
-            <div class="filter-bar mb-3 p-3 rounded"
-                style="background: var(--surface); border: 1px solid var(--border);">
-                <div class="row g-2">
+            <div class="filter-bar mb-3 p-4 rounded" style="background: var(--surface); border: 1px solid var(--border);">
+                <div class="row g-3">
                     <div class="col-md-3">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Buscar
-                            factura/cliente</label>
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-search me-2"></i>Buscar factura / cliente</label>
                         <input type="text" id="invoiceFilterSearch" class="form-control form-control-sm"
-                            placeholder="Nº, Cliente, NIF..." oninput="filterInvoices()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                            placeholder="Nº, Cliente, NIF..." oninput="filterInvoices()">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Tipo</label>
-                        <select id="invoiceFilterType" class="form-select form-select-sm" onchange="filterInvoices()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-filter-circle me-2"></i>Tipo</label>
+                        <select id="invoiceFilterType" class="form-select form-select-sm" onchange="filterInvoices()">
                             <option value="">Todos</option>
                             <option value="factura">Factura</option>
                             <option value="ticket">Ticket</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Método de Pago</label>
-                        <select id="invoiceFilterMethod" class="form-select form-select-sm" onchange="filterInvoices()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-credit-card-2-front me-2"></i>Pago</label>
+                        <select id="invoiceFilterMethod" class="form-select form-select-sm" onchange="filterInvoices()">
                             <option value="">Cualquier método</option>
                             <option value="Efectivo">Efectivo</option>
                             <option value="Tarjeta">Tarjeta</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Fecha</label>
-                        <input type="date" id="invoiceFilterDate" class="form-control form-control-sm"
-                            onchange="filterInvoices()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-calendar3 me-2"></i>Fecha</label>
+                        <input type="date" id="invoiceFilterDate" class="form-control form-control-sm" onchange="filterInvoices()">
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetInvoiceFilters()">
-                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                         </button>
                     </div>
                 </div>
@@ -1240,34 +1229,28 @@
                 </span>
             </div>
 
-            <div class="filter-bar mb-3 p-3 rounded"
-                style="background: var(--surface); border: 1px solid var(--border);">
-                <div class="row g-2">
-                    <div class="col-md-3">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Buscar por Nº /
-                            Motivo</label>
+            <div class="filter-bar mb-3 p-4 rounded" style="background: var(--surface); border: 1px solid var(--border);">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-search me-2"></i>Buscar por Nº / Motivo</label>
                         <input type="text" id="returnFilterSearch" class="form-control form-control-sm"
-                            placeholder="Ej: D-2026-0001 o Motivo..." oninput="filterReturns()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                            placeholder="Ej: D-2026-0001 o Motivo..." oninput="filterReturns()">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Método de Pago</label>
-                        <select id="returnFilterMethod" class="form-select form-select-sm" onchange="filterReturns()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-credit-card-2-front me-2"></i>Pago</label>
+                        <select id="returnFilterMethod" class="form-select form-select-sm" onchange="filterReturns()">
                             <option value="">Cualquier método</option>
                             <option value="Efectivo">Efectivo</option>
                             <option value="Tarjeta">Tarjeta</option>
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Fecha</label>
-                        <input type="date" id="returnFilterDate" class="form-control form-control-sm"
-                            onchange="filterReturns()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-calendar3 me-2"></i>Fecha</label>
+                        <input type="date" id="returnFilterDate" class="form-control form-control-sm" onchange="filterReturns()">
                     </div>
-                    <div class="col-md-3 d-flex align-items-end">
+                    <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetReturnFilters()">
-                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                         </button>
                     </div>
                 </div>
@@ -1532,26 +1515,20 @@
                 </span>
             </div>
 
-            <div class="filter-bar mb-3 p-3 rounded"
-                style="background: var(--surface); border: 1px solid var(--border);">
-                <div class="row g-2">
+            <div class="filter-bar mb-3 p-4 rounded" style="background: var(--surface); border: 1px solid var(--border);">
+                <div class="row g-3">
                     <div class="col-md-5">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Buscar por
-                            trabajador</label>
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-person-circle me-2"></i>Trabajador</label>
                         <input type="text" id="cashFilterWorker" class="form-control form-control-sm"
-                            placeholder="Nombre de usuario..." oninput="filterCashClosures()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                            placeholder="Nombre de usuario..." oninput="filterCashClosures()">
                     </div>
-                    <div class="col-md-5">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Fecha
-                            (DD/MM/YYYY)</label>
-                        <input type="text" id="cashFilterDate" class="form-control form-control-sm"
-                            placeholder="Ej: 03/03/2026..." oninput="filterCashClosures()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                    <div class="col-md-4">
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-calendar3 me-2"></i>Fecha</label>
+                        <input type="date" id="cashFilterDate" class="form-control form-control-sm" onchange="filterCashClosures()">
                     </div>
-                    <div class="col-md-2 d-flex align-items-end">
+                    <div class="col-md-3 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetCashFilters()">
-                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                         </button>
                     </div>
                 </div>
@@ -1574,8 +1551,8 @@
                     <tbody id="cashClosuresTableBody">
                         <tr th:each="register : ${cashRegisters}" class="cash-row"
                             th:data-worker="${register.worker != null ? register.worker.username : 'Sistema'}"
-                            th:data-open-date="${#temporals.format(register.openingTime, 'dd/MM/yyyy')}"
-                            th:data-close-date="${#temporals.format(register.closedAt, 'dd/MM/yyyy')}">
+                            th:data-open-date="${#temporals.format(register.openingTime, 'yyyy-MM-dd')}"
+                            th:data-close-date="${#temporals.format(register.closedAt, 'yyyy-MM-dd')}">
                             <td style="color:var(--text-muted);font-weight:600" th:text="${'#'+register.id}"></td>
                             <td th:text="${#temporals.format(register.openingTime, 'dd/MM/yyyy HH:mm')}"></td>
                             <td th:text="${#temporals.format(register.closedAt, 'dd/MM/yyyy HH:mm')}"></td>
@@ -1633,28 +1610,23 @@
                 </button>
             </div>
 
-            <div class="filter-bar mb-3 p-3 rounded"
-                style="background: var(--surface); border: 1px solid var(--border);">
-                <div class="row g-2">
+            <div class="filter-bar mb-3 p-4 rounded" style="background: var(--surface); border: 1px solid var(--border);">
+                <div class="row g-3">
                     <div class="col-md-3">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Buscar por
-                            nombre</label>
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-search me-2"></i>Buscar trabajador</label>
                         <input type="text" id="workerFilterName" class="form-control form-control-sm"
-                            placeholder="Usuario..." oninput="filterWorkers()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                            placeholder="Usuario..." oninput="filterWorkers()">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Rol</label>
-                        <select id="workerFilterRole" class="form-select form-select-sm" onchange="filterWorkers()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-shield-lock me-2"></i>Rol</label>
+                        <select id="workerFilterRole" class="form-select form-select-sm" onchange="filterWorkers()">
                             <option value="">Cualquier Rol</option>
                             <option th:each="r : ${roles}" th:value="${r.id}" th:text="${r.name}"></option>
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Estado</label>
-                        <select id="workerFilterStatus" class="form-select form-select-sm" onchange="filterWorkers()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-check-circle me-2"></i>Estado</label>
+                        <select id="workerFilterStatus" class="form-select form-select-sm" onchange="filterWorkers()">
                             <option value="">Todos</option>
                             <option value="true">Activos</option>
                             <option value="false">Inactivos</option>
@@ -1662,7 +1634,7 @@
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetWorkerFilters()">
-                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                         </button>
                     </div>
                 </div>
@@ -1744,19 +1716,16 @@
                 </div>
             </div>
 
-            <div class="filter-bar mb-3 p-3 rounded"
+            <div class="filter-bar mb-3 p-4 rounded"
                 style="background: var(--surface); border: 1px solid var(--border);">
-                <div class="row g-2">
+                <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Buscar por
-                            nombre</label>
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-search me-2"></i>Buscar por nombre</label>
                         <input type="text" id="roleFilterName" class="form-control form-control-sm"
-                            placeholder="Buscar por nombre..." oninput="filterRoles()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                            placeholder="Buscar por nombre..." oninput="filterRoles()">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Permisos
-                            requeridos</label>
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-shield-lock me-2"></i>Permisos requeridos</label>
                         <div class="dropdown">
                             <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100" type="button"
                                 id="roleFilterPermBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside"
@@ -1793,7 +1762,7 @@
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100"
                             onclick="resetRolePermFilters(); document.getElementById('roleFilterName').value=''; filterRoles();">
-                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                         </button>
                     </div>
                 </div>
@@ -1930,28 +1899,24 @@
                 </div>
             </div>
 
-            <div class="filter-bar mb-3 p-3 rounded"
-                style="background: var(--surface); border: 1px solid var(--border);">
-                <div class="row g-2">
+            <div class="filter-bar mb-3 p-4 rounded" style="background: var(--surface); border: 1px solid var(--border);">
+                <div class="row g-3">
                     <div class="col-md-5">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Buscar cliente</label>
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-person-badge me-2"></i>Buscar cliente</label>
                         <input type="text" id="crmFilterSearch" class="form-control form-control-sm"
-                            placeholder="Nombre, NIF, Email, Teléfono..." oninput="filterCRM()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                            placeholder="Nombre, NIF, Email, Teléfono..." oninput="filterCRM()">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Tipo</label>
-                        <select id="crmFilterType" class="form-select form-select-sm" onchange="filterCRM()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-filter-circle me-2"></i>Tipo</label>
+                        <select id="crmFilterType" class="form-select form-select-sm" onchange="filterCRM()">
                             <option value="">Todos los tipos</option>
                             <option value="INDIVIDUAL">Particular</option>
                             <option value="COMPANY">Empresa / Profesional</option>
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">R.E.</label>
-                        <select id="crmFilterRE" class="form-select form-select-sm" onchange="filterCRM()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-percent me-2"></i>R.E.</label>
+                        <select id="crmFilterRE" class="form-select form-select-sm" onchange="filterCRM()">
                             <option value="">Todos</option>
                             <option value="yes">Con Recargo</option>
                             <option value="no">Sin Recargo</option>
@@ -1959,7 +1924,7 @@
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetCRMFilters()">
-                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                         </button>
                     </div>
                 </div>
@@ -2141,19 +2106,17 @@
 
             <!-- Tab: Futuros -->
             <div id="preciosTabFuturos">
-                <div class="filter-bar mb-3 p-3 rounded"
+                <div class="filter-bar mb-3 p-4 rounded"
                     style="background: var(--surface); border: 1px solid var(--border);">
-                    <div class="row g-2">
+                    <div class="row g-3">
                         <div class="col-md-10">
-                            <label class="form-label small mb-1" style="color: var(--text-main);">Buscar por
-                                producto</label>
+                            <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-search me-2"></i>Buscar por producto</label>
                             <input type="text" id="futurePriceFilterSearch" class="form-control form-control-sm"
-                                placeholder="Nombre del producto..." oninput="filterFuturePrices()"
-                                style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                                placeholder="Nombre del producto..." oninput="filterFuturePrices()">
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
                             <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetFuturePriceFilters()">
-                                <i class="bi bi-arrow-counterclockwise"></i> Reset
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                             </button>
                         </div>
                     </div>
@@ -2183,14 +2146,13 @@
 
             <!-- Tab: Historial -->
             <div id="preciosTabHistorial" style="display:none">
-                <div class="filter-bar mb-3 p-3 rounded"
+                <div class="filter-bar mb-3 p-4 rounded"
                     style="background: var(--surface); border: 1px solid var(--border);">
-                    <div class="row g-2">
+                    <div class="row g-3">
                         <div class="col-md-10">
-                            <label class="form-label small mb-1" style="color: var(--text-main);">Producto</label>
+                            <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-box-seam me-2"></i>Producto</label>
                             <select class="form-select form-select-sm" id="historialProductSelect"
-                                onchange="loadPriceHistory()"
-                                style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                                onchange="loadPriceHistory()">
                                 <option value="">— Selecciona un producto —</option>
                                 <option th:each="p : ${products}" th:value="${p.id}" th:text="${p.name}"></option>
                             </select>
@@ -2198,7 +2160,7 @@
                         <div class="col-md-2 d-flex align-items-end">
                             <button class="btn btn-sm btn-outline-secondary w-100"
                                 onclick="document.getElementById('historialProductSelect').value=''; loadPriceHistory();">
-                                <i class="bi bi-arrow-counterclockwise"></i> Reset
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                             </button>
                         </div>
                     </div>
@@ -2370,31 +2332,25 @@
                 </span>
             </div>
 
-            <div class="filter-bar mb-4 p-3 rounded"
-                style="background: var(--surface); border: 1px solid var(--border);">
-                <div class="row g-2">
+            <div class="filter-bar mb-3 p-4 rounded" style="background: var(--surface); border: 1px solid var(--border);">
+                <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Buscar por
-                            usuario</label>
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-person-circle me-2"></i>Usuario</label>
                         <input type="text" id="activityFilterUser" class="form-control form-control-sm"
-                            placeholder="Nombre de usuario..." oninput="filterActivity()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                            placeholder="Nombre de usuario..." oninput="filterActivity()">
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Buscar acción</label>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-lightning-charge me-2"></i>Acción</label>
                         <input type="text" id="activityFilterAction" class="form-control form-control-sm"
-                            placeholder="Ej: VENTA, ELIMINAR..." oninput="filterActivity()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                            placeholder="Ej: VENTA, ELIMINAR..." oninput="filterActivity()">
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label small mb-1" style="color: var(--text-main);">Fecha</label>
-                        <input type="date" id="activityFilterDate" class="form-control form-control-sm"
-                            onchange="filterActivity()"
-                            style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-calendar3 me-2"></i>Fecha</label>
+                        <input type="date" id="activityFilterDate" class="form-control form-control-sm" onchange="filterActivity()">
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetActivityFilters()">
-                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                         </button>
                     </div>
                 </div>
@@ -2630,15 +2586,39 @@
                 <div class="modal-body">
                     <form id="customerForm" novalidate>
                         <input type="hidden" id="customerId">
+                        <div class="mb-3">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="customerTypeRadio" id="adminTypeIndividual" value="INDIVIDUAL" checked onchange="toggleAdminCustomerType()">
+                                <label class="form-check-label" for="adminTypeIndividual">Particular</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="customerTypeRadio" id="adminTypeCompany" value="COMPANY" onchange="toggleAdminCustomerType()">
+                                <label class="form-check-label" for="adminTypeCompany">Empresa</label>
+                            </div>
+                            <input type="hidden" id="customerType" value="INDIVIDUAL">
+                        </div>
                         <div class="row g-3">
-                            <div class="col-md-8">
-                                <label class="form-label" for="customerName">Nombre / Razón Social *</label>
+                            <div class="col-md-6">
+                                <label class="form-label" id="lblAdminCustomerName" for="customerName">Nombre / Razón Social *</label>
                                 <input type="text" class="form-control" id="customerName" required
                                     placeholder="Nombre completo">
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="customerTaxId">NIF / CIF</label>
+                            <div class="col-md-6">
+                                <label class="form-label" id="lblAdminCustomerTaxId" for="customerTaxId">NIF / CIF</label>
                                 <input type="text" class="form-control" id="customerTaxId" placeholder="12345678X">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="customerAddress">Dirección *</label>
+                                <input type="text" class="form-control" id="customerAddress"
+                                    placeholder="Calle, número, piso...">
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label" for="customerCity">Ciudad *</label>
+                                <input type="text" class="form-control" id="customerCity" placeholder="Madrid">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="customerPostalCode">C.P. *</label>
+                                <input type="text" class="form-control" id="customerPostalCode" placeholder="28001">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="customerEmail">Email</label>
@@ -2649,42 +2629,24 @@
                                 <label class="form-label" for="customerPhone">Teléfono</label>
                                 <input type="tel" class="form-control" id="customerPhone" placeholder="600 000 000">
                             </div>
+                            
+                            <!-- Tariff selector -->
                             <div class="col-12">
-                                <label class="form-label" for="customerAddress">Dirección</label>
-                                <input type="text" class="form-control" id="customerAddress"
-                                    placeholder="Calle, número, piso...">
+                                <label class="form-label" for="customerTariffId">
+                                    <i class="bi bi-tags me-1"></i>Tarifa de Precio
+                                </label>
+                                <select class="form-select" id="customerTariffId">
+                                    <option value="">-- Sin tarifa asignada (MINORISTA) --</option>
+                                    <th:block th:each="tariff : ${tariffs}">
+                                        <option th:if="${tariff.active}" th:value="${tariff.id}"
+                                            th:text="${tariff.getDisplayLabel()}">MINORISTA</option>
+                                    </th:block>
+                                </select>
+                                <small style="color: var(--text-muted);">La tarifa define el descuento automático cuando
+                                    este cliente
+                                    se añade a una venta.</small>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label" for="customerCity">Ciudad</label>
-                                <input type="text" class="form-control" id="customerCity" placeholder="Madrid">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label" for="customerPostalCode">C.P.</label>
-                                <input type="text" class="form-control" id="customerPostalCode" placeholder="28001">
-                            </div>
-                            <div class="col-md-5">
-                                <label class="form-label d-block">Tipo de Cliente *</label>
-                                <div class="d-flex gap-3 pt-1">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="customerTypeRadio"
-                                            id="adminTypeIndividual" value="INDIVIDUAL" checked
-                                            onchange="toggleAdminCustomerType()">
-                                        <label class="form-check-label" for="adminTypeIndividual">Particular</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="customerTypeRadio"
-                                            id="adminTypeCompany" value="COMPANY" onchange="toggleAdminCustomerType()">
-                                        <label class="form-check-label" for="adminTypeCompany">Empresa</label>
-                                    </div>
-                                </div>
-                                <input type="hidden" id="customerType" value="INDIVIDUAL">
-                            </div>
-                            <div class="col-12">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="customerActive" checked>
-                                    <label class="form-check-label" for="customerActive">Cliente activo</label>
-                                </div>
-                            </div>
+
                             <div class="col-12" id="adminCustomerReSection" style="display: none;">
                                 <div class="p-3 rounded"
                                     style="background:rgba(var(--accent-rgb), 0.05); border:1px solid var(--border)">
@@ -2703,21 +2665,12 @@
                                     </small>
                                 </div>
                             </div>
-                            <!-- Tariff selector -->
+
                             <div class="col-12">
-                                <label class="form-label" for="customerTariffId">
-                                    <i class="bi bi-tags me-1"></i>Tarifa de Precio
-                                </label>
-                                <select class="form-select" id="customerTariffId">
-                                    <option value="">-- Sin tarifa asignada (MINORISTA) --</option>
-                                    <th:block th:each="tariff : ${tariffs}">
-                                        <option th:if="${tariff.active}" th:value="${tariff.id}"
-                                            th:text="${tariff.getDisplayLabel()}">MINORISTA</option>
-                                    </th:block>
-                                </select>
-                                <small style="color: var(--text-muted);">La tarifa define el descuento automático cuando
-                                    este cliente
-                                    se añade a una venta.</small>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="customerActive" checked>
+                                    <label class="form-check-label" for="customerActive">Cliente activo</label>
+                                </div>
                             </div>
                         </div>
                     </form>

@@ -794,6 +794,23 @@ function toggleAdminCustomerType() {
     var isCompany = document.getElementById('adminTypeCompany').checked;
     document.getElementById('customerType').value = isCompany ? 'COMPANY' : 'INDIVIDUAL';
 
+    var nameLabel = document.getElementById('lblAdminCustomerName');
+    var taxLabel = document.getElementById('lblAdminCustomerTaxId');
+    var taxInput = document.getElementById('customerTaxId');
+
+    if (nameLabel) {
+        nameLabel.innerHTML = isCompany ? 'Razón Social <span class="text-danger">*</span>' : 'Nombre y Apellidos <span class="text-danger">*</span>';
+    }
+    if (taxLabel) {
+        if (isCompany) {
+            taxLabel.innerHTML = 'CIF <span class="text-danger">*</span>';
+            if (taxInput) taxInput.setAttribute('required', 'required');
+        } else {
+            taxLabel.innerHTML = 'NIF/NIE (Opcional)';
+            if (taxInput) taxInput.removeAttribute('required');
+        }
+    }
+
     var reSection = document.getElementById('adminCustomerReSection');
     if (reSection) {
         reSection.style.display = isCompany ? 'block' : 'none';
