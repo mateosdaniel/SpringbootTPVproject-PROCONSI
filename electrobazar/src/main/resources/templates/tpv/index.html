@@ -299,6 +299,7 @@
                     <input type="hidden" name="customerType" id="customerTypeInput">
                     <input type="hidden" name="receivedAmount" id="receivedAmountInput">
                     <input type="hidden" name="requestInvoice" id="requestInvoiceInput" value="false">
+                    <input type="hidden" name="tariffId" id="tariffIdInput">
                     <div id="formLines"></div>
                     <button type="button" class="btn-cobrar" id="btnCobrar" onclick="openCustomerModal()" disabled>
                         <i class="bi bi-lightning-fill me-1"></i> Cobrar
@@ -441,12 +442,31 @@
                             <label class="form-label">Teléfono (Opcional)</label>
                             <input type="text" id="newCustomerPhone" class="form-control" style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
                         </div>
+                        <div class="col-12">
+                            <label class="form-label" for="newCustomerTariffId">
+                                <i class="bi bi-tags me-1"></i>Tarifa de Precio
+                            </label>
+                            <select class="form-select" id="newCustomerTariffId" style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
+                                <option value="">-- Sin tarifa asignada (MINORISTA) --</option>
+                                <th:block th:each="tariff : ${tariffs}">
+                                    <option th:if="${tariff.active}" th:value="${tariff.id}"
+                                        th:text="${tariff.getDisplayLabel()}">MINORISTA</option>
+                                </th:block>
+                            </select>
+                            <small style="color: var(--text-muted);">La tarifa define el descuento automático cuando este cliente se añade a una venta.</small>
+                        </div>
                         <div class="col-12 mt-3" id="newCustomerReSection" style="display: none;">
                             <div class="form-check form-switch p-3 rounded" style="border: 1px solid var(--border); background: rgba(var(--accent-rgb), 0.05);">
                                 <input class="form-check-input ms-0 me-2" type="checkbox" id="newCustomerHasRecargo">
                                 <label class="form-check-label fw-bold" for="newCustomerHasRecargo">
                                     <i class="bi bi-percent me-1 text-accent"></i> Sujeto a Recargo de Equivalencia (RE)
                                 </label>
+                            </div>
+                        </div>
+                        <div class="col-12 mt-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="newCustomerActive" checked>
+                                <label class="form-check-label" for="newCustomerActive">Cliente activo</label>
                             </div>
                         </div>
                     </div>

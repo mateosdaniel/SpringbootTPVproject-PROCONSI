@@ -859,6 +859,8 @@ function openFullCustomerModal() {
     document.getElementById('newCustomerPostalCode').value = '';
     document.getElementById('newCustomerEmail').value = '';
     document.getElementById('newCustomerPhone').value = '';
+    document.getElementById('newCustomerTariffId').value = '';
+    document.getElementById('newCustomerActive').checked = true;
     document.getElementById('typeIndividual').checked = true;
     toggleCustomerType();
     
@@ -875,6 +877,8 @@ function createNewCustomerAjax() {
     var postalCode = document.getElementById('newCustomerPostalCode').value.trim();
     var email = document.getElementById('newCustomerEmail').value.trim();
     var phone = document.getElementById('newCustomerPhone').value.trim();
+    var tariffId = document.getElementById('newCustomerTariffId').value;
+    var isActive = document.getElementById('newCustomerActive').checked;
     var hasRecargo = document.getElementById('newCustomerHasRecargo').checked;
 
     if (!name) { showToast('El nombre es obligatorio', 'warning'); return; }
@@ -883,7 +887,8 @@ function createNewCustomerAjax() {
     var newCustomer = {
         name: name, taxId: taxId, address: address, city: city,
         postalCode: postalCode, email: email, phone: phone,
-        type: type, active: true, hasRecargoEquivalencia: hasRecargo
+        type: type, active: isActive, hasRecargoEquivalencia: hasRecargo,
+        tariffId: tariffId || null
     };
 
     fetch('/api/customers', {
