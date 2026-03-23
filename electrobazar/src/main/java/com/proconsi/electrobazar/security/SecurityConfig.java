@@ -80,7 +80,7 @@ public class SecurityConfig {
                                 // Enabling it for browser sessions (/admin, /tpv, /login)
                                 // While ignoring it for API calls that use Bearer tokens
                                 .csrf(csrf -> csrf
-                                                .ignoringRequestMatchers("/api/**"))
+                                                .ignoringRequestMatchers("/api/**", "/admin/login", "/admin/settings/pin"))
 
                                 // 2. Authorization Rules by Path and Method
                                 .authorizeHttpRequests(auth -> auth

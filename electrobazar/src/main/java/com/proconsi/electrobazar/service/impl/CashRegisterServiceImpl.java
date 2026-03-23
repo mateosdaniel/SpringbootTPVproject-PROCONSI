@@ -139,9 +139,9 @@ public class CashRegisterServiceImpl implements CashRegisterService {
 
     @Override
     public void checkOpenRegisterForToday() {
-        LocalDate today = LocalDate.now();
+        // More lenient check: Allow any open shift even if it was opened on a previous day.
+        // This prevents the "No hay ninguna sesión de caja abierta" error when a shift spans past midnight.
         boolean isRegisterOpen = cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc()
-                .filter(cr -> cr.getRegisterDate().equals(today))
                 .isPresent();
 
         if (!isRegisterOpen) {
