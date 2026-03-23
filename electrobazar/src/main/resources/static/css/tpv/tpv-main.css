@@ -13,6 +13,65 @@
             --danger: #e74c3c;
         }
 
+        /* ── Connectivity LED Indicator ── */
+        #connectivity-led {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.85rem;
+            border-radius: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .led-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #94a3b8;
+            box-shadow: 0 0 0 0 rgba(148, 163, 184, 0.4);
+        }
+
+        #connectivity-led.online {
+            color: #22c55e;
+            border-color: rgba(34, 197, 94, 0.2);
+        }
+        #connectivity-led.online .led-dot {
+            background: #22c55e;
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+            animation: led-pulse 2s infinite;
+        }
+
+        #connectivity-led.offline {
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.05);
+        }
+        #connectivity-led.offline .led-dot {
+            background: #ef4444;
+            box-shadow: 0 0 4px rgba(239, 68, 68, 0.4);
+            animation: none;
+        }
+
+        @keyframes led-pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        .led-text {
+            color: var(--text-muted);
+            transition: color 0.3s;
+        }
+        #connectivity-led.online .led-text { color: #22c55e; }
+        #connectivity-led.offline .led-text { color: #ef4444; }
+
         /* Themes are applied dynamically via the shared fragment script */
 
 

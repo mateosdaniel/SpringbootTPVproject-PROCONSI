@@ -33,6 +33,12 @@
                     th:text="${session.worker.username}">Trabajador</span>
             </div>
 
+            <!-- Connectivity LED Indicator -->
+            <div id="connectivity-led" class="online ms-3" title="Conexión con el servidor OK">
+                <span class="led-dot"></span>
+                <span class="led-text">Online</span>
+            </div>
+
             <!-- Botones de Acción (Admin & Gestión) -->
             <div class="d-flex align-items-center gap-2 ms-1">
                 <button th:if="${session.worker.getEffectivePermissions().contains('ADMIN_ACCESS')}"

@@ -430,6 +430,23 @@ function processSaleWithInvoiceValidation() {
         hiddenReceivedAmount.value = '';
     }
 
+    // --- Offline Handling ---
+    if (!navigator.onLine) {
+        saveOfflineSale({
+            paymentMethod: paymentMethod,
+            customerId: customerId,
+            receivedAmount: hiddenReceivedAmount.value,
+            requestInvoice: hasCustomer,
+            total: total,
+            lines: Object.keys(ticket).map(id => ({
+                productId: id,
+                quantity: ticket[id].quantity,
+                unitPrice: ticket[id].price
+            }))
+        });
+        return; // Prevent standard form submission
+    }
+
     // customerIdInput already set by selectCustomer() in sidebar — just submit
     saleForm.submit();
 }
@@ -1355,5 +1372,144 @@ document.addEventListener('DOMContentLoaded', function () {
     var tariffBar = document.getElementById('tariffBar');
     if (tariffBar) tariffBar.style.display = 'flex'; // Always show tariff bar
     resetTariffToDefault();
+});
+
+// --- OFFLINE MODE & CONNECTIVITY ---
+var db;
+const DB_NAME = 'TPV_Offline_DB';
+const DB_VERSION = 1;
+
+function initOfflineDB() {
+    if (!window.indexedDB) {
+        console.warn('Your browser does not support IndexedDB. Offline mode will be limited.');
+        return;
+    }
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = function(e) {
+        let db = e.target.result;
+        if (!db.objectStoreNames.contains('pending_sales')) {
+            db.createObjectStore('pending_sales', { keyPath: 'id', autoIncrement: true });
+        }
+    };
+    request.onsuccess = function(e) {
+        db = e.target.result;
+        console.log('IndexedDB initialized');
+        if (navigator.onLine) syncOfflineSales();
+    };
+}
+
+function updateConnectivityUI() {
+    const led = document.getElementById('connectivity-led');
+    if (!led) return;
+    const ledText = led.querySelector('.led-text');
+    if (navigator.onLine) {
+        led.classList.remove('offline');
+        led.classList.add('online');
+        led.title = "Conexión con el servidor OK";
+        if (ledText) ledText.textContent = "Online";
+        syncOfflineSales();
+    } else {
+        led.classList.remove('online');
+        led.classList.add('offline');
+        led.title = "Sin conexión. Las ventas se guardarán localmente.";
+        if (ledText) ledText.textContent = "Offline";
+    }
+}
+
+function saveOfflineSale(sale) {
+    if (!db) {
+        showToast("Error crítico: Base de datos local no inicializada", 'warning');
+        return;
+    }
+    const transaction = db.transaction(['pending_sales'], 'readwrite');
+    const store = transaction.objectStore('pending_sales');
+    const request = store.add({...sale, createdAt: new Date().toISOString()});
+
+    transaction.oncomplete = function() {
+        showToast("Venta guardada localmente (Modo Offline)", 'success');
+        clearTicket();
+        if (typeof invoiceModalInstance !== 'undefined' && invoiceModalInstance) {
+            invoiceModalInstance.hide();
+        }
+    };
+    transaction.onerror = function() {
+        showToast("Error al guardar la venta localmente", 'warning');
+    };
+}
+
+function syncOfflineSales() {
+    if (!db || !navigator.onLine) return;
+
+    try {
+        const transaction = db.transaction(['pending_sales'], 'readonly');
+        const store = transaction.objectStore('pending_sales');
+        const request = store.getAll();
+
+        request.onsuccess = function() {
+            const sales = request.result;
+            if (sales.length === 0) return;
+
+            console.log(`Syncing ${sales.length} offline sales...`);
+            processSyncQueue(sales);
+        };
+    } catch (e) {
+        console.error('Sync failed to initiate', e);
+    }
+}
+
+function processSyncQueue(sales) {
+    if (sales.length === 0) {
+        showToast("Sincronización completada", 'success');
+        return;
+    }
+    const sale = sales[0];
+    
+    const formData = new URLSearchParams();
+    formData.append('paymentMethod', sale.paymentMethod);
+    if (sale.customerId) formData.append('customerId', sale.customerId);
+    if (sale.receivedAmount) formData.append('receivedAmount', sale.receivedAmount);
+    formData.append('requestInvoice', sale.requestInvoice);
+    
+    sale.lines.forEach(line => {
+        formData.append('productIds', line.productId);
+        formData.append('quantities', line.quantity);
+        formData.append('unitPrices', line.unitPrice.toFixed(2));
+    });
+
+    fetch('/tpv/sale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData
+    })
+    .then(r => {
+        if (r.ok || r.status === 400) { 
+            // 400 usually means business logic error (like out of stock now), 
+            // but we remove it from queue to avoid blockages OR move to a "dead-letter" store
+            const delTx = db.transaction(['pending_sales'], 'readwrite');
+            delTx.objectStore('pending_sales').delete(sale.id);
+            delTx.oncomplete = () => {
+                processSyncQueue(sales.slice(1));
+            };
+        }
+    })
+    .catch(err => {
+        console.error('Network error during sync', err);
+    });
+}
+
+window.addEventListener('online', updateConnectivityUI);
+window.addEventListener('offline', updateConnectivityUI);
+
+// Initialization
+document.addEventListener('DOMContentLoaded', function() {
+    initOfflineDB();
+    updateConnectivityUI();
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Service Worker registered', reg))
+            .catch(err => console.warn('Service Worker registration failed', err));
+    }
 });
 
