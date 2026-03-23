@@ -20,7 +20,7 @@ public class LoginController {
     private final WorkerService workerService;
 
     @GetMapping("/login")
-    public String loginForm() {
+    public String loginForm(Model model) {
         return "login";
     }
 
