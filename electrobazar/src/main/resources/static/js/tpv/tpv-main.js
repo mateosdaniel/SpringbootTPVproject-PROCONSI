@@ -125,15 +125,24 @@ function updateStockBubbles() {
         var inTicket = ticket[id] ? ticket[id].quantity : 0;
         var available = initialStock - inTicket;
 
-        var bubble = card.querySelector('.stock-bubble');
-        if (bubble) {
-            bubble.textContent = available;
-            bubble.classList.toggle('out-of-stock', available <= 0);
+        var badge = card.querySelector('.stock-badge');
+        if (badge) {
+            badge.textContent = available;
+            
+            // Update color states
+            badge.classList.remove('stock-danger', 'stock-warning', 'stock-neutral');
+            if (available === 0) {
+                badge.classList.add('stock-danger');
+            } else if (available < 5) {
+                badge.classList.add('stock-warning');
+            } else {
+                badge.classList.add('stock-neutral');
+            }
             
             // Add a little pop animation when stock changes
-            if (parseInt(bubble.textContent) !== available) {
-                bubble.style.transform = 'scale(1.3)';
-                setTimeout(function() { bubble.style.transform = 'scale(1)'; }, 150);
+            if (parseInt(badge.textContent) !== available) {
+                badge.style.transform = 'scale(1.3)';
+                setTimeout(function() { badge.style.transform = 'scale(1)'; }, 150);
             }
         }
     });
@@ -531,7 +540,10 @@ function renderProducts(products) {
         var initialStock = parseInt(product.stock) || 0;
         var inTicket = ticket[product.id] ? ticket[product.id].quantity : 0;
         var available = initialStock - inTicket;
-        var outOfStockClass = available <= 0 ? ' out-of-stock' : '';
+        
+        var badgeClass = 'stock-neutral';
+        if (available === 0) badgeClass = 'stock-danger';
+        else if (available < 5) badgeClass = 'stock-warning';
 
         return '<div class="product-card"' +
             ' data-id="' + product.id + '"' +
@@ -540,8 +552,9 @@ function renderProducts(products) {
             ' data-category="' + catName + '"' +
             ' data-stock="' + product.stock + '">' +
             ' <div class="product-image-container">' + 
-            ' <span class="stock-bubble' + outOfStockClass + '">' + available + '</span>' +
-            imgHtml + ' </div>' +
+            imgHtml + 
+            ' <span class="stock-badge ' + badgeClass + '">' + available + '</span>' +
+            ' </div>' +
             ' <div class="product-info">' +
             ' <div class="product-name">' + escapeHtml(product.name) + '</div>' +
             ' <div class="product-price">' + parseFloat(product.price).toFixed(2) + '\u20AC</div>' +

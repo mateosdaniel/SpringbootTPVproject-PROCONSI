@@ -168,10 +168,12 @@
                     data-stock=${product.stock}">
 
                     <div class="product-image-container">
-                        <span class="stock-bubble" th:text="${product.stock}" th:classappend="${product.stock <= 0} ? 'out-of-stock' : ''">0</span>
                         <img th:if="${product.imageUrl}" th:src="${product.imageUrl}" alt="Imagen producto"
                             class="product-image">
                         <i th:unless="${product.imageUrl}" class="bi bi-box product-icon"></i>
+                        <span class="stock-badge" 
+                              th:classappend="${product.stock == 0 ? 'stock-danger' : (product.stock < 5 ? 'stock-warning' : 'stock-neutral')}"
+                              th:text="${product.stock}">0</span>
                     </div>
                     <div class="product-info">
                         <div class="product-name" th:text="${product.name}">Nombre producto</div>
