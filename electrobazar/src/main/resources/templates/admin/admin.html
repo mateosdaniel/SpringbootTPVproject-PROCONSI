@@ -13,6 +13,7 @@
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <th:block th:replace="~{fragments/theme :: themeScript}" />
+    <script th:src="@{/js/admin/admin-main.js(v='1.2')}"></script>
     <link rel="stylesheet" th:href="@{/css/admin/admin-main.css}">
     <style>
         #ipcUpdateModal .modal-content {
@@ -400,6 +401,55 @@
                 <button class="btn-nuevo" onclick="openCreateTariffModal()">
                     <i class="bi bi-plus-lg me-1"></i> Nueva Tarifa
                 </button>
+            </div>
+
+            <!-- COMPARATIVA DE PRECIOS POR TARIFA -->
+            <div class="card mb-4 mt-3" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+                <div class="card-header d-flex justify-content-between align-items-center py-3 px-4" style="background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border);">
+                    <h6 class="mb-0 fw-bold" style="color: var(--text-main); font-size: 0.9rem;">
+                        <i class="bi bi-layout-three-columns me-2 text-accent"></i>LISTA DE PRECIOS VIGENTES POR TARIFA
+                    </h6>
+                    <div class="input-group input-group-sm" style="width: 280px;">
+                        <span class="input-group-text bg-dark border-secondary text-muted rounded-start-pill border-end-0"><i class="bi bi-search"></i></span>
+                        <input type="text" id="tariffComparisonSearch" class="form-control bg-dark border-secondary text-white rounded-end-pill border-start-0" 
+                               placeholder="Buscar producto..." onkeyup="filterTariffComparison()">
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div style="max-height: 380px; overflow-y: auto; overflow-x: auto;" class="custom-scrollbar">
+                        <table class="admin-table mb-0" id="tariffComparisonTable">
+                            <thead style="position: sticky; top: 0; z-index: 100; background: var(--surface); box-shadow: 0 2px 10px rgba(0,0,0,0.3);">
+                                <tr>
+                                    <th style="min-width: 250px; background: var(--surface);">Producto</th>
+                                    <th style="background: var(--surface);" class="text-end">PVPR (Base)</th>
+                                    <th th:each="t : ${tariffs}" th:if="${t.active}" class="text-end" style="background: var(--surface); min-width: 120px;">
+                                        <div class="d-flex flex-column align-items-end">
+                                            <span class="badge" th:style="'background:' + ${t.color ?: '#8892a4'} + '20; color:' + ${t.color ?: '#8892a4'} + '; border: 1px solid ' + ${t.color ?: '#8892a4'} + '30; font-size: 0.65rem; border-radius: 4px;'" th:text="${t.name}"></span>
+                                            <small class="text-muted mt-1" style="font-size: 0.6rem; font-weight: normal;" th:text="${t.discountPercentage > 0 ? '-' + #numbers.formatDecimal(t.discountPercentage, 1, 0) + '%' : 'SIN DTO.'}"></small>
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="p : ${products}" class="comparison-row">
+                                    <td class="py-2">
+                                        <div class="fw-bold" style="color: var(--text-main); font-size: 0.85rem;" th:text="${p.name}"></div>
+                                        <small class="text-muted" style="font-size: 0.7rem;" th:text="${p.category != null ? p.category.name : 'Sin categoría'}"></small>
+                                    </td>
+                                    <td class="text-end fw-bold py-2" style="font-family: 'Barlow Condensed', sans-serif; font-size: 1rem; color: #8892a4;" 
+                                        th:text="${#numbers.formatDecimal(p.price, 1, 2, 'COMMA') + ' €'}"></td>
+                                    <td th:each="t : ${tariffs}" th:if="${t.active}" class="text-end py-2" style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 1.05rem;">
+                                        <span th:if="${p.price != null and t.discountPercentage != null}"
+                                              th:with="discountedPrice=${p.price.multiply(T(java.math.BigDecimal).ONE.subtract(t.discountPercentage.divide(new java.math.BigDecimal('100'), 4, T(java.math.RoundingMode).HALF_UP)))}"
+                                              th:text="${#numbers.formatDecimal(discountedPrice, 1, 2, 'COMMA') + ' €'}"
+                                              th:style="${t.discountPercentage.compareTo(T(java.math.BigDecimal).ZERO) > 0} ? 'color: var(--accent)' : 'color: var(--text-main)'"></span>
+                                        <span th:unless="${p.price != null and t.discountPercentage != null}" class="text-muted">N/D</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
             <div class="admin-table-wrap mt-3">
@@ -1160,12 +1210,12 @@
                             th:data-customer="${sale.customer != null ? sale.customer.name : ''}"
                             th:data-taxid="${sale.customer != null ? sale.customer.taxId : ''}"
                             th:data-type="${sale.invoice != null ? 'factura' : 'ticket'}"
-                            th:data-method="${sale.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}"
+                            th:data-method="${sale.paymentMethod != null && sale.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}"
                             th:data-date="${#temporals.format(sale.createdAt, 'yyyy-MM-dd')}">
                             <td style="color:var(--text-muted);font-weight:600" th:text="${'#'+sale.id}"></td>
                             <td th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
                             <td>
-                                <span th:if="${sale.status.name() == 'CANCELLED'}" class="badge mb-1 d-block"
+                                <span th:if="${sale.status != null && sale.status.name() == 'CANCELLED'}" class="badge mb-1 d-block"
                                     style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 600;">
                                     <i class="bi bi-x-circle me-1"></i>ANULADA
                                 </span>
@@ -1186,15 +1236,15 @@
                                 <span th:text="${sale.worker != null ? sale.worker.username : 'Sistema'}">—</span>
                             </td>
                             <td>
-                                <i th:class="${sale.paymentMethod.name() == 'CASH' ? 'bi bi-cash' : 'bi bi-credit-card'}"
+                                <i th:class="${sale.paymentMethod != null && sale.paymentMethod.name() == 'CASH' ? 'bi bi-cash' : 'bi bi-credit-card'}"
                                     style="margin-right:0.3rem"></i>
-                                <span th:text="${sale.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}"></span>
+                                <span th:text="${sale.paymentMethod != null && sale.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}"></span>
                             </td>
                             <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--text-main)"
                                 th:text="${#numbers.formatDecimal(sale.totalAmount,1,2)} + ' &euro;'"></td>
                             <td style="text-align:right">
                                 <div style="display:flex;gap:0.4rem;justify-content:flex-end">
-                                    <button th:if="${sale.status.name() == 'ACTIVE'}" class="btn-icon danger"
+                                    <button th:if="${sale.status != null && sale.status.name() == 'ACTIVE'}" class="btn-icon danger"
                                         title="Anular Venta" th:data-id="${sale.id}"
                                         onclick="cancelSale(this.getAttribute('data-id'))">
                                         <i class="bi bi-x-circle"></i>
@@ -1274,23 +1324,23 @@
                     <tbody id="returnsTableBody">
                         <tr th:each="ret : ${returns}" class="return-row" th:data-number="${ret.returnNumber}"
                             th:data-reason="${ret.reason ?: ''}"
-                            th:data-method="${ret.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}"
+                            th:data-method="${ret.paymentMethod != null && ret.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}"
                             th:data-date="${#temporals.format(ret.createdAt, 'yyyy-MM-dd')}">
                             <td style="color:var(--text-muted);font-weight:600" th:text="${ret.returnNumber}"></td>
                             <td th:text="${'#' + ret.originalSale.id}"></td>
                             <td th:text="${#temporals.format(ret.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
                             <td>
-                                <span class="badge-active" th:classappend="${ret.type.name() == 'TOTAL'} ? 'yes' : 'no'"
-                                    th:text="${ret.type.name() == 'TOTAL'} ? 'Total' : 'Parcial'"></span>
+                                <span class="badge-active" th:classappend="${ret.type != null && ret.type.name() == 'TOTAL'} ? 'yes' : 'no'"
+                                    th:text="${ret.type != null && ret.type.name() == 'TOTAL' ? 'Total' : 'Parcial'}"></span>
                             </td>
                             <td th:text="${#strings.abbreviate(ret.reason ?: '—', 40)}"></td>
                             <td style="font-weight: 500;">
                                 <span th:text="${ret.worker != null ? ret.worker.username : 'Sistema'}">—</span>
                             </td>
                             <td>
-                                <i th:class="${ret.paymentMethod.name() == 'CASH' ? 'bi bi-cash' : 'bi bi-credit-card'}"
+                                <i th:class="${ret.paymentMethod != null && ret.paymentMethod.name() == 'CASH' ? 'bi bi-cash' : 'bi bi-credit-card'}"
                                     style="margin-right:0.3rem"></i>
-                                <span th:text="${ret.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}"></span>
+                                <span th:text="${ret.paymentMethod != null && ret.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}"></span>
                             </td>
                             <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--danger)"
                                 th:text="'-' + ${#numbers.formatDecimal(ret.totalRefunded,1,2)} + ' &euro;'"></td>
@@ -2846,7 +2896,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script th:src="@{/js/util/nif-cif-validator.js}"></script>
     <script th:src="@{/js/shared/inventory-filter.js}"></script>
-    <script th:src="@{/js/admin/admin-main.js}"></script>
+    <!-- admin-main.js is now in the head -->
     <script th:inline="javascript">
         /*<![CDATA[*/
         document.addEventListener('DOMContentLoaded', function () {

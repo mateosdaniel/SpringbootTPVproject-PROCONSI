@@ -13,50 +13,170 @@
     <th:block th:replace="~{fragments/theme :: themeScript}" />
     <link rel="stylesheet" th:href="@{/css/admin/admin-main.css}">
     <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --card-glow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        body {
+            background: radial-gradient(circle at top right, #1a1c1e, #0f1112) !important;
+            color: var(--text-main) !important;
+            min-height: 100vh;
+            font-family: 'Barlow', sans-serif;
+            background-attachment: fixed !important;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2v-4h4v-2h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2v-4h4v-2H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            z-index: -1;
+        }
+
         .history-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 1.5rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
             margin-bottom: 2rem;
             color: var(--text-main);
+            box-shadow: var(--card-glow);
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .panel-title-gradient {
+            background: linear-gradient(135deg, var(--text-main) 0%, #8892a4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
         }
 
         .price-tag {
-            font-weight: 600;
+            font-weight: 700;
             color: var(--accent);
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.1rem;
+            text-shadow: 0 0 15px rgba(245, 166, 35, 0.2);
         }
 
         .validity-period {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
+            line-height: 1.4;
         }
 
         .badge-active {
-            background: rgba(46, 204, 113, 0.15);
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.2), rgba(39, 174, 96, 0.25));
             color: #2ecc71;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            box-shadow: 0 4px 12px rgba(46, 204, 113, 0.1);
         }
 
         .badge-expired {
-            background: rgba(231, 76, 60, 0.15);
-            color: #e74c3c;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 600;
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.15), rgba(192, 57, 43, 0.2));
+            color: #ff5f56;
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(231, 76, 60, 0.25);
+        }
+        
+        .badge-fly {
+            background: rgba(136, 146, 164, 0.15);
+            color: #8892a4;
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            border: 1px solid rgba(136, 146, 164, 0.25);
         }
 
         .group-start {
-            border-left: 2px solid var(--border) !important;
+            border-left: 1px solid var(--glass-border) !important;
         }
         
-        body {
-            background-color: var(--primary) !important;
-            color: var(--text-main) !important;
+        .table-header-custom {
+            color: #8892a4;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            border-bottom: 2px solid var(--glass-border) !important;
+        }
+
+        .current-date-badge {
+            background: linear-gradient(135deg, var(--accent), #d48a12) !important;
+            border: none;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .current-date-badge:hover { transform: scale(1.05); }
+
+        .btn-nav-history {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            transition: all 0.2s;
+        }
+        .btn-nav-history:hover:not(.disabled) {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .admin-table-wrap {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+        }
+
+        .admin-table thead tr th {
+            background-color: rgba(255, 255, 255, 0.02) !important;
+            padding: 1.2rem 1rem !important;
+        }
+        
+        .admin-table tbody tr {
+            transition: background 0.2s;
+        }
+        .admin-table tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.04) !important;
+        }
+        
+        .text-accent-g {
+            background: linear-gradient(135deg, var(--accent) 0%, #ffc86e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .category-pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 4px;
         }
     </style>
 </head>
@@ -80,50 +200,51 @@
 
         <div class="history-card">
             <!-- Date Pagination & Filter -->
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="pagination-container d-flex align-items-center">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-4 mb-4">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="pagination-container d-flex align-items-center gap-1">
                         <!-- Primero (más antiguo) -->
                         <a th:if="${firstDate != null}" 
                            th:href="@{'/admin/tariffs/' + ${tariff.id} + '/history?date=' + ${firstDate}}"
-                           class="btn btn-outline-secondary btn-sm me-1" 
-                           th:classappend="${selectedDate.equals(firstDate)} ? 'disabled' : ''" title="Primero (más antiguo)">
-                            &laquo;
+                           class="btn btn-nav-history btn-sm rounded-pill px-3" 
+                           th:classappend="${selectedDate.equals(firstDate)} ? 'disabled opacity-50' : ''" title="Primero (más antiguo)">
+                            <i class="bi bi-chevron-double-left"></i>
                         </a>
 
                         <!-- Anterior -->
                         <a th:if="${prevDate != null}" 
                            th:href="@{'/admin/tariffs/' + ${tariff.id} + '/history?date=' + ${prevDate}}" 
-                           class="btn btn-outline-secondary btn-sm me-1" title="Anterior">
-                            &lsaquo;
+                           class="btn btn-nav-history btn-sm rounded-pill px-3" title="Anterior">
+                            <i class="bi bi-chevron-left"></i>
                         </a>
-                        <button th:if="${prevDate == null}" class="btn btn-sm btn-outline-secondary disabled me-1">&lsaquo;</button>
+                        <button th:if="${prevDate == null}" class="btn btn-sm btn-nav-history disabled opacity-50 rounded-pill px-3"><i class="bi bi-chevron-left"></i></button>
                         
-                        <div class="current-date-badge mx-2 px-3 py-2 bg-primary rounded-3 fw-bold shadow-sm" style="color: var(--text-main);">
-                            <i class="bi bi-calendar-event me-2"></i>
-                            <span th:text="${#temporals.format(selectedDate, 'dd/MM/yyyy')}">12/03/2026</span>
+                        <div class="current-date-badge mx-2 px-4 py-2 text-white rounded-pill fw-bold shadow-lg d-flex align-items-center">
+                            <i class="bi bi-clock-history me-2"></i>
+                            <span th:text="${#temporals.format(selectedDate, 'dd MMMM yyyy', new java.util.Locale('es', 'ES'))}">12 Marzo 2026</span>
                         </div>
 
                         <!-- Siguiente -->
                         <a th:if="${nextDate != null}" 
                            th:href="@{'/admin/tariffs/' + ${tariff.id} + '/history?date=' + ${nextDate}}" 
-                           class="btn btn-outline-secondary btn-sm me-1" title="Siguiente">
-                            &rsaquo;
+                           class="btn btn-nav-history btn-sm rounded-pill px-3" title="Siguiente">
+                            <i class="bi bi-chevron-right"></i>
                         </a>
-                        <button th:if="${nextDate == null}" class="btn btn-sm btn-outline-secondary disabled me-1">&rsaquo;</button>
+                        <button th:if="${nextDate == null}" class="btn btn-sm btn-nav-history disabled opacity-50 rounded-pill px-3"><i class="bi bi-chevron-right"></i></button>
 
                         <!-- Último / Hoy (más reciente) -->
                         <a th:href="@{'/admin/tariffs/' + ${tariff.id} + '/history'}"
-                           class="btn btn-outline-secondary btn-sm px-3" 
-                           th:classappend="${nextDate == null} ? 'btn-primary active text-white' : ''"
+                           class="btn btn-nav-history btn-sm px-4 rounded-pill fw-bold border-accent" 
+                           th:classappend="${nextDate == null} ? 'current-date-badge text-white' : ''"
                            title="Volver al más reciente">
-                            Hoy
+                            Actual
                         </a>
                     </div>
                     
-                    <div class="date-selector ms-3 border-start ps-3">
-                        <label class="form-label small text-muted mb-1 d-block">Buscar fecha:</label>
-                        <input type="date" id="dateFilter" class="form-control form-control-sm" th:value="${selectedDate}" 
+                    <div class="date-selector ms-4 border-start border-secondary pe-3 ps-4">
+                        <label class="form-label small text-muted mb-1 d-block"><i class="bi bi-search me-1"></i>Ir a fecha:</label>
+                        <input type="date" id="dateFilter" class="form-control form-control-sm bg-dark border-secondary text-white rounded-pill px-3" th:value="${selectedDate}" 
+                               style="width: 160px;"
                                list="availableDatesList"
                                th:onchange="'window.location.href=\'/admin/tariffs/' + ${tariff.id} + '/history?date=\' + this.value'">
                         <datalist id="availableDatesList">
@@ -133,11 +254,10 @@
                 </div>
 
                 <div class="search-box">
-                    <label class="form-label small text-muted mb-1 d-block">Filtrar por nombre:</label>
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text" style="background: var(--surface); color: var(--text-muted); border-color: var(--border);"><i class="bi bi-search"></i></span>
-                        <input type="text" id="filterProduct" class="form-control" placeholder="Producto..." onkeyup="filterTable()"
-                               style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
+                    <label class="form-label small text-muted mb-1 d-block"><i class="bi bi-funnel me-1"></i>Filtrar productos:</label>
+                    <div class="input-group input-group-sm" style="width: 300px;">
+                        <span class="input-group-text bg-dark border-secondary text-muted rounded-start-pill border-end-0"><i class="bi bi-search"></i></span>
+                        <input type="text" id="filterProduct" class="form-control bg-dark border-secondary text-white rounded-end-pill border-start-0" placeholder="Nombre del producto..." onkeyup="filterTable()">
                     </div>
                 </div>
             </div>
@@ -151,10 +271,10 @@
             <div class="admin-table-wrap" th:if="${dateExists}">
                 <table class="admin-table" id="historyTable" style="margin-bottom: 0;">
                     <thead>
-                        <tr>
+                        <tr class="table-header-custom">
                             <th>Producto</th>
-                            <th class="text-end">Precio Base</th>
-                            <th class="text-end">Dto. %</th>
+                            <th class="text-end">Base</th>
+                            <th class="text-end">Dto.</th>
                             <th class="group-start text-end">Neto</th>
                             <th class="group-start text-center">IVA</th>
                             <th class="text-end">Cuota IVA</th>
@@ -168,36 +288,36 @@
                     </thead>
                     <tbody>
                         <tr th:each="h : ${history}" class="history-row">
-                            <td>
-                                <strong th:text="${h.productName}" style="color: var(--text-main);">Producto</strong>
-                                <div class="small text-muted" th:text="${h.categoryName}">Categoría</div>
+                            <td class="py-3">
+                                <div class="fw-bold fs-6" th:text="${h.productName}" style="color: var(--text-main);">Producto</div>
+                                <div class="category-pill" th:text="${h.categoryName}">Categoría</div>
                             </td>
-                            <td class="text-end" style="font-family:'Barlow Condensed',sans-serif;font-weight:600;color:var(--text-muted)" 
+                            <td class="text-end" style="font-family:'Barlow Condensed',sans-serif;font-weight:500;color:var(--text-muted)" 
                                 th:text="${#numbers.formatDecimal(h.basePrice, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
-                            <td class="text-end" style="color:var(--text-muted)" 
+                            <td class="text-end" style="color:var(--text-muted); font-size: 0.85rem;" 
                                 th:text="${#numbers.formatDecimal(h.discountPercent, 1, 1, 'COMMA') + '%'}">0,0%</td>
                             <td class="fw-bold group-start text-end" style="color:var(--text-main)" 
                                 th:text="${#numbers.formatDecimal(h.netPrice, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
-                            <td class="group-start text-center" style="color:var(--text-muted)" 
+                            <td class="group-start text-center" style="color:var(--text-muted); font-size: 0.85rem;" 
                                 th:text="${#numbers.formatDecimal(h.vatRate * 100, 1, 0, 'COMMA') + '%'}">21%</td>
-                            <td class="text-end" style="color:var(--text-muted)" 
+                            <td class="text-end" style="color:var(--text-muted); font-size: 0.85rem;" 
                                 th:text="${#numbers.formatDecimal(h.vatAmount, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
-                            <td class="price-tag text-end" 
+                            <td class="price-tag text-end" style="color: var(--accent)"
                                 th:text="${#numbers.formatDecimal(h.priceWithVat, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
-                            <td class="group-start text-center" style="color:var(--text-muted)" 
+                            <td class="group-start text-center" style="color:var(--text-muted); font-size: 0.85rem;" 
                                 th:text="${#numbers.formatDecimal(h.reRate * 100, 1, 1, 'COMMA') + '%'}">5,2%</td>
-                            <td class="text-end" style="color:var(--text-muted)" 
+                            <td class="text-end" style="color:var(--text-muted); font-size: 0.85rem;" 
                                 th:text="${#numbers.formatDecimal(h.reAmount, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
-                            <td class="price-tag fw-bold text-end" 
+                            <td class="price-tag fw-bold text-end" style="color: #3b82f6;"
                                 th:text="${#numbers.formatDecimal(h.priceWithRe, 1, 2, 'COMMA') + ' €'}">0,00 €</td>
                             <td class="validity-period group-start">
-                                <div><i class="bi bi-calendar-check me-1"></i><span th:text="${#temporals.format(h.validFrom, 'dd/MM/yyyy')}"></span></div>
-                                <div th:if="${h.validTo != null}"><i class="bi bi-calendar-x me-1"></i><span th:text="${#temporals.format(h.validTo, 'dd/MM/yyyy')}"></span></div>
+                                <div class="d-flex align-items-center mb-1"><i class="bi bi-play-circle-fill me-2 text-success" style="font-size: 0.7rem;"></i><span th:text="${#temporals.format(h.validFrom, 'dd/MM/yyyy')}"></span></div>
+                                <div th:if="${h.validTo != null}" class="d-flex align-items-center opacity-75"><i class="bi bi-stop-circle-fill me-2 text-danger" style="font-size: 0.7rem;"></i><span th:text="${#temporals.format(h.validTo, 'dd/MM/yyyy')}"></span></div>
                             </td>
                             <td class="text-center">
-                                <span th:if="${!h.isFromHistory}" class="badge bg-secondary">AL VUELO</span>
-                                <span th:if="${h.isFromHistory and h.validTo == null}" class="badge-active">ACTUAL</span>
-                                <span th:if="${h.isFromHistory and h.validTo != null}" class="badge-expired">EXPIRADO</span>
+                                <span th:if="${!h.isFromHistory}" class="badge-fly">SIMULADO</span>
+                                <span th:if="${h.isFromHistory and h.validTo == null}" class="badge-active">VIGENTE</span>
+                                <span th:if="${h.isFromHistory and h.validTo != null}" class="badge-expired">HISTÓRICO</span>
                             </td>
                         </tr>
                     </tbody>

@@ -502,21 +502,28 @@ function updateAnalytics() {
         return new Date(d.getTime() - off).toISOString().slice(0, 19);
     };
 
+    // Set standard toDate to end of today
+    toDate.setHours(23, 59, 59, 999);
+
     if (period === 'today') {
         fromDate.setHours(0, 0, 0, 0);
         chartTitle = 'Ventas Hoy';
     } else if (period === '7days') {
-        fromDate.setDate(now.getDate() - 7);
-        chartTitle = 'Ventas Ú\u00FAtimos 7 d\u00EDas';
+        fromDate.setDate(now.getDate() - 6); // 7 days including today
+        fromDate.setHours(0, 0, 0, 0);
+        chartTitle = 'Ventas \u00DAltimos 7 d\u00EDas';
     } else if (period === '1month') {
         fromDate.setMonth(now.getMonth() - 1);
-        chartTitle = 'Ventas Ú\u00FAltimo Mes';
+        fromDate.setHours(0, 0, 0, 0);
+        chartTitle = 'Ventas \u00DAltimo Mes';
     } else if (period === '6months') {
         fromDate.setMonth(now.getMonth() - 6);
-        chartTitle = 'Ventas Ú\u00FAltimos 6 Meses';
+        fromDate.setHours(0, 0, 0, 0);
+        chartTitle = 'Ventas \u00DAltimos 6 Meses';
     } else if (period === '1year') {
         fromDate.setFullYear(now.getFullYear() - 1);
-        chartTitle = 'Ventas Ú\u00FAltimo A\u00F1o';
+        fromDate.setHours(0, 0, 0, 0);
+        chartTitle = 'Ventas \u00DAltimo A\u00F1o';
     } else if (period === 'custom') {
         const dVal = document.getElementById('analyticsDate').value;
         if (dVal) {
@@ -597,12 +604,12 @@ function initCharts(salesDataRaw, productsDataRaw, period = '7days', chartLabel 
     }
 
     // Update DOM Stats
-    if (document.getElementById('statTodayRevenue')) document.getElementById('statTodayRevenue').textContent = totalRevenue.toFixed(2) + ' \u20AC';
+    if (document.getElementById('statTodayRevenue')) document.getElementById('statTodayRevenue').textContent = totalRevenue.toFixed(2) + ' €';
     if (document.getElementById('statTodaySales')) document.getElementById('statTodaySales').textContent = totalSalesCount;
     if (document.getElementById('statTopProduct')) document.getElementById('statTopProduct').textContent = topP.length > 20 ? topP.substring(0, 20) + '...' : topP;
     if (document.getElementById('statLowStock')) document.getElementById('statLowStock').textContent = lowStockCount;
 
-    const labelSuffix = (period === 'today') ? ' Hoy' : '';
+    const labelSuffix = (period === 'today' || period === 'custom') ? (period === 'today' ? ' Hoy' : '') : '';
     if (document.getElementById('statRevenueLabel')) document.getElementById('statRevenueLabel').textContent = 'Ventas' + labelSuffix;
     if (document.getElementById('statSalesLabel')) document.getElementById('statSalesLabel').textContent = 'Pedidos' + labelSuffix;
 
@@ -610,7 +617,7 @@ function initCharts(salesDataRaw, productsDataRaw, period = '7days', chartLabel 
     let labels = [];
     let datasetsData = [];
 
-    if (period === 'today') {
+    if (period === 'today' || period === 'custom') {
         for (let i = 0; i < 24; i++) {
             labels.push(i + ':00');
             let sum = salesDataRaw.reduce((acc, s) => {
@@ -625,13 +632,15 @@ function initCharts(salesDataRaw, productsDataRaw, period = '7days', chartLabel 
         for (let i = daysToTrack - 1; i >= 0; i--) {
             let d = new Date();
             d.setDate(d.getDate() - i);
-            let dStr = d.toISOString().split('T')[0];
+            // Use local date string YYYY-MM-DD instead of UTC (toISOString)
+            let dStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
             labels.push(d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }));
             let total = salesDataRaw.reduce((sum, s) => {
                 if (!s.createdAt) return sum;
                 try {
                     if (s.status !== 'ACTIVE' && s.status !== undefined) return sum;
-                    let sDateIso = new Date(s.createdAt).toISOString().split('T')[0];
+                    let sDate = new Date(s.createdAt);
+                    let sDateIso = sDate.getFullYear() + '-' + String(sDate.getMonth() + 1).padStart(2, '0') + '-' + String(sDate.getDate()).padStart(2, '0');
                     return (sDateIso === dStr) ? sum + (s.totalAmount || 0) : sum;
                 } catch (e) { return sum; }
             }, 0);
@@ -1112,7 +1121,9 @@ function openSchedulePriceModal() {
 }
 
 // Auto-select product's IVA rate when product is selected in schedule price modal
-document.getElementById('spProductSelect').addEventListener('change', function () {
+const spProductSelect = document.getElementById('spProductSelect');
+if (spProductSelect) {
+    spProductSelect.addEventListener('change', function () {
     var productId = this.value;
     if (productId) {
         fetch('/api/products/' + productId)
@@ -1125,7 +1136,8 @@ document.getElementById('spProductSelect').addEventListener('change', function (
             })
             .catch(function () { });
     }
-});
+    });
+}
 
 function saveScheduledPrice() {
     var productId = document.getElementById('spProductSelect').value;
@@ -2034,10 +2046,12 @@ function openIpcUpdateModal() {
         });
 }
 
-// Add event listener for auto-preview on input change
-document.getElementById('ipcValueInput').addEventListener('input', debounce(function () {
-    updateIpcPreview();
-}, 500));
+const ipcValueInput = document.getElementById('ipcValueInput');
+if (ipcValueInput) {
+    ipcValueInput.addEventListener('input', debounce(function () {
+        updateIpcPreview();
+    }, 500));
+}
 
 function updateIpcPreview() {
     const val = parseFloat(document.getElementById('ipcValueInput').value) || 0;
@@ -2145,4 +2159,23 @@ function togglePassword(inputId) {
         icon.classList.remove('bi-eye-slash');
         icon.classList.add('bi-eye');
     }
+}
+
+/**
+ * Filtra la tabla comparativa de precios por tarifas por nombre de producto
+ */
+function filterTariffComparison() {
+    const query = document.getElementById('tariffComparisonSearch').value.toLowerCase();
+    const rows = document.querySelectorAll('.comparison-row');
+    
+    rows.forEach(row => {
+        const productName = row.querySelector('td:first-child .fw-bold').textContent.toLowerCase();
+        const categoryName = row.querySelector('td:first-child small').textContent.toLowerCase();
+        
+        if (productName.includes(query) || categoryName.includes(query)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
 }

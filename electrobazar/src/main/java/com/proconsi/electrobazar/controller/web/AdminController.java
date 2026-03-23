@@ -93,12 +93,12 @@ public class AdminController {
         model.addAttribute("products", productService.findAllWithCategory());
         model.addAttribute("categories", categoryService.findAll());
         model.addAttribute("sales",
-                saleService.findBetween(LocalDateTime.now().minusYears(1), LocalDateTime.now()));
+                saleService.findBetween(LocalDateTime.now().minusDays(30), LocalDateTime.now()));
         model.addAttribute("cashRegisters", cashRegisterService.findAllClosed());
         model.addAttribute("workers", workerService.findAll());
         model.addAttribute("customers", customerService.findAll());
         model.addAttribute("roles", roleService.findAll());
-        model.addAttribute("returns", returnService.findByCreatedAtBetween(LocalDateTime.now().minusYears(1),
+        model.addAttribute("returns", returnService.findByCreatedAtBetween(LocalDateTime.now().minusDays(30),
                 LocalDateTime.now()));
         model.addAttribute("tariffs", tariffService.findAll());
         model.addAttribute("tariffCustomerCounts", tariffService.getCustomerCountPerTariff());
