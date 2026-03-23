@@ -14,17 +14,20 @@ import java.util.function.Function;
 
 /**
  * Service for managing JSON Web Tokens (JWT).
- * Handles the creation, parsing, and validation of tokens used for stateless authentication.
+ * Handles the creation, parsing, and validation of tokens used for stateless
+ * authentication.
  * 
- * <p>Tokens contain worker IDs and their specific permissions as claims to avoid
- * frequent database lookups during the request lifecycle.</p>
+ * <p>
+ * Tokens contain worker IDs and their specific permissions as claims to avoid
+ * frequent database lookups during the request lifecycle.
+ * </p>
  */
 @Service
 public class JwtService {
 
     /**
-     * Secret key for signing the JWT. 
-     * In a production environment, this should be loaded from an external 
+     * Secret key for signing the JWT.
+     * In a production environment, this should be loaded from an external
      * configuration or environment variable.
      */
     private static final String SECRET_KEY_STRING = "eb_super_secret_key_2024_electrobazar_pos_system_long_string";
@@ -32,6 +35,7 @@ public class JwtService {
 
     /**
      * Extracts the subject (username) from the token.
+     * 
      * @param token JWT string.
      * @return The username embedded in the token.
      */
@@ -40,10 +44,13 @@ public class JwtService {
     }
 
     /**
-     * Generic method to extract a specific claim from the token using a resolver function.
-     * @param <T> The type of the claim.
-     * @param token JWT string.
-     * @param claimsResolver Function to extract the desired claim from the {@link Claims} object.
+     * Generic method to extract a specific claim from the token using a resolver
+     * function.
+     * 
+     * @param <T>            The type of the claim.
+     * @param token          JWT string.
+     * @param claimsResolver Function to extract the desired claim from the
+     *                       {@link Claims} object.
      * @return The extracted claim value.
      */
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
@@ -53,8 +60,9 @@ public class JwtService {
 
     /**
      * Generates a new JWT for a worker.
-     * @param username The worker's username.
-     * @param workerId The internal database ID of the worker.
+     * 
+     * @param username    The worker's username.
+     * @param workerId    The internal database ID of the worker.
      * @param permissions Set of granular permission names granted to the worker.
      * @return A signed JWT valid for 10 hours.
      */
@@ -80,7 +88,8 @@ public class JwtService {
 
     /**
      * Validates if the token belongs to the given user and has not expired.
-     * @param token JWT string.
+     * 
+     * @param token    JWT string.
      * @param username The username to compare against.
      * @return True if valid, false otherwise.
      */
