@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="'Gestión de Inventario — ' + ${companySettings.appName}">Gestión de Inventario — ElectroBazar</title>
+    <title th:text="'Gestión de Inventario — ' + ${companySettings.appName}">Gestión de Inventario — ElectroBazar
+    </title>
     <link rel="icon" type="image/svg+xml" th:href="@{/icons/favicon.svg}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -52,7 +53,8 @@
             <div class="tab-pane fade show active" id="products-pane">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="m-0 fw-bold">
-                        <a th:href="@{'/admin?view=' + ${returnView}}" class="btn-icon me-2" style="text-decoration:none;" title="Volver">
+                        <a th:href="@{'/admin?view=' + ${returnView}}" class="btn-icon me-2"
+                            style="text-decoration:none;" title="Volver">
                             <i class="bi bi-arrow-left"></i>
                         </a>
                         Gestión de Productos
@@ -88,7 +90,8 @@
                             </tr>
                         </thead>
                         <tbody id="productsTableBody">
-                            <tr th:each="p : ${products}" class="product-row" th:data-iva="${p.taxRate != null ? p.taxRate.vatRate : ''}">
+                            <tr th:each="p : ${products}" class="product-row"
+                                th:data-iva="${p.taxRate != null ? p.taxRate.vatRate : ''}">
                                 <td>
                                     <img th:if="${p.imageUrl != null && !#strings.isEmpty(p.imageUrl)}"
                                         th:src="${p.imageUrl}" class="thumb">
@@ -105,10 +108,11 @@
                                 <td style="font-size:0.9rem; font-weight: 500;">
                                     <span th:if="${p.taxRate != null && p.taxRate.vatRate != null}"
                                         th:text="${#numbers.formatDecimal(p.taxRate.vatRate * 100, 1, 0)} + '%'"></span>
-                                    <span th:unless="${p.taxRate != null && p.taxRate.vatRate != null}" style="color:var(--text-muted)">—</span>
+                                    <span th:unless="${p.taxRate != null && p.taxRate.vatRate != null}"
+                                        style="color:var(--text-muted)">—</span>
                                 </td>
-                                <td class="fw-bold text-accent"
-                                    th:text="${#numbers.formatDecimal(p.price,1,2)} + ' &euro;'">
+                                <td class="fw-bold" style="color: #000;"
+                                     th:text="${#numbers.formatDecimal(p.price,1,2)} + ' &euro;'">
                                 </td>
                                 <td>
                                     <div class="d-flex flex-column align-items-center" style="gap: 0.2rem;">
@@ -148,7 +152,8 @@
             <div class="tab-pane fade" id="categories-pane">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="m-0 fw-bold">
-                        <a th:href="@{'/admin?view=' + ${returnView}}" class="btn-icon me-2" style="text-decoration:none;" title="Volver">
+                        <a th:href="@{'/admin?view=' + ${returnView}}" class="btn-icon me-2"
+                            style="text-decoration:none;" title="Volver">
                             <i class="bi bi-arrow-left"></i>
                         </a>
                         Gestión de Categorías
@@ -352,7 +357,7 @@
                         <td><strong>${p.name}</strong></td>
                         <td><div style="font-size:0.78rem;color:var(--text-muted)">${descTruncated}</div></td>
                         <td style="font-size:0.9rem; font-weight: 500;">${ivaDisplay}</td>
-                        <td class="fw-bold text-accent">${formattedPrice}</td>
+                        <td class="fw-bold" style="color: #000;">${formattedPrice}</td>
                         <td><div class="d-flex flex-column align-items-center" style="gap: 0.2rem;"><span class="${stockStyle}">${p.stock}</span> ${badgeLowStock}</div></td>
                         <td><span style="font-size:0.8rem; background:var(--surface); padding:2px 8px; border-radius:5px;">${catName}</span></td>
                         <td>${activeBadge}</td>

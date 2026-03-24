@@ -11,6 +11,7 @@ import com.proconsi.electrobazar.repository.TaxRateRepository;
 import com.proconsi.electrobazar.repository.specification.ProductSpecification;
 import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.ProductService;
+import com.proconsi.electrobazar.service.TariffService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.domain.Specification;
@@ -38,6 +39,7 @@ public class ProductServiceImpl implements ProductService {
     private final TaxRateRepository taxRateRepository;
     private final CategoryRepository categoryRepository;
     private final ActivityLogService activityLogService;
+    private final TariffService tariffService;
 
     @Override
     @Transactional(readOnly = true)
@@ -98,6 +100,14 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Product save(Product product) {
         Product saved = productRepository.save(product);
+        
+        // Ensure the product is immediately included in tariff price history/PDFs
+        try {
+            tariffService.regenerateTariffHistoryForProducts(java.util.List.of(saved));
+        } catch (Exception e) {
+            log.error("Error generating initial tariff history for new product {}: {}", saved.getName(), e.getMessage());
+        }
+
         activityLogService.logActivity(
                 "CREAR_PRODUCTO",
                 "New product added: " + saved.getName(),
@@ -148,6 +158,13 @@ public class ProductServiceImpl implements ProductService {
             active.setPrice(saved.getPrice());
             productPriceRepository.save(active);
         });
+
+        // 4. Update tariff history to reflect price/VAT changes in reports/PDFs
+        try {
+            tariffService.regenerateTariffHistoryForProducts(java.util.List.of(saved));
+        } catch (Exception e) {
+            log.error("Error updating tariff history for product {}: {}", saved.getName(), e.getMessage());
+        }
 
         activityLogService.logActivity(
                 "ACTUALIZAR_PRODUCTO",

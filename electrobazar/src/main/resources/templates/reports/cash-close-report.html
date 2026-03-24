@@ -278,6 +278,18 @@
                         0,00
                         €</td>
                 </tr>
+                <tr th:if="${register?.retainedForNextShift != null}">
+                    <td style="color: #666; font-style: italic;">&nbsp;&nbsp;&nbsp;(&rarr;) Fondo reservado para mañana</td>
+                    <td class="amount" style="color: #666; font-style: italic;"
+                        th:text="${#numbers.formatDecimal(register.retainedForNextShift, 1, 'POINT', 2, 'COMMA')} + ' €'">
+                        0,00 €</td>
+                </tr>
+                <tr th:if="${register?.retainedForNextShift != null}">
+                    <td style="color: #666; font-style: italic;">&nbsp;&nbsp;&nbsp;(&rarr;) Retirada efectiva (Ingreso/Banco)</td>
+                    <td class="amount" style="color: #666; font-style: italic;"
+                        th:text="${#numbers.formatDecimal((register?.closingBalance ?: T(java.math.BigDecimal).ZERO).subtract(register.retainedForNextShift), 1, 'POINT', 2, 'COMMA')} + ' €'">
+                        0,00 €</td>
+                </tr>
                 <tr class="total-row">
                     <td>Diferencia (Descuadre Efectivo)</td>
                     <td class="amount" th:classappend="${register?.difference != null and register?.difference lt 0 ? 'difference-negative' : ''}"

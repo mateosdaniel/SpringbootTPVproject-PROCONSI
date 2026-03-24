@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function () {
     // ── Get theory amount from the hidden/visible span ──
     const theoryAmountElem = document.getElementById('theoryAmount');
     if (!theoryAmountElem) return;
@@ -101,5 +101,8 @@
     }
 
     // Initial state
+    if (retainToggle && retainToggle.checked && retainBody) {
+        retainBody.classList.add('open');
+    }
     updateDifference();
 });

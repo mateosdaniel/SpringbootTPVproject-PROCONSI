@@ -188,11 +188,14 @@ public class CashRegisterServiceImpl implements CashRegisterService {
     @Transactional(readOnly = true)
     public CashRegisterOpenSuggestion getOpenSuggestion() {
         return cashRegisterRepository.findFirstByClosedTrueOrderByClosedAtDesc()
-                .filter(r -> r.getRetainedForNextShift() != null)
-                .map(r -> CashRegisterOpenSuggestion.builder()
-                        .hasSuggestion(true)
-                        .suggestedBalance(r.getRetainedForNextShift())
-                        .build())
+                .map(r -> {
+                    BigDecimal suggested = r.getRetainedForNextShift() != null ? 
+                        r.getRetainedForNextShift() : r.getClosingBalance();
+                    return CashRegisterOpenSuggestion.builder()
+                            .hasSuggestion(true)
+                            .suggestedBalance(suggested != null ? suggested : BigDecimal.ZERO)
+                            .build();
+                })
                 .orElse(CashRegisterOpenSuggestion.builder()
                         .hasSuggestion(false)
                         .build());

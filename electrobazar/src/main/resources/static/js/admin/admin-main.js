@@ -2123,7 +2123,7 @@ function updateIpcPreview() {
                 <tr>
                     <td>${escHtml(p.productName)}</td>
                     <td class="text-end">${parseFloat(p.currentPrice).toFixed(2)} €</td>
-                    <td class="text-end fw-bold text-accent">${parseFloat(p.newPrice).toFixed(2)} €</td>
+                    <td class="text-end fw-bold" style="color: #000;">${parseFloat(p.newPrice).toFixed(2)} €</td>
                 </tr>
             `).join('');
         })

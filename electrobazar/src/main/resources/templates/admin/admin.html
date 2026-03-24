@@ -442,7 +442,7 @@
                                         <span th:if="${p.price != null and t.discountPercentage != null}"
                                               th:with="discountedPrice=${p.price.multiply(T(java.math.BigDecimal).ONE.subtract(t.discountPercentage.divide(new java.math.BigDecimal('100'), 4, T(java.math.RoundingMode).HALF_UP)))}"
                                               th:text="${#numbers.formatDecimal(discountedPrice, 1, 2, 'COMMA') + ' €'}"
-                                              th:style="${t.discountPercentage.compareTo(T(java.math.BigDecimal).ZERO) > 0} ? 'color: var(--accent)' : 'color: var(--text-main)'"></span>
+                                              th:style="${t.discountPercentage.compareTo(T(java.math.BigDecimal).ZERO) > 0} ? 'color: #000;' : 'color: var(--text-main)'"></span>
                                         <span th:unless="${p.price != null and t.discountPercentage != null}" class="text-muted">N/D</span>
                                     </td>
                                 </tr>
@@ -1028,7 +1028,7 @@
                                         <span th:unless="${p.taxRate != null && p.taxRate.vatRate != null}"
                                             style="color:var(--text-muted)">—</span>
                                     </td>
-                                    <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--accent)"
+                                    <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:#000;"
                                         th:text="${#numbers.formatDecimal(p.price,1,2)} + ' &euro;'"></td>
                                     <td>
                                         <div class="d-flex flex-column align-items-center" style="gap: 0.2rem;">
