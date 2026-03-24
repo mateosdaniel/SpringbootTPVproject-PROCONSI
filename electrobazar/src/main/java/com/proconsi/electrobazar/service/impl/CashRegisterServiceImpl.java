@@ -133,6 +133,9 @@ public class CashRegisterServiceImpl implements CashRegisterService {
         }
 
         activityLogService.logActivity("CIERRE_CAJA", logMsg, username, "CASH_REGISTER", saved.getId());
+        activityLogService.logFiscalEvent("SHIFT_CLOSE", 
+                String.format("Cierre de sesión fiscal ID %d. Saldo final: %.2f€. Diferencia: %.2f€.", 
+                saved.getId(), saved.getClosingBalance(), diff), username);
 
         return saved;
     }
@@ -180,6 +183,9 @@ public class CashRegisterServiceImpl implements CashRegisterService {
                 username,
                 "CASH_REGISTER",
                 saved.getId());
+        activityLogService.logFiscalEvent("SHIFT_OPEN", 
+                String.format("Apertura de sesión fiscal ID %d con saldo inicial de %.2f€.", 
+                saved.getId(), openingBalance), username);
 
         return saved;
     }

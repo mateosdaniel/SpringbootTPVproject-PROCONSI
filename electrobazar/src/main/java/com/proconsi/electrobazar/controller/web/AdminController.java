@@ -47,7 +47,23 @@ public class AdminController {
     private final TaxRateRepository taxRateRepository;
     private final TariffPriceHistoryService tariffPriceHistoryService;
     private final CompanySettingsService companySettingsService;
+    private final CouponService couponService;
     private final ActivityLogService activityLogService;
+    private final BackupService backupService;
+
+    /**
+     * Endpoint to execute a manual backup on demand.
+     */
+    @PostMapping("/admin/backup/now")
+    @ResponseBody
+    public ResponseEntity<?> manualBackup(HttpSession session) {
+        if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
+            return ResponseEntity.status(401).build();
+        }
+        Worker admin = (Worker) session.getAttribute("worker");
+        BackupService.BackupResult result = backupService.performBackup("MANUAL", admin != null ? admin.getUsername() : "Admin");
+        return ResponseEntity.ok(result);
+    }
 
     /**
      * Renders the product and category management view.
@@ -105,6 +121,7 @@ public class AdminController {
         model.addAttribute("taxRates", taxRateRepository.findAll());
         model.addAttribute("futureTaxRates", taxRateRepository.findByValidFromAfter(LocalDate.now()));
         model.addAttribute("companySettings", companySettingsService.getSettings());
+        model.addAttribute("coupons", couponService.findAll());
 
         return "admin/admin";
     }
@@ -406,6 +423,8 @@ public class AdminController {
             return "redirect:/login";
         }
         companySettingsService.save(companySettings);
+        Worker admin = (Worker) session.getAttribute("worker");
+        activityLogService.logFiscalEvent("CONFIG_CHANGE", "Modificación de la configuración fiscal de la empresa.", admin != null ? admin.getUsername() : "Admin");
         redirectAttributes.addFlashAttribute("successMessage", "Company settings updated successfully.");
         return "redirect:/admin?view=settingsView";
     }

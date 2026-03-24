@@ -7,6 +7,7 @@ import com.proconsi.electrobazar.repository.CategoryRepository;
 import com.proconsi.electrobazar.repository.specification.CategorySpecification;
 import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.CategoryService;
+import com.proconsi.electrobazar.service.TranslationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final ActivityLogService activityLogService;
+    private final TranslationService translationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -35,7 +37,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional(readOnly = true)
     public List<Category> findAllActive() {
-        return categoryRepository.findByActiveTrueOrderByNameAsc();
+        return categoryRepository.findByActiveTrueOrderByNameEsAsc();
     }
 
     @Override
@@ -54,9 +56,10 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public Category save(Category category) {
-        if (categoryRepository.existsByNameIgnoreCase(category.getName())) {
+        if (categoryRepository.existsByNameEsIgnoreCase(category.getName())) {
             throw new DuplicateResourceException("A category with name '" + category.getName() + "' already exists.");
         }
+        autoTranslateCategory(category);
         Category saved = categoryRepository.save(category);
         activityLogService.logActivity(
                 "CREAR_CATEGORIA",
@@ -71,14 +74,16 @@ public class CategoryServiceImpl implements CategoryService {
     public Category update(Long id, Category updated) {
         Category existing = findById(id);
 
-        if (!existing.getName().equalsIgnoreCase(updated.getName())
-                && categoryRepository.existsByNameIgnoreCase(updated.getName())) {
+        if (!existing.getNameEs().equalsIgnoreCase(updated.getName())
+                && categoryRepository.existsByNameEsIgnoreCase(updated.getName())) {
             throw new DuplicateResourceException("A category with name '" + updated.getName() + "' already exists.");
         }
 
-        existing.setName(updated.getName());
-        existing.setDescription(updated.getDescription());
+        existing.setNameEs(updated.getName());
+        existing.setDescriptionEs(updated.getDescription());
         existing.setActive(updated.getActive());
+        
+        autoTranslateCategory(existing);
 
         Category saved = categoryRepository.save(existing);
         activityLogService.logActivity(
@@ -89,6 +94,27 @@ public class CategoryServiceImpl implements CategoryService {
                 saved.getId());
         return saved;
     }
+
+    private void autoTranslateCategory(Category category) {
+        if (category.getNameEs() == null || category.getNameEs().isBlank()) return;
+
+        TranslationService.TranslationResult nameResult = translationService.translateWithDetection(category.getNameEs(), "EN");
+        String detected = nameResult.detectedLanguage();
+
+        if (detected != null) {
+            if (detected.equalsIgnoreCase("ES")) {
+                category.setNameEn(nameResult.text());
+                category.setDescriptionEn(translationService.translate(category.getDescriptionEs(), "EN"));
+            } else if (detected.toUpperCase().startsWith("EN")) {
+                category.setNameEn(category.getNameEs());
+                category.setDescriptionEn(category.getDescriptionEs());
+
+                category.setNameEs(translationService.translate(category.getNameEn(), "ES"));
+                category.setDescriptionEs(translationService.translate(category.getDescriptionEn(), "ES"));
+            }
+        }
+    }
+
 
     @Override
     public void delete(Long id) {

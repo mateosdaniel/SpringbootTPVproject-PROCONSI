@@ -333,6 +333,19 @@
         </div>
 
         <div class="footer">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 30px; margin-bottom: 15px;">
+                <div style="text-align: right; max-width: 400px; color: #444;">
+                    <p style="font-weight: 800; margin-bottom: 2px;">SISTEMA DE EMISIÓN DE FACTURAS VERIFICABLES</p>
+                    <p style="font-size: 8px;">Este documento es una Factura Rectificativa encadenada mediante Hash SHA-256 cumpliendo con el Reglamento Verifactu (RD 1007/2023).</p>
+                </div>
+                <div th:if="${qrCodeBase64 != null}">
+                    <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" 
+                         alt="QR AEAT" 
+                         style="border: 2px solid #000; padding: 2px; width: 100px; height: 100px;" />
+                    <div style="font-size: 7px; font-weight: 800; color: #000;">VERIFACTU</div>
+                </div>
+            </div>
+
             <span th:text="${companySettings.name}">ElectroBazar S.L.</span> &mdash; <span th:text="${companySettings.registroMercantil}">Inscrita en el Registro Mercantil de Madrid, Tomo 1, Folio 1, Hoja M-1</span><br />
             <span th:if="${companySettings.invoiceFooterText != null}" th:text="${companySettings.invoiceFooterText}"><br /></span>
             Factura Rectificativa generada al amparo del Art. 15 del R.D. 1619/2012.<br />

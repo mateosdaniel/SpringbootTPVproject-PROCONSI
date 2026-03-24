@@ -24,12 +24,12 @@ public class CategorySpecification {
 
             if (search != null && !search.trim().isEmpty()) {
                 String searchPattern = "%" + search.toLowerCase().trim() + "%";
-                Predicate namePredicate = cb.like(cb.lower(root.get("name")), searchPattern);
-                Predicate descPredicate = cb.like(cb.lower(root.get("description")), searchPattern);
-                predicates.add(cb.or(namePredicate, descPredicate));
+                Predicate nameEsPredicate = cb.like(cb.lower(root.get("nameEs")), searchPattern);
+                Predicate descEsPredicate = cb.like(cb.lower(root.get("descriptionEs")), searchPattern);
+                predicates.add(cb.or(nameEsPredicate, descEsPredicate));
             }
 
-            query.orderBy(cb.asc(root.get("name")));
+            query.orderBy(cb.asc(root.get("nameEs")));
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }

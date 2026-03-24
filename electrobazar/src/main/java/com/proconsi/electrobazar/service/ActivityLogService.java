@@ -28,8 +28,16 @@ public class ActivityLogService {
      * @param entityId    The primary key of the affected entity.
      */
     public void logActivity(String action, String description, String username, String entityType, Long entityId) {
+        logActivity("INFO", action, description, username, entityType, entityId);
+    }
+
+    /**
+     * Records a new activity in the log with a specific level.
+     */
+    public void logActivity(String level, String action, String description, String username, String entityType, Long entityId) {
         ActivityLog log = ActivityLog.builder()
                 .action(action)
+                .level(level != null ? level : "INFO")
                 .description(description)
                 .username(username != null ? username : "Sistema")
                 .entityType(entityType)
@@ -37,6 +45,22 @@ public class ActivityLogService {
                 .timestamp(LocalDateTime.now())
                 .build();
         activityLogRepository.save(log);
+    }
+
+    /**
+     * Records an error activity in the log.
+     */
+    public void logError(String action, String description, String username, String entityType, Long entityId) {
+        logActivity("ERROR", action, description, username, entityType, entityId);
+    }
+
+    /**
+     * Records a critical fiscal event for Verifactu compliance.
+     * These events include system startup/shutdown, configuration changes, 
+     * and security-related actions.
+     */
+    public void logFiscalEvent(String eventType, String description, String username) {
+        logActivity("FISCAL_" + eventType, "[VERIFACTU] " + description, username, "SYSTEM", null);
     }
 
     /**

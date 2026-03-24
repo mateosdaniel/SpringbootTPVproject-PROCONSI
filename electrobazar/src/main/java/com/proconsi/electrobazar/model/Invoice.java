@@ -69,6 +69,13 @@ public class Invoice {
     @JoinColumn(name = "rectified_by_id")
     private Invoice rectifiedBy;
 
+    @Column(name = "hash_previous_invoice", nullable = false, length = 64)
+    private String hashPreviousInvoice;
+
+    @Column(name = "hash_current_invoice", nullable = false, length = 64)
+    private String hashCurrentInvoice;
+
+
     /**
      * Possible statuses for an invoice.
      */

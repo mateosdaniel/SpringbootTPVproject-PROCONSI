@@ -12,6 +12,7 @@ import com.proconsi.electrobazar.repository.specification.ProductSpecification;
 import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.ProductService;
 import com.proconsi.electrobazar.service.TariffService;
+import com.proconsi.electrobazar.service.TranslationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.domain.Specification;
@@ -40,6 +41,7 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryRepository categoryRepository;
     private final ActivityLogService activityLogService;
     private final TariffService tariffService;
+    private final TranslationService translationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -50,7 +52,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public List<Product> findAllActive() {
-        return productRepository.findByActiveTrueOrderByNameAsc();
+        return productRepository.findByActiveTrueOrderByNameEsAsc();
     }
 
     @Override
@@ -68,7 +70,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public List<Product> findByCategory(Long categoryId) {
-        return productRepository.findByCategoryIdAndActiveTrueOrderByNameAsc(categoryId);
+        return productRepository.findByCategoryIdAndActiveTrueOrderByNameEsAsc(categoryId);
     }
 
     @Override
@@ -80,7 +82,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public Product findByName(String name) {
-        return productRepository.findByNameIgnoreCase(name).orElse(null);
+        return productRepository.findByNameEsIgnoreCase(name).orElse(null);
     }
 
     @Override
@@ -99,6 +101,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Product save(Product product) {
+        autoTranslateProduct(product);
         Product saved = productRepository.save(product);
         
         // Ensure the product is immediately included in tariff price history/PDFs
@@ -120,8 +123,11 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Product update(Long id, ProductRequest request) {
         Product existing = findById(id);
-        existing.setName(request.getName());
-        existing.setDescription(request.getDescription());
+        existing.setNameEs(request.getName());
+        existing.setDescriptionEs(request.getDescription());
+        
+        // Trigger auto-translation on update as well
+        autoTranslateProduct(existing);
 
         // 1. Update Tax Rate
         if (request.getTaxRateId() != null) {
@@ -151,7 +157,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         Product saved = productRepository.save(existing);
-
+        
         // 3. Sync with active temporal price entry
         productPriceRepository.findActivePriceAt(saved.getId(), LocalDateTime.now()).ifPresent(active -> {
             active.setVatRate(saved.getTaxRate() != null ? saved.getTaxRate().getVatRate() : new BigDecimal("0.21"));
@@ -173,6 +179,35 @@ public class ProductServiceImpl implements ProductService {
                 "PRODUCT",
                 saved.getId());
         return saved;
+    }
+
+    private void autoTranslateProduct(Product product) {
+        if (product.getNameEs() == null || product.getNameEs().isBlank()) return;
+
+        // Use name to detect language
+        TranslationService.TranslationResult nameResult = translationService.translateWithDetection(product.getNameEs(), "EN");
+        String detected = nameResult.detectedLanguage();
+
+        if (detected != null) {
+            if (detected.equalsIgnoreCase("ES")) {
+                // Input is ES: Fill _en fields
+                product.setNameEn(nameResult.text());
+                product.setDescriptionEn(translationService.translate(product.getDescriptionEs(), "EN"));
+                product.setStatusEn(translationService.translate(product.getStatusEs(), "EN"));
+                product.setLowStockMessageEn(translationService.translate(product.getLowStockMessageEs(), "EN"));
+            } else if (detected.toUpperCase().startsWith("EN")) {
+                // Input is EN: Swap current values to _en and translate to _es
+                product.setNameEn(product.getNameEs());
+                product.setDescriptionEn(product.getDescriptionEs());
+                product.setStatusEn(product.getStatusEs());
+                product.setLowStockMessageEn(product.getLowStockMessageEs());
+
+                product.setNameEs(translationService.translate(product.getNameEn(), "ES"));
+                product.setDescriptionEs(translationService.translate(product.getDescriptionEn(), "ES"));
+                product.setStatusEs(translationService.translate(product.getStatusEn(), "ES"));
+                product.setLowStockMessageEs(translationService.translate(product.getLowStockMessageEn(), "ES"));
+            }
+        }
     }
 
     @Override

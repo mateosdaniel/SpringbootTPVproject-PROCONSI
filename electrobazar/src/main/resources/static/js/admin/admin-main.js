@@ -5,7 +5,7 @@ function switchView(viewId, btnElement) {
         'dashboardView', 'productsView', 'invoicesView', 'cashCloseView',
         'returnsHistoryView', 'settingsView', 'workersView', 'rolesView', 'analyticsView',
         'crmView', 'preciosTempView', 'preciosMasivosView', 'activityView', 'tarifasView',
-        'tiposIvaView'
+        'tiposIvaView', 'couponsView'
     ];
     views.forEach(v => {
         const el = document.getElementById(v);
@@ -49,7 +49,7 @@ function switchView(viewId, btnElement) {
 }
 
 // Global Modal Variables
-var productModal, categoryModal, workerModal, customerModal, roleModal, ipcUpdateModal;
+var productModal, categoryModal, workerModal, customerModal, roleModal, ipcUpdateModal, couponModal;
 var schedulePriceModal; // Also used in the script
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', function () {
     roleModal = initModal('roleModal');
     ipcUpdateModal = initModal('ipcUpdateModal');
     schedulePriceModal = initModal('schedulePriceModal');
+    couponModal = initModal('couponModal');
 
     if (typeof attachNifCifValidator === 'function') {
         attachNifCifValidator('customerTaxId');
@@ -1746,6 +1747,7 @@ function filterInvoices() {
 
     document.querySelectorAll('.invoice-row').forEach(row => {
         const id = (row.getAttribute('data-id') || '');
+        const number = (row.getAttribute('data-number') || '').toLowerCase();
         const customer = (row.getAttribute('data-customer') || '').toLowerCase();
         const taxid = (row.getAttribute('data-taxid') || '').toLowerCase();
         const rowType = row.getAttribute('data-type');
@@ -1753,7 +1755,7 @@ function filterInvoices() {
         const rowDate = row.getAttribute('data-date');
 
         let matches = true;
-        if (query && !id.includes(query) && !customer.includes(query) && !taxid.includes(query)) matches = false;
+        if (query && !id.includes(query) && !number.includes(query) && !customer.includes(query) && !taxid.includes(query)) matches = false;
         if (type && rowType !== type) matches = false;
         if (method && rowMethod !== method) matches = false;
         if (date && rowDate !== date) matches = false;
@@ -2243,3 +2245,82 @@ function filterTariffComparison() {
         }
     });
 }
+
+// -- Coupon Management --------------------------------------------------------
+
+function openCouponModal(btn) {
+    // Reset form
+    const couponIdField = document.getElementById('couponId');
+    if (!couponIdField) return; // Guard against script running on wrong page or partial load
+
+    couponIdField.value = '';
+    document.getElementById('couponCode').value = '';
+    document.getElementById('couponDesc').value = '';
+    document.getElementById('couponType').value = 'PERCENTAGE';
+    document.getElementById('couponValue').value = '0';
+    document.getElementById('couponLimit').value = '';
+    document.getElementById('couponActive').checked = true;
+    document.getElementById('couponGeneric').checked = true;
+    document.getElementById('couponFrom').value = '';
+    document.getElementById('couponUntil').value = '';
+
+    if (btn) {
+        document.getElementById('couponId').value = btn.dataset.id;
+        document.getElementById('couponCode').value = btn.dataset.code;
+        document.getElementById('couponDesc').value = btn.dataset.desc;
+        document.getElementById('couponType').value = btn.dataset.type;
+        document.getElementById('couponValue').value = btn.dataset.value;
+        document.getElementById('couponLimit').value = btn.dataset.limit;
+        document.getElementById('couponActive').checked = btn.dataset.active === 'true';
+        document.getElementById('couponGeneric').checked = btn.dataset.generic === 'true';
+        if (btn.dataset.from) document.getElementById('couponFrom').value = btn.dataset.from.substring(0, 16);
+        if (btn.dataset.until) document.getElementById('couponUntil').value = btn.dataset.until.substring(0, 16);
+    }
+    
+    if (couponModal) couponModal.show();
+}
+
+function saveCoupon() {
+    const id = document.getElementById('couponId').value;
+    const body = {
+        id: id ? parseInt(id) : null,
+        code: document.getElementById('couponCode').value.trim().toUpperCase(),
+        description: document.getElementById('couponDesc').value.trim(),
+        discountType: document.getElementById('couponType').value,
+        discountValue: parseFloat(document.getElementById('couponValue').value),
+        usageLimit: document.getElementById('couponLimit').value ? parseInt(document.getElementById('couponLimit').value) : null,
+        active: document.getElementById('couponActive').checked,
+        generic: document.getElementById('couponGeneric').checked,
+        validFrom: document.getElementById('couponFrom').value || null,
+        validUntil: document.getElementById('couponUntil').value || null
+    };
+
+    if (!body.code) { showToast('El código es obligatorio', 'error'); return; }
+
+    fetch('/api/coupons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    }).then(r => {
+        if (r.ok) {
+            if (couponModal) couponModal.hide();
+            showToast(id ? 'Cupón actualizado' : 'Cupón creado');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('Error al guardar el cupón', 'error');
+        }
+    }).catch(() => showToast('Error de red', 'error'));
+}
+
+function deleteCoupon(id) {
+    if (!confirm('¿Seguro que quieres eliminar este cupón?')) return;
+    fetch('/api/coupons/' + id, { method: 'DELETE' }).then(r => {
+        if (r.ok) {
+            showToast('Cupón eliminado');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('Error al eliminar', 'error');
+        }
+    }).catch(() => showToast('Error de red', 'error'));
+}
+

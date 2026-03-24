@@ -37,21 +37,28 @@ public class ProductSpecification {
             if (search != null && !search.trim().isEmpty()) {
                 String searchParam = search.trim();
                 String searchPattern = "%" + searchParam.toLowerCase() + "%";
-                Predicate namePredicate = cb.like(cb.lower(root.get("name")), searchPattern);
-                Predicate descPredicate = cb.like(cb.lower(root.get("description")), searchPattern);
+                
+                // Search in both Spanish and English names
+                Predicate nameEsPredicate = cb.like(cb.lower(root.get("nameEs")), searchPattern);
+                Predicate nameEnPredicate = cb.like(cb.lower(root.get("nameEn")), searchPattern);
+                
+                // Search in both Spanish and English descriptions
+                Predicate descEsPredicate = cb.like(cb.lower(root.get("descriptionEs")), searchPattern);
+                Predicate descEnPredicate = cb.like(cb.lower(root.get("descriptionEn")), searchPattern);
 
                 try {
                     Long idSearch = Long.parseLong(searchParam);
                     Predicate idPredicate = cb.equal(root.get("id"), idSearch);
-                    predicates.add(cb.or(namePredicate, descPredicate, idPredicate));
+                    predicates.add(cb.or(nameEsPredicate, nameEnPredicate, descEsPredicate, descEnPredicate, idPredicate));
                 } catch (NumberFormatException e) {
-                    predicates.add(cb.or(namePredicate, descPredicate));
+                    predicates.add(cb.or(nameEsPredicate, nameEnPredicate, descEsPredicate, descEnPredicate));
                 }
             }
 
             // 2. Category classification
             if (category != null && !category.trim().isEmpty()) {
-                predicates.add(cb.equal(root.get("category").get("name"), category));
+                // Check category name (Spanish) specifically
+                predicates.add(cb.equal(root.get("category").get("nameEs"), category));
             }
 
             // 3. Stock levels threshold
@@ -68,7 +75,7 @@ public class ProductSpecification {
                 predicates.add(cb.equal(root.get("active"), active));
             }
 
-            query.orderBy(cb.asc(root.get("name")));
+            query.orderBy(cb.asc(root.get("nameEs")));
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }

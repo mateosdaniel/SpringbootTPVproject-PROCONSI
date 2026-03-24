@@ -413,6 +413,13 @@
         .admin-table tbody tr:hover {
             background: rgba(255, 255, 255, 0.03);
         }
+        .invoice-row, .return-row {
+            cursor: pointer;
+            transition: background 0.1s ease;
+        }
+        .invoice-row:hover, .return-row:hover {
+            background: rgba(245, 166, 35, 0.08) !important;
+        }
 
         .admin-table tbody td {
             padding: 0.7rem 1rem;

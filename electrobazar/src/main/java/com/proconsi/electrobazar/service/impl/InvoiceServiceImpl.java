@@ -15,9 +15,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import com.proconsi.electrobazar.model.CompanySettings;
+import com.proconsi.electrobazar.repository.CompanySettingsRepository;
+import com.proconsi.electrobazar.util.QrCodeGenerator;
+import java.math.BigDecimal;
 
 /**
  * Implementation of {@link InvoiceService}.
@@ -34,6 +41,10 @@ public class InvoiceServiceImpl implements InvoiceService {
     private final InvoiceSequenceRepository invoiceSequenceRepository;
     private final SaleRepository saleRepository;
     private final ActivityLogService activityLogService;
+    private final CompanySettingsRepository companySettingsRepository;
+
+    private static final String INITIAL_HASH = "0000000000000000";
+    private static final DateTimeFormatter VERIFACTU_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
      * Atomically increments the invoice sequence for the current year and serie.
@@ -70,6 +81,11 @@ public class InvoiceServiceImpl implements InvoiceService {
             invoiceNumber = String.format("%s-%d-%d", serie, invoiceYear, nextNumber);
         } while (invoiceRepository.findByInvoiceNumber(invoiceNumber).isPresent());
 
+        // Verifactu Chaining: Get previous hash
+        String previousHash = invoiceRepository.findFirstBySerieOrderByYearDescSequenceNumberDesc(serie)
+                .map(Invoice::getHashCurrentInvoice)
+                .orElse(INITIAL_HASH);
+
         Invoice invoice = Invoice.builder()
                 .invoiceNumber(invoiceNumber)
                 .serie(serie)
@@ -77,14 +93,22 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .sequenceNumber(sequence.getLastNumber())
                 .sale(sale)
                 .status(Invoice.InvoiceStatus.ACTIVE)
+                .hashPreviousInvoice(previousHash)
                 .build();
 
+        // Calculate current hash (must be done after setting fields, especially date)
+        if (invoice.getCreatedAt() == null) {
+            invoice.prePersist(); // Ensure date is set for hash calculation
+        }
+        invoice.setHashCurrentInvoice(calculateHash(invoice, previousHash));
+
         Invoice saved = invoiceRepository.save(invoice);
-        log.info("Invoice generated: {} for Sale ID {}", invoiceNumber, sale.getId());
+        log.info("Invoice generated: {} for Sale ID {} [Hash: {}]", invoiceNumber, sale.getId(), saved.getHashCurrentInvoice());
 
         activityLogService.logActivity(
                 "CREAR_FACTURA",
-                String.format("Invoice %s generated for Sale #%d", invoiceNumber, sale.getId()),
+                String.format("Invoice %s generated for Sale #%d. Verifactu Hash: %s", 
+                              invoiceNumber, sale.getId(), saved.getHashCurrentInvoice()),
                 "System",
                 "INVOICE",
                 saved.getId());
@@ -135,6 +159,176 @@ public class InvoiceServiceImpl implements InvoiceService {
         invoiceRepository.save(originalInvoice);
 
         return rectificative;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean verifyChain(String serie) {
+        log.info("Starting Verifactu chain verification for serie: {}", serie);
+        List<Invoice> chain = invoiceRepository.findBySerieOrderByYearAscSequenceNumberAsc(serie);
+        
+        String expectedPrevHash = INITIAL_HASH;
+        for (Invoice inv : chain) {
+            if (!inv.getHashPreviousInvoice().equals(expectedPrevHash)) {
+                log.warn("Corrupt chain: Invoice {} has prevHash {} but expected {}", 
+                         inv.getInvoiceNumber(), inv.getHashPreviousInvoice(), expectedPrevHash);
+                return false;
+            }
+            
+            String calculated = calculateHash(inv, expectedPrevHash);
+            if (!inv.getHashCurrentInvoice().equals(calculated)) {
+                log.warn("Corrupt chain: Invoice {} has hash {} but recalculation yielded {}", 
+                         inv.getInvoiceNumber(), inv.getHashCurrentInvoice(), calculated);
+                return false;
+            }
+            expectedPrevHash = inv.getHashCurrentInvoice();
+        }
+        
+        log.info("Verifactu chain for serie {} is verified and secure.", serie);
+        return true;
+    }
+
+    private String calculateHash(Invoice invoice, String previousHash) {
+        try {
+            String issuerNif = companySettingsRepository.findById(1L)
+                    .map(CompanySettings::getCif)
+                    .orElse("00000000A");
+
+            String data = issuerNif +
+                    invoice.getInvoiceNumber() +
+                    invoice.getCreatedAt().format(VERIFACTU_DATE_FORMAT) +
+                    invoice.getSale().getTotalAmount().setScale(2, java.math.RoundingMode.HALF_UP).toString() +
+                    previousHash;
+
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(data.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString().toUpperCase();
+        } catch (Exception e) {
+            log.error("Internal error during Verifactu hash calculation", e);
+            throw new RuntimeException("Verifactu hash error", e);
+        }
+    }
+
+    @Override
+    public String generateQrCodeBase64(Invoice invoice) {
+        String issuerNif = companySettingsRepository.findById(1L)
+                .map(CompanySettings::getCif)
+                .orElse("00000000A");
+
+        // Format for AEAT Verifactu Portal:
+        // https://www2.agenciatributaria.gob.es/static/v1/verifactu/verificacion?nif=...&numserie=...&fecha=...&importe=...
+        
+        String nif = issuerNif;
+        String numSerie = invoice.getInvoiceNumber();
+        String fecha = invoice.getCreatedAt().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+        String importe = invoice.getSale().getTotalAmount().setScale(2, java.math.RoundingMode.HALF_UP).toString();
+        
+        String url = String.format(
+            "https://www2.agenciatributaria.gob.es/static/v1/verifactu/verificacion?nif=%s&numserie=%s&fecha=%s&importe=%s",
+            nif, numSerie, fecha, importe
+        );
+
+        return QrCodeGenerator.generateQrBase64(url, 250, 250);
+    }
+
+    @Override
+    public String generateQrCodeBase64(com.proconsi.electrobazar.model.RectificativeInvoice rect) {
+        String issuerNif = companySettingsRepository.findById(1L)
+                .map(CompanySettings::getCif)
+                .orElse("00000000A");
+
+        String nif = issuerNif;
+        String numSerie = rect.getRectificativeNumber();
+        String fecha = rect.getCreatedAt().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+        String importe = rect.getSaleReturn().getTotalRefunded().setScale(2, java.math.RoundingMode.HALF_UP).toString();
+
+        String url = String.format(
+            "https://www2.agenciatributaria.gob.es/static/v1/verifactu/verificacion?nif=%s&numserie=%s&fecha=%s&importe=-%s",
+            nif, numSerie, fecha, importe
+        );
+
+        return QrCodeGenerator.generateQrBase64(url, 250, 250);
+    }
+
+    @Override
+    public String calculateHash(com.proconsi.electrobazar.model.RectificativeInvoice rect, String previousHash) {
+        try {
+            String issuerNif = companySettingsRepository.findById(1L)
+                    .map(CompanySettings::getCif)
+                    .orElse("00000000A");
+
+            String data = issuerNif +
+                    rect.getRectificativeNumber() +
+                    rect.getCreatedAt().format(VERIFACTU_DATE_FORMAT) +
+                    "-" + rect.getSaleReturn().getTotalRefunded().setScale(2, java.math.RoundingMode.HALF_UP).toString() +
+                    previousHash;
+
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(data.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString().toUpperCase();
+        } catch (Exception e) {
+            log.error("Internal error during Verifactu hash calculation for Rectificative", e);
+            throw new RuntimeException("Verifactu hash error", e);
+        }
+    }
+
+    @Override
+    public String generateQrCodeBase64(com.proconsi.electrobazar.model.Ticket ticket) {
+        String issuerNif = companySettingsRepository.findById(1L)
+                .map(CompanySettings::getCif)
+                .orElse("00000000A");
+
+        String nif = issuerNif;
+        String numSerie = ticket.getTicketNumber();
+        String fecha = ticket.getCreatedAt().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+        String importe = ticket.getSale().getTotalAmount().setScale(2, java.math.RoundingMode.HALF_UP).toString();
+
+        String url = String.format(
+            "https://www2.agenciatributaria.gob.es/static/v1/verifactu/verificacion?nif=%s&numserie=%s&fecha=%s&importe=%s",
+            nif, numSerie, fecha, importe
+        );
+
+        return QrCodeGenerator.generateQrBase64(url, 250, 250);
+    }
+
+    @Override
+    public String calculateHash(com.proconsi.electrobazar.model.Ticket ticket, String previousHash) {
+        try {
+            String issuerNif = companySettingsRepository.findById(1L)
+                    .map(CompanySettings::getCif)
+                    .orElse("00000000A");
+
+            String data = issuerNif +
+                    ticket.getTicketNumber() +
+                    ticket.getCreatedAt().format(VERIFACTU_DATE_FORMAT) +
+                    ticket.getSale().getTotalAmount().setScale(2, java.math.RoundingMode.HALF_UP).toString() +
+                    previousHash;
+
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(data.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString().toUpperCase();
+        } catch (Exception e) {
+            log.error("Internal error during Verifactu hash calculation for Ticket", e);
+            throw new RuntimeException("Verifactu hash error", e);
+        }
     }
 }
 

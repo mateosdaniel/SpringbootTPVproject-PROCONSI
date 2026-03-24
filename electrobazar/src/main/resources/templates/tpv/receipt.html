@@ -163,7 +163,14 @@
                 <div th:text="${sale.notes}">Nota de la venta</div>
             </div>
 
-            <div class="t-footer">
+                <!-- Verifactu QR -->
+                <div th:if="${qrCodeBase64 != null}" style="margin: 1rem 0; text-align: center;">
+                    <img th:src="'data:image/png;base64,' + ${qrCodeBase64}" 
+                         alt="QR AEAT" 
+                         style="width: 100px; height: 100px; border: 1px solid #000;" />
+                    <div style="font-size: 0.6rem; font-weight: 800; color: #000; margin-top: 2px;">VERIFACTU - Factura Verificable</div>
+                </div>
+
                 <strong>&iexcl;Gracias por su compra!</strong><br>
                 <span th:text="${companySettings.name}">ElectroBazar S.L.</span> &middot; <span th:text="${companySettings.address + ', ' + companySettings.city}">C/ Exemple, 12, Madrid</span><br>
                 Vuelva pronto &mdash; conserve este ticket

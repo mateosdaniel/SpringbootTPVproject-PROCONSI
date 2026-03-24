@@ -15,6 +15,25 @@ function debounceSharedFilter() {
     }, 350);
 }
 
+const sharedInventoryI18n = Object.assign({
+    lowStock: 'Stock Bajo',
+    yes: 'Sí',
+    no: 'No',
+    noItems: 'No se encontraron productos con esos filtros.',
+    noCats: 'No hay categorías que coincidan.',
+    actions_edit: 'Editar',
+    actions_delete: 'Eliminar'
+}, window.sharedInventoryI18n || {});
+
+function getSharedInvLocale() {
+    try {
+        const prefs = JSON.parse(localStorage.getItem('tpv-prefs'));
+        return (prefs && prefs.language) ? prefs.language : 'es';
+    } catch (e) {
+        return 'es';
+    }
+}
+
 function runSharedBackendFilter() {
     // Tomamos el buscador del header del Admin o el buscador del Fragment (Productos-categorias)
     const globalSearch = document.getElementById('sharedFilterSearch');
@@ -79,40 +98,48 @@ function sharedFilterToggleLowStock() {
  * Encargada de redibujar la tabla del DOM con los datos nuevos que retorna la API.
  */
 function renderSharedProductsTable(products) {
-    // Apuntamos al tbody que se ha definido en HTML en ambas vistas con id "productsTableBody"
     const tbody = document.getElementById('productsTableBody');
     if (!tbody) return;
 
-    tbody.innerHTML = ''; // Limpiamos tabla actual
+    tbody.innerHTML = ''; 
 
     if (!products || products.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-muted">No se encontraron productos con esos filtros.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-muted">${sharedInventoryI18n.noItems}</td></tr>`;
         return;
     }
 
+    const locale = getSharedInvLocale();
+    const isEn = locale === 'en';
+
     products.forEach(p => {
-        // Parsear datos para la lógica visual
+        const name = isEn && p.nameEn ? p.nameEn : (p.nameEs || p.name);
+        const description = isEn && p.descriptionEn ? p.descriptionEn : (p.descriptionEs || p.description);
         const formattedPrice = (p.price || 0).toFixed(2) + ' €';
         const stockStyle = p.stock < 5 ? 'fw-bold text-danger' : '';
-        const badgeLowStock = p.stock < 5 ? '<span class="badge-stock-low ms-1">Stock Bajo</span>' : '';
-        const catName = p.category ? p.category.name : '—';
+        const badgeLowStock = p.stock < 5 ? `<span class="badge-stock-low ms-1">${sharedInventoryI18n.lowStock}</span>` : '';
+        
+        // Category can also be multilingual
+        let catName = '—';
+        if (p.category) {
+            catName = isEn && p.category.nameEn ? p.category.nameEn : (p.category.nameEs || p.category.name);
+        }
+
         const imgHtml = p.imageUrl
             ? `<img src="${p.imageUrl}" class="thumb" alt="">`
             : `<div class="thumb-placeholder"><i class="bi bi-image"></i></div>`;
         const activeBadge = p.active
-            ? `<span class="badge-active yes">Sí</span>`
-            : `<span class="badge-active no">No</span>`;
+            ? `<span class="badge-active yes">${sharedInventoryI18n.yes}</span>`
+            : `<span class="badge-active no">${sharedInventoryI18n.no}</span>`;
 
-        // Make sure to escape quotes for the name string inside onclick!
-        const escapedName = p.name ? p.name.replace(/'/g, "\\'").replace(/"/g, "&quot;") : '';
+        const escapedName = name ? name.replace(/'/g, "\\'").replace(/"/g, "&quot;") : '';
 
         let tr = document.createElement('tr');
         tr.className = 'product-row';
         tr.innerHTML = `
             <td>${imgHtml}</td>
             <td>
-                <strong>${p.name}</strong>
-                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">${p.description ? p.description.substring(0, 60) : ''}</div>
+                <strong>${name}</strong>
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">${description ? description.substring(0, 60) : ''}</div>
             </td>
             <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--accent)">${formattedPrice}</td>
             <td><span class="${stockStyle}">${p.stock}</span> ${badgeLowStock}</td>
@@ -120,8 +147,8 @@ function renderSharedProductsTable(products) {
             <td>${activeBadge}</td>
             <td style="text-align:right">
                 <div class="d-flex gap-1 justify-content-end">
-                    <button class="btn-icon" title="Editar" onclick="openProductModal(${p.id})"><i class="bi bi-pencil"></i></button>
-                    <button class="btn-icon danger" title="Eliminar" onclick="deleteProduct(${p.id}, '${escapedName}')"><i class="bi bi-trash"></i></button>
+                    <button class="btn-icon" title="${sharedInventoryI18n.actions_edit}" onclick="openProductModal(${p.id})"><i class="bi bi-pencil"></i></button>
+                    <button class="btn-icon danger" title="${sharedInventoryI18n.actions_delete}" onclick="deleteProduct(${p.id}, '${escapedName}')"><i class="bi bi-trash"></i></button>
                 </div>
             </td>
         `;
@@ -152,28 +179,32 @@ function renderSharedCategoriesTable(categories) {
     tbody.innerHTML = '';
 
     if (!categories || categories.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-muted">No hay categorías que coincidan.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-muted">${sharedInventoryI18n.noCats}</td></tr>`;
         return;
     }
 
+    const locale = getSharedInvLocale();
+    const isEn = locale === 'en';
+
     categories.forEach(c => {
-        const escapedName = c.name ? c.name.replace(/'/g, "\\'").replace(/"/g, "&quot;") : '';
-        const desc = c.description || '—';
+        const name = isEn && c.nameEn ? c.nameEn : (c.nameEs || c.name);
+        const desc = isEn && c.descriptionEn ? c.descriptionEn : (c.descriptionEs || c.description || '—');
+        const escapedName = name ? name.replace(/'/g, "\\'").replace(/"/g, "&quot;") : '';
         const activeBadge = c.active
-            ? `<span class="badge-active yes">Sí</span>`
-            : `<span class="badge-active no">No</span>`;
+            ? `<span class="badge-active yes">${sharedInventoryI18n.yes}</span>`
+            : `<span class="badge-active no">${sharedInventoryI18n.no}</span>`;
 
         let tr = document.createElement('tr');
         tr.className = 'category-row';
         tr.innerHTML = `
             <td style="color:var(--text-muted);font-weight:600">#${c.id}</td>
-            <td><strong>${c.name}</strong></td>
+            <td><strong>${name}</strong></td>
             <td>${desc}</td>
             <td>${activeBadge}</td>
             <td style="text-align:right">
                 <div style="display:flex;gap:0.4rem;justify-content:flex-end">
-                    <button class="btn-icon" title="Editar" onclick="openCategoryModal(${c.id})"><i class="bi bi-pencil"></i></button>
-                    <button class="btn-icon danger" title="Eliminar" onclick="deleteCategory(${c.id}, '${escapedName}')"><i class="bi bi-trash"></i></button>
+                    <button class="btn-icon" title="${sharedInventoryI18n.actions_edit}" onclick="openCategoryModal(${c.id})"><i class="bi bi-pencil"></i></button>
+                    <button class="btn-icon danger" title="${sharedInventoryI18n.actions_delete}" onclick="deleteCategory(${c.id}, '${escapedName}')"><i class="bi bi-trash"></i></button>
                 </div>
             </td>
         `;

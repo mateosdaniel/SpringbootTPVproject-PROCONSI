@@ -25,6 +25,11 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
      * Finds a ticket by its unique formatted number (e.g., "T-2026-0001").
      */
     Optional<Ticket> findByTicketNumber(String ticketNumber);
+
+    /**
+     * Finds the very last ticket issued, used for Verifactu chaining.
+     */
+    Optional<Ticket> findFirstByOrderByCreatedAtDesc();
 }
 
 

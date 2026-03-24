@@ -27,6 +27,9 @@ public class TicketServiceImpl implements TicketService {
 
     private final TicketRepository ticketRepository;
     private final InvoiceSequenceRepository invoiceSequenceRepository;
+    private final com.proconsi.electrobazar.service.InvoiceService invoiceService;
+
+    private static final String INITIAL_HASH = "0000000000000000";
 
     @Override
     @Transactional
@@ -50,9 +53,23 @@ public class TicketServiceImpl implements TicketService {
             ticketNumber = String.format("%s-%d-%d", serie, ticketYear, nextNumber);
         } while (ticketRepository.findByTicketNumber(ticketNumber).isPresent());
 
+        // Verifactu Chaining: Get previous hash for Ticket series
+        String previousHash = ticketRepository.findFirstByOrderByCreatedAtDesc()
+                .map(Ticket::getHashCurrentInvoice)
+                .orElse(INITIAL_HASH);
+
         Ticket ticket = Ticket.builder()
                 .ticketNumber(ticketNumber).serie(serie).year(ticketYear)
-                .sequenceNumber(sequence.getLastNumber()).sale(sale).applyRecargo(applyRecargo).build();
+                .sequenceNumber(sequence.getLastNumber()).sale(sale).applyRecargo(applyRecargo)
+                .hashPreviousInvoice(previousHash)
+                .build();
+
+        // Set creation date for hash calculation if necessary
+        if (ticket.getCreatedAt() == null) {
+            ticket.prePersist();
+        }
+
+        ticket.setHashCurrentInvoice(invoiceService.calculateHash(ticket, previousHash));
 
         Ticket saved = ticketRepository.save(ticket);
         log.info("Ticket created: {} for Sale #{}", ticketNumber, sale.getId());

@@ -29,6 +29,19 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
      * @return Optional containing the matching invoice.
      */
     Optional<Invoice> findByInvoiceNumber(String invoiceNumber);
+
+    /**
+     * Finds the last invoice issued for a particular serie across all years.
+     * Essential for Verifactu hash chaining.
+     */
+    Optional<Invoice> findFirstBySerieOrderByYearDescSequenceNumberDesc(String serie);
+
+    /**
+     * Lists all invoices for a serie in chronological/sequential order.
+     * Useful for chain integrity audits.
+     */
+    java.util.List<Invoice> findBySerieOrderByYearAscSequenceNumberAsc(String serie);
 }
+
 
 

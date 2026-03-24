@@ -263,10 +263,29 @@ function selectPayment(method) {
     var btnCash = document.getElementById('btnCash');
     var btnCard = document.getElementById('btnCard');
     var btnMixed = document.getElementById('btnMixed');
-    document.getElementById('paymentMethodInput').value = method;
+    var paymentInput = document.getElementById('paymentMethodInput');
+    
+    if (paymentInput) paymentInput.value = method;
+    
     if (btnCash) btnCash.classList.toggle('selected', method === 'CASH');
     if (btnCard) btnCard.classList.toggle('selected', method === 'CARD');
     if (btnMixed) btnMixed.classList.toggle('selected', method === 'MIXED');
+    
+    // Automatically switch sections if modal is somehow open
+    var cashSection = document.getElementById('cashInputSection');
+    var mixedSection = document.getElementById('mixedInputSection');
+    if (cashSection && mixedSection) {
+        if (method === 'CASH') {
+            cashSection.style.display = 'block';
+            mixedSection.style.display = 'none';
+        } else if (method === 'MIXED') {
+            cashSection.style.display = 'none';
+            mixedSection.style.display = 'block';
+        } else {
+            cashSection.style.display = 'none';
+            mixedSection.style.display = 'none';
+        }
+    }
 }
 
 function submitSale() {
@@ -349,11 +368,15 @@ function openCustomerModal() {
     }
 }
 // Live calculation for change
-document.getElementById('receivedAmount')?.addEventListener('input', function (e) {
-    var el = e.target;
-    var val = parseFloat(el.value);
-    var total = parseFloat(document.getElementById('ticketTotal').textContent.replace('\u20AC', '').trim());
+function calculateChange() {
+    var input = document.getElementById('receivedAmount');
+    if (!input) return;
+    var val = parseFloat(input.value);
+    var totalElement = document.getElementById('ticketTotal');
+    if (!totalElement) return;
+    var total = parseFloat(totalElement.textContent.replace('\u20AC', '').trim());
     var changeEl = document.getElementById('changeAmount');
+    if (!changeEl) return;
 
     if (isNaN(val)) {
         changeEl.textContent = '0.00\u20AC';
@@ -368,15 +391,15 @@ document.getElementById('receivedAmount')?.addEventListener('input', function (e
             changeEl.style.color = 'var(--success)';
         }
     }
-});
+}
 
 function setExactAmount() {
     var totalText = document.getElementById('ticketTotal').textContent;
     var totalVal = parseFloat(totalText.replace('\u20AC', '').trim());
     var input = document.getElementById('receivedAmount');
     input.value = totalVal.toFixed(2);
-    // Trigger input event manually to update change calculation
-    input.dispatchEvent(new Event('input'));
+    // Explicitly update change calculation
+    calculateChange();
 }
 
 function calculateMixedChange() {

@@ -24,14 +24,43 @@ public class Category {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Unique name of the category. */
+    /** Unique name of the category (Spanish). */
     @NotBlank(message = "El nombre de la categoría es obligatorio")
-    @Column(nullable = false, unique = true, length = 100)
-    private String name;
+    @Column(name = "name_es", nullable = false, unique = true, length = 100)
+    private String nameEs;
 
-    /** Short description of the category. */
-    @Column(length = 255)
-    private String description;
+    /** Unique name of the category (English). */
+    @Column(name = "name_en", length = 100)
+    private String nameEn;
+
+    /** Short description of the category (Spanish). */
+    @Column(name = "description_es", length = 255)
+    private String descriptionEs;
+
+    /** Short description of the category (English). */
+    @Column(name = "description_en", length = 255)
+    private String descriptionEn;
+
+    // --- Compatibility Methods ---
+    public String getName() { return nameEs; }
+    public void setName(String name) { this.nameEs = name; }
+    public String getDescription() { return descriptionEs; }
+    public void setDescription(String description) { this.descriptionEs = description; }
+
+    public String getName(java.util.Locale locale) {
+        if (locale != null && "en".equalsIgnoreCase(locale.getLanguage())) {
+            return (nameEn != null && !nameEn.isBlank()) ? nameEn : nameEs;
+        }
+        return nameEs;
+    }
+
+    public String getDescription(java.util.Locale locale) {
+        if (locale != null && "en".equalsIgnoreCase(locale.getLanguage())) {
+            return (descriptionEn != null && !descriptionEn.isBlank()) ? descriptionEn : descriptionEs;
+        }
+        return descriptionEs;
+    }
+    // --- End Compatibility Methods ---
 
     /** Whether the category is active and visible in the TPV. */
     @Column(nullable = false)

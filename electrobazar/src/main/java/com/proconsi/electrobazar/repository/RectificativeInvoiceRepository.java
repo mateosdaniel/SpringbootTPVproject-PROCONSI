@@ -19,6 +19,11 @@ public interface RectificativeInvoiceRepository extends JpaRepository<Rectificat
      * @return Optional containing the corrective invoice.
      */
     Optional<RectificativeInvoice> findBySaleReturnId(Long returnId);
+
+    /**
+     * Finds the very last corrective invoice issued, used for Verifactu chaining.
+     */
+    Optional<RectificativeInvoice> findFirstByOrderByCreatedAtDesc();
 }
 
 

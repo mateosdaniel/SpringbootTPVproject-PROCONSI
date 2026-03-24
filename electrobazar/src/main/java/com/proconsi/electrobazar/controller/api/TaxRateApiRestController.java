@@ -154,7 +154,7 @@ public class TaxRateApiRestController {
 
         if (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) {
             for (Long categoryId : request.getCategoryIds()) {
-                affectedProducts.addAll(productRepository.findByCategoryIdAndActiveTrueOrderByNameAsc(categoryId));
+                affectedProducts.addAll(productRepository.findByCategoryIdAndActiveTrueOrderByNameEsAsc(categoryId));
             }
         }
 

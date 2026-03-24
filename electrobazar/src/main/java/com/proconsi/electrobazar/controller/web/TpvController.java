@@ -267,7 +267,10 @@ public class TpvController {
         // Resolve ticket (only if not an invoice)
         if (!model.containsAttribute("invoice") && !model.containsAttribute("ticket")) {
             ticketService.findBySaleId(saleId)
-                    .ifPresent(t -> model.addAttribute("ticket", t));
+                    .ifPresent(t -> {
+                        model.addAttribute("ticket", t);
+                        model.addAttribute("qrCodeBase64", invoiceService.generateQrCodeBase64(t));
+                    });
         }
 
         if (!model.containsAttribute("taxBreakdowns")) {
@@ -295,6 +298,8 @@ public class TpvController {
         }
 
         if (model.containsAttribute("invoice")) {
+            Invoice invoice = (Invoice) model.asMap().get("invoice");
+            model.addAttribute("qrCodeBase64", invoiceService.generateQrCodeBase64(invoice));
             return "tpv/invoice";
         }
 
@@ -690,6 +695,7 @@ public class TpvController {
             }
             model.addAttribute("negativeLines", negativeLines);
             model.addAttribute("totalAmount", saleReturn.getTotalRefunded().negate());
+            model.addAttribute("qrCodeBase64", invoiceService.generateQrCodeBase64(saleReturn.getRectificativeInvoice()));
 
             return "tpv/rectificative-invoice";
         }

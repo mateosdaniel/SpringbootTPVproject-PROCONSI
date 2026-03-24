@@ -47,6 +47,8 @@ public class ReturnServiceImpl implements ReturnService {
     private final RectificativeInvoiceRepository rectificativeInvoiceRepository;
     private final ActivityLogService activityLogService;
 
+    private static final String INITIAL_HASH = "0000000000000000";
+
     @Override
     @Transactional
     public SaleReturn processReturn(Long originalSaleId, List<ReturnLineRequest> lineRequests,
@@ -129,13 +131,30 @@ public class ReturnServiceImpl implements ReturnService {
             });
         }
 
-        // 4. Corrective Invoice Generation (Fiscal Requirement)
+        // 4. Corrective Invoice Generation (Fiscal Requirement with Verifactu Chaining)
         if (originalSale.getInvoice() != null) {
             String rectNumber = generateNumber("FR");
+            
+            // Verifactu Chaining: Get previous hash for FR series
+            String previousHash = rectificativeInvoiceRepository.findFirstByOrderByCreatedAtDesc()
+                    .map(RectificativeInvoice::getHashCurrentInvoice)
+                    .orElse(INITIAL_HASH);
+
             RectificativeInvoice rect = RectificativeInvoice.builder()
-                    .rectificativeNumber(rectNumber).saleReturn(saved).originalInvoice(originalSale.getInvoice())
+                    .rectificativeNumber(rectNumber)
+                    .saleReturn(saved)
+                    .originalInvoice(originalSale.getInvoice())
                     .reason(reason != null && !reason.isBlank() ? reason : "Return of goods")
+                    .hashPreviousInvoice(previousHash)
                     .build();
+
+            // Set creation date for hash calculation if necessary
+            if (rect.getCreatedAt() == null) {
+                rect.prePersist();
+            }
+            
+            rect.setHashCurrentInvoice(invoiceService.calculateHash(rect, previousHash));
+            
             rectificativeInvoiceRepository.save(rect);
             saved.setRectificativeInvoice(rect);
         }

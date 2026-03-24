@@ -18,6 +18,7 @@ import java.util.Optional;
 public class LoginController {
 
     private final WorkerService workerService;
+    private final com.proconsi.electrobazar.service.ActivityLogService activityLogService;
 
     @GetMapping("/login")
     public String loginForm(Model model) {
@@ -54,6 +55,7 @@ public class LoginController {
             if (w.getEffectivePermissions().contains("ADMIN_ACCESS")) {
                 session.setAttribute("admin", true);
             }
+            activityLogService.logFiscalEvent("LOGIN", "Inicio de sesión de trabajador: " + w.getUsername(), w.getUsername());
             return "redirect:/tpv";
         } else {
             model.addAttribute("error", "Invalid username or password");
@@ -66,6 +68,10 @@ public class LoginController {
      */
     @GetMapping("/logout")
     public String logout(HttpSession session) {
+        Worker w = (Worker) session.getAttribute("worker");
+        if (w != null) {
+            activityLogService.logFiscalEvent("LOGOUT", "Cierre de sesión de trabajador: " + w.getUsername(), w.getUsername());
+        }
         session.invalidate();
         return "redirect:/login";
     }

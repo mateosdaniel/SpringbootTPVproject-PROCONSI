@@ -24,6 +24,11 @@ public class ActivityLog {
     @Column(nullable = false, length = 50)
     private String action;
 
+    /** Log level (e.g., "INFO", "WARN", "ERROR"). */
+    @Column(length = 20)
+    @Builder.Default
+    private String level = "INFO";
+
     /** Detailed description of the activity. */
     @Column(nullable = false, length = 255)
     private String description;

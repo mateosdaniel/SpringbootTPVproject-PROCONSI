@@ -113,7 +113,7 @@ public class CsvImportService {
 
                         if (category == null) {
                             category = Category.builder()
-                                    .name(categoryName)
+                                    .nameEs(categoryName)
                                     .active(true)
                                     .build();
                             category = categoryService.save(category);
@@ -147,7 +147,7 @@ public class CsvImportService {
                     } else {
                         // CREATE NEW
                         Product product = Product.builder()
-                                .name(productName)
+                                .nameEs(productName)
                                 .stock(stockVal)
                                 .imageUrl(imageUrl.isEmpty() ? null : imageUrl)
                                 .category(category)

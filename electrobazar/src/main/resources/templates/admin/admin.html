@@ -160,6 +160,9 @@
             <button class="nav-link sidebar-menu-btn" onclick="switchView('tiposIvaView', this)">
                 <i class="bi bi-calculator"></i> <span th:text="#{admin.menu.taxrates}">Tipos de IVA</span>
             </button>
+            <button class="nav-link sidebar-menu-btn" onclick="switchView('couponsView', this)">
+                <i class="bi bi-ticket-perforated"></i> <span th:text="#{admin.menu.coupons}">Cupones</span>
+            </button>
         </nav>
 
         <div class="sidebar-footer">
@@ -404,6 +407,13 @@
                     <h3 th:text="#{admin.dashboard.taxrates.title}">Tipos de IVA</h3>
                     <p th:text="#{admin.dashboard.taxrates.desc}">Administra los tipos impositivos de IVA y Recargo de
                         Equivalencia.</p>
+                </div>
+
+                <div class="dashboard-card"
+                    onclick="switchView('couponsView', document.querySelector('[onclick*=\'couponsView\']'))">
+                    <i class="bi bi-ticket-perforated"></i>
+                    <h3 th:text="#{admin.dashboard.coupons.title}">Cupones</h3>
+                    <p th:text="#{admin.dashboard.coupons.desc}">Gestiona campañas de descuento mediante códigos promocionales.</p>
                 </div>
 
                 <div class="dashboard-card"
@@ -830,6 +840,82 @@
             </div>
         </div>
 
+        <!-- COUPONS VIEW -->
+        <div id="couponsView" style="display: none;">
+            <div class="panel-header">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn-icon"
+                        onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
+                        th:title="#{admin.common.backtopanel}">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                    <span class="panel-title"><i class="bi bi-ticket-perforated me-2"></i><span
+                            th:text="#{admin.coupons.title}">Gestión de Cupones</span></span>
+                </div>
+                <button class="btn-nuevo" onclick="openCouponModal()">
+                    <i class="bi bi-plus-lg me-1"></i> <span th:text="#{admin.coupons.new}">Nuevo Cupón</span>
+                </button>
+            </div>
+
+            <div class="admin-table-wrap mt-3">
+                <table class="admin-table" id="couponsTable">
+                    <thead>
+                        <tr>
+                            <th th:text="#{admin.coupons.code}">Código</th>
+                            <th th:text="#{admin.coupons.description}">Descripción</th>
+                            <th th:text="#{admin.coupons.type}">Tipo</th>
+                            <th th:text="#{admin.coupons.value}">Valor</th>
+                            <th th:text="#{admin.coupons.status}">Estado</th>
+                            <th th:text="#{admin.coupons.limit}">Uso (Límite)</th>
+                            <th th:text="#{admin.coupons.validUntil}">Expira</th>
+                            <th style="text-align:right" th:text="#{common.actions}">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="coupon : ${coupons}">
+                            <td><strong class="text-accent" th:text="${coupon.code}">SUMMER20</strong></td>
+                            <td th:text="${coupon.description ?: '—'}">—</td>
+                            <td>
+                                <span class="badge" th:classappend="${coupon.discountType.name() == 'PERCENTAGE'} ? 'bg-primary' : 'bg-info'" 
+                                      th:text="${coupon.discountType.name() == 'PERCENTAGE'} ? #{admin.coupons.percentage} : #{admin.coupons.fixed}">%</span>
+                            </td>
+                            <td class="fw-bold" th:text="${coupon.discountType.name() == 'PERCENTAGE'} ? (${#numbers.formatDecimal(coupon.discountValue, 1, 0)} + '%') : (${#numbers.formatDecimal(coupon.discountValue, 1, 2)} + ' €')">20%</td>
+                            <td>
+                                <span class="badge-active" th:classappend="${coupon.active} ? 'yes' : 'no'">
+                                    <span th:if="${coupon.active}" th:text="#{common.yes}">Sí</span>
+                                    <span th:unless="${coupon.active}" th:text="#{common.no}">No</span>
+                                </span>
+                            </td>
+                            <td>
+                                <span th:text="${coupon.timesUsed}">0</span> / <span th:text="${coupon.usageLimit ?: '∞'}">∞</span>
+                            </td>
+                            <td th:text="${coupon.validUntil != null ? coupon.validUntil : '—'}">—</td>
+                            <td style="text-align:right">
+                                <div style="display:flex;gap:0.4rem;justify-content:flex-end">
+                                    <button class="btn-icon" th:title="#{common.edit}"
+                                        th:data-id="${coupon.id}" th:data-code="${coupon.code}"
+                                        th:data-type="${coupon.discountType}" th:data-value="${coupon.discountValue}"
+                                        th:data-desc="${coupon.description ?: ''}" th:data-active="${coupon.active}"
+                                        th:data-limit="${coupon.usageLimit ?: ''}" th:data-from="${coupon.validFrom ?: ''}"
+                                        th:data-until="${coupon.validUntil ?: ''}" th:data-generic="${coupon.generic}"
+                                        onclick="openCouponModal(this)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn-icon danger" th:title="#{common.delete}"
+                                        th:onclick="'deleteCoupon(' + ${coupon.id} + ')'">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(coupons)}">
+                            <td colspan="8" class="text-center text-muted py-4">No hay cupones creados.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Modal: Crear Tarifa -->
         <div class="modal fade" id="createTariffModal" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
@@ -941,8 +1027,80 @@
             </div>
         </div>
 
+        <!-- Modal: Cupón -->
+        <div class="modal fade" id="couponModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="background:var(--surface);border:1px solid var(--border);">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title fw-bold">
+                            <i class="bi bi-ticket-perforated me-2"></i><span th:text="#{admin.coupons.new}">Nuevo Cupón</span>
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="couponId">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold"><span th:text="#{admin.coupons.code}">Código</span> <span class="text-danger">*</span></label>
+                            <input type="text" id="couponCode" class="form-control" placeholder="EJ: PROMO20" style="text-transform:uppercase;">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold" th:text="#{admin.coupons.description}">Descripción</label>
+                            <input type="text" id="couponDesc" class="form-control" th:placeholder="#{common.description.placeholder}">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold" th:text="#{admin.coupons.type}">Tipo</label>
+                                <select id="couponType" class="form-select">
+                                    <option value="PERCENTAGE" th:text="#{admin.coupons.percentage}">Porcentaje (%)</option>
+                                    <option value="FIXED_AMOUNT" th:text="#{admin.coupons.fixed}">Importe Fijo (€)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold" th:text="#{admin.coupons.value}">Valor</label>
+                                <input type="number" id="couponValue" class="form-control" step="0.01" min="0" value="0">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold" th:text="#{admin.coupons.limit}">Límite de Uso</label>
+                                <input type="number" id="couponLimit" class="form-control" min="0" placeholder="∞">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold" th:text="#{admin.coupons.status}">Estado</label>
+                                <div class="d-flex align-items-center gap-4 mt-2">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="couponActive" checked>
+                                        <label class="form-check-label text-muted small" for="couponActive" th:text="#{common.active}">Activo</label>
+                                    </div>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="couponGeneric" checked>
+                                        <label class="form-check-label text-muted small" for="couponGeneric" th:text="#{admin.coupons.generic}">Genérico</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                          <div class="col-md-6 mb-3">
+                              <label class="form-label small fw-bold" th:text="#{admin.coupons.validFrom}">Inicio</label>
+                              <input type="datetime-local" id="couponFrom" class="form-control">
+                          </div>
+                          <div class="col-md-6 mb-3">
+                              <label class="form-label small fw-bold" th:text="#{admin.coupons.validUntil}">Fin</label>
+                              <input type="datetime-local" id="couponUntil" class="form-control">
+                          </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal" th:text="#{common.cancel}">Cancelar</button>
+                        <button type="button" class="btn btn-accent px-4 fw-bold text-primary" onclick="saveCoupon()" th:text="#{common.save}">Guardar Cupón</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal: Crear Tipo IVA -->
         <div class="modal fade" id="createTaxRateModal" tabindex="-1">
+
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content" style="background:var(--surface);border:1px solid var(--border);">
                     <div class="modal-header border-0">
@@ -1277,7 +1435,8 @@
                         th:title="#{admin.common.backtopanel}">
                         <i class="bi bi-arrow-left"></i>
                     </button>
-                    <i class="bi bi-receipt me-2"></i><span th:text="#{admin.invoices.title}">Listado de Facturas y Ventas</span>
+                    <i class="bi bi-receipt me-2"></i><span th:text="#{admin.invoices.title}">Listado de Facturas y
+                        Ventas</span>
                 </span>
             </div>
 
@@ -1285,7 +1444,8 @@
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label small mb-1" style="color: var(--text-main);"><i
-                                class="bi bi-search me-2"></i><span th:text="#{admin.invoices.search}">Buscar factura / cliente</span></label>
+                                class="bi bi-search me-2"></i><span th:text="#{admin.invoices.search}">Buscar factura /
+                                cliente</span></label>
                         <input type="text" id="invoiceFilterSearch" class="form-control form-control-sm"
                             th:placeholder="#{admin.invoices.search.placeholder}" oninput="filterInvoices()">
                     </div>
@@ -1300,7 +1460,8 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label small mb-1" style="color: var(--text-main);"><i
-                                class="bi bi-credit-card-2-front me-2"></i><span th:text="#{admin.invoices.payment}">Pago</span></label>
+                                class="bi bi-credit-card-2-front me-2"></i><span
+                                th:text="#{admin.invoices.payment}">Pago</span></label>
                         <select id="invoiceFilterMethod" class="form-select form-select-sm" onchange="filterInvoices()">
                             <option value="" th:text="#{admin.invoices.payment.any}">Cualquier método</option>
                             <option value="Efectivo" th:text="#{admin.invoices.payment.cash}">Efectivo</option>
@@ -1315,7 +1476,8 @@
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetInvoiceFilters()">
-                            <i class="bi bi-arrow-counterclockwise me-1"></i> <span th:text="#{common.reset}">Reset</span>
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> <span
+                                th:text="#{common.reset}">Reset</span>
                         </button>
                     </div>
                 </div>
@@ -1336,19 +1498,23 @@
                         </tr>
                     </thead>
                     <tbody id="invoicesTableBody">
-                        <tr th:each="sale : ${sales}" class="invoice-row" th:data-id="${sale.id}"
+                        <tr th:each="sale : ${sales}" class="invoice-row" 
+                            th:data-id="${sale.id}"
+                            th:data-number="${sale.invoice != null ? sale.invoice.invoiceNumber : (sale.ticket != null ? sale.ticket.ticketNumber : '#' + sale.id)}"
                             th:data-customer="${sale.customer != null ? sale.customer.name : ''}"
                             th:data-taxid="${sale.customer != null ? sale.customer.taxId : ''}"
                             th:data-type="${sale.invoice != null ? 'factura' : 'ticket'}"
                             th:data-method="${sale.paymentMethod != null && sale.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}"
-                            th:data-date="${#temporals.format(sale.createdAt, 'yyyy-MM-dd')}">
-                            <td style="color:var(--text-muted);font-weight:600" th:text="${'#'+sale.id}"></td>
+                            th:data-date="${#temporals.format(sale.createdAt, 'yyyy-MM-dd')}"
+                            th:onclick="'showDocPreview(\'/tpv/receipt/' + ${sale.id} + '\')'">
+                            <td style="color:var(--text-muted);font-weight:600" th:text="${sale.invoice != null ? sale.invoice.invoiceNumber : (sale.ticket != null ? sale.ticket.ticketNumber : '#' + sale.id)}"></td>
                             <td th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
                             <td>
                                 <span th:if="${sale.status != null && sale.status.name() == 'CANCELLED'}"
                                     class="badge mb-1 d-block"
                                     style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 600;">
-                                    <i class="bi bi-x-circle me-1"></i><span th:text="#{admin.invoices.status.cancelled}">ANULADA</span>
+                                    <i class="bi bi-x-circle me-1"></i><span
+                                        th:text="#{admin.invoices.status.cancelled}">ANULADA</span>
                                 </span>
                                 <span class="badge-active" th:classappend="${sale.invoice != null} ? 'yes' : 'no'"
                                     th:text="${sale.invoice != null} ? #{admin.invoices.type.invoice} : #{admin.invoices.type.ticket}"></span>
@@ -1360,11 +1526,13 @@
                                         th:text="${sale.customer.taxId}">
                                     </div>
                                 </div>
-                                <span th:unless="${sale.customer != null}" style="color:var(--text-muted)" th:text="'— ' + #{admin.invoices.customer.final} + ' —'">—
+                                <span th:unless="${sale.customer != null}" style="color:var(--text-muted)"
+                                    th:text="'— ' + #{admin.invoices.customer.final} + ' —'">—
                                     Consumidor Final —</span>
                             </td>
                             <td style="font-weight: 500;">
-                                <span th:text="${sale.worker != null ? sale.worker.username : #{admin.invoices.worker.system}}">—</span>
+                                <span
+                                    th:text="${sale.worker != null ? sale.worker.username : #{admin.invoices.worker.system}}">—</span>
                             </td>
                             <td>
                                 <i th:class="${sale.paymentMethod != null && sale.paymentMethod.name() == 'CASH' ? 'bi bi-cash' : 'bi bi-credit-card'}"
@@ -1377,22 +1545,27 @@
                             <td style="text-align:right">
                                 <div style="display:flex;gap:0.4rem;justify-content:flex-end">
                                     <button th:if="${sale.status != null && sale.status.name() == 'ACTIVE'}"
-                                        class="btn-icon danger" th:title="#{admin.invoices.cancel}" th:data-id="${sale.id}"
-                                        onclick="cancelSale(this.getAttribute('data-id'))">
+                                        class="btn-icon danger" th:title="#{admin.invoices.cancel}"
+                                        th:data-id="${sale.id}" onclick="event.stopPropagation(); cancelSale(this.getAttribute('data-id'))">
                                         <i class="bi bi-x-circle"></i>
                                     </button>
-                                    <button type="button" class="btn-icon" th:title="#{admin.common.preview}" style="text-decoration: none;" th:onclick="'showDocPreview(\'/tpv/receipt/' + ${sale.id} + '\')'">
+                                    <button type="button" class="btn-icon" th:title="#{admin.common.preview}"
+                                        style="text-decoration: none;"
+                                        th:onclick="'event.stopPropagation(); showDocPreview(\'/tpv/receipt/' + ${sale.id} + '\')'">
                                         <i class="bi bi-eye" style="color:#3498db;"></i>
                                     </button>
                                     <a th:href="@{/tpv/receipt/{id}(id=${sale.id}, autoPrint=true)}" target="_blank"
-                                        class="btn-icon" th:title="#{admin.invoices.print}" style="text-decoration: none;">
+                                        class="btn-icon" th:title="#{admin.invoices.print}"
+                                        style="text-decoration: none;"
+                                        onclick="event.stopPropagation();">
                                         <i class="bi bi-printer" style="color:#e74c3c;"></i>
                                     </a>
                                 </div>
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(sales)}">
-                            <td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted)" th:text="#{admin.invoices.empty}">
+                            <td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted)"
+                                th:text="#{admin.invoices.empty}">
                                 No hay ventas registradas en el periodo especificado.
                             </td>
                         </tr>
@@ -1409,7 +1582,8 @@
                         th:title="#{admin.common.backtopanel}">
                         <i class="bi bi-arrow-left"></i>
                     </button>
-                    <i class="bi bi-arrow-counterclockwise me-2"></i><span th:text="#{admin.returns.title}">Listado de Devoluciones</span>
+                    <i class="bi bi-arrow-counterclockwise me-2"></i><span th:text="#{admin.returns.title}">Listado de
+                        Devoluciones</span>
                 </span>
             </div>
 
@@ -1417,7 +1591,8 @@
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label small mb-1" style="color: var(--text-main);"><i
-                                class="bi bi-search me-2"></i><span th:text="#{admin.returns.search}">Buscar por Nº / Motivo</span></label>
+                                class="bi bi-search me-2"></i><span th:text="#{admin.returns.search}">Buscar por Nº /
+                                Motivo</span></label>
                         <input type="text" id="returnFilterSearch" class="form-control form-control-sm"
                             th:placeholder="#{admin.returns.search.placeholder}" oninput="filterReturns()">
                     </div>
@@ -1438,7 +1613,8 @@
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetReturnFilters()">
-                            <i class="bi bi-arrow-counterclockwise me-1"></i> <span th:text="#{common.reset}">Reset</span>
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> <span
+                                th:text="#{common.reset}">Reset</span>
                         </button>
                     </div>
                 </div>
@@ -1463,9 +1639,10 @@
                         <tr th:each="ret : ${returns}" class="return-row" th:data-number="${ret.returnNumber}"
                             th:data-reason="${ret.reason ?: ''}"
                             th:data-method="${ret.paymentMethod != null && ret.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}"
-                            th:data-date="${#temporals.format(ret.createdAt, 'yyyy-MM-dd')}">
+                            th:data-date="${#temporals.format(ret.createdAt, 'yyyy-MM-dd')}"
+                            th:onclick="'showDocPreview(\'/tpv/return-receipt/' + ${ret.id} + '\')'">
                             <td style="color:var(--text-muted);font-weight:600" th:text="${ret.returnNumber}"></td>
-                            <td th:text="${'#' + ret.originalSale.id}"></td>
+                             <td th:text="${ret.originalSale.invoice != null ? ret.originalSale.invoice.invoiceNumber : (ret.originalSale.ticket != null ? ret.originalSale.ticket.ticketNumber : '#' + ret.originalSale.id)}"></td>
                             <td th:text="${#temporals.format(ret.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
                             <td>
                                 <span class="badge-active"
@@ -1474,7 +1651,8 @@
                             </td>
                             <td th:text="${#strings.abbreviate(ret.reason ?: '—', 40)}"></td>
                             <td style="font-weight: 500;">
-                                <span th:text="${ret.worker != null ? ret.worker.username : #{admin.invoices.worker.system}}">—</span>
+                                <span
+                                    th:text="${ret.worker != null ? ret.worker.username : #{admin.invoices.worker.system}}">—</span>
                             </td>
                             <td>
                                 <i th:class="${ret.paymentMethod != null && ret.paymentMethod.name() == 'CASH' ? 'bi bi-cash' : 'bi bi-credit-card'}"
@@ -1485,17 +1663,21 @@
                             <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--danger)"
                                 th:text="'-' + ${#numbers.formatDecimal(ret.totalRefunded,1,2)} + ' &euro;'"></td>
                             <td style="text-align:right">
-                                <button type="button" class="btn-icon" th:title="#{admin.common.preview}" style="text-decoration: none;" th:onclick="'showDocPreview(\'/tpv/return-receipt/' + ${ret.id} + '\')'">
+                                <button type="button" class="btn-icon" th:title="#{admin.common.preview}"
+                                    style="text-decoration: none;"
+                                    th:onclick="'event.stopPropagation(); showDocPreview(\'/tpv/return-receipt/' + ${ret.id} + '\')'">
                                     <i class="bi bi-eye" style="color:#3498db;"></i>
                                 </button>
                                 <a th:href="@{/admin/download/return/{id}(id=${ret.id})}" target="_blank"
-                                    class="btn-icon" th:title="#{admin.returns.print}" style="text-decoration: none;">
+                                    class="btn-icon" th:title="#{admin.returns.print}" style="text-decoration: none;"
+                                    onclick="event.stopPropagation();">
                                     <i class="bi bi-printer" style="color:#e74c3c;"></i>
                                 </a>
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(returns)}">
-                            <td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted)" th:text="#{admin.returns.empty}">
+                            <td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted)"
+                                th:text="#{admin.returns.empty}">
                                 No hay devoluciones registradas en el periodo especificado.
                             </td>
                         </tr>
@@ -1512,7 +1694,8 @@
                         th:title="#{admin.common.backtopanel}">
                         <i class="bi bi-arrow-left"></i>
                     </button>
-                    <i class="bi bi-gear me-2"></i><span th:text="#{admin.settings.title}">Configuración del Sistema</span>
+                    <i class="bi bi-gear me-2"></i><span th:text="#{admin.settings.title}">Configuración del
+                        Sistema</span>
                 </span>
             </div>
 
@@ -1528,9 +1711,11 @@
                             <form th:action="@{/admin/settings}" th:object="${companySettings}" method="POST">
                                 <input type="hidden" th:field="*{id}">
 
-                                <div class="section-badge mb-3" th:text="#{admin.settings.section.identification}">IDENTIFICACIÓN</div>
+                                <div class="section-badge mb-3" th:text="#{admin.settings.section.identification}">
+                                    IDENTIFICACIÓN</div>
                                 <div class="mb-3">
-                                    <label class="form-label small fw-bold" th:text="#{admin.settings.appname}">Nombre de la Aplicación (E.j:
+                                    <label class="form-label small fw-bold" th:text="#{admin.settings.appname}">Nombre
+                                        de la Aplicación (E.j:
                                         ElectroBazar)</label>
                                     <input type="text" th:field="*{appName}"
                                         class="form-control form-control-sm border-border" required>
@@ -1538,20 +1723,24 @@
 
                                 <div class="row g-3 mb-3">
                                     <div class="col-md-8">
-                                        <label class="form-label small fw-bold" th:text="#{admin.settings.company.name}">Nombre / Razón Social</label>
+                                        <label class="form-label small fw-bold"
+                                            th:text="#{admin.settings.company.name}">Nombre / Razón Social</label>
                                         <input type="text" th:field="*{name}"
                                             class="form-control form-control-sm border-border" required>
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label small fw-bold" th:text="#{admin.settings.company.taxid}">CIF / NIF</label>
+                                        <label class="form-label small fw-bold"
+                                            th:text="#{admin.settings.company.taxid}">CIF / NIF</label>
                                         <input type="text" th:field="*{cif}"
                                             class="form-control form-control-sm border-border" required>
                                     </div>
                                 </div>
 
-                                <div class="section-badge mb-3 mt-4" th:text="#{admin.settings.section.location}">UBICACIÓN Y CONTACTO</div>
+                                <div class="section-badge mb-3 mt-4" th:text="#{admin.settings.section.location}">
+                                    UBICACIÓN Y CONTACTO</div>
                                 <div class="mb-3">
-                                    <label class="form-label small fw-bold" th:text="#{common.address}">Dirección</label>
+                                    <label class="form-label small fw-bold"
+                                        th:text="#{common.address}">Dirección</label>
                                     <input type="text" th:field="*{address}"
                                         class="form-control form-control-sm border-border" required>
                                 </div>
@@ -1563,7 +1752,8 @@
                                             class="form-control form-control-sm border-border" required>
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label small fw-bold" th:text="#{common.postalcode}">Código Postal</label>
+                                        <label class="form-label small fw-bold" th:text="#{common.postalcode}">Código
+                                            Postal</label>
                                         <input type="text" th:field="*{postalCode}"
                                             class="form-control form-control-sm border-border" required>
                                     </div>
@@ -1571,40 +1761,48 @@
 
                                 <div class="row g-3 mb-3">
                                     <div class="col-md-6">
-                                        <label class="form-label small fw-bold" th:text="#{common.phone}">Teléfono</label>
+                                        <label class="form-label small fw-bold"
+                                            th:text="#{common.phone}">Teléfono</label>
                                         <input type="text" th:field="*{phone}"
                                             class="form-control form-control-sm border-border" required>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label small fw-bold" th:text="#{common.email}">Email de Contacto</label>
+                                        <label class="form-label small fw-bold" th:text="#{common.email}">Email de
+                                            Contacto</label>
                                         <input type="email" th:field="*{email}"
                                             class="form-control form-control-sm border-border" required>
                                     </div>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label small fw-bold" th:text="#{admin.settings.website}">Sitio Web (Opcional)</label>
+                                    <label class="form-label small fw-bold" th:text="#{admin.settings.website}">Sitio
+                                        Web (Opcional)</label>
                                     <input type="text" th:field="*{website}"
                                         class="form-control form-control-sm border-border">
                                 </div>
 
-                                <div class="section-badge mb-3 mt-4" th:text="#{admin.settings.section.invoicetexts}">LEYENDAS DE FACTURACIÓN</div>
+                                <div class="section-badge mb-3 mt-4" th:text="#{admin.settings.section.invoicetexts}">
+                                    LEYENDAS DE FACTURACIÓN</div>
                                 <div class="mb-3">
-                                    <label class="form-label small fw-bold" th:text="#{admin.settings.registry}">Registro Mercantil (Footer Factura)</label>
+                                    <label class="form-label small fw-bold"
+                                        th:text="#{admin.settings.registry}">Registro Mercantil (Footer Factura)</label>
                                     <textarea th:field="*{registroMercantil}"
                                         class="form-control form-control-sm border-border" rows="2"
                                         th:placeholder="#{admin.settings.registry.placeholder}"></textarea>
                                 </div>
 
                                 <div class="mb-4">
-                                    <label class="form-label small fw-bold" th:text="#{admin.settings.invoicefooter}">Texto Pie de Factura (Opcional)</label>
+                                    <label class="form-label small fw-bold"
+                                        th:text="#{admin.settings.invoicefooter}">Texto Pie de Factura
+                                        (Opcional)</label>
                                     <textarea th:field="*{invoiceFooterText}"
                                         class="form-control form-control-sm border-border" rows="2"
                                         th:placeholder="#{admin.settings.invoicefooter.placeholder}"></textarea>
                                 </div>
 
                                 <button type="submit" class="btn btn-save w-100 py-2 mt-2">
-                                    <i class="bi bi-save me-1"></i> <span th:text="#{admin.settings.save}">Guardar Configuración General</span>
+                                    <i class="bi bi-save me-1"></i> <span th:text="#{admin.settings.save}">Guardar
+                                        Configuración General</span>
                                 </button>
                             </form>
                         </div>
@@ -1619,32 +1817,38 @@
                         <div class="card bg-surface border-border shadow-sm">
                             <div class="card-header border-border bg-transparent py-3 d-flex align-items-center">
                                 <i class="bi bi-shield-lock fs-4 me-2 text-warning"></i>
-                                <h5 class="mb-0 fw-bold" th:text="#{admin.settings.security.title}">Seguridad del Sistema</h5>
+                                <h5 class="mb-0 fw-bold" th:text="#{admin.settings.security.title}">Seguridad del
+                                    Sistema</h5>
                             </div>
                             <div class="card-body p-4">
-                                <p class="small mb-4 text-muted" th:text="#{admin.settings.security.description}">PIN de acceso al panel de administración.</p>
+                                <p class="small mb-4 text-muted" th:text="#{admin.settings.security.description}">PIN de
+                                    acceso al panel de administración.</p>
                                 <form id="changePinForm" onsubmit="event.preventDefault(); updateAdminPin();">
                                     <div class="mb-3">
-                                        <label class="form-label small fw-bold" th:text="#{admin.settings.security.currentpin}">PIN Actual</label>
+                                        <label class="form-label small fw-bold"
+                                            th:text="#{admin.settings.security.currentpin}">PIN Actual</label>
                                         <input type="password" id="currentPin"
                                             class="form-control border-border shadow-none" required placeholder="••••">
                                     </div>
                                     <div class="row g-2 mb-4">
                                         <div class="col-6">
-                                            <label class="form-label small fw-bold" th:text="#{admin.settings.security.newpin}">Nuevo PIN</label>
+                                            <label class="form-label small fw-bold"
+                                                th:text="#{admin.settings.security.newpin}">Nuevo PIN</label>
                                             <input type="password" id="newPin"
                                                 class="form-control border-border shadow-none" required minlength="4"
                                                 th:placeholder="#{admin.settings.security.pin.min4}">
                                         </div>
                                         <div class="col-6">
-                                            <label class="form-label small fw-bold" th:text="#{common.confirm}">Confirmar</label>
+                                            <label class="form-label small fw-bold"
+                                                th:text="#{common.confirm}">Confirmar</label>
                                             <input type="password" id="confirmPin"
                                                 class="form-control border-border shadow-none" required
                                                 th:placeholder="#{common.confirm}">
                                         </div>
                                     </div>
                                     <button type="submit" class="btn btn-outline-warning w-100 py-2 border-2 fw-bold">
-                                        <i class="bi bi-key me-1"></i> <span th:text="#{admin.settings.security.pin.update}">Actualizar PIN</span>
+                                        <i class="bi bi-key me-1"></i> <span
+                                            th:text="#{admin.settings.security.pin.update}">Actualizar PIN</span>
                                     </button>
                                 </form>
                             </div>
@@ -1654,33 +1858,39 @@
                         <div class="card bg-surface border-border shadow-sm">
                             <div class="card-header border-border bg-transparent py-3 d-flex align-items-center">
                                 <i class="bi bi-envelope-at fs-4 me-2 text-accent"></i>
-                                <h5 class="mb-0 fw-bold" th:text="#{admin.settings.mail.title}">Servidor SMTP (Correos)</h5>
+                                <h5 class="mb-0 fw-bold" th:text="#{admin.settings.mail.title}">Servidor SMTP (Correos)
+                                </h5>
                             </div>
                             <div class="card-body p-4">
-                                <p class="small mb-4 text-muted" th:text="#{admin.settings.mail.description}">Configura el servidor para enviar tickets y facturas
+                                <p class="small mb-4 text-muted" th:text="#{admin.settings.mail.description}">Configura
+                                    el servidor para enviar tickets y facturas
                                     automáticamente.</p>
 
                                 <div class="mb-3">
-                                    <label class="form-label small fw-bold" th:text="#{admin.settings.mail.host}">Host SMTP</label>
+                                    <label class="form-label small fw-bold" th:text="#{admin.settings.mail.host}">Host
+                                        SMTP</label>
                                     <input type="text" id="mailHost" class="form-control border-border"
                                         placeholder="smtp.gmail.com">
                                 </div>
 
                                 <div class="row g-2 mb-3">
                                     <div class="col-4">
-                                        <label class="form-label small fw-bold" th:text="#{admin.settings.mail.port}">Puerto</label>
+                                        <label class="form-label small fw-bold"
+                                            th:text="#{admin.settings.mail.port}">Puerto</label>
                                         <input type="text" id="mailPort" class="form-control border-border"
                                             placeholder="587">
                                     </div>
                                     <div class="col-8">
-                                        <label class="form-label small fw-bold" th:text="#{admin.settings.mail.username}">Usuario / Email</label>
+                                        <label class="form-label small fw-bold"
+                                            th:text="#{admin.settings.mail.username}">Usuario / Email</label>
                                         <input type="text" id="mailUsername" class="form-control border-border"
                                             placeholder="email@ejemplo.com">
                                     </div>
                                 </div>
 
                                 <div class="mb-4">
-                                    <label class="form-label small fw-bold" th:text="#{admin.settings.mail.password}">Contraseña / Token APP</label>
+                                    <label class="form-label small fw-bold"
+                                        th:text="#{admin.settings.mail.password}">Contraseña / Token APP</label>
                                     <div class="input-group">
                                         <input type="password" id="mailPassword" class="form-control border-border"
                                             placeholder="••••••••••••">
@@ -1692,7 +1902,8 @@
                                 </div>
 
                                 <button class="btn btn-save w-100 py-2" onclick="saveMailSettings()">
-                                    <i class="bi bi-check2-circle me-1"></i> <span th:text="#{admin.settings.mail.update}">Actualizar SMTP</span>
+                                    <i class="bi bi-check2-circle me-1"></i> <span
+                                        th:text="#{admin.settings.mail.update}">Actualizar SMTP</span>
                                 </button>
                             </div>
                         </div>
@@ -1712,7 +1923,8 @@
                         th:title="#{admin.common.backtopanel}">
                         <i class="bi bi-arrow-left"></i>
                     </button>
-                    <i class="bi bi-cash-stack me-2"></i><span th:text="#{admin.cash.title}">Listado de Cierres de Caja</span>
+                    <i class="bi bi-cash-stack me-2"></i><span th:text="#{admin.cash.title}">Listado de Cierres de
+                        Caja</span>
                 </span>
             </div>
 
@@ -1721,7 +1933,8 @@
                 <div class="row g-3">
                     <div class="col-md-5">
                         <label class="form-label small mb-1" style="color: var(--text-main);"><i
-                                class="bi bi-person-circle me-2"></i><span th:text="#{common.worker}">Trabajador</span></label>
+                                class="bi bi-person-circle me-2"></i><span
+                                th:text="#{common.worker}">Trabajador</span></label>
                         <input type="text" id="cashFilterWorker" class="form-control form-control-sm"
                             th:placeholder="#{admin.cash.worker.placeholder}" oninput="filterCashClosures()">
                     </div>
@@ -1733,7 +1946,8 @@
                     </div>
                     <div class="col-md-3 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetCashFilters()">
-                            <i class="bi bi-arrow-counterclockwise me-1"></i> <span th:text="#{common.reset}">Reset</span>
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> <span
+                                th:text="#{common.reset}">Reset</span>
                         </button>
                     </div>
                 </div>
@@ -1759,15 +1973,20 @@
                             th:data-open-date="${register.openingTime != null ? #temporals.format(register.openingTime, 'yyyy-MM-dd') : ''}"
                             th:data-close-date="${register.closedAt != null ? #temporals.format(register.closedAt, 'yyyy-MM-dd') : ''}">
                             <td style="color:var(--text-muted);font-weight:600" th:text="${'#'+register.id}"></td>
-                            <td th:text="${register.openingTime != null ? #temporals.format(register.openingTime, 'dd/MM/yyyy HH:mm') : '—'}"></td>
-                            <td th:text="${register.closedAt != null ? #temporals.format(register.closedAt, 'dd/MM/yyyy HH:mm') : '—'}"></td>
+                            <td
+                                th:text="${register.openingTime != null ? #temporals.format(register.openingTime, 'dd/MM/yyyy HH:mm') : '—'}">
+                            </td>
+                            <td
+                                th:text="${register.closedAt != null ? #temporals.format(register.closedAt, 'dd/MM/yyyy HH:mm') : '—'}">
+                            </td>
 
                             <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;"
                                 th:text="${#numbers.formatDecimal((register.openingBalance ?: 0) + (register.totalSales ?: 0), 1, 2)} + ' &euro;'">
                             </td>
 
                             <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;"
-                                th:text="${#numbers.formatDecimal(register.closingBalance ?: 0, 1, 2)} + ' &euro;'"></td>
+                                th:text="${#numbers.formatDecimal(register.closingBalance ?: 0, 1, 2)} + ' &euro;'">
+                            </td>
 
                             <td>
                                 <span th:if="${(register.difference ?: 0) == 0}" class="badge-active yes">Cuadrado (0.00
@@ -1790,7 +2009,8 @@
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(cashRegisters)}">
-                            <td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted)" th:text="#{admin.cash.empty}">
+                            <td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted)"
+                                th:text="#{admin.cash.empty}">
                                 No hay cierres de caja registrados histórico.
                             </td>
                         </tr>
@@ -1808,7 +2028,8 @@
                         th:title="#{admin.common.backtopanel}">
                         <i class="bi bi-arrow-left"></i>
                     </button>
-                    <i class="bi bi-people me-2"></i><span th:text="#{admin.workers.title}">Gestión de Trabajadores</span>
+                    <i class="bi bi-people me-2"></i><span th:text="#{admin.workers.title}">Gestión de
+                        Trabajadores</span>
                 </span>
                 <button class="btn-nuevo" onclick="openWorkerModal()">
                     <i class="bi bi-plus-lg"></i> <span th:text="#{admin.workers.new}">Nuevo Trabajador</span>
@@ -1820,7 +2041,8 @@
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label small mb-1" style="color: var(--text-main);"><i
-                                class="bi bi-search me-2"></i><span th:text="#{admin.workers.search}">Buscar trabajador</span></label>
+                                class="bi bi-search me-2"></i><span th:text="#{admin.workers.search}">Buscar
+                                trabajador</span></label>
                         <input type="text" id="workerFilterName" class="form-control form-control-sm"
                             th:placeholder="#{admin.workers.search.placeholder}" oninput="filterWorkers()">
                     </div>
@@ -1834,7 +2056,8 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label small mb-1" style="color: var(--text-main);"><i
-                                class="bi bi-check-circle me-2"></i><span th:text="#{common.status}">Estado</span></label>
+                                class="bi bi-check-circle me-2"></i><span
+                                th:text="#{common.status}">Estado</span></label>
                         <select id="workerFilterStatus" class="form-select form-select-sm" onchange="filterWorkers()">
                             <option value="" th:text="#{common.all}">Todos</option>
                             <option value="true" th:text="#{common.active}">Activos</option>
@@ -1843,11 +2066,13 @@
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetWorkerFilters()">
-                            <i class="bi bi-arrow-counterclockwise me-1"></i> <span th:text="#{common.reset}">Reset</span>
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> <span
+                                th:text="#{common.reset}">Reset</span>
                         </button>
                     </div>
                 </div>
-                <div id="workerCountLabel" class="small mt-2" style="color: var(--text-muted);" th:text="#{admin.workers.count.all}">
+                <div id="workerCountLabel" class="small mt-2" style="color: var(--text-muted);"
+                    th:text="#{admin.workers.count.all}">
                     Mostrando todas las fichas de trabajadores.
                 </div>
             </div>
@@ -1871,12 +2096,15 @@
                                 <span th:if="${w.role != null}" class="badge"
                                     style="font-size:0.75rem; background-color: rgba(6,182,212,0.18); color: #22d3ee; border: 1px solid rgba(6,182,212,0.3);"
                                     th:text="${w.role.name}"></span>
-                                <span th:unless="${w.role != null}" class="small" style="color: var(--text-muted);" th:text="#{admin.workers.norole}">Sin
+                                <span th:unless="${w.role != null}" class="small" style="color: var(--text-muted);"
+                                    th:text="#{admin.workers.norole}">Sin
                                     rol</span>
                             </td>
                             <td>
-                                <span th:if="${w.active}" class="badge bg-success" th:text="#{common.active}">Activo</span>
-                                <span th:unless="${w.active}" class="badge bg-danger" th:text="#{common.inactive}">Inactivo</span>
+                                <span th:if="${w.active}" class="badge bg-success"
+                                    th:text="#{common.active}">Activo</span>
+                                <span th:unless="${w.active}" class="badge bg-danger"
+                                    th:text="#{common.inactive}">Inactivo</span>
                             </td>
                             <td>
                                 <span th:if="${w.role != null}" th:each="perm : ${w.role.permissions}"
@@ -1930,13 +2158,15 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label small mb-1" style="color: var(--text-main);"><i
-                                class="bi bi-search me-2"></i><span th:text="#{admin.roles.search}">Buscar por nombre</span></label>
+                                class="bi bi-search me-2"></i><span th:text="#{admin.roles.search}">Buscar por
+                                nombre</span></label>
                         <input type="text" id="roleFilterName" class="form-control form-control-sm"
                             th:placeholder="#{admin.roles.search.placeholder}" oninput="filterRoles()">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small mb-1" style="color: var(--text-main);"><i
-                                class="bi bi-shield-lock me-2"></i><span th:text="#{admin.roles.permissions.required}">Permisos requeridos</span></label>
+                                class="bi bi-shield-lock me-2"></i><span
+                                th:text="#{admin.roles.permissions.required}">Permisos requeridos</span></label>
                         <div class="dropdown">
                             <button class="btn btn-outline-secondary btn-sm dropdown-toggle w-100" type="button"
                                 id="roleFilterPermBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside"
@@ -1974,7 +2204,8 @@
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100"
                             th:onclick="|resetRolePermFilters(); document.getElementById('roleFilterName').value=''; filterRoles(); updateFilterPermLabel('roleFilterPermBtn', '.role-filter-perm', '#{admin.roles.permissions.select}');|">
-                            <i class="bi bi-arrow-counterclockwise me-1"></i> <span th:text="#{common.reset}">Reset</span>
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> <span
+                                th:text="#{common.reset}">Reset</span>
                         </button>
                     </div>
                 </div>
@@ -1994,7 +2225,8 @@
                     <tbody id="rolesTableBody">
                         <tr>
                             <td colspan="5" class="text-center py-4" style="color: var(--text-muted);">
-                                <span class="spinner-border spinner-border-sm me-2"></span><span th:text="#{common.loading}">Cargando...</span>
+                                <span class="spinner-border spinner-border-sm me-2"></span><span
+                                    th:text="#{common.loading}">Cargando...</span>
                             </td>
                         </tr>
                     </tbody>
@@ -2011,7 +2243,8 @@
                         th:title="#{admin.common.backtopanel}">
                         <i class="bi bi-arrow-left"></i>
                     </button>
-                    <i class="bi bi-graph-up me-2"></i><span th:text="#{admin.analytics.title}">Análisis de Negocio</span>
+                    <i class="bi bi-graph-up me-2"></i><span th:text="#{admin.analytics.title}">Análisis de
+                        Negocio</span>
                 </span>
                 <div class="d-flex gap-2 align-items-center">
                     <select id="analyticsPeriod" class="form-select form-select-sm" style="width: 180px;"
@@ -2073,15 +2306,17 @@
             <div class="row g-4">
                 <div class="col-md-8">
                     <div class="chart-container-p">
-                        <h6 class="mb-4 fw-bold" id="salesChartTitle"><i class="bi bi-graph-up me-2"></i><span th:text="#{admin.analytics.trend.7days}">Tendencia de
-                            Ventas (Últimos 7 días)</span>
+                        <h6 class="mb-4 fw-bold" id="salesChartTitle"><i class="bi bi-graph-up me-2"></i><span
+                                th:text="#{admin.analytics.trend.7days}">Tendencia de
+                                Ventas (Últimos 7 días)</span>
                         </h6>
                         <canvas id="salesChart" height="120"></canvas>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="chart-container-p">
-                        <h6 class="mb-4 fw-bold"><i class="bi bi-pie-chart me-2"></i><span th:text="#{admin.analytics.salesbycategory}">Ventas por Categoría</span></h6>
+                        <h6 class="mb-4 fw-bold"><i class="bi bi-pie-chart me-2"></i><span
+                                th:text="#{admin.analytics.salesbycategory}">Ventas por Categoría</span></h6>
                         <canvas id="categoryChart" height="250"></canvas>
                     </div>
                 </div>
@@ -2097,7 +2332,8 @@
                         th:title="#{admin.common.backtopanel}">
                         <i class="bi bi-arrow-left"></i>
                     </button>
-                    <i class="bi bi-person-badge me-2"></i><span th:text="#{admin.crm.title}">Gestión de Clientes (CRM)</span>
+                    <i class="bi bi-person-badge me-2"></i><span th:text="#{admin.crm.title}">Gestión de Clientes
+                        (CRM)</span>
                 </span>
                 <div class="d-flex gap-2">
                     <!-- Hidden file input for CSV import -->
@@ -2107,7 +2343,8 @@
                         style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border);"
                         onclick="document.getElementById('customersCsvFileInput').click()"
                         th:title="#{admin.crm.import.csv.title}">
-                        <i class="bi bi-file-earmark-person me-1"></i> <span th:text="#{admin.crm.import.csv}">Importar CSV</span>
+                        <i class="bi bi-file-earmark-person me-1"></i> <span th:text="#{admin.crm.import.csv}">Importar
+                            CSV</span>
                     </button>
                     <button class="btn-nuevo" onclick="openCustomerModal()">
                         <i class="bi bi-plus-lg"></i> <span th:text="#{admin.crm.new}">Nuevo Cliente</span>
@@ -2120,7 +2357,8 @@
                 <div class="row g-3">
                     <div class="col-md-5">
                         <label class="form-label small mb-1" style="color: var(--text-main);"><i
-                                class="bi bi-person-badge me-2"></i><span th:text="#{admin.crm.search}">Buscar cliente</span></label>
+                                class="bi bi-person-badge me-2"></i><span th:text="#{admin.crm.search}">Buscar
+                                cliente</span></label>
                         <input type="text" id="crmFilterSearch" class="form-control form-control-sm"
                             th:placeholder="#{admin.crm.search.placeholder}" oninput="filterCRM()">
                     </div>
@@ -2144,7 +2382,8 @@
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetCRMFilters()">
-                            <i class="bi bi-arrow-counterclockwise me-1"></i> <span th:text="#{common.reset}">Reset</span>
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> <span
+                                th:text="#{common.reset}">Reset</span>
                         </button>
                     </div>
                 </div>
@@ -2185,8 +2424,8 @@
                                     th:style="${c.tariff.color != null ? 'background-color:' + c.tariff.color + '15; color:' + c.tariff.color + '; border-color:' + c.tariff.color + '30' : ''}"
                                     th:classappend="${c.tariff.color == null ? (#strings.contains(#strings.toLowerCase(c.tariff.name), 'minorista') ? 'badge-tariff-minorista' : (#strings.contains(#strings.toLowerCase(c.tariff.name), 'mayorista') ? 'badge-tariff-mayorista' : 'badge-tariff-custom')) : ''}"
                                     th:text="${c.tariff.name}"></span>
-                                <span th:unless="${c.tariff != null}"
-                                    class="badge badge-tariff-minorista" th:text="#{admin.tariffs.minorista}">MINORISTA</span>
+                                <span th:unless="${c.tariff != null}" class="badge badge-tariff-minorista"
+                                    th:text="#{admin.tariffs.minorista}">MINORISTA</span>
                             </td>
                             <td>
                                 <span th:if="${c.hasRecargoEquivalencia}" class="badge badge-re-custom"
@@ -2214,7 +2453,8 @@
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(customers)}">
-                            <td colspan="9" class="text-center py-4" style="color: var(--text-muted);" th:text="#{admin.crm.empty}">No hay clientes
+                            <td colspan="9" class="text-center py-4" style="color: var(--text-muted);"
+                                th:text="#{admin.crm.empty}">No hay clientes
                                 registrados</td>
                         </tr>
                     </tbody>
@@ -2233,7 +2473,8 @@
                                 <i class="bi bi-receipt-cutoff me-2 text-accent"></i>
                                 <span id="customerSalesModalName" th:text="#{admin.crm.customer}">Cliente</span>
                             </h5>
-                            <p class="mb-0 small" style="color:var(--text-muted);" th:text="#{admin.crm.sales.history}">Historial completo de ventas</p>
+                            <p class="mb-0 small" style="color:var(--text-muted);" th:text="#{admin.crm.sales.history}">
+                                Historial completo de ventas</p>
                         </div>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
@@ -2244,40 +2485,46 @@
                                 <div class="p-3 rounded-3 text-center"
                                     style="background:var(--surface);border:1px solid var(--border);">
                                     <div class="fw-bold fs-5 text-accent" id="csSaleCount">—</div>
-                                    <div class="small" style="color:var(--text-muted);" th:text="#{admin.crm.sales.total.count}">Ventas totales</div>
+                                    <div class="small" style="color:var(--text-muted);"
+                                        th:text="#{admin.crm.sales.total.count}">Ventas totales</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="p-3 rounded-3 text-center"
                                     style="background:var(--surface);border:1px solid var(--border);">
                                     <div class="fw-bold fs-5" style="color:#22c55e;" id="csTotalAmount">—</div>
-                                    <div class="small" style="color:var(--text-muted);" th:text="#{admin.crm.sales.total.amount}">Total facturado</div>
+                                    <div class="small" style="color:var(--text-muted);"
+                                        th:text="#{admin.crm.sales.total.amount}">Total facturado</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="p-3 rounded-3 text-center"
                                     style="background:var(--surface);border:1px solid var(--border);">
                                     <div class="fw-bold fs-5" style="color:#3b82f6;" id="csAvgAmount">—</div>
-                                    <div class="small" style="color:var(--text-muted);" th:text="#{admin.crm.modal.sales.avg_amount}">Ticket medio</div>
+                                    <div class="small" style="color:var(--text-muted);"
+                                        th:text="#{admin.crm.modal.sales.avg_amount}">Ticket medio</div>
                                 </div>
                             </div>
                             <div class="col-6 col-md-3">
                                 <div class="p-3 rounded-3 text-center"
                                     style="background:var(--surface);border:1px solid var(--border);">
                                     <div class="fw-bold fs-5" style="color:#f59e0b;" id="csLastSale">—</div>
-                                    <div class="small" style="color:var(--text-muted);" th:text="#{admin.crm.modal.sales.last_sale}">Última compra</div>
+                                    <div class="small" style="color:var(--text-muted);"
+                                        th:text="#{admin.crm.modal.sales.last_sale}">Última compra</div>
                                 </div>
                             </div>
                         </div>
                         <!-- Lista de ventas -->
                         <div id="customerSalesBody">
                             <div class="text-center py-5">
-                                <span class="spinner-border spinner-border-sm me-2"></span><span th:text="#{common.loading}">Cargando...</span>
+                                <span class="spinner-border spinner-border-sm me-2"></span><span
+                                    th:text="#{common.loading}">Cargando...</span>
                             </div>
                         </div>
                     </div>
                     <div class="modal-footer border-0 pt-0">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" th:text="#{common.close}">Cerrar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                            th:text="#{common.close}">Cerrar</button>
                     </div>
                 </div>
             </div>
@@ -2292,7 +2539,8 @@
                         th:title="#{admin.common.backtopanel}">
                         <i class="bi bi-arrow-left"></i>
                     </button>
-                    <i class="bi bi-calendar-event me-2"></i><span th:text="#{admin.prices.title}">Gestión de Precios Temporales</span>
+                    <i class="bi bi-calendar-event me-2"></i><span th:text="#{admin.prices.title}">Gestión de Precios
+                        Temporales</span>
                 </span>
                 <button class="btn-nuevo" onclick="openSchedulePriceModal()">
                     <i class="bi bi-plus-lg"></i> <span th:text="#{admin.prices.schedule}">Programar Precio</span>
@@ -2304,9 +2552,11 @@
                 style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--text-main)">
                 <i class="bi bi-info-circle-fill text-info mt-1"></i>
                 <div>
-                    <strong th:text="#{admin.prices.info.title}">Sistema de Precios Temporales:</strong> <span th:text="#{admin.prices.info.text}">Programa cambios de precio futuros para cualquier
-                    producto. Al programar un nuevo precio, el precio actual se cerrará automáticamente un segundo antes
-                    de que entre en vigor el nuevo. El sistema aplica caché para optimizar el rendimiento.</span>
+                    <strong th:text="#{admin.prices.info.title}">Sistema de Precios Temporales:</strong> <span
+                        th:text="#{admin.prices.info.text}">Programa cambios de precio futuros para cualquier
+                        producto. Al programar un nuevo precio, el precio actual se cerrará automáticamente un segundo
+                        antes
+                        de que entre en vigor el nuevo. El sistema aplica caché para optimizar el rendimiento.</span>
                 </div>
             </div>
 
@@ -2314,12 +2564,14 @@
             <ul class="nav nav-tabs mb-3" id="preciosTabs">
                 <li class="nav-item">
                     <button class="nav-link active" id="tabFuturos" onclick="showPreciosTab('futuros')">
-                        <i class="bi bi-clock me-1"></i><span th:text="#{admin.prices.scheduled.tab}">Precios Programados</span>
+                        <i class="bi bi-clock me-1"></i><span th:text="#{admin.prices.scheduled.tab}">Precios
+                            Programados</span>
                     </button>
                 </li>
                 <li class="nav-item">
                     <button class="nav-link" id="tabHistorial" onclick="showPreciosTab('historial')">
-                        <i class="bi bi-search me-1"></i><span th:text="#{admin.prices.history.tab}">Historial por Producto</span>
+                        <i class="bi bi-search me-1"></i><span th:text="#{admin.prices.history.tab}">Historial por
+                            Producto</span>
                     </button>
                 </li>
             </ul>
@@ -2331,13 +2583,15 @@
                     <div class="row g-3">
                         <div class="col-md-10">
                             <label class="form-label small mb-1" style="color: var(--text-main);"><i
-                                    class="bi bi-search me-2"></i><span th:text="#{admin.prices.search.product}">Buscar por producto</span></label>
+                                    class="bi bi-search me-2"></i><span th:text="#{admin.prices.search.product}">Buscar
+                                    por producto</span></label>
                             <input type="text" id="futurePriceFilterSearch" class="form-control form-control-sm"
                                 th:placeholder="#{admin.inventory.search.placeholder}" oninput="filterFuturePrices()">
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
                             <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetFuturePriceFilters()">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i> <span th:text="#{common.reset}">Reset</span>
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> <span
+                                    th:text="#{common.reset}">Reset</span>
                             </button>
                         </div>
                     </div>
@@ -2357,7 +2611,8 @@
                         <tbody id="futurePricesBody">
                             <tr>
                                 <td colspan="6" class="text-center py-4 text-muted">
-                                    <span class="spinner-border spinner-border-sm me-2"></span><span th:text="#{common.loading}">Cargando...</span>
+                                    <span class="spinner-border spinner-border-sm me-2"></span><span
+                                        th:text="#{common.loading}">Cargando...</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -2372,17 +2627,20 @@
                     <div class="row g-3">
                         <div class="col-md-10">
                             <label class="form-label small mb-1" style="color: var(--text-main);"><i
-                                    class="bi bi-box-seam me-2"></i><span th:text="#{common.product}">Producto</span></label>
+                                    class="bi bi-box-seam me-2"></i><span
+                                    th:text="#{common.product}">Producto</span></label>
                             <select class="form-select form-select-sm" id="historialProductSelect"
                                 onchange="loadPriceHistory()">
-                                <option value="" th:text="#{admin.prices.select.product}">— Selecciona un producto —</option>
+                                <option value="" th:text="#{admin.prices.select.product}">— Selecciona un producto —
+                                </option>
                                 <option th:each="p : ${products}" th:value="${p.id}" th:text="${p.name}"></option>
                             </select>
                         </div>
                         <div class="col-md-2 d-flex align-items-end">
                             <button class="btn btn-sm btn-outline-secondary w-100"
                                 onclick="document.getElementById('historialProductSelect').value=''; loadPriceHistory();">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i> <span th:text="#{common.reset}">Reset</span>
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> <span
+                                    th:text="#{common.reset}">Reset</span>
                             </button>
                         </div>
                     </div>
@@ -2402,7 +2660,8 @@
                         </thead>
                         <tbody id="priceHistoryBody">
                             <tr>
-                                <td colspan="7" class="text-center py-4 text-muted" th:text="#{admin.prices.history.select.prompt}">Selecciona un producto para ver su
+                                <td colspan="7" class="text-center py-4 text-muted"
+                                    th:text="#{admin.prices.history.select.prompt}">Selecciona un producto para ver su
                                     historial de precios.</td>
                             </tr>
                         </tbody>
@@ -2420,11 +2679,13 @@
                         th:title="#{admin.common.backtopanel}">
                         <i class="bi bi-arrow-left"></i>
                     </button>
-                    <i class="bi bi-percent me-2"></i><span th:text="#{admin.massiveprices.title}">Actualización Masiva de Precios</span>
+                    <i class="bi bi-percent me-2"></i><span th:text="#{admin.massiveprices.title}">Actualización Masiva
+                        de Precios</span>
                 </span>
                 <button class="btn btn-accent d-flex align-items-center gap-2" onclick="openIpcUpdateModal()"
                     style="background:var(--accent); color:var(--primary); font-weight:600; border:none; padding:8px 16px; border-radius:8px;">
-                    <i class="bi bi-graph-up"></i> <span th:text="#{admin.massiveprices.ipc}">Actualización por IPC (INE)</span>
+                    <i class="bi bi-graph-up"></i> <span th:text="#{admin.massiveprices.ipc}">Actualización por IPC
+                        (INE)</span>
                 </button>
             </div>
 
@@ -2433,9 +2694,12 @@
                 style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--text-main)">
                 <i class="bi bi-info-circle-fill text-info mt-1"></i>
                 <div>
-                    <strong th:text="#{admin.massiveprices.info.title}">Precios Masivos:</strong> <span th:text="#{admin.massiveprices.info.desc}">Selecciona varios productos y aplica un incremento o decremento
-                    porcentual a todos ellos. También puedes establecer una fecha futura para que los cambios entren en
-                    vigor automáticamente.</span>
+                    <strong th:text="#{admin.massiveprices.info.title}">Precios Masivos:</strong> <span
+                        th:text="#{admin.massiveprices.info.desc}">Selecciona varios productos y aplica un incremento o
+                        decremento
+                        porcentual a todos ellos. También puedes establecer una fecha futura para que los cambios entren
+                        en
+                        vigor automáticamente.</span>
                 </div>
             </div>
 
@@ -2443,30 +2707,34 @@
             <div class="card" style="background:var(--secondary);border:1px solid var(--border);">
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label fw-600" style="color: var(--text-main);" th:text="#{admin.massiveprices.select_products}">Seleccionar
+                        <label class="form-label fw-600" style="color: var(--text-main);"
+                            th:text="#{admin.massiveprices.select_products}">Seleccionar
                             Productos</label>
                         <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
-                            <button class="btn btn-sm btn-outline-secondary"
-                                onclick="selectAllBulkProducts(true)" th:text="#{common.selectall}">Seleccionar Todos</button>
-                            <button class="btn btn-sm btn-outline-secondary"
-                                onclick="selectAllBulkProducts(false)" th:text="#{common.deselectall}">Deseleccionar Todos</button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="selectAllBulkProducts(true)"
+                                th:text="#{common.selectall}">Seleccionar Todos</button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="selectAllBulkProducts(false)"
+                                th:text="#{common.deselectall}">Deseleccionar Todos</button>
 
                             <!-- Filter by category -->
                             <div class="d-flex align-items-center gap-2 ms-auto">
                                 <select id="bulkCategoryFilter" class="form-select form-select-sm"
                                     style="max-width:180px" onchange="filterBulkProductList()">
-                                    <option value="" th:text="#{admin.massiveprices.allcategories}">Todas las categorías</option>
+                                    <option value="" th:text="#{admin.massiveprices.allcategories}">Todas las categorías
+                                    </option>
                                     <option th:each="c : ${categories}" th:value="${c.name}" th:text="${c.name}">
                                     </option>
                                 </select>
                                 <button class="btn btn-sm btn-accent" onclick="selectBulkByCategory()"
-                                    style="background:var(--accent); color:var(--primary); font-weight:600; border:none; padding:4px 10px; border-radius:6px;" th:text="#{admin.massiveprices.mark_category}">
+                                    style="background:var(--accent); color:var(--primary); font-weight:600; border:none; padding:4px 10px; border-radius:6px;"
+                                    th:text="#{admin.massiveprices.mark_category}">
                                     Marcar Categoría
                                 </button>
                             </div>
 
                             <input type="text" id="bulkProductSearch" class="form-control form-control-sm"
-                                style="max-width:180px" th:placeholder="#{admin.common.searchproduct.placeholder}" oninput="filterBulkProductList()">
+                                style="max-width:180px" th:placeholder="#{admin.common.searchproduct.placeholder}"
+                                oninput="filterBulkProductList()">
                         </div>
                         <div class="bulk-product-list" id="bulkProductList"
                             style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:15px">
@@ -2475,44 +2743,53 @@
                                     color: var(--text-main) !important;
                                 }
                             </style>
-                            <div class="text-center py-3" style="color: var(--text-muted);" th:text="#{admin.massiveprices.loading}">Cargando productos...</div>
+                            <div class="text-center py-3" style="color: var(--text-muted);"
+                                th:text="#{admin.massiveprices.loading}">Cargando productos...</div>
                         </div>
-                        <small id="selectedCountLabel" style="color: var(--text-muted);">0 <span th:text="#{admin.massiveprices.selected_count}">productos
-                            seleccionados</span></small>
+                        <small id="selectedCountLabel" style="color: var(--text-muted);">0 <span
+                                th:text="#{admin.massiveprices.selected_count}">productos
+                                seleccionados</span></small>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-600" style="color: var(--text-main);" th:text="#{admin.massiveprices.change_type}">Tipo de Cambio</label>
+                            <label class="form-label fw-600" style="color: var(--text-main);"
+                                th:text="#{admin.massiveprices.change_type}">Tipo de Cambio</label>
                             <select class="form-select" id="bulkPriceType" onchange="toggleBulkPriceFields()">
                                 <option value="percentage" th:text="#{admin.common.percentage}">Porcentaje (%)</option>
                                 <option value="fixed" th:text="#{admin.common.fixed_amount}">Cantidad Fija (€)</option>
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-600" id="bulkPriceValueLabel"
-                                style="color: var(--text-main);" th:text="#{admin.common.percentage}">Porcentaje (%)</label>
+                            <label class="form-label fw-600" id="bulkPriceValueLabel" style="color: var(--text-main);"
+                                th:text="#{admin.common.percentage}">Porcentaje (%)</label>
                             <input type="number" class="form-control" id="bulkPriceValue" step="0.01"
                                 th:placeholder="#{admin.massiveprices.placeholder.percentage}">
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-600" style="color: var(--text-main);" th:text="#{admin.massiveprices.effective_date}">Fecha de Vigencia
+                        <label class="form-label fw-600" style="color: var(--text-main);"
+                            th:text="#{admin.massiveprices.effective_date}">Fecha de Vigencia
                             (opcional)</label>
                         <input type="datetime-local" class="form-control" id="bulkEffectiveDate"
                             style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
-                        <small style="color: var(--text-muted);" th:text="#{admin.massiveprices.effective_date.info}">Dejar vacío para aplicar inmediatamente</small>
+                        <small style="color: var(--text-muted);"
+                            th:text="#{admin.massiveprices.effective_date.info}">Dejar vacío para aplicar
+                            inmediatamente</small>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-600" style="color: var(--text-main);" th:text="#{admin.common.label}">Etiqueta (opcional)</label>
-                        <input type="text" class="form-control" id="bulkLabel" th:placeholder="#{admin.massiveprices.placeholder.label}"
+                        <label class="form-label fw-600" style="color: var(--text-main);"
+                            th:text="#{admin.common.label}">Etiqueta (opcional)</label>
+                        <input type="text" class="form-control" id="bulkLabel"
+                            th:placeholder="#{admin.massiveprices.placeholder.label}"
                             style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-600" style="color: var(--text-main);" th:text="#{admin.massiveprices.select_tariffs}">Seleccione las tarifas a las
+                        <label class="form-label fw-600" style="color: var(--text-main);"
+                            th:text="#{admin.massiveprices.select_tariffs}">Seleccione las tarifas a las
                             que aplicar este incremento</label>
                         <div class="p-3 rounded" style="background:var(--surface); border:1px solid var(--border);">
                             <div class="form-check mb-2" th:each="t : ${tariffs}" th:if="${t.active}">
@@ -2527,7 +2804,8 @@
                     </div>
 
                     <button class="btn-nuevo" onclick="applyBulkPriceUpdate()">
-                        <i class="bi bi-check-lg"></i> <span th:text="#{admin.massiveprices.apply}">Aplicar Cambio</span>
+                        <i class="bi bi-check-lg"></i> <span th:text="#{admin.massiveprices.apply}">Aplicar
+                            Cambio</span>
                     </button>
                 </div>
             </div>
@@ -2550,7 +2828,8 @@
                         th:title="#{admin.common.backtopanel}">
                         <i class="bi bi-arrow-left"></i>
                     </button>
-                    <i class="bi bi-clock-history me-2"></i><span th:text="#{admin.activity.title}">Registro de Actividad Reciente</span>
+                    <i class="bi bi-clock-history me-2"></i><span th:text="#{admin.activity.title}">Registro de
+                        Actividad Reciente</span>
                 </span>
             </div>
 
@@ -2559,25 +2838,29 @@
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label small mb-1" style="color: var(--text-main);"><i
-                                class="bi bi-person-circle me-2"></i><span th:text="#{admin.common.username}">Usuario</span></label>
+                                class="bi bi-person-circle me-2"></i><span
+                                th:text="#{admin.common.username}">Usuario</span></label>
                         <input type="text" id="activityFilterUser" class="form-control form-control-sm"
                             th:placeholder="#{admin.worker.placeholder.username}" oninput="filterActivity()">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small mb-1" style="color: var(--text-main);"><i
-                                class="bi bi-lightning-charge me-2"></i><span th:text="#{common.actions}">Acción</span></label>
+                                class="bi bi-lightning-charge me-2"></i><span
+                                th:text="#{common.actions}">Acción</span></label>
                         <input type="text" id="activityFilterAction" class="form-control form-control-sm"
                             placeholder="Ej: VENTA, ELIMINAR..." oninput="filterActivity()">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small mb-1" style="color: var(--text-main);"><i
-                                class="bi bi-calendar3 me-2"></i><span th:text="#{admin.invoices.table.date}">Fecha</span></label>
+                                class="bi bi-calendar3 me-2"></i><span
+                                th:text="#{admin.invoices.table.date}">Fecha</span></label>
                         <input type="date" id="activityFilterDate" class="form-control form-control-sm"
                             onchange="filterActivity()">
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetActivityFilters()">
-                            <i class="bi bi-arrow-counterclockwise me-1"></i> <span th:text="#{common.reset}">Reset</span>
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> <span
+                                th:text="#{common.reset}">Reset</span>
                         </button>
                     </div>
                 </div>
@@ -2598,7 +2881,8 @@
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="productModalLabel" th:text="#{admin.product.modal.title}">Producto</h5>
+                        <h5 class="modal-title" id="productModalLabel" th:text="#{admin.product.modal.title}">Producto
+                        </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -2606,18 +2890,21 @@
                             <input type="hidden" id="productId">
                             <div class="row g-3">
                                 <div class="col-md-8">
-                                    <label class="form-label" for="productName" th:text="#{admin.common.name_required}">Nombre *</label>
+                                    <label class="form-label" for="productName"
+                                        th:text="#{admin.common.name_required}">Nombre *</label>
                                     <input type="text" class="form-control" id="productName" required
                                         th:placeholder="#{admin.product.placeholder.name}">
                                 </div>
 
                                 <div class="col-12">
-                                    <label class="form-label" for="productDescription" th:text="#{common.description}">Descripción</label>
+                                    <label class="form-label" for="productDescription"
+                                        th:text="#{common.description}">Descripción</label>
                                     <textarea class="form-control" id="productDescription" rows="2"
                                         placeholder="..."></textarea>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label" for="productPrice" th:text="#{admin.common.price_required}">Precio (&euro;) *</label>
+                                    <label class="form-label" for="productPrice"
+                                        th:text="#{admin.common.price_required}">Precio (&euro;) *</label>
                                     <input type="number" class="form-control" id="productPrice" step="0.01" min="0"
                                         required placeholder="0.00">
                                 </div>
@@ -2635,7 +2922,8 @@
                                     <input type="number" class="form-control" id="productStock" min="0" placeholder="0">
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label" for="productCategory" th:text="#{admin.inventory.tabs.categories}">Categoría</label>
+                                    <label class="form-label" for="productCategory"
+                                        th:text="#{admin.inventory.tabs.categories}">Categoría</label>
                                     <select class="form-select" id="productCategory">
                                         <option value="" th:text="#{admin.common.nocategory}">— Sin categoría —</option>
                                         <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}">
@@ -2643,7 +2931,8 @@
                                     </select>
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label" for="productImageUrl" th:text="#{admin.product.imageUrl}">URL de imagen (Cloudinary)</label>
+                                    <label class="form-label" for="productImageUrl"
+                                        th:text="#{admin.product.imageUrl}">URL de imagen (Cloudinary)</label>
                                     <input type="url" class="form-control" id="productImageUrl"
                                         placeholder="https://res.cloudinary.com/..." oninput="previewImage(this.value)">
                                     <img id="imgPreview" src="" th:alt="#{common.preview}">
@@ -2651,14 +2940,16 @@
                                 <div class="col-12">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" id="productActive" checked>
-                                        <label class="form-check-label" for="productActive" th:text="#{admin.product.active}">Producto activo</label>
+                                        <label class="form-check-label" for="productActive"
+                                            th:text="#{admin.product.active}">Producto activo</label>
                                     </div>
                                 </div>
                             </div>
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn-cancel" data-bs-dismiss="modal" th:text="#{common.cancel}">Cancelar</button>
+                        <button type="button" class="btn-cancel" data-bs-dismiss="modal"
+                            th:text="#{common.cancel}">Cancelar</button>
                         <button type="button" class="btn-save" onclick="saveProduct()"><i
                                 class="bi bi-check-lg me-1"></i><span th:text="#{common.save}">Guardar</span></button>
                     </div>
@@ -2675,7 +2966,8 @@
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="categoryModalLabel" th:text="#{admin.category.modal.title}">Categoría</h5>
+                        <h5 class="modal-title" id="categoryModalLabel" th:text="#{admin.category.modal.title}">
+                            Categoría</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -2683,26 +2975,30 @@
                             <input type="hidden" id="categoryId">
                             <div class="row g-3">
                                 <div class="col-12">
-                                    <label class="form-label" for="categoryName" th:text="#{admin.common.name_required}">Nombre *</label>
+                                    <label class="form-label" for="categoryName"
+                                        th:text="#{admin.common.name_required}">Nombre *</label>
                                     <input type="text" class="form-control" id="categoryName" required
                                         th:placeholder="#{admin.category.placeholder.name}">
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label" for="categoryDescription" th:text="#{common.description}">Descripción</label>
+                                    <label class="form-label" for="categoryDescription"
+                                        th:text="#{common.description}">Descripción</label>
                                     <textarea class="form-control" id="categoryDescription" rows="2"
                                         placeholder="..."></textarea>
                                 </div>
                                 <div class="col-12">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" id="categoryActive" checked>
-                                        <label class="form-check-label" for="categoryActive" th:text="#{admin.category.active}">Categoría activa</label>
+                                        <label class="form-check-label" for="categoryActive"
+                                            th:text="#{admin.category.active}">Categoría activa</label>
                                     </div>
                                 </div>
                             </div>
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn-cancel" data-bs-dismiss="modal" th:text="#{common.cancel}">Cancelar</button>
+                        <button type="button" class="btn-cancel" data-bs-dismiss="modal"
+                            th:text="#{common.cancel}">Cancelar</button>
                         <button type="button" class="btn-save" onclick="saveCategory()"><i
                                 class="bi bi-check-lg me-1"></i><span th:text="#{common.save}">Guardar</span></button>
                     </div>
@@ -2726,14 +3022,14 @@
                             <input type="hidden" id="roleId">
                             <div class="row g-3">
                                 <div class="col-12">
-                                    <label class="form-label" th:text="#{admin.common.name_required}">Nombre del rol *</label>
+                                    <label class="form-label" th:text="#{admin.common.name_required}">Nombre del rol
+                                        *</label>
                                     <input type="text" class="form-control" id="roleName" required
                                         th:placeholder="#{admin.role.placeholder.name}">
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label" th:text="#{common.description}">Descripción</label>
-                                    <input type="text" class="form-control" id="roleDescription"
-                                        placeholder="...">
+                                    <input type="text" class="form-control" id="roleDescription" placeholder="...">
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label" th:text="#{admin.common.permissions}">Permisos</label>
@@ -2745,9 +3041,10 @@
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-cancel" data-bs-dismiss="modal"
-                            style="flex:1" th:text="#{common.cancel}">Cancelar</button>
-                        <button type="button" class="btn btn-save" onclick="saveRole()" style="flex:1" th:text="#{common.save}">Guardar</button>
+                        <button type="button" class="btn btn-cancel" data-bs-dismiss="modal" style="flex:1"
+                            th:text="#{common.cancel}">Cancelar</button>
+                        <button type="button" class="btn btn-save" onclick="saveRole()" style="flex:1"
+                            th:text="#{common.save}">Guardar</button>
                     </div>
                 </div>
             </div>
@@ -2757,7 +3054,8 @@
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="workerModalLabel" th:text="#{admin.worker.modal.title}">Trabajador</h5>
+                        <h5 class="modal-title" id="workerModalLabel" th:text="#{admin.worker.modal.title}">Trabajador
+                        </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -2765,21 +3063,25 @@
                             <input type="hidden" id="workerId">
                             <div class="row g-3">
                                 <div class="col-12">
-                                    <label class="form-label" th:text="#{admin.common.username_required}">Nombre de usuario *</label>
+                                    <label class="form-label" th:text="#{admin.common.username_required}">Nombre de
+                                        usuario *</label>
                                     <input type="text" class="form-control" id="workerUsername" required
                                         th:placeholder="#{admin.worker.placeholder.username}">
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label" id="workerPasswordLabel" th:text="#{admin.common.password_required}">Contraseña *</label>
+                                    <label class="form-label" id="workerPasswordLabel"
+                                        th:text="#{admin.common.password_required}">Contraseña *</label>
                                     <input type="text" class="form-control" id="workerPassword" required
                                         placeholder="••••••••">
-                                    <small style="color: var(--text-muted);" th:text="#{admin.worker.password_info}">Se muestra en texto plano para gestión del
+                                    <small style="color: var(--text-muted);" th:text="#{admin.worker.password_info}">Se
+                                        muestra en texto plano para gestión del
                                         dueño.</small>
                                 </div>
                                 <div class="col-12">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" id="workerActive" checked>
-                                        <label class="form-check-label" for="workerActive" th:text="#{admin.worker.active}">Trabajador activo</label>
+                                        <label class="form-check-label" for="workerActive"
+                                            th:text="#{admin.worker.active}">Trabajador activo</label>
                                     </div>
                                 </div>
                                 <div class="col-12">
@@ -2787,17 +3089,18 @@
                                     <select class="form-select" id="workerRole" onchange="onWorkerRoleChange()">
                                         <option value="" th:text="#{admin.workers.norole}">Sin rol</option>
                                     </select>
-                                    <small style="color: var(--text-muted);" th:text="#{admin.worker.role_info}">Las tareas y permisos se heredan
+                                    <small style="color: var(--text-muted);" th:text="#{admin.worker.role_info}">Las
+                                        tareas y permisos se heredan
                                         automáticamente del rol asignado.</small>
                                 </div>
                             </div>
                         </form>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-cancel" data-bs-dismiss="modal"
-                            style="flex:1" th:text="#{common.cancel}">Cancelar</button>
-                        <button type="button" class="btn btn-save" onclick="saveWorker()"
-                            style="flex:1" th:text="#{common.save}">Guardar</button>
+                        <button type="button" class="btn btn-cancel" data-bs-dismiss="modal" style="flex:1"
+                            th:text="#{common.cancel}">Cancelar</button>
+                        <button type="button" class="btn btn-save" onclick="saveWorker()" style="flex:1"
+                            th:text="#{common.save}">Guardar</button>
                     </div>
                 </div>
             </div>
@@ -2818,65 +3121,75 @@
                                     <input class="form-check-input" type="radio" name="customerTypeRadio"
                                         id="adminTypeIndividual" value="INDIVIDUAL" checked
                                         onchange="toggleAdminCustomerType()">
-                                    <label class="form-check-label" for="adminTypeIndividual" th:text="#{admin.crm.type.individual}">Particular</label>
+                                    <label class="form-check-label" for="adminTypeIndividual"
+                                        th:text="#{admin.crm.type.individual}">Particular</label>
                                 </div>
                                 <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="radio" name="customerTypeRadio"
                                         id="adminTypeCompany" value="COMPANY" onchange="toggleAdminCustomerType()">
-                                    <label class="form-check-label" for="adminTypeCompany" th:text="#{admin.crm.type.company}">Empresa</label>
+                                    <label class="form-check-label" for="adminTypeCompany"
+                                        th:text="#{admin.crm.type.company}">Empresa</label>
                                 </div>
                                 <input type="hidden" id="customerType" value="INDIVIDUAL">
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label" id="lblAdminCustomerName" for="customerName"><span th:text="#{admin.crm.name_and_surname}">Nombre y
-                                        Apellidos</span> <span class="text-danger">*</span></label>
+                                    <label class="form-label" id="lblAdminCustomerName" for="customerName"><span
+                                            th:text="#{admin.crm.name_and_surname}">Nombre y
+                                            Apellidos</span> <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="customerName" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label" id="lblAdminCustomerTaxId" for="customerTaxId"><span th:text="#{admin.crm.taxId}">NIF/NIE</span>
+                                    <label class="form-label" id="lblAdminCustomerTaxId" for="customerTaxId"><span
+                                            th:text="#{admin.crm.taxId}">NIF/NIE</span>
                                         <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="customerTaxId" required
                                         placeholder="...">
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label" for="customerAddress"><span th:text="#{admin.crm.address}">Dirección (Calle, Número...)</span> <span
+                                    <label class="form-label" for="customerAddress"><span
+                                            th:text="#{admin.crm.address}">Dirección (Calle, Número...)</span> <span
                                             class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="customerAddress" required>
                                 </div>
                                 <div class="col-md-8">
-                                    <label class="form-label" for="customerCity"><span th:text="#{admin.common.city}">Población / Ciudad</span> <span
+                                    <label class="form-label" for="customerCity"><span
+                                            th:text="#{admin.common.city}">Población / Ciudad</span> <span
                                             class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="customerCity" required>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label" for="customerPostalCode"><span th:text="#{admin.settings.company.postalCode}">Código Postal</span> <span
+                                    <label class="form-label" for="customerPostalCode"><span
+                                            th:text="#{admin.settings.company.postalCode}">Código Postal</span> <span
                                             class="text-danger">*</span></label>
                                     <input type="text" class="form-control" id="customerPostalCode" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label" for="customerEmail" th:text="#{admin.common.email_optional}">Email (Opcional)</label>
-                                    <input type="email" class="form-control" id="customerEmail"
-                                        placeholder="...">
+                                    <label class="form-label" for="customerEmail"
+                                        th:text="#{admin.common.email_optional}">Email (Opcional)</label>
+                                    <input type="email" class="form-control" id="customerEmail" placeholder="...">
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label" for="customerPhone" th:text="#{admin.common.phone_optional}">Teléfono (Opcional)</label>
-                                    <input type="text" class="form-control" id="customerPhone"
-                                        placeholder="...">
+                                    <label class="form-label" for="customerPhone"
+                                        th:text="#{admin.common.phone_optional}">Teléfono (Opcional)</label>
+                                    <input type="text" class="form-control" id="customerPhone" placeholder="...">
                                 </div>
                                 <!-- Tariff selector -->
                                 <div class="col-12">
                                     <label class="form-label" for="customerTariffId">
-                                        <i class="bi bi-tags me-1"></i><span th:text="#{admin.common.tariff}">Tarifa de Precio</span>
+                                        <i class="bi bi-tags me-1"></i><span th:text="#{admin.common.tariff}">Tarifa de
+                                            Precio</span>
                                     </label>
                                     <select class="form-select" id="customerTariffId">
-                                        <option value="" th:text="#{admin.crm.no_tariff}">-- Sin tarifa asignada (MINORISTA) --</option>
+                                        <option value="" th:text="#{admin.crm.no_tariff}">-- Sin tarifa asignada
+                                            (MINORISTA) --</option>
                                         <th:block th:each="tariff : ${tariffs}">
                                             <option th:if="${tariff.active}" th:value="${tariff.id}"
                                                 th:text="${tariff.getDisplayLabel()}">MINORISTA</option>
                                         </th:block>
                                     </select>
-                                    <small style="color: var(--text-muted);" th:text="#{admin.crm.tariff_info}">La tarifa define el descuento automático
+                                    <small style="color: var(--text-muted);" th:text="#{admin.crm.tariff_info}">La
+                                        tarifa define el descuento automático
                                         cuando este cliente se añade a una venta.</small>
                                 </div>
 
@@ -2888,17 +3201,20 @@
                                                 id="customerRecargoEquivalencia">
                                             <label class="form-check-label fw-bold" for="customerRecargoEquivalencia">
                                                 <i class="bi bi-percent me-1 text-accent"></i>
-                                                <span th:text="#{admin.crm.re.label}">Sujeto a Recargo de Equivalencia (R.E.)</span>
+                                                <span th:text="#{admin.crm.re.label}">Sujeto a Recargo de Equivalencia
+                                                    (R.E.)</span>
                                             </label>
                                         </div>
                                         <small class="d-block mt-2 ms-4" id="adminCustomerReInfoMsg"
-                                            style="font-size: 0.8rem; color: var(--text-muted);" th:text="#{admin.crm.re.desc}">
+                                            style="font-size: 0.8rem; color: var(--text-muted);"
+                                            th:text="#{admin.crm.re.desc}">
                                             Activa esta opción si el cliente es un minorista en régimen de RE. Se
                                             aplicará
                                             el recargo español según el IVA (21%→5,2%, etc.).
                                         </small>
                                         <small id="adminCustomerReIncompatibleMsg" class="d-none mt-2 ms-4 fw-bold"
-                                            style="font-size: 0.8rem; color: #ef4444;" th:text="#{admin.crm.re.incompatible}">
+                                            style="font-size: 0.8rem; color: #ef4444;"
+                                            th:text="#{admin.crm.re.incompatible}">
                                             El recargo de equivalencia solo aplica a clientes con tarifa minorista
                                         </small>
                                     </div>
@@ -2907,7 +3223,8 @@
                                 <div class="col-12">
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" id="customerActive" checked>
-                                        <label class="form-check-label" for="customerActive" th:text="#{admin.crm.active}">Cliente activo</label>
+                                        <label class="form-check-label" for="customerActive"
+                                            th:text="#{admin.crm.active}">Cliente activo</label>
                                     </div>
                                 </div>
                             </div>
@@ -2915,7 +3232,8 @@
 
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-cancel" data-bs-dismiss="modal" th:text="#{common.cancel}">Cancelar</button>
+                        <button type="button" class="btn btn-cancel" data-bs-dismiss="modal"
+                            th:text="#{common.cancel}">Cancelar</button>
                         <button type="button" class="btn btn-save" onclick="saveCustomer()">
                             <i class="bi bi-check-lg me-1"></i><span th:text="#{common.save}">Guardar</span>
                         </button>
@@ -2936,7 +3254,8 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="schedulePriceModalLabel">
-                        <i class="bi bi-calendar-event me-2"></i><span th:text="#{admin.tempprices.modal.title}">Programar Precio Temporal</span>
+                        <i class="bi bi-calendar-event me-2"></i><span
+                            th:text="#{admin.tempprices.modal.title}">Programar Precio Temporal</span>
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -2944,19 +3263,23 @@
                     <form id="schedulePriceForm" novalidate>
                         <div class="row g-3">
                             <div class="col-12">
-                                <label class="form-label" for="spProductSelect"><span th:text="#{admin.common.product}">Producto</span> *</label>
+                                <label class="form-label" for="spProductSelect"><span
+                                        th:text="#{admin.common.product}">Producto</span> *</label>
                                 <select class="form-select" id="spProductSelect" required>
-                                    <option value="" th:text="#{admin.tempprices.select_product}">— Selecciona un producto —</option>
+                                    <option value="" th:text="#{admin.tempprices.select_product}">— Selecciona un
+                                        producto —</option>
                                     <option th:each="p : ${products}" th:value="${p.id}" th:text="${p.name}"></option>
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label" for="spPrice" th:text="#{admin.common.newprice_required}">Nuevo Precio (€) *</label>
+                                <label class="form-label" for="spPrice"
+                                    th:text="#{admin.common.newprice_required}">Nuevo Precio (€) *</label>
                                 <input type="number" class="form-control" id="spPrice" step="0.01" min="0.01" required
                                     placeholder="0.00">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label" for="spVatRate" th:text="#{admin.common.iva_required}">Tipo de IVA *</label>
+                                <label class="form-label" for="spVatRate" th:text="#{admin.common.iva_required}">Tipo de
+                                    IVA *</label>
                                 <select class="form-select" id="spVatRate" required onchange="updateRecargoPreview()">
                                     <option value="0.21">21%</option>
                                     <option value="0.10">10%</option>
@@ -2965,31 +3288,37 @@
                                 </select>
                             </div>
                             <div class="col-12">
-                                <label class="form-label" for="spStartDate" th:text="#{admin.common.start_date_required}">Fecha de Inicio *</label>
+                                <label class="form-label" for="spStartDate"
+                                    th:text="#{admin.common.start_date_required}">Fecha de Inicio *</label>
                                 <input type="datetime-local" class="form-control" id="spStartDate" required>
-                                <small class="text-muted" th:text="#{admin.tempprices.start_date_info}">El precio actual se cerrará automáticamente un segundo antes
+                                <small class="text-muted" th:text="#{admin.tempprices.start_date_info}">El precio actual
+                                    se cerrará automáticamente un segundo antes
                                     de esta fecha.</small>
                             </div>
                             <div class="col-12">
-                                <label class="form-label" for="spLabel" th:text="#{admin.common.label}">Etiqueta (opcional)</label>
-                                <input type="text" class="form-control" id="spLabel"
-                                    placeholder="...">
+                                <label class="form-label" for="spLabel" th:text="#{admin.common.label}">Etiqueta
+                                    (opcional)</label>
+                                <input type="text" class="form-control" id="spLabel" placeholder="...">
                             </div>
                             <div class="col-12">
                                 <div class="p-2 rounded"
                                     style="background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.3);font-size:0.8rem">
-                                    <strong><i class="bi bi-percent me-1 text-warning"></i><span th:text="#{admin.crm.re.associated}">Recargo de Equivalencia
-                                        asociado:</span></strong>
-                                    <span id="spRecargoPreview" class="ms-2" style="color: var(--text-muted);">...</span>
+                                    <strong><i class="bi bi-percent me-1 text-warning"></i><span
+                                            th:text="#{admin.crm.re.associated}">Recargo de Equivalencia
+                                            asociado:</span></strong>
+                                    <span id="spRecargoPreview" class="ms-2"
+                                        style="color: var(--text-muted);">...</span>
                                 </div>
                             </div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-cancel" data-bs-dismiss="modal" th:text="#{common.cancel}">Cancelar</button>
+                    <button type="button" class="btn-cancel" data-bs-dismiss="modal"
+                        th:text="#{common.cancel}">Cancelar</button>
                     <button type="button" class="btn-save" onclick="saveScheduledPrice()">
-                        <i class="bi bi-calendar-check me-1"></i><span th:text="#{admin.tempprices.new}">Programar Precio</span>
+                        <i class="bi bi-calendar-check me-1"></i><span th:text="#{admin.tempprices.new}">Programar
+                            Precio</span>
                     </button>
                 </div>
             </div>
@@ -3002,9 +3331,10 @@
             <div class="modal-content"
                 style="background-color: #16213e !important; background-color: var(--secondary) !important; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.6); opacity: 1 !important; backdrop-filter: none !important;">
                 <div class="modal-header border-bottom-0">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-graph-up me-2 text-primary"></i><span th:text="#{admin.massiveprices.ipc.modal.title}">Actualización por
-                        IPC
-                        (INE)</span></h5>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-graph-up me-2 text-primary"></i><span
+                            th:text="#{admin.massiveprices.ipc.modal.title}">Actualización por
+                            IPC
+                            (INE)</span></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -3018,7 +3348,8 @@
                         <div class="col-md-5">
                             <h6 class="fw-bold mb-3" th:text="#{admin.dashboard.settings.title}">Configuración</h6>
                             <div class="mb-3">
-                                <label class="form-label small" style="color: var(--text-main);" th:text="#{admin.massiveprices.ipc.variation}">Variación IPC
+                                <label class="form-label small" style="color: var(--text-main);"
+                                    th:text="#{admin.massiveprices.ipc.variation}">Variación IPC
                                     (%)</label>
                                 <div class="input-group">
                                     <span class="input-group-text border-end-0"
@@ -3027,32 +3358,39 @@
                                     <input type="number" step="0.01" class="form-control" id="ipcValueInput"
                                         style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
                                 </div>
-                                <div id="ipcSourceNote" class="form-text mt-1" style="font-size:0.75rem" th:text="#{admin.massiveprices.ipc.loading_data}">Cargando dato
+                                <div id="ipcSourceNote" class="form-text mt-1" style="font-size:0.75rem"
+                                    th:text="#{admin.massiveprices.ipc.loading_data}">Cargando dato
                                     INE...</div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small" style="color: var(--text-main);" th:text="#{admin.massiveprices.effective_date}">Fecha de
+                                <label class="form-label small" style="color: var(--text-main);"
+                                    th:text="#{admin.massiveprices.effective_date}">Fecha de
                                     Vigencia</label>
                                 <input type="datetime-local" class="form-control" id="ipcEffectiveDate"
                                     style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
-                                <div class="form-text" id="ipcDateNote" style="font-size:0.75rem" th:text="#{admin.massiveprices.ipc.suggested_date}">Sugerido: 1 de enero
+                                <div class="form-text" id="ipcDateNote" style="font-size:0.75rem"
+                                    th:text="#{admin.massiveprices.ipc.suggested_date}">Sugerido: 1 de enero
                                     del próximo año
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small" style="color: var(--text-main);" th:text="#{admin.massiveprices.ipc.scope}">Ámbito de
+                                <label class="form-label small" style="color: var(--text-main);"
+                                    th:text="#{admin.massiveprices.ipc.scope}">Ámbito de
                                     Aplicación</label>
                                 <select class="form-select" id="ipcScope"
                                     style="color: var(--text-main); background-color: var(--surface); border-color: var(--border);">
-                                    <option value="all" th:text="#{admin.common.allproducts}">Todos los productos</option>
-                                    <option value="category" th:text="#{admin.massiveprices.ipc.scope.category}">Por categoría seleccionada</option>
+                                    <option value="all" th:text="#{admin.common.allproducts}">Todos los productos
+                                    </option>
+                                    <option value="category" th:text="#{admin.massiveprices.ipc.scope.category}">Por
+                                        categoría seleccionada</option>
                                 </select>
                             </div>
                         </div>
 
                         <!-- Preview -->
                         <div class="col-md-7 border-start">
-                            <h6 class="fw-bold mb-3 font-medium" th:text="#{admin.common.preview.top5}">Vista Previa (Top 5 Productos)</h6>
+                            <h6 class="fw-bold mb-3 font-medium" th:text="#{admin.common.preview.top5}">Vista Previa
+                                (Top 5 Productos)</h6>
                             <div class="table-responsive" style="max-height: 250px;">
                                 <table class="table table-sm table-hover align-middle mb-0">
                                     <thead style="background: var(--surface); border-bottom: 2px solid var(--border);">
@@ -3071,9 +3409,11 @@
                     </div>
                 </div>
                 <div class="modal-footer border-top-0">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" th:text="#{common.cancel}">Cancelar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        th:text="#{common.cancel}">Cancelar</button>
                     <button type="button" class="btn btn-primary" id="btnConfirmIpcUpdate" onclick="applyIpcConfirm()">
-                        <i class="bi bi-check-lg me-1"></i><span th:text="#{admin.common.confirm_update}">Confirmar Actualización</span>
+                        <i class="bi bi-check-lg me-1"></i><span th:text="#{admin.common.confirm_update}">Confirmar
+                            Actualización</span>
                     </button>
                 </div>
             </div>
@@ -3082,6 +3422,17 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script th:src="@{/js/util/nif-cif-validator.js}"></script>
+    <script th:inline="javascript">
+        window.sharedInventoryI18n = {
+            lowStock: [[#{admin.inventory.filter.stock.low}]],
+            yes: [[#{common.yes}]],
+            no: [[#{common.no}]],
+            noItems: [[#{admin.inventory.products.empty}]], 
+            noCats: [[#{admin.inventory.categories.empty}]],
+            actions_edit: [[#{common.edit}]],
+            actions_delete: [[#{common.delete}]]
+        };
+    </script>
     <script th:src="@{/js/shared/inventory-filter.js}"></script>
     <!-- admin-main.js is now in the head -->
     <script th:inline="javascript">
@@ -3408,32 +3759,42 @@
                 tbody.innerHTML = '';
 
                 if (!products || products.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="9" class="text-center p-4 text-muted">No se encontraron productos con esos filtros.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="9" class="text-center p-4 text-muted">${sharedInventoryI18n.noItems}</td></tr>`;
                     return;
                 }
 
+                const locale = getSharedInvLocale();
+                const isEn = locale === 'en';
+
                 products.forEach(p => {
+                    const name = isEn && p.nameEn ? p.nameEn : (p.nameEs || p.name);
+                    const description = isEn && p.descriptionEn ? p.descriptionEn : (p.descriptionEs || p.description);
                     const formattedPrice = (p.price || 0).toFixed(2) + ' €';
                     const stockStyle = p.stock < 5 ? 'fw-bold text-danger' : '';
-                    const badgeLowStock = p.stock < 5 ? '<span class="badge-stock-low">Stock Bajo</span>' : '';
-                    const catName = p.category ? p.category.name : '—';
+                    const badgeLowStock = p.stock < 5 ? `<span class="badge-stock-low">${sharedInventoryI18n.lowStock}</span>` : '';
+                    
+                    let catName = '—';
+                    if (p.category) {
+                        catName = isEn && p.category.nameEn ? p.category.nameEn : (p.category.nameEs || p.category.name);
+                    }
+
                     const imgHtml = p.imageUrl
                         ? `<img src="${p.imageUrl}" class="thumb" alt="">`
                         : `<div class="thumb-placeholder"><i class="bi bi-image"></i></div>`;
                     const activeBadge = p.active
-                        ? `<span class="badge-active yes">Sí</span>`
-                        : `<span class="badge-active no">No</span>`;
+                        ? `<span class="badge-active yes">${sharedInventoryI18n.yes}</span>`
+                        : `<span class="badge-active no">${sharedInventoryI18n.no}</span>`;
 
                     const ivaDisplay = p.taxRate && p.taxRate.vatRate != null ? (p.taxRate.vatRate * 100).toFixed(0) + '%' : '—';
-                    const descTruncated = p.description ? (p.description.length > 60 ? p.description.substring(0, 57) + '...' : p.description) : '—';
-                    const escapedName = p.name ? p.name.replace(/'/g, "\\'").replace(/"/g, "&quot;") : '';
+                    const descTruncated = description ? (description.length > 60 ? description.substring(0, 57) + '...' : description) : '—';
+                    const escapedName = name ? name.replace(/'/g, "\\'").replace(/"/g, "&quot;") : '';
 
                     let tr = document.createElement('tr');
                     tr.className = 'product-row';
                     tr.setAttribute('data-iva', p.taxRate ? p.taxRate.vatRate : null);
                     tr.innerHTML = `
                         <td>${imgHtml}</td>
-                        <td><strong>${p.name}</strong></td>
+                        <td><strong>${name}</strong></td>
                         <td><div style="font-size:0.78rem;color:var(--text-muted)">${descTruncated}</div></td>
                         <td style="font-size:0.9rem; font-weight: 500;">${ivaDisplay}</td>
                         <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--accent)">${formattedPrice}</td>
@@ -3442,8 +3803,8 @@
                         <td>${activeBadge}</td>
                         <td style="text-align:right">
                             <div class="d-flex gap-1 justify-content-end">
-                                <button class="btn-icon" title="Editar" onclick="openProductModal(${p.id})"><i class="bi bi-pencil"></i></button>
-                                <button class="btn-icon danger" title="Eliminar" onclick="deleteProduct(${p.id}, '${escapedName}')"><i class="bi bi-trash"></i></button>
+                                <button class="btn-icon" title="${sharedInventoryI18n.actions_edit}" onclick="openProductModal(${p.id})"><i class="bi bi-pencil"></i></button>
+                                <button class="btn-icon danger" title="${sharedInventoryI18n.actions_delete}" onclick="deleteProduct(${p.id}, '${escapedName}')"><i class="bi bi-trash"></i></button>
                             </div>
                         </td>
                     `;
@@ -3451,7 +3812,7 @@
                 });
 
                 // After rendering, apply client-side IVA filtering if needed
-                filterProducts();
+                if (typeof filterProducts === 'function') filterProducts();
             };
         }
 
@@ -3488,29 +3849,43 @@
     <!-- Modal: Vista Previa de Documento -->
     <div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width: 900px;">
-            <div class="modal-content" style="background: var(--surface); border: 1px solid var(--border); height: 90vh; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+            <div class="modal-content"
+                style="background: var(--surface); border: 1px solid var(--border); height: 90vh; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
                 <div class="modal-header border-0 px-4 py-3" style="background: var(--secondary);">
                     <h5 class="modal-title fw-800 fs-5" style="letter-spacing: -0.5px;">
-                        <i class="bi bi-eye me-2 text-accent"></i><span th:text="#{admin.common.preview} ?: 'Vista Previa del Documento'">Vista Previa del Documento</span>
+                        <i class="bi bi-eye me-2 text-accent"></i><span
+                            th:text="#{admin.common.preview} ?: 'Vista Previa del Documento'">Vista Previa del
+                            Documento</span>
                     </h5>
                     <div class="ms-auto d-flex align-items-center gap-2">
-                        <button type="button" class="btn btn-sm px-3 fw-bold" style="background: var(--primary); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px;" onclick="printPreviewIframe()">
-                            <i class="bi bi-printer me-1"></i> <span th:text="#{admin.common.print} ?: 'Imprimir'">Imprimir</span>
+                        <button type="button" class="btn btn-sm px-3 fw-bold"
+                            style="background: var(--primary); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px;"
+                            onclick="printPreviewIframe()">
+                            <i class="bi bi-printer me-1"></i> <span
+                                th:text="#{admin.common.print} ?: 'Imprimir'">Imprimir</span>
                         </button>
-                        <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal" aria-label="Close" style="filter: var(--close-filter);"></button>
+                        <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal"
+                            aria-label="Close" style="filter: var(--close-filter);"></button>
                     </div>
                 </div>
                 <div class="modal-body p-0 position-relative" style="background: #f0f2f5;">
-                    <div id="previewLoader" class="position-absolute top-50 start-50 translate-middle text-center" style="z-index: 5;">
+                    <div id="previewLoader" class="position-absolute top-50 start-50 translate-middle text-center"
+                        style="z-index: 5;">
                         <div class="spinner-border text-accent" role="status"></div>
-                        <div class="mt-2 text-muted fw-600 small" th:text="#{common.loading}">Cargando documento...</div>
+                        <div class="mt-2 text-muted fw-600 small" th:text="#{common.loading}">Cargando documento...
+                        </div>
                     </div>
-                    <iframe id="docPreviewIframe" src="" style="width: 100%; height: 100%; border: none; opacity: 0; transition: opacity 0.3s;" onload="document.getElementById('previewLoader').style.display='none'; this.style.opacity='1';"></iframe>
+                    <iframe id="docPreviewIframe" src=""
+                        style="width: 100%; height: 100%; border: none; opacity: 0; transition: opacity 0.3s;"
+                        onload="document.getElementById('previewLoader').style.display='none'; this.style.opacity='1';"></iframe>
                 </div>
                 <!-- Interactive footer instructions -->
                 <div class="modal-footer border-0 bg-secondary px-4 py-2">
-                    <small class="text-muted"><i class="bi bi-info-circle me-1"></i> <span th:text="#{admin.preview.interactive}">Esta es una vista previa interactiva. Use el botón de imprimir para generar el PDF de este documento.</span></small>
-                    <button type="button" class="btn btn-sm btn-secondary ms-auto fw-bold" data-bs-dismiss="modal" th:text="#{common.close} ?: 'Cerrar'">Cerrar</button>
+                    <small class="text-muted"><i class="bi bi-info-circle me-1"></i> <span
+                            th:text="#{admin.preview.interactive}">Esta es una vista previa interactiva. Use el botón de
+                            imprimir para generar el PDF de este documento.</span></small>
+                    <button type="button" class="btn btn-sm btn-secondary ms-auto fw-bold" data-bs-dismiss="modal"
+                        th:text="#{common.close} ?: 'Cerrar'">Cerrar</button>
                 </div>
             </div>
         </div>
@@ -3520,11 +3895,11 @@
         function showDocPreview(url) {
             const iframe = document.getElementById('docPreviewIframe');
             const loader = document.getElementById('previewLoader');
-            
+
             iframe.style.opacity = '0';
             loader.style.display = 'block';
             iframe.src = url;
-            
+
             const modalElement = document.getElementById('documentPreviewModal');
             let modal = bootstrap.Modal.getInstance(modalElement);
             if (!modal) modal = new bootstrap.Modal(modalElement);

@@ -1,25 +1,31 @@
 (function () {
+    const i18n = Object.assign({
+        monochrome: 'Monochrome', orange: 'Orange', blue: 'Blue', green: 'Green', red: 'Red', purple: 'Purple', pink: 'Pink', cyan: 'Cyan',
+        midnight: 'Midnight', totalblack: 'Total Black', carbon: 'Carbon',
+        purewhite: 'Pure White', sand: 'Sand', ash: 'Ash', custom: 'Custom'
+    }, window.prefsI18n || {});
+
     const accentColors = [
-        { name: 'Monocromo', value: '#ffffff', hover: '#e0e0e0' },
-        { name: 'Naranja', value: '#f5a623', hover: '#e09400' },
-        { name: 'Azul', value: '#3b82f6', hover: '#2563eb' },
-        { name: 'Verde', value: '#22c55e', hover: '#16a34a' },
-        { name: 'Rojo', value: '#ef4444', hover: '#dc2626' },
-        { name: 'Morado', value: '#a855f7', hover: '#9333ea' },
-        { name: 'Rosa', value: '#ec4899', hover: '#db2777' },
-        { name: 'Cian', value: '#06b6d4', hover: '#0891b2' }
+        { name: i18n.monochrome, value: '#ffffff', hover: '#e0e0e0' },
+        { name: i18n.orange, value: '#f5a623', hover: '#e09400' },
+        { name: i18n.blue, value: '#3b82f6', hover: '#2563eb' },
+        { name: i18n.green, value: '#22c55e', hover: '#16a34a' },
+        { name: i18n.red, value: '#ef4444', hover: '#dc2626' },
+        { name: i18n.purple, value: '#a855f7', hover: '#9333ea' },
+        { name: i18n.pink, value: '#ec4899', hover: '#db2777' },
+        { name: i18n.cyan, value: '#06b6d4', hover: '#0891b2' }
     ];
 
     const darkP = [
-        { name: 'Medianoche', primary: '#151525', secondary: '#1e1e35', surface: '#252545', border: '#2c2c4d', muted: '#8892a4', text: '#e8eaf0' },
-        { name: 'Negro total', primary: '#000000', secondary: '#0c0c0c', surface: '#161616', border: '#222222', muted: '#777777', text: '#e0e0e0' },
-        { name: 'Carbon', primary: '#121212', secondary: '#1a1a1a', surface: '#242424', border: '#2d2d2d', muted: '#888888', text: '#e8e8e8' },
+        { name: i18n.midnight, primary: '#151525', secondary: '#1e1e35', surface: '#252545', border: '#2c2c4d', muted: '#8892a4', text: '#e8eaf0' },
+        { name: i18n.totalblack, primary: '#000000', secondary: '#0c0c0c', surface: '#161616', border: '#222222', muted: '#777777', text: '#e0e0e0' },
+        { name: i18n.carbon, primary: '#121212', secondary: '#1a1a1a', surface: '#242424', border: '#2d2d2d', muted: '#888888', text: '#e8e8e8' },
     ];
 
     const lightP = [
-        { name: 'Blanco Puro', primary: '#ffffff', secondary: '#f8fafc', surface: '#f1f5f9' },
-        { name: 'Arena', primary: '#f5edc5', secondary: '#faf3e0', surface: '#f0e6c8' },
-        { name: 'Ceniza', primary: '#eef2f7', secondary: '#e4e9f0', surface: '#d8e0ea' },
+        { name: i18n.purewhite, primary: '#ffffff', secondary: '#f8fafc', surface: '#f1f5f9' },
+        { name: i18n.sand, primary: '#f5edc5', secondary: '#faf3e0', surface: '#f0e6c8' },
+        { name: i18n.ash, primary: '#eef2f7', secondary: '#e4e9f0', surface: '#d8e0ea' },
     ];
 
     const lightFixed = {
@@ -42,8 +48,11 @@
     const langParam = urlParams.get('lang');
     if (langParam) {
         if (!prefs) prefs = { ...defaultPrefs };
-        prefs.language = langParam.toLowerCase();
-        localStorage.setItem('tpv-prefs', JSON.stringify(prefs));
+        const newLang = langParam.toLowerCase();
+        if (prefs.language !== newLang) {
+            prefs.language = newLang;
+            localStorage.setItem('tpv-prefs', JSON.stringify(prefs));
+        }
     }
 
     if (!prefs) prefs = { ...defaultPrefs };
@@ -83,7 +92,7 @@
             const accent = accentColors[currentAccentIdx] || accentColors[isDark ? 7 : 1];
             accentValue = accent.value;
             accentHover = accent.hover;
-            if (accent.name === 'Monocromo') {
+            if (accent.name === i18n.monochrome) {
                 accentValue = isDark ? '#ffffff' : '#000000';
                 accentHover = isDark ? '#e0e0e0' : '#333333';
                 if (isDark && p.primary === '#000000') root.setProperty('--border', '#222222');
@@ -192,7 +201,7 @@
             const el = document.createElement('div');
             el.className = 'swatch';
             let swatchColor = c.value;
-            if (c.name === 'Monocromo') swatchColor = isDark ? '#ffffff' : '#000000';
+            if (c.name === i18n.monochrome) swatchColor = isDark ? '#ffffff' : '#000000';
             el.style.background = swatchColor;
             el.title = c.name;
             el.addEventListener('click', () => {
@@ -226,7 +235,7 @@
         
         const customLabel = document.createElement('span');
         customLabel.className = 'swatch-name';
-        customLabel.textContent = 'Personalizado';
+        customLabel.textContent = i18n.custom;
         
         // Add a "plus" icon only if no custom color is set
         if (!prefs.customAccent) {
@@ -300,11 +309,13 @@
             prefs.language = 'es';
             localStorage.setItem('tpv-prefs', JSON.stringify(prefs));
             
-            setTimeout(() => {
-                const url = new URL(window.location.href);
+            const url = new URL(window.location.href);
+            if (url.searchParams.get('lang') === 'es') {
+                window.location.reload();
+            } else {
                 url.searchParams.set('lang', 'es');
                 window.location.href = url.toString();
-            }, 50);
+            }
         });
     }
 
@@ -315,11 +326,13 @@
             prefs.language = 'en';
             localStorage.setItem('tpv-prefs', JSON.stringify(prefs));
             
-            setTimeout(() => {
-                const url = new URL(window.location.href);
+            const url = new URL(window.location.href);
+            if (url.searchParams.get('lang') === 'en') {
+                window.location.reload();
+            } else {
                 url.searchParams.set('lang', 'en');
                 window.location.href = url.toString();
-            }, 50);
+            }
         });
     }
 

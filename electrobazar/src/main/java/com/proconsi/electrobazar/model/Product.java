@@ -22,13 +22,76 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Name of the product. */
-    @Column(nullable = false, length = 150)
-    private String name;
+    /** Name of the product (Spanish). */
+    @Column(name = "name_es", nullable = false, length = 150)
+    private String nameEs;
 
-    /** Short description/details of the product. */
-    @Column(length = 255)
-    private String description;
+    /** Name of the product (English). */
+    @Column(name = "name_en", length = 150)
+    private String nameEn;
+
+    /** Short description/details of the product (Spanish). */
+    @Column(name = "description_es", length = 255)
+    private String descriptionEs;
+
+    /** Short description/details of the product (English). */
+    @Column(name = "description_en", length = 255)
+    private String descriptionEn;
+
+    /** Status of the product (Spanish). */
+    @Column(name = "status_es", length = 100)
+    private String statusEs;
+
+    /** Status of the product (English). */
+    @Column(name = "status_en", length = 100)
+    private String statusEn;
+
+    /** Low stock message (Spanish). */
+    @Column(name = "low_stock_message_es", length = 255)
+    private String lowStockMessageEs;
+
+    /** Low stock message (English). */
+    @Column(name = "low_stock_message_en", length = 255)
+    private String lowStockMessageEn;
+
+    // --- Compatibility Methods ---
+    public String getName() { return nameEs; }
+    public void setName(String name) { this.nameEs = name; }
+    public String getDescription() { return descriptionEs; }
+    public void setDescription(String description) { this.descriptionEs = description; }
+    public String getStatus() { return statusEs; }
+    public void setStatus(String status) { this.statusEs = status; }
+    public String getLowStockMessage() { return lowStockMessageEs; }
+    public void setLowStockMessage(String lowStockMessage) { this.lowStockMessageEs = lowStockMessage; }
+
+    public String getName(java.util.Locale locale) {
+        if (locale != null && "en".equalsIgnoreCase(locale.getLanguage())) {
+            return (nameEn != null && !nameEn.isBlank()) ? nameEn : nameEs;
+        }
+        return nameEs;
+    }
+
+    public String getDescription(java.util.Locale locale) {
+        if (locale != null && "en".equalsIgnoreCase(locale.getLanguage())) {
+            return (descriptionEn != null && !descriptionEn.isBlank()) ? descriptionEn : descriptionEs;
+        }
+        return descriptionEs;
+    }
+
+    public String getStatus(java.util.Locale locale) {
+        if (locale != null && "en".equalsIgnoreCase(locale.getLanguage())) {
+            return (statusEn != null && !statusEn.isBlank()) ? statusEn : statusEs;
+        }
+        return statusEs;
+    }
+
+    public String getLowStockMessage(java.util.Locale locale) {
+        if (locale != null && "en".equalsIgnoreCase(locale.getLanguage())) {
+            return (lowStockMessageEn != null && !lowStockMessageEn.isBlank()) ? lowStockMessageEn : lowStockMessageEs;
+        }
+        return lowStockMessageEs;
+    }
+    // --- End Compatibility Methods ---
 
     /**
      * The gross price (VAT included) stored in the database.

@@ -7,7 +7,10 @@ import org.springframework.web.client.RestTemplate;
 import javax.net.ssl.*;
 import java.security.cert.X509Certificate;
 
+import org.springframework.scheduling.annotation.EnableScheduling;
+
 @Configuration
+@EnableScheduling
 public class AppConfig {
 
     @Bean

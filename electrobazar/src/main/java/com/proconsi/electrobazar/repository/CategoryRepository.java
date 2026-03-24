@@ -16,18 +16,17 @@ import java.util.Optional;
 public interface CategoryRepository extends JpaRepository<Category, Long>, JpaSpecificationExecutor<Category> {
 
     /**
-     * Checks if a category with a given name exists, ignoring case sensitivity.
-     * Useful for validation during creation/editing.
+     * Checks if a category with a given Spanish name exists, ignoring case sensitivity.
      */
-    boolean existsByNameIgnoreCase(String name);
+    boolean existsByNameEsIgnoreCase(String name);
 
     /**
-     * Lists all active categories for display in the TPV interface.
+     * Lists all active categories for display in the TPV interface (Spanish).
      */
-    List<Category> findByActiveTrueOrderByNameAsc();
+    List<Category> findByActiveTrueOrderByNameEsAsc();
 
     /**
-     * Finds a category by its exact name, ignoring case.
+     * Finds a category by its exact Spanish name, ignoring case.
      */
-    Optional<Category> findByNameIgnoreCase(String name);
+    java.util.Optional<Category> findByNameEsIgnoreCase(String name);
 }

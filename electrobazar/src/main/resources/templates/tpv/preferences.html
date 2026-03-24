@@ -15,6 +15,26 @@
 <body>
     <!-- Flash overlay for theme transitions -->
     <div class="theme-flash" id="themeFlash"></div>
+    <!-- I18n translations for JS -->
+    <script th:inline="javascript">
+        window.prefsI18n = {
+            midnight: [[#{prefs.background.midnight}]],
+            totalblack: [[#{prefs.background.totalblack}]],
+            carbon: [[#{prefs.background.carbon}]],
+            purewhite: [[#{prefs.background.purewhite}]],
+            sand: [[#{prefs.background.sand}]],
+            ash: [[#{prefs.background.ash}]],
+            monochrome: [[#{prefs.accent.monochrome}]],
+            orange: [[#{prefs.accent.orange}]],
+            blue: [[#{prefs.accent.blue}]],
+            green: [[#{prefs.accent.green}]],
+            red: [[#{prefs.accent.red}]],
+            purple: [[#{prefs.accent.purple}]],
+            pink: [[#{prefs.accent.pink}]],
+            cyan: [[#{prefs.accent.cyan}]],
+            custom: [[#{prefs.accent.custom}]]
+        };
+    </script>
 
     <div class="prefs-container">
         <div class="prefs-top">
@@ -42,39 +62,39 @@
             <div class="pref-label" th:text="#{prefs.appearance}">Apariencia</div>
             <div class="mode-toggle" id="modeToggle">
                 <div class="mode-option" data-mode="dark" id="modeDark">
-                    <i class="bi bi-moon-stars-fill"></i> Oscuro
+                    <i class="bi bi-moon-stars-fill"></i> <span th:text="#{prefs.appearance.dark}">Oscuro</span>
                 </div>
                 <div class="mode-option" data-mode="light" id="modeLight">
-                    <i class="bi bi-sun-fill"></i> Claro
+                    <i class="bi bi-sun-fill"></i> <span th:text="#{prefs.appearance.light}">Claro</span>
                 </div>
             </div>
         </div>
 
         <!-- Tamaño de letra -->
         <div class="pref-card">
-            <div class="pref-label">Tamaño de letra</div>
+            <div class="pref-label" th:text="#{prefs.font.size}">Tamaño de letra</div>
             <div class="option-selector" id="sizeSelector">
-                <div class="select-option size-small" data-size="14px">Pequeño</div>
-                <div class="select-option size-normal" data-size="16px">Normal</div>
-                <div class="select-option size-large" data-size="18px">Grande</div>
-                <div class="select-option size-xl" data-size="20px">Extra</div>
+                <div class="select-option size-small" data-size="14px" th:text="#{prefs.font.size.small}">Pequeño</div>
+                <div class="select-option size-normal" data-size="16px" th:text="#{prefs.font.size.normal}">Normal</div>
+                <div class="select-option size-large" data-size="18px" th:text="#{prefs.font.size.large}">Grande</div>
+                <div class="select-option size-xl" data-size="20px" th:text="#{prefs.font.size.extra}">Extra</div>
             </div>
         </div>
 
         <!-- Tipo de letra -->
         <div class="pref-card">
-            <div class="pref-label">Tipo de letra</div>
+            <div class="pref-label" th:text="#{prefs.font.family}">Tipo de letra</div>
             <div class="option-selector" id="fontSelector">
-                <div class="select-option font-barlow" data-font="'Barlow', sans-serif">Barlow</div>
-                <div class="select-option font-montserrat" data-font="'Montserrat', sans-serif">Moderno</div>
-                <div class="select-option font-playfair" data-font="'Playfair Display', serif">Clásico</div>
-                <div class="select-option font-quicksand" data-font="'Quicksand', sans-serif">Rounded</div>
+                <div class="select-option font-barlow" data-font="'Barlow', sans-serif" th:text="#{prefs.font.family.barlow}">Barlow</div>
+                <div class="select-option font-montserrat" data-font="'Montserrat', sans-serif" th:text="#{prefs.font.family.modern}">Moderno</div>
+                <div class="select-option font-playfair" data-font="'Playfair Display', serif" th:text="#{prefs.font.family.classic}">Clásico</div>
+                <div class="select-option font-quicksand" data-font="'Quicksand', sans-serif" th:text="#{prefs.font.family.rounded}">Rounded</div>
             </div>
         </div>
 
         <!-- Color de acento -->
         <div class="pref-card">
-            <div class="pref-label">Color de acento</div>
+            <div class="pref-label" th:text="#{prefs.accent.color}">Color de acento</div>
             <div class="swatch-grid" id="accentSwatches"></div>
             <!-- Hidden input that will be triggered by a special swatch -->
             <input type="color" id="customAccentPicker" style="visibility: hidden; position: absolute; width: 0; height: 0;">
@@ -82,12 +102,12 @@
 
         <!-- Tono de fondo -->
         <div class="pref-card">
-            <div class="pref-label">Tono de fondo</div>
+            <div class="pref-label" th:text="#{prefs.background.tone}">Tono de fondo</div>
             <div class="primary-list" id="primarySwatches"></div>
         </div>
     </div>
 
-    <script th:src="@{/js/tpv/tpv-preferences.js}"></script>
+    <script th:src="@{/js/tpv/tpv-preferences.js(v='1.1')}"></script>
 </body>
 
 </html>

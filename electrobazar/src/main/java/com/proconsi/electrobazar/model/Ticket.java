@@ -57,6 +57,12 @@ public class Ticket {
     @Column(nullable = false)
     private boolean applyRecargo;
 
+    @Column(name = "hash_previous_invoice", nullable = false, length = 64)
+    private String hashPreviousInvoice;
+
+    @Column(name = "hash_current_invoice", nullable = false, length = 64)
+    private String hashCurrentInvoice;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();

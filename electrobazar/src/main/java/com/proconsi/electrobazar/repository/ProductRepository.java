@@ -20,37 +20,37 @@ import java.util.List;
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
 
     /**
-     * Finds active products for the TPV interface, ordered alphabetically.
+     * Finds active products for the TPV interface, ordered alphabetically (Spanish).
      */
-    List<Product> findByActiveTrueOrderByNameAsc();
+    List<Product> findByActiveTrueOrderByNameEsAsc();
 
     /**
-     * Finds a specific product by its exact name, ignoring case.
+     * Finds a specific product by its exact Spanish name, ignoring case.
      */
-    java.util.Optional<Product> findByNameIgnoreCase(String name);
+    java.util.Optional<Product> findByNameEsIgnoreCase(String name);
 
     /**
      * Finds active products within a category, eagerly fetching associations.
      */
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE p.category.id = :categoryId AND p.active = true ORDER BY p.name ASC")
-    List<Product> findByCategoryIdAndActiveTrueOrderByNameAsc(@Param("categoryId") Long categoryId);
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE p.category.id = :categoryId AND p.active = true ORDER BY p.nameEs ASC")
+    List<Product> findByCategoryIdAndActiveTrueOrderByNameEsAsc(@Param("categoryId") Long categoryId);
 
     /**
-     * Generic search for active products by name.
+     * Generic search for active products by name (multi-lingual).
      */
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%')) AND p.active = true")
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE (LOWER(p.nameEs) LIKE LOWER(CONCAT('%', :name, '%')) OR LOWER(p.nameEn) LIKE LOWER(CONCAT('%', :name, '%'))) AND p.active = true")
     List<Product> findByNameContainingIgnoreCaseAndActiveTrue(@Param("name") String name);
 
     /**
      * Lists all active products with category and tax data in a single query.
      */
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE p.active = true ORDER BY p.name ASC")
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE p.active = true ORDER BY p.nameEs ASC")
     List<Product> findAllActiveWithCategory();
 
     /**
      * Lists all products (including inactive ones) with their associations.
      */
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate ORDER BY p.name ASC")
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate ORDER BY p.nameEs ASC")
     List<Product> findAllWithCategory();
 
     /**
