@@ -1384,19 +1384,7 @@
                 <!-- Centro: Buscador (Matches TPV Header) -->
                 <!-- The search input has been moved to the shared filter bar -->
 
-                <div class="d-flex gap-2 flex-wrap" style="position: relative; z-index: 10;">
-                    <input type="file" id="csvFileInput" accept=".csv" style="display: none;"
-                        onchange="uploadCsvFile(this)">
-                    <button class="btn-nuevo" onclick="document.getElementById('csvFileInput').click()"
-                        style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border);"
-                        th:title="#{admin.inventory.import}">
-                        <i class="bi bi-file-earmark-spreadsheet"></i>
-                    </button>
-                    <button class="btn-nuevo" onclick="openProductModal()">
-                        <i class="bi bi-plus-lg me-1"></i> <span th:text="#{admin.inventory.new}">Nuevo</span>
-                    </button>
                 </div>
-            </div>
 
             <ul class="nav nav-tabs mt-4 mb-0" id="mgmtTabs" role="tablist" style="border:none">
                 <li class="nav-item" role="presentation">
@@ -1420,6 +1408,19 @@
                 <!-- Tab: Productos -->
                 <div class="tab-pane fade show active" id="products-pane" role="tabpanel">
                     <div th:replace="~{fragments/product-filter :: sharedFilterBar}"></div>
+
+                    <div class="d-flex justify-content-end mt-2 mb-2 gap-2">
+                        <input type="file" id="csvFileInput" accept=".csv" style="display: none;"
+                            onchange="uploadCsvFile(this)">
+                        <button class="btn-nuevo" onclick="document.getElementById('csvFileInput').click()"
+                            style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border);"
+                            th:title="#{admin.inventory.import}">
+                            <i class="bi bi-file-earmark-spreadsheet"></i>
+                        </button>
+                        <button class="btn-nuevo" onclick="openProductModal()">
+                            <i class="bi bi-plus-lg me-1"></i> <span th:text="#{admin.inventory.new}">Nuevo</span>
+                        </button>
+                    </div>
 
                     <div class="admin-table-wrap mt-3">
                         <table class="admin-table" id="productsTable">
@@ -1530,11 +1531,8 @@
                         </div>
                     </div>
                     <div class="d-flex justify-content-end mt-2 mb-2">
-                        <button class="btn-nuevo"
-                            style="background:var(--surface);color:var(--text-main);border-color:var(--border);"
-                            onclick="openCategoryModal()">
-                            <i class="bi bi-plus-lg"></i> <span th:text="#{admin.inventory.categories.new}">Nueva
-                                Categoría</span>
+                        <button class="btn-nuevo" onclick="openCategoryModal()">
+                            <i class="bi bi-plus-lg"></i> <span th:text="#{admin.inventory.categories.new}">Nueva Categoría</span>
                         </button>
                     </div>
                     <div class="admin-table-wrap">
@@ -1700,7 +1698,7 @@
                                     th:text="${sale.paymentMethod != null && sale.paymentMethod.name() == 'CASH'} ? #{admin.invoices.payment.cash} : #{admin.invoices.payment.card}"></span>
                             </td>
                             <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--text-main);text-align:right"
-                                th:text="${#numbers.formatDecimal(sale.totalAmount,1,2)} + ' �'"></td>
+                                th:text="${#numbers.formatDecimal(sale.totalAmount,1,2)} + ' €'"></td>
                             <td style="text-align:right">
                                 <div style="display:flex;gap:0.4rem;justify-content:flex-end">
                                     <button th:if="${sale.status != null && sale.status.name() == 'ACTIVE'}"
@@ -1822,7 +1820,7 @@
                                     th:text="${ret.paymentMethod != null && ret.paymentMethod.name() == 'CASH'} ? #{admin.invoices.payment.cash} : #{admin.invoices.payment.card}"></span>
                             </td>
                             <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--danger);text-align:right"
-                                th:text="'-' + ${#numbers.formatDecimal(ret.totalRefunded,1,2)} + ' �'"></td>
+                                th:text="'-' + ${#numbers.formatDecimal(ret.totalRefunded,1,2)} + ' €'"></td>
                             <td style="text-align:right">
                                 <button type="button" class="btn-icon" th:title="#{admin.common.preview}"
                                     style="text-decoration: none;"
@@ -2142,21 +2140,20 @@
                                 th:text="${register.closedAt != null ? #temporals.format(register.closedAt, 'dd/MM/yyyy HH:mm') : '—'}">
                             </td>
 
-                            <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;"
-                                th:text="${#numbers.formatDecimal((register.openingBalance ?: 0) + (register.totalSales ?: 0), 1, 2)} + ' �'">
+                            <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;text-align:right"
+                                th:text="${#numbers.formatDecimal((register.openingBalance ?: 0) + (register.totalSales ?: 0), 1, 2)} + ' €'">
                             </td>
 
-                            <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;"
-                                th:text="${#numbers.formatDecimal(register.closingBalance ?: 0, 1, 2)} + ' �'">
+                            <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;text-align:right"
+                                th:text="${#numbers.formatDecimal(register.closingBalance ?: 0, 1, 2)} + ' €'">
                             </td>
 
-                            <td>
-                                <span th:if="${(register.difference ?: 0) == 0}" class="badge-active yes">Cuadrado (0.00
-                                    �)</span>
+                            <td style="text-align:right">
+                                <span th:if="${(register.difference ?: 0) == 0}" class="badge-active yes" th:text="'Cuadrado (0.00 €)'"></span>
                                 <span th:if="${(register.difference ?: 0) > 0}" class="badge-active yes"
-                                    th:text="'+' + ${#numbers.formatDecimal(register.difference, 1, 2)} + ' �'"></span>
+                                    th:text="'+' + ${#numbers.formatDecimal(register.difference, 1, 2)} + ' €'"></span>
                                 <span th:if="${(register.difference ?: 0) < 0}" class="badge-active no"
-                                    th:text="${#numbers.formatDecimal(register.difference, 1, 2)} + ' �'"></span>
+                                    th:text="${#numbers.formatDecimal(register.difference, 1, 2)} + ' €'"></span>
                             </td>
                             <td style="font-weight: 500;">
                                 <span th:if="${register.worker != null}" th:text="${register.worker.username}"></span>

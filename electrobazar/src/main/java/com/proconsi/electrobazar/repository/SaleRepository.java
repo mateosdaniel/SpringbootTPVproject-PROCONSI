@@ -1,6 +1,7 @@
 package com.proconsi.electrobazar.repository;
 
 import com.proconsi.electrobazar.dto.SaleSummaryResponse;
+import com.proconsi.electrobazar.dto.WorkerSaleStatsDTO;
 import com.proconsi.electrobazar.model.PaymentMethod;
 import com.proconsi.electrobazar.model.Sale;
 import org.springframework.data.domain.Page;
@@ -108,4 +109,16 @@ public interface SaleRepository extends JpaRepository<Sale, Long> {
     @EntityGraph(attributePaths = { "lines", "lines.product", "worker" })
     @Query("SELECT s FROM Sale s WHERE s.customer.id = :customerId ORDER BY s.createdAt DESC")
     List<Sale> findByCustomerIdOrderByCreatedAtDesc(@Param("customerId") Long customerId);
+
+    /**
+     * Retrieves sales statistics aggregated by worker for a given interval.
+     */
+    @Query("SELECT new com.proconsi.electrobazar.dto.WorkerSaleStatsDTO(w.id, w.username, COUNT(s), " +
+           "SUM(s.totalAmount), " +
+           "SUM(CASE WHEN s.paymentMethod = com.proconsi.electrobazar.model.PaymentMethod.CASH THEN s.totalAmount END), " +
+           "SUM(CASE WHEN s.paymentMethod = com.proconsi.electrobazar.model.PaymentMethod.CARD THEN s.totalAmount END)) " +
+           "FROM Sale s JOIN s.worker w " +
+           "WHERE s.createdAt BETWEEN :from AND :to AND s.status = com.proconsi.electrobazar.model.Sale.SaleStatus.ACTIVE " +
+           "GROUP BY w.id, w.username")
+    List<WorkerSaleStatsDTO> getWorkerStatsBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

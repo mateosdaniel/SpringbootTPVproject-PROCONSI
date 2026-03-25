@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -56,4 +57,8 @@ public class CashCloseInfoDTO {
     
     /** The actual CashRegister entity record. */
     private CashRegister todayRegister;
+    
+    /** Per-worker breakdown of sales for the shift. */
+    @Builder.Default
+    private List<WorkerSaleStatsDTO> workerStats = new ArrayList<>();
 }

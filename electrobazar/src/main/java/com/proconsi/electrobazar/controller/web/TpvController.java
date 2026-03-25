@@ -382,6 +382,8 @@ public class TpvController {
         model.addAttribute("totalWithdrawals", totalWithdrawals);
         model.addAttribute("totalEntries", totalEntries);
         model.addAttribute("expectedCashInDrawer", expectedCashInDrawer);
+        model.addAttribute("workerStats", saleService.getWorkerStatsBetween(startOfShift, LocalDateTime.now()));
+        model.addAttribute("sales", saleService.findBetween(startOfShift, LocalDateTime.now()));
 
         model.addAttribute("categories", categoryService.findAllActive());
         model.addAttribute("companySettings", companySettingsService.getSettings());

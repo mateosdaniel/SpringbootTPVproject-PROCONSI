@@ -272,6 +272,12 @@ public class SaleServiceImpl implements SaleService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<com.proconsi.electrobazar.dto.WorkerSaleStatsDTO> getWorkerStatsBetween(LocalDateTime from, LocalDateTime to) {
+        return saleRepository.getWorkerStatsBetween(from, to);
+    }
+
+    @Override
     @Transactional
     public void cancelSale(Long id, Worker worker, String reason) {
         Sale sale = findById(id);

@@ -126,10 +126,12 @@ public interface SaleService {
     SaleSummaryResponse getSummaryToday();
 
     /**
-     * Cancels a sale and restores stock levels.
-     * @param id     Sale ID.
-     * @param worker Worker authorizing cancellation.
-     * @param reason Why the sale is being cancelled.
+     * Retrieves sales statistics aggregated by worker for a given period.
+     * @param from Start timestamp.
+     * @param to   End timestamp.
+     * @return List of worker statistics.
      */
+    java.util.List<com.proconsi.electrobazar.dto.WorkerSaleStatsDTO> getWorkerStatsBetween(java.time.LocalDateTime from, java.time.LocalDateTime to);
+
     void cancelSale(Long id, Worker worker, String reason);
 }

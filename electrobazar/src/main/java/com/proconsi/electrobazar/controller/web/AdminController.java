@@ -430,6 +430,7 @@ public class AdminController {
 
         model.addAttribute("register", register);
         model.addAttribute("sales", saleService.findBetween(startTime, endTime));
+        model.addAttribute("workerStats", saleService.getWorkerStatsBetween(startTime, endTime));
         model.addAttribute("companySettings", companySettingsService.getSettings());
 
         return "admin/cash-register-detail";
