@@ -91,6 +91,7 @@ public class SecurityConfig {
                                 // While ignoring it for API calls that use Bearer tokens
                                 .csrf(csrf -> csrf
                                                 .ignoringRequestMatchers("/api/**", "/admin/login",
+                                                                "/admin/products/**", "/admin/upload-csv", "/admin/upload-customers-csv",
                                                                 "/admin/settings/pin", "/forgot-password", "/reset-password"))
 
                                 // 2. Authorization Rules by Path and Method
@@ -118,7 +119,7 @@ public class SecurityConfig {
 
                                                 // ADMIN PANEL ONLY (Protected by ADMIN_ACCESS authority)
                                                 .requestMatchers(HttpMethod.DELETE, "/admin/products/**")
-                                                .hasAuthority("ADMIN_ACCESS")
+                                                .hasAnyAuthority("ADMIN_ACCESS", "MANAGE_PRODUCTS_TPV")
                                                 .requestMatchers(HttpMethod.POST, "/api/product-prices/bulk-schedule")
                                                 .hasAuthority("ADMIN_ACCESS")
                                                 .requestMatchers(HttpMethod.GET, "/api/product-prices/future")
@@ -168,12 +169,7 @@ public class SecurityConfig {
                                                 // For HTML requests, redirect the browser to the login page
                                                 .defaultAuthenticationEntryPointFor(
                                                                 new LoginUrlAuthenticationEntryPoint("/login"),
-                                                                request -> request.getServletPath().startsWith("/tpv")
-                                                                                ||
-                                                                                request.getServletPath()
-                                                                                                .startsWith("/admin")
-                                                                                ||
-                                                                                request.getServletPath().equals("/")))
+                                                                request -> !request.getServletPath().startsWith("/api")))
 
                                 // 4. Session Management Strategy
                                 // Using standard session policy for web browser interactions while keeping API

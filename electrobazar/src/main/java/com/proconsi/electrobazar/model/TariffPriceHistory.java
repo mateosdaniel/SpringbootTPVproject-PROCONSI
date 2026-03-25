@@ -39,11 +39,11 @@ public class TariffPriceHistory {
     private Tariff tariff;
 
     /** Base price from the product catalogue. */
-    @Column(name = "base_price", nullable = false, precision = 10, scale = 2)
+    @Column(name = "base_price", nullable = false, precision = 12, scale = 4)
     private BigDecimal basePrice;
 
     /** Net price after applying the tariff discount. */
-    @Column(name = "net_price", nullable = false, precision = 10, scale = 2)
+    @Column(name = "net_price", nullable = false, precision = 12, scale = 4)
     private BigDecimal netPrice;
 
     /** VAT rate at the time of snapshot. */
@@ -51,7 +51,7 @@ public class TariffPriceHistory {
     private BigDecimal vatRate;
 
     /** Final price including VAT. */
-    @Column(name = "price_with_vat", nullable = false, precision = 10, scale = 2)
+    @Column(name = "price_with_vat", nullable = false, precision = 12, scale = 4)
     private BigDecimal priceWithVat;
 
     /** Recargo de Equivalencia rate at snapshot time. */
@@ -59,7 +59,7 @@ public class TariffPriceHistory {
     private BigDecimal reRate;
 
     /** Final price including VAT and RE. */
-    @Column(name = "price_with_re", nullable = false, precision = 10, scale = 2)
+    @Column(name = "price_with_re", nullable = false, precision = 12, scale = 4)
     private BigDecimal priceWithRe;
 
     /** Discount percentage applied by the tariff. */

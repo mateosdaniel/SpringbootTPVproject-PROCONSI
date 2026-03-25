@@ -1254,7 +1254,7 @@ function loadFuturePrices() {
                 var reRate = RE_RATE_MAP[String(p.vatRate)] || '—';
                 return '<tr class="future-price-row" data-product-name="' + escHtml(p.productName).toLowerCase() + '">'
                     + '<td><strong>' + escHtml(p.productName) + '</strong></td>'
-                    + '<td>' + parseFloat(p.price).toFixed(2) + ' &euro;</td>'
+                    + '<td>' + formatDecimal(p.price, 2, 4) + ' &euro;</td>'
                     + '<td>' + vatPct + ' <small style="color: var(--text-muted);">(+' + reRate + ' RE)</small></td>'
                     + '<td>' + formatDateTime(p.startDate) + '</td>'
                     + '<td>' + (p.endDate ? formatDateTime(p.endDate) : '<span style="color: var(--text-muted);">Abierto</span>') + '</td>'
@@ -2361,9 +2361,9 @@ function toggleTariffEditMode() {
 
             const input = document.createElement('input');
             input.type = 'number';
-            input.step = '0.01';
+            input.step = '0.0001';
             input.className = 'form-control form-control-sm text-end';
-            input.style = 'width: 80px; display: inline-block; font-family: inherit; font-weight: 700;';
+            input.style = 'width: 100px; display: inline-block; font-family: inherit; font-weight: 700;';
             input.value = currentValue;
             input.dataset.originalValue = currentValue;
             input.dataset.productId = prodId;
@@ -2425,7 +2425,7 @@ function openApplyPricesModal() {
         tr.innerHTML = `
             <td class="text-white">${c.productName}</td>
             <td><span class="badge bg-secondary">${c.tariffName}</span></td>
-            <td class="text-end fw-bold text-accent">${(c.newPrice || 0).toFixed(2)} €</td>
+            <td class="text-end fw-bold text-accent">${formatDecimal(c.newPrice, 2, 4)} €</td>
         `;
         list.appendChild(tr);
     });
@@ -2501,7 +2501,7 @@ function loadPendingPriceChanges() {
                     <td class="text-white">${date}</td>
                     <td class="text-white">${item.productName}</td>
                     <td><span class="badge bg-secondary">${item.tariffName || 'PVP Base'}</span></td>
-                    <td class="text-end fw-bold text-accent">${(item.price || item.newPrice || 0).toFixed(2)} €</td>
+                    <td class="text-end fw-bold text-accent">${formatDecimal(item.price || item.newPrice, 2, 4)} €</td>
                     <td class="text-center">
                         <button class="btn btn-sm btn-outline-danger" onclick="deletePendingPrice(${item.id})">
                             <i class="bi bi-trash"></i>
@@ -2533,8 +2533,8 @@ function loadPastPriceChanges() {
                     <td class="text-white">${date}</td>
                     <td class="text-white">${item.productName}</td>
                     <td><span class="badge bg-secondary">${item.tariffName || 'PVP Base'}</span></td>
-                    <td class="text-end text-muted">${(item.oldPrice || 0).toFixed(2)} €</td>
-                    <td class="text-end fw-bold text-success">${(item.newPrice || 0).toFixed(2)} €</td>
+                    <td class="text-end text-muted">${formatDecimal(item.oldPrice, 2, 4)} €</td>
+                    <td class="text-end fw-bold text-success">${formatDecimal(item.newPrice, 2, 4)} €</td>
                 `;
                 body.appendChild(tr);
             });
@@ -2553,6 +2553,14 @@ function deletePendingPrice(id) {
                 showToast('Error al cancelar', 'error');
             }
         });
+}
+
+function formatDecimal(val, minFrac = 2, maxFrac = 4) {
+    if (val === null || val === undefined) return '0,00';
+    return new Intl.NumberFormat('es-ES', {
+        minimumFractionDigits: minFrac,
+        maximumFractionDigits: maxFrac
+    }).format(parseFloat(val));
 }
 
 // Expose to global scope

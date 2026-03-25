@@ -49,6 +49,10 @@ public interface TariffPriceHistoryRepository extends JpaRepository<TariffPriceH
      * Finds price records that started exactly on a specific date for a tariff.
      */
     List<TariffPriceHistory> findByTariffIdAndValidFrom(@Param("tariffId") Long tariffId, @Param("validFrom") LocalDate validFrom);
+    /**
+     * Deletes all tariff histories associated with a product.
+     */
+    void deleteByProductId(Long productId);
 }
 
 

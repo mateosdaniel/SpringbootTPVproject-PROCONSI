@@ -99,6 +99,9 @@ function saveProduct() {
         categoryId: document.getElementById('productCategory').value ? parseInt(document.getElementById('productCategory').value) : null
     };
 
+    const btn = document.querySelector('#productModal .btn-primary');
+    if (btn) btn.disabled = true;
+
     fetch(id ? '/api/products/' + id : '/api/products', {
         method: id ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -107,18 +110,27 @@ function saveProduct() {
         if (r.ok) { 
             location.reload(); 
         } else {
+            if (btn) btn.disabled = false;
             r.json().then(function(err) {
                 showToast('Error al guardar: ' + (err.error || err.message || 'Desconocido'), 'error');
             }).catch(function() {
                 showToast('Error al guardar', 'error');
             });
         }
+    }).catch(function() {
+        if (btn) btn.disabled = false;
+        showToast('Error de red al guardar', 'error');
     });
 }
 
 function deleteProduct(id, name) {
     if (confirm('¿Seguro que quieres eliminar definitivamente el producto "' + name + '"?')) {
-        fetch('/admin/products/' + id + '/hard', { method: 'DELETE', credentials: 'include', cache: 'no-store' })
+        fetch('/admin/products/' + id + '/hard', { 
+            method: 'DELETE', 
+            headers: getCsrfHeaders(),
+            credentials: 'include', 
+            cache: 'no-store' 
+        })
             .then(function (r) {
                 if (r.ok) {
                     showToast('Producto "' + name + '" eliminado definitivamente');
@@ -169,7 +181,7 @@ function saveCategory() {
 
     fetch(id ? '/api/categories/' + id : '/api/categories', {
         method: id ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCsrfHeaders(),
         body: JSON.stringify(body)
     }).then(function (r) {
         if (r.ok) {
@@ -186,7 +198,10 @@ function saveCategory() {
 
 function deleteCategory(id, name) {
     if (confirm('¿Desactivar "' + name + '"?')) {
-        fetch('/api/categories/' + id, { method: 'DELETE' }).then(function (r) {
+        fetch('/api/categories/' + id, { 
+            method: 'DELETE',
+            headers: getCsrfHeaders()
+        }).then(function (r) {
             if (r.ok) {
                 location.reload();
             } else {
@@ -227,3 +242,10 @@ function uploadCsvFile(input) {
 }
 
 
+function getCsrfHeaders() {
+    const token = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+    const header = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+    const headers = { 'Content-Type': 'application/json' };
+    headers[header] = token;
+    return headers;
+}

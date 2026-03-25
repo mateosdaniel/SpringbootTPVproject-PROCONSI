@@ -38,14 +38,14 @@ public class ProductPrice {
     /**
      * The net base price (before VAT).
      */
-    @Column(name = "base_price_net", nullable = false, precision = 10, scale = 2)
+    @Column(name = "base_price_net", nullable = false, precision = 12, scale = 4)
     @Builder.Default
     private BigDecimal basePriceNet = BigDecimal.ZERO;
 
     /**
      * The Gross Price (VAT included).
      */
-    @Column(name = "price", nullable = false, precision = 10, scale = 2)
+    @Column(name = "price", nullable = false, precision = 12, scale = 4)
     @Builder.Default
     private BigDecimal price = BigDecimal.ZERO;
 
@@ -65,7 +65,7 @@ public class ProductPrice {
         }
         BigDecimal rate = vatRate != null ? vatRate : new BigDecimal("0.21");
         this.basePriceNet = grossPrice.divide(BigDecimal.ONE.add(rate), 10, RoundingMode.HALF_UP)
-                .setScale(2, RoundingMode.HALF_UP);
+                .setScale(4, RoundingMode.HALF_UP);
     }
 
     /**

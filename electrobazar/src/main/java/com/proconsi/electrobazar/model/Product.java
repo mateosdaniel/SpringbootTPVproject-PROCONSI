@@ -97,15 +97,11 @@ public class Product {
      * The gross price (VAT included) stored in the database.
      * Calculated as: base_price_net * (1 + taxRate.vatRate)
      */
-    @Column(name = "price", nullable = false, precision = 10, scale = 2)
+    @Column(name = "price", nullable = false, precision = 12, scale = 4)
     @Builder.Default
     private BigDecimal price = BigDecimal.ZERO;
 
-    /**
-     * The net base price (before VAT).
-     * This is the primary value used for calculations.
-     */
-    @Column(name = "base_price_net", nullable = false, precision = 10, scale = 2)
+    @Column(name = "base_price_net", nullable = false, precision = 12, scale = 4)
     @Builder.Default
     private BigDecimal basePriceNet = BigDecimal.ZERO;
 
@@ -125,8 +121,8 @@ public class Product {
         BigDecimal rate = taxRate != null && taxRate.getVatRate() != null ? taxRate.getVatRate()
                 : BigDecimal.ZERO;
         this.basePriceNet = grossPrice.divide(BigDecimal.ONE.add(rate), 10, RoundingMode.HALF_UP)
-                .setScale(2, RoundingMode.HALF_UP);
-        this.price = grossPrice.setScale(2, RoundingMode.HALF_UP);
+                .setScale(4, RoundingMode.HALF_UP);
+        this.price = grossPrice.setScale(4, RoundingMode.HALF_UP);
     }
 
     /**
@@ -142,7 +138,7 @@ public class Product {
         BigDecimal rate = taxRate != null && taxRate.getVatRate() != null ? taxRate.getVatRate()
                 : BigDecimal.ZERO;
         this.price = basePriceNet.multiply(BigDecimal.ONE.add(rate))
-                .setScale(2, RoundingMode.HALF_UP);
+                .setScale(4, RoundingMode.HALF_UP);
     }
 
     /** Available items in stock. */

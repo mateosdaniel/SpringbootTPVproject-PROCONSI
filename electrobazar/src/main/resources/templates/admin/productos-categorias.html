@@ -4,6 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CSRF Token for AJAX -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
     <title th:text="'Gestión de Inventario — ' + ${companySettings.appName}">Gestión de Inventario — ElectroBazar
     </title>
     <link rel="icon" type="image/svg+xml" th:href="@{/icons/favicon.svg}">
@@ -82,7 +85,7 @@
                                 <th>Nombre</th>
                                 <th>Descripción</th>
                                 <th>IVA</th>
-                                <th>Precio</th>
+                                <th style="text-align: right;">Precio</th>
                                 <th>Stock</th>
                                 <th>Categoría</th>
                                 <th>Estado</th>
@@ -111,8 +114,8 @@
                                     <span th:unless="${p.taxRate != null && p.taxRate.vatRate != null}"
                                         style="color:var(--text-muted)">—</span>
                                 </td>
-                                <td class="fw-bold" style="color: #000;"
-                                    th:text="${#numbers.formatDecimal(p.price,1,2)} + ' &euro;'">
+                                <td class="fw-bold" style="color: #000; text-align: right;"
+                                    th:text="${#numbers.formatDecimal(p.price, 1, (p.price.stripTrailingZeros().scale() < 2 ? 2 : p.price.stripTrailingZeros().scale()), 'COMMA')} + ' €'">
                                 </td>
                                 <td>
                                     <div class="d-flex flex-column align-items-center" style="gap: 0.2rem;">
@@ -238,7 +241,7 @@
                     <div class="row">
                         <div class="col-6 mb-3">
                             <label class="form-label">Precio (&euro;)</label>
-                            <input type="number" id="productPrice" class="form-control" step="0.01">
+                            <input type="number" id="productPrice" class="form-control" step="0.0001">
                         </div>
                         <div class="col-6 mb-3">
                             <label class="form-label">Stock Actual</label>

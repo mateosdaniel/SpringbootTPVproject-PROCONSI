@@ -4,6 +4,7 @@ import com.proconsi.electrobazar.dto.TaxBreakdown;
 import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import com.proconsi.electrobazar.model.*;
 import com.proconsi.electrobazar.repository.CashRegisterRepository;
+import com.proconsi.electrobazar.repository.CouponRepository;
 import com.proconsi.electrobazar.repository.SaleRepository;
 import com.proconsi.electrobazar.repository.TariffRepository;
 import com.proconsi.electrobazar.service.ActivityLogService;
@@ -44,6 +45,7 @@ public class SaleServiceImpl implements SaleService {
     private final RecargoEquivalenciaCalculator recargoCalculator;
     private final TariffRepository tariffRepository;
     private final InvoiceService invoiceService;
+    private final CouponRepository couponRepository;
     private final CashRegisterService cashRegisterService;
 
     @Override
@@ -88,53 +90,95 @@ public class SaleServiceImpl implements SaleService {
     }
 
     @Override
-    public Sale createSaleWithTariff(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, BigDecimal receivedAmount, BigDecimal cashAmount, BigDecimal cardAmount, Customer customer, Worker worker, Tariff tariffOverride) {
-        // 0. Cash Register Guard (POS Business Rule)
-        // Verifies that a cash register session is open for today before allowing sales.
-        cashRegisterService.checkOpenRegisterForToday();
+    public Sale createSaleWithCoupon(List<SaleLine> lines, PaymentMethod paymentMethod, String notes,
+            BigDecimal receivedAmount, BigDecimal cashAmount, BigDecimal cardAmount, Customer customer,
+            Worker worker, Tariff tariffOverride, String couponCode) {
+        
+        // 1. Resolve and Validate Coupon
+        Coupon coupon = null;
+        BigDecimal couponDiscount = BigDecimal.ZERO;
+        if (couponCode != null && !couponCode.isBlank()) {
+            coupon = couponRepository.findByCodeIgnoreCase(couponCode.trim())
+                    .orElseThrow(() -> new IllegalArgumentException("Cupón no válido o inexistente: " + couponCode));
+            
+            if (!coupon.isValid()) {
+                throw new IllegalStateException("El cupón ha expirado o ha alcanzado su límite de uso.");
+            }
+        }
 
+        // 2. Initial logic
+        cashRegisterService.checkOpenRegisterForToday();
         if (lines == null || lines.isEmpty()) {
             throw new IllegalArgumentException("A sale must contain at least one line.");
         }
 
-        // 1. Resolve effective tariff
         Tariff effective = (tariffOverride != null) ? tariffOverride : 
                           ((customer != null && customer.getTariff() != null) ? customer.getTariff() : 
                           tariffRepository.findByName(Tariff.MINORISTA).orElse(null));
 
         String tariffName = (effective != null) ? effective.getName() : Tariff.MINORISTA;
-        BigDecimal discountPct = (effective != null && effective.getDiscountPercentage() != null) ? effective.getDiscountPercentage() : BigDecimal.ZERO;
+        BigDecimal tariffDiscountPct = (effective != null && effective.getDiscountPercentage() != null) ? effective.getDiscountPercentage() : BigDecimal.ZERO;
 
-        // 2. Process stock and build tax breakdown
+        // 3. Calculation Loop
+        BigDecimal subtotalBeforeCoupon = BigDecimal.ZERO;
+        boolean applyRE = (customer != null && Boolean.TRUE.equals(customer.getHasRecargoEquivalencia()));
+
+        for (SaleLine line : lines) {
+            BigDecimal finalGross = line.getUnitPrice().setScale(SCALE, ROUNDING);
+            subtotalBeforeCoupon = subtotalBeforeCoupon.add(finalGross.multiply(BigDecimal.valueOf(line.getQuantity())));
+        }
+
+        // Calculate actual coupon discount amount
+        if (coupon != null) {
+            if (coupon.getDiscountType() == DiscountType.PERCENTAGE) {
+                couponDiscount = subtotalBeforeCoupon.multiply(coupon.getDiscountValue().divide(new BigDecimal("100"), 10, ROUNDING));
+            } else {
+                couponDiscount = coupon.getDiscountValue();
+            }
+            if (couponDiscount.compareTo(subtotalBeforeCoupon) > 0) {
+                couponDiscount = subtotalBeforeCoupon;
+            }
+        }
+
+        // 4. Distribute coupon discount proportionally
         BigDecimal total = BigDecimal.ZERO;
         BigDecimal totalBase = BigDecimal.ZERO;
         BigDecimal totalVat = BigDecimal.ZERO;
         BigDecimal totalRecargo = BigDecimal.ZERO;
-        boolean applyRE = (customer != null && Boolean.TRUE.equals(customer.getHasRecargoEquivalencia()));
 
-        for (SaleLine line : lines) {
+        for (int i = 0; i < lines.size(); i++) {
+            SaleLine line = lines.get(i);
             productService.decreaseStock(line.getProduct().getId(), line.getQuantity());
 
-            BigDecimal finalGross = line.getUnitPrice().setScale(SCALE, ROUNDING);
-            line.setOriginalUnitPrice(finalGross);
-            line.setDiscountPercentage(BigDecimal.ZERO); // Applied beforehand by TPV logic
-            line.setUnitPrice(finalGross);
-
+            BigDecimal lineGrossBeforeCoupon = line.getUnitPrice();
+            BigDecimal lineTotalBeforeCoupon = lineGrossBeforeCoupon.multiply(BigDecimal.valueOf(line.getQuantity()));
+            
+            BigDecimal lineCouponDiscount = BigDecimal.ZERO;
+            if (subtotalBeforeCoupon.compareTo(BigDecimal.ZERO) > 0) {
+                lineCouponDiscount = couponDiscount.multiply(lineTotalBeforeCoupon)
+                        .divide(subtotalBeforeCoupon, 10, ROUNDING);
+            }
+            
+            BigDecimal finalLineTotal = lineTotalBeforeCoupon.subtract(lineCouponDiscount);
+            if (finalLineTotal.compareTo(BigDecimal.ZERO) < 0) finalLineTotal = BigDecimal.ZERO;
+            
+            BigDecimal effectiveUnitPrice = finalLineTotal.divide(BigDecimal.valueOf(line.getQuantity()), 10, ROUNDING);
+            
             BigDecimal vatRate = (line.getVatRate() != null) ? line.getVatRate() : 
                                  (line.getProduct().getTaxRate() != null ? line.getProduct().getTaxRate().getVatRate() : new BigDecimal("0.21"));
 
-            TaxBreakdown breakdown = recargoCalculator.calculateLineBreakdown(line.getProduct().getId(), line.getProduct().getName(), finalGross, line.getQuantity(), vatRate, applyRE);
+            TaxBreakdown breakdown = recargoCalculator.calculateLineBreakdown(line.getProduct().getId(), line.getProduct().getName(), effectiveUnitPrice, line.getQuantity(), vatRate, applyRE);
 
+            line.setOriginalUnitPrice(lineGrossBeforeCoupon.setScale(SCALE, ROUNDING));
+            line.setUnitPrice(effectiveUnitPrice.setScale(SCALE, ROUNDING));
             line.setBasePriceNet(breakdown.getUnitPrice());
             line.setBaseAmount(breakdown.getBaseAmount());
             line.setVatAmount(breakdown.getVatAmount());
             line.setRecargoRate(breakdown.getRecargoRate());
             line.setRecargoAmount(breakdown.getRecargoAmount());
-            
-            BigDecimal lineTotal = finalGross.multiply(BigDecimal.valueOf(line.getQuantity())).setScale(SCALE, ROUNDING).add(line.getRecargoAmount());
-            line.setSubtotal(lineTotal);
+            line.setSubtotal(finalLineTotal.add(line.getRecargoAmount()).setScale(SCALE, ROUNDING));
 
-            total = total.add(lineTotal);
+            total = total.add(line.getSubtotal());
             totalBase = totalBase.add(line.getBaseAmount());
             totalVat = totalVat.add(line.getVatAmount());
             totalRecargo = totalRecargo.add(line.getRecargoAmount());
@@ -142,30 +186,11 @@ public class SaleServiceImpl implements SaleService {
 
         BigDecimal finalTotal = total.setScale(SCALE, ROUNDING);
 
-        // 3. Fiscal Validation (Ley 11/2021 Anti-fraud)
+        // 5. Fiscal
         if (paymentMethod == PaymentMethod.CASH) {
-            BigDecimal limit = (customer != null && customer.getType() == Customer.CustomerType.COMPANY)
-                    ? new BigDecimal("1000")
-                    : new BigDecimal("10000");
-
+            BigDecimal limit = (customer != null && customer.getType() == Customer.CustomerType.COMPANY) ? new BigDecimal("1000") : new BigDecimal("10000");
             if (finalTotal.compareTo(limit) > 0) {
-                String customerIdStr = (customer != null) ? (customer.getTaxId() != null ? customer.getTaxId() : "ID:" + customer.getId()) : "Anónimo";
-                String username = (worker != null) ? worker.getUsername() : "N/A";
-
-                if (customer != null && customer.getType() == Customer.CustomerType.COMPANY) {
-                    // Blocked case: log and throw
-                    activityLogService.logActivity("BLOQUEO_FISCAL",
-                            String.format("Pago bloqueado: %.2f € excede el límite de 1.000 € para empresas (Ley 11/2021). Cliente: %s",
-                                    finalTotal, customerIdStr),
-                            username, "SALE", null);
-                    throw new IllegalStateException("No es posible realizar pagos en efectivo superiores a 1.000€ entre empresarios (Ley 11/2021)");
-                } else {
-                    // Warning case: log and allow (as per "permite continuar" for particulars)
-                    activityLogService.logActivity("AVISO_FISCAL",
-                            String.format("Pago en efectivo elevado detectado: %.2f € (Límite particular: 10.000 €). Cliente: %s",
-                                    finalTotal, customerIdStr),
-                            username, "SALE", null);
-                }
+                 if (customer != null && customer.getType() == Customer.CustomerType.COMPANY) throw new IllegalStateException("Excede el límite de efectivo real decreto.");
             }
         }
 
@@ -174,44 +199,44 @@ public class SaleServiceImpl implements SaleService {
         BigDecimal actualCardAmt = BigDecimal.ZERO;
 
         if (paymentMethod == PaymentMethod.CASH) {
-            BigDecimal recAmt = receivedAmount != null ? receivedAmount : finalTotal;
-            if (recAmt.add(new BigDecimal("0.01")).compareTo(finalTotal) < 0) {
-                throw new IllegalArgumentException("Received amount is less than total sale amount.");
-            }
-            change = recAmt.subtract(finalTotal);
+            BigDecimal rAmt = receivedAmount != null ? receivedAmount : finalTotal;
+            change = rAmt.subtract(finalTotal);
             actualCashAmt = finalTotal;
         } else if (paymentMethod == PaymentMethod.CARD) {
             actualCardAmt = finalTotal;
         } else if (paymentMethod == PaymentMethod.MIXED) {
-            BigDecimal cmCard = cardAmount != null ? cardAmount : BigDecimal.ZERO;
-            BigDecimal cmCash = cashAmount != null ? cashAmount : BigDecimal.ZERO;
-            BigDecimal totalReceived = cmCard.add(cmCash);
-
-            if (totalReceived.add(new BigDecimal("0.01")).compareTo(finalTotal) < 0) {
-                throw new IllegalArgumentException("Mixed payment amount is less than total sale amount.");
-            }
+            BigDecimal totalReceived = (cardAmount != null ? cardAmount : BigDecimal.ZERO).add(cashAmount != null ? cashAmount : BigDecimal.ZERO);
             change = totalReceived.subtract(finalTotal);
-            actualCardAmt = cmCard;
-            // The change is returned from the cash portion
-            actualCashAmt = cmCash.subtract(change);
+            actualCardAmt = cardAmount != null ? cardAmount : BigDecimal.ZERO;
+            actualCashAmt = (cashAmount != null ? cashAmount : BigDecimal.ZERO).subtract(change);
         }
 
         Sale sale = Sale.builder()
                 .paymentMethod(paymentMethod).totalAmount(finalTotal).totalBase(totalBase.setScale(SCALE, ROUNDING))
                 .totalVat(totalVat.setScale(SCALE, ROUNDING)).totalRecargo(totalRecargo.setScale(SCALE, ROUNDING))
-                .totalDiscount(BigDecimal.ZERO).applyRecargo(applyRE).receivedAmount(receivedAmount).changeAmount(change)
-                .cashAmount(actualCashAmt)
-                .cardAmount(actualCardAmt)
+                .totalDiscount(couponDiscount.setScale(SCALE, ROUNDING)).applyRecargo(applyRE).receivedAmount(receivedAmount).changeAmount(change)
+                .cashAmount(actualCashAmt).cardAmount(actualCardAmt)
                 .notes(notes).customer(customer).worker(worker).lines(lines).appliedTariff(tariffName)
-                .appliedDiscountPercentage(discountPct.setScale(SCALE, ROUNDING)).build();
+                .coupon(coupon)
+                .appliedDiscountPercentage(tariffDiscountPct.setScale(SCALE, ROUNDING)).build();
 
         lines.forEach(l -> l.setSale(sale));
-        Sale saved = saleRepository.save(sale);
+        
+        if (coupon != null) {
+            coupon.setTimesUsed(coupon.getTimesUsed() + 1);
+            couponRepository.save(coupon);
+        }
 
+        Sale saved = saleRepository.save(sale);
         String username = (worker != null) ? worker.getUsername() : "Anonymous";
-        activityLogService.logActivity("VENTA", String.format("Sale processed by %s. Total: %.2f € (Tariff: %s)", username, finalTotal, tariffName), username, "SALE", saved.getId());
+        activityLogService.logActivity("VENTA", String.format("Sale processed by %s. Total: %.2f € (Coupon: %s)", username, finalTotal, (coupon != null ? coupon.getCode() : "None")), username, "SALE", saved.getId());
 
         return saved;
+    }
+
+    @Override
+    public Sale createSaleWithTariff(List<SaleLine> lines, PaymentMethod paymentMethod, String notes, BigDecimal receivedAmount, BigDecimal cashAmount, BigDecimal cardAmount, Customer customer, Worker worker, Tariff tariffOverride) {
+        return createSaleWithCoupon(lines, paymentMethod, notes, receivedAmount, cashAmount, cardAmount, customer, worker, tariffOverride, null);
     }
 
     @Override

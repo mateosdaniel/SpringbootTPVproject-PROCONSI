@@ -114,6 +114,11 @@ public class Sale {
     @Builder.Default
     private String appliedTariff = "MINORISTA";
 
+    /** Coupon applied to the sale (if any). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "coupon_id")
+    private Coupon coupon;
+
     /** Discount percentage applied to the sale header. */
     @Column(nullable = false, precision = 5, scale = 2, name = "applied_discount_percentage")
     @Builder.Default

@@ -27,7 +27,9 @@ import java.util.TimeZone;
  * 3. Environment: Loads localized settings (.env) and sets the systemic timezone to Europe/Madrid.
  * 4. Security: Auto-provisions the root administrator account.
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = { 
+    org.springframework.boot.autoconfigure.admin.SpringApplicationAdminJmxAutoConfiguration.class 
+})
 @EnableCaching
 @EnableScheduling
 @EnableAsync

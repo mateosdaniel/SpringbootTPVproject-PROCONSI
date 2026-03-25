@@ -14,11 +14,35 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 var ticket = {}; // { productId: { name, price, quantity, stock } }
 
+/**
+ * Formats a price with dynamic decimal precision.
+ * Shows 2 decimals by default, but up to 4 if the price has extra digits.
+ */
+function formatPrice(price) {
+    if (price === null || price === undefined) return '0,00';
+    let s = price.toString();
+    if (s.includes('.')) {
+        let decimals = s.split('.')[1].length;
+        if (decimals > 2) {
+             // Localize with target scale, keeping up to 4
+             return price.toLocaleString('es-ES', { 
+                 minimumFractionDigits: 2, 
+                 maximumFractionDigits: 4 
+             });
+        }
+    }
+    return price.toLocaleString('es-ES', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+    });
+}
+
 // -- Estado de tarifa --
 var currentTariffId = null;
 var currentDiscountPct = 0; // 0–100
 var currentTariffLabel = 'MINORISTA';
 var currentHasRE = false;
+var currentCoupon = null; // { code, discountType, discountValue }
 
 
 function addToTicket(card) {
@@ -191,40 +215,76 @@ function renderTicket() {
     var totalItems = 0;
     var totalAmount = 0;
     var linesHTML = '';
-    var formHTML = '';
-
-    ids.forEach(function (id) {
+    var formHTML = '';    ids.forEach(function (id) {
         var item = ticket[id];
-        var subtotal = item.price * item.quantity;
+        // Use priceWithRe if customer has RE, otherwise normal tariff price
+        var unitPrice = (window.currentHasRE && item.priceWithRe) ? item.priceWithRe : item.price;
+        var subtotal = unitPrice * item.quantity;
         totalItems += item.quantity;
         totalAmount += subtotal;
-
+        
         linesHTML += `
-                <div class="ticket-line">
-                    <div class="ticket-line-name">${escapeHtml(item.name)}</div>
-                    <div class="qty-control">
-                        <button class="qty-btn" onclick="changeQty('${id}', -1)">-</button>
-                        <span class="qty-num" onclick="editQty(this, '${id}')">${item.quantity}</span>
-                        <button class="qty-btn" onclick="changeQty('${id}', 1)">+</button>
+            <div class="ticket-line">
+                <div class="line-info">
+                    <span class="line-name">${escapeHtml(item.name)}</span>
+                    <span class="line-price">${formatPrice(unitPrice)}€ x ${item.quantity}</span>
+                </div>
+                <div class="line-actions">
+                    <span class="line-subtotal">${formatPrice(subtotal)}€</span>
+                    <div class="d-flex align-items-center gap-1 ms-2">
+                        <button class="btn btn-sm p-0" onclick="changeQty('${id}',-1)" style="color:var(--text-muted);"><i class="bi bi-dash-circle"></i></button>
+                        <span class="fw-bold" style="min-width:20px; text-align:center; cursor:pointer;" onclick="editQty(this, '${id}')">${item.quantity}</span>
+                        <button class="btn btn-sm p-0" onclick="changeQty('${id}',1)" style="color:var(--text-muted);"><i class="bi bi-plus-circle"></i></button>
+                        <button class="btn btn-sm p-0 ms-2" onclick="removeLine('${id}')" style="color:#ef4444;"><i class="bi bi-x-lg"></i></button>
                     </div>
-                    <div class="ticket-line-price">${subtotal.toFixed(2)}\u20AC</div>
-                    <button class="btn-remove-line" onclick="removeLine('${id}')">
-                        <i class="bi bi-x"></i>
-                    </button>
-                </div>`;
+                </div>
+            </div>`;
 
-        formHTML += `
-                <input type="hidden" name="productIds" value="${id}">
-                <input type="hidden" name="quantities" value="${item.quantity}">
-                <input type="hidden" name="unitPrices" value="${item.price.toFixed(2)}">`;
+        formHTML += `<input type="hidden" name="productIds" value="${id}">`;
+        formHTML += `<input type="hidden" name="quantities" value="${item.quantity}">`;
+        formHTML += `<input type="hidden" name="unitPrices" value="${unitPrice.toFixed(4)}">`;
     });
 
+    // Calculate Coupon Discount
+    var couponDiscountAmount = 0;
+    if (currentCoupon) {
+        if (currentCoupon.discountType === 'PERCENTAGE') {
+            couponDiscountAmount = totalAmount * (currentCoupon.discountValue / 100);
+        } else {
+            couponDiscountAmount = currentCoupon.discountValue;
+        }
+        if (couponDiscountAmount > totalAmount) couponDiscountAmount = totalAmount;
+    }
+
+    var finalTotal = totalAmount - couponDiscountAmount;
+    if (finalTotal < 0) finalTotal = 0;
+
+    // Update UI
     linesEl.innerHTML = linesHTML;
+    countEl.textContent = totalItems;
+    totalEl.textContent = formatPrice(finalTotal) + '€';
+    formLines.innerHTML = formHTML;
+
+    // Coupon UI
+    var couponRow = document.getElementById('couponRow');
+    var couponCodeInput = document.getElementById('couponCodeInput');
+    if (couponRow) {
+        if (currentCoupon) {
+            couponRow.style.display = 'flex';
+            document.getElementById('couponLabel').textContent = currentCoupon.code;
+            document.getElementById('couponAmountDisplay').textContent = '-' + couponDiscountAmount.toFixed(2) + '\u20AC';
+            if (couponCodeInput) couponCodeInput.value = currentCoupon.code;
+        } else {
+            couponRow.style.display = 'none';
+            if (couponCodeInput) couponCodeInput.value = '';
+        }
+    }
     formLines.innerHTML = formHTML;
     countEl.textContent = totalItems;
 
     // Prices stored in ticket[id].price are already final (returned by the backend
     // including any tariff discount). No additional discount calculation is applied here.
+
     var originalTotalRow = document.getElementById('originalTotalRow');
     var discountRow = document.getElementById('discountRow');
     if (originalTotalRow) { originalTotalRow.style.display = 'none'; }
@@ -713,7 +773,7 @@ function renderProducts(products) {
             ' </div>' +
             ' <div class="product-info">' +
             ' <div class="product-name">' + escapeHtml(product.name) + '</div>' +
-            ' <div class="product-price">' + parseFloat(product.price).toFixed(2) + '\u20AC</div>' +
+            ' <div class="product-price">' + formatDecimal(product.price, 2, 4) + '\u20AC</div>' +
             ' <div class="product-category-badge">' + catName + '</div>' +
             ' </div></div>';
     }).join('');
@@ -1590,6 +1650,39 @@ function updateTariffBadge() {
     badge.style.fontWeight = '700';
 }
 
+
+// ── COUPON SYSTEM ────────────────────────────────────────────────────────────
+function applyCoupon() {
+    var input = document.getElementById('couponInput');
+    var code = input.value.trim();
+    if (!code) return;
+
+    fetch('/api/coupons/validate?code=' + encodeURIComponent(code))
+        .then(function(r) {
+            if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'error'); });
+            return r.json();
+        })
+        .then(function(data) {
+            currentCoupon = {
+                code: data.code,
+                discountType: data.discountType,
+                discountValue: parseFloat(data.discountValue)
+            };
+            input.value = '';
+            showToast('Cupón aplicado: ' + data.code, 'success');
+            renderTicket();
+        })
+        .catch(function(err) {
+            showToast(err.message || 'Cupón no válido', 'warning');
+        });
+}
+
+function removeCoupon() {
+    currentCoupon = null;
+    showToast('Cupón eliminado', 'success');
+    renderTicket();
+}
+
 // Initialise tariff selector to MINORISTA on load
 document.addEventListener('DOMContentLoaded', function () {
     var tariffBar = document.getElementById('tariffBar');
@@ -1738,3 +1831,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+function formatDecimal(val, minFrac = 2, maxFrac = 4) {
+    if (val === null || val === undefined) return '0,00';
+    return new Intl.NumberFormat('es-ES', {
+        minimumFractionDigits: minFrac,
+        maximumFractionDigits: maxFrac
+    }).format(parseFloat(val));
+}

@@ -63,6 +63,10 @@ public interface ProductPriceRepository extends JpaRepository<ProductPrice, Long
     List<ProductPrice> findPricesActivatedBetween(
             @Param("dayStart") LocalDateTime dayStart,
             @Param("dayEnd") LocalDateTime dayEnd);
+    /**
+     * Deletes all prices associated with a product.
+     */
+    void deleteByProductId(Long productId);
 }
 
 

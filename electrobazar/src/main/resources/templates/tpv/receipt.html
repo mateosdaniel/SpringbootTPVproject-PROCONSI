@@ -57,11 +57,11 @@
                         <!-- If discounted: show strikethrough original + discounted price -->
                         <span th:if="${line.discountPercentage != null and line.discountPercentage > 0}"
                             style="text-decoration:line-through;color:var(--text-muted);font-size:0.75rem;"
-                            th:text="${#numbers.formatDecimal(line.originalUnitPrice, 1, 2)} + ' &euro;'"></span>
+                            th:text="${#numbers.formatDecimal(line.originalUnitPrice, 1, (line.originalUnitPrice.stripTrailingZeros().scale() < 2 ? 2 : line.originalUnitPrice.stripTrailingZeros().scale()), 'COMMA')} + ' &euro;'"></span>
                         <span th:if="${line.discountPercentage != null and line.discountPercentage > 0}"
                             style="background:rgba(39,174,96,0.15);color:#27ae60;border-radius:4px;padding:0.05rem 0.25rem;font-size:0.7rem;font-weight:700;margin-left:0.2rem;"
                             th:text="'-' + ${#numbers.formatDecimal(line.discountPercentage, 1, 0)} + '%'"></span>
-                        <span th:text="${#numbers.formatDecimal(line.unitPrice, 1, 2)} + ' &euro;/ud.'">
+                        <span th:text="${#numbers.formatDecimal(line.unitPrice, 1, (line.unitPrice.stripTrailingZeros().scale() < 2 ? 2 : line.unitPrice.stripTrailingZeros().scale()), 'COMMA')} + ' &euro;/ud.'">
                             0.00 &euro;/ud.</span>
                     </span>
                     <span class="t-item-qty" th:text="${line.quantity} + ' ud.'">1 ud.</span>
@@ -121,6 +121,11 @@
             </div>
 
 
+
+            <div th:if="${sale.coupon != null}" class="t-summary" style="display: flex; justify-content: space-between; font-size: 0.88rem; color: #27ae60; font-weight: 700; margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(39, 174, 96, 0.05); border-radius: 6px;">
+                <span th:text="'Cupón: ' + ${sale.coupon.code}">CUPON</span>
+                <span th:text="'-' + ${#numbers.formatDecimal(sale.totalDiscount, 1, 2)} + ' €'">-0.00 €</span>
+            </div>
 
             <div class="t-total">
                 <span class="t-total-label">Total</span>

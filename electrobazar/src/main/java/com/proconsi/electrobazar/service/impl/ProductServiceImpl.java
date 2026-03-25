@@ -12,6 +12,8 @@ import com.proconsi.electrobazar.repository.specification.ProductSpecification;
 import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.ProductService;
 import com.proconsi.electrobazar.service.TariffService;
+import com.proconsi.electrobazar.repository.SaleLineRepository;
+import com.proconsi.electrobazar.repository.TariffPriceHistoryRepository;
 import com.proconsi.electrobazar.service.TranslationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +44,8 @@ public class ProductServiceImpl implements ProductService {
     private final ActivityLogService activityLogService;
     private final TariffService tariffService;
     private final TranslationService translationService;
+    private final SaleLineRepository saleLineRepository;
+    private final TariffPriceHistoryRepository tariffPriceHistoryRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -224,9 +228,22 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional
     public void hardDeleteProduct(Long id) {
         Product product = findById(id);
+        
+        // 1. Check for real transaction references
+        if (saleLineRepository.countByProductId(id) > 0) {
+            throw new IllegalStateException("Cannot delete item because it is referenced by other records (sales, invoices, etc.).");
+        }
+        
+        // 2. Clear metadata/history cascade manually if not mapped as cascade
+        productPriceRepository.deleteByProductId(id);
+        tariffPriceHistoryRepository.deleteByProductId(id);
+        
+        // 3. Final Delete
         productRepository.deleteById(id);
+        
         activityLogService.logActivity(
                 "ELIMINAR_PRODUCTO_HARD",
                 "Product permanently deleted: " + product.getName(),

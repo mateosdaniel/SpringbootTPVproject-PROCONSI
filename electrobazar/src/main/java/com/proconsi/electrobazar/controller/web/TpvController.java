@@ -109,6 +109,7 @@ public class TpvController {
             @RequestParam(required = false) String cardAmount,
             @RequestParam(required = false, defaultValue = "false") Boolean requestInvoice,
             @RequestParam(required = false) Long tariffId,
+            @RequestParam(required = false) String couponCode,
             HttpSession session,
             RedirectAttributes redirectAttributes) {
 
@@ -212,9 +213,9 @@ public class TpvController {
                 }
             }
 
-            sale = saleService.createSaleWithTariff(lines, paymentMethod, notes, receivedAmountDecimal,
+            sale = saleService.createSaleWithCoupon(lines, paymentMethod, notes, receivedAmountDecimal,
                     cashAmountDecimal, cardAmountDecimal, customer,
-                    worker, tariffOverride);
+                    worker, tariffOverride, couponCode);
         } catch (IllegalStateException | IllegalArgumentException e) {
             log.error("Error creating sale: {}", e.getMessage());
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
