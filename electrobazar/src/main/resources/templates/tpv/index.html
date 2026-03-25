@@ -156,8 +156,8 @@
             </button>
         </nav>
 
-        <!-- TICKET (Derecha) - Cargado antes que productos para evitar saltos -->
-        <aside class="tpv-ticket">
+        <!-- TICKET (Derecha) - Cargado antes que productos para evitar saltos, forzando order a 3 inline -->
+        <aside class="tpv-ticket" style="order: 3;">
             <div class="ticket-header">
                 <span class="ticket-title"><i class="bi bi-receipt me-1"></i> Ticket</span>
                 <span class="ticket-count" id="ticketCount">0</span>
@@ -220,7 +220,7 @@
         </aside>
 
         <!-- GRID DE PRODUCTOS (Centro) -->
-        <main class="tpv-products" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
+        <main class="tpv-products" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''" style="order: 2;">
             <div th:if="${successMessage}" class="alert-tpv" id="successAlert">
                 <i class="bi bi-check-circle-fill"></i>
                 <span th:text="${successMessage}"></span>
