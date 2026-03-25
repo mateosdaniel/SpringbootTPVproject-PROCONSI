@@ -11,6 +11,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
+import java.util.Map;
+import org.springframework.http.ResponseEntity;
 
 /**
  * Handles user authentication for the storefront (TPV).
@@ -80,5 +82,49 @@ public class LoginController {
         }
         session.invalidate();
         return "redirect:/login";
+    }
+
+    /**
+     * Endpoint to request a password reset PIN.
+     */
+    @PostMapping("/forgot-password")
+    @ResponseBody
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
+        }
+
+        boolean sent = workerService.initiatePasswordReset(email);
+        if (sent) {
+            return ResponseEntity.ok(Map.of("ok", true, "message", "Reset PIN sent to email"));
+        } else {
+            // We return 200 anyway for security (don't reveal if email exists)
+            // But actually in a private TPV it might be better to say it doesn't exist.
+            // Let's stick to standard practice.
+            return ResponseEntity.ok(Map.of("ok", true, "message", "If the email is registered, a PIN has been sent."));
+        }
+    }
+
+    /**
+     * Endpoint to reset the password using the PIN.
+     */
+    @PostMapping("/reset-password")
+    @ResponseBody
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        String pin = body.get("pin");
+        String password = body.get("password");
+
+        if (email == null || pin == null || password == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Missing required fields"));
+        }
+
+        boolean success = workerService.resetPassword(email, pin, password);
+        if (success) {
+            return ResponseEntity.ok(Map.of("ok", true, "message", "Password updated successfully"));
+        } else {
+            return ResponseEntity.status(401).body(Map.of("message", "Invalid or expired PIN"));
+        }
     }
 }

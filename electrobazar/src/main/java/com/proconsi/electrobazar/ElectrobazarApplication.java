@@ -88,11 +88,16 @@ public class ElectrobazarApplication {
                 .ifPresentOrElse(w -> {
                     w.setRole(finalAdminRole);
                     w.setActive(true);
+                    // Ensure the email is set to the user's test email if missing or using old placeholder
+                    if (w.getEmail() == null || w.getEmail().isEmpty() || w.getEmail().equals("admin@electrobazar.com")) {
+                        w.setEmail("danielmateos684@gmail.com");
+                    }
                     workerService.save(w);
                 }, () -> {
                     Worker defaultWorker = new Worker();
                     defaultWorker.setUsername("root");
                     defaultWorker.setPassword("r00t");
+                    defaultWorker.setEmail("danielmateos684@gmail.com");
                     defaultWorker.setActive(true);
                     defaultWorker.setRole(finalAdminRole);
                     workerService.save(defaultWorker);

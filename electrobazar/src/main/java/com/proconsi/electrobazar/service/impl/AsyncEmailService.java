@@ -5,6 +5,8 @@ import com.proconsi.electrobazar.model.Sale;
 import com.proconsi.electrobazar.service.EmailService;
 import com.proconsi.electrobazar.service.InvoiceService;
 import com.proconsi.electrobazar.service.PdfReportService;
+import com.proconsi.electrobazar.repository.SaleRepository;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -27,21 +29,27 @@ public class AsyncEmailService {
     private final EmailService emailService;
     private final InvoiceService invoiceService;
     private final PdfReportService pdfReportService;
+    private final SaleRepository saleRepository;
 
     @Async
+    @Transactional(readOnly = true)
     public void sendSaleEmailAsync(Sale sale, String email) {
         try {
+            // Re-fetch sale eagerly since it may be detached or a non-initialized proxy
+            Sale eagerSale = saleRepository.findById(sale.getId())
+                .orElseThrow(() -> new RuntimeException("Sale not found: " + sale.getId()));
+
             byte[] pdfContent;
             String filename;
 
-            var invoiceOpt = invoiceService.findBySaleId(sale.getId());
+            var invoiceOpt = invoiceService.findBySaleId(eagerSale.getId());
             if (invoiceOpt.isPresent()) {
                 Invoice invoice = invoiceOpt.get();
                 pdfContent = pdfReportService.generateInvoicePdf(invoice);
                 filename = "Factura_" + invoice.getInvoiceNumber() + ".pdf";
             } else {
-                pdfContent = pdfReportService.generateReceiptPdf(sale);
-                filename = "Ticket_" + sale.getId() + ".pdf";
+                pdfContent = pdfReportService.generateReceiptPdf(eagerSale);
+                filename = "Ticket_" + eagerSale.getId() + ".pdf";
             }
 
             String subject = "Su documento de compra - Electrobazar";

@@ -27,7 +27,7 @@
             <span th:text="${error}"></span>
         </div>
 
-        <form th:action="@{/login}" method="post">
+        <form th:action="@{/login}" method="post" id="loginForm">
             <div class="mb-4">
                 <label for="username" class="form-label">Trabajador</label>
                 <input type="text" id="username" name="username" class="form-control" placeholder="Nombre de usuario"
@@ -41,7 +41,39 @@
             <button type="submit" class="btn-login">
                 Acceder <i class="bi bi-arrow-right"></i>
             </button>
+            <a href="#" class="forgot-password-link" onclick="showForgotFlow(event)">¿Has olvidado tu contraseña?</a>
         </form>
+
+        <!-- Forgot Password Flow -->
+        <div id="forgotFlow" style="display: none;">
+            <div id="forgotStep1">
+                <p class="text-center mb-4 small text-muted">Introduce tu email y te enviaremos un código de recuperación.</p>
+                <div class="mb-4">
+                    <label for="resetEmail" class="form-label">Email</label>
+                    <input type="email" id="resetEmail" class="form-control" placeholder="ejemplo@correo.com">
+                </div>
+                <button type="button" class="btn-login" onclick="sendResetPin()">
+                    Enviar Código <i class="bi bi-envelope"></i>
+                </button>
+            </div>
+
+            <div id="forgotStep2" style="display: none;">
+                <p class="text-center mb-4 small text-muted">Hemos enviado un código a tu email. Introdúcelo junto a tu nueva contraseña.</p>
+                <div class="mb-3">
+                    <label for="resetPin" class="form-label">Código (PIN)</label>
+                    <input type="text" id="resetPin" class="form-control text-center" placeholder="000000" maxlength="6">
+                </div>
+                <div class="mb-4">
+                    <label for="newPassword" class="form-label">Nueva Contraseña</label>
+                    <input type="password" id="newPassword" class="form-control" placeholder="••••••••">
+                </div>
+                <button type="button" class="btn-login" onclick="performReset()">
+                    Restablecer Contraseña <i class="bi bi-check2"></i>
+                </button>
+            </div>
+            
+            <a href="#" class="forgot-password-link mt-4" onclick="showLoginFlow(event)">Volver al inicio de sesión</a>
+        </div>
     </div>
 
     <script th:src="@{/js/common/login.js}"></script>

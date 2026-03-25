@@ -6,11 +6,13 @@ import com.proconsi.electrobazar.dto.TariffPriceEntryDTO;
 import com.proconsi.electrobazar.dto.TaxBreakdown;
 import com.proconsi.electrobazar.repository.SaleReturnRepository;
 import com.proconsi.electrobazar.service.CompanySettingsService;
+import com.proconsi.electrobazar.service.InvoiceService;
 import com.proconsi.electrobazar.service.PdfReportService;
 import com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Lazy;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
@@ -29,7 +31,6 @@ import java.util.stream.Collectors;
  * Converts HTML5/CSS3 templates into professional PDF documents.
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class PdfReportServiceImpl implements PdfReportService {
 
@@ -37,6 +38,19 @@ public class PdfReportServiceImpl implements PdfReportService {
     private final SaleReturnRepository saleReturnRepository;
     private final CompanySettingsService companySettingsService;
     private final RecargoEquivalenciaCalculator recargoCalculator;
+    private final InvoiceService invoiceService;
+
+    public PdfReportServiceImpl(TemplateEngine templateEngine, 
+                                SaleReturnRepository saleReturnRepository,
+                                CompanySettingsService companySettingsService,
+                                RecargoEquivalenciaCalculator recargoCalculator,
+                                @Lazy InvoiceService invoiceService) {
+        this.templateEngine = templateEngine;
+        this.saleReturnRepository = saleReturnRepository;
+        this.companySettingsService = companySettingsService;
+        this.recargoCalculator = recargoCalculator;
+        this.invoiceService = invoiceService;
+    }
 
     @Override
     public byte[] generateCashCloseReport(CashRegister register) {
@@ -111,6 +125,7 @@ public class PdfReportServiceImpl implements PdfReportService {
             Sale sale = invoice.getSale();
             Context context = populateSaleContext(sale);
             context.setVariable("invoice", invoice);
+            context.setVariable("qrCodeBase64", invoiceService.generateQrCodeBase64(invoice));
 
             String htmlContent = templateEngine.process("tpv/invoice", context);
             htmlContent = cleanHtmlForPdf(htmlContent);
@@ -133,6 +148,11 @@ public class PdfReportServiceImpl implements PdfReportService {
         log.info("Generating PDF for Sale receipt ID {}", sale.getId());
         try {
             Context context = populateSaleContext(sale);
+            
+            if (sale.getTicket() != null) {
+                context.setVariable("ticket", sale.getTicket());
+                context.setVariable("qrCodeBase64", invoiceService.generateQrCodeBase64(sale.getTicket()));
+            }
 
             String htmlContent = templateEngine.process("tpv/receipt", context);
             htmlContent = cleanHtmlForPdf(htmlContent);

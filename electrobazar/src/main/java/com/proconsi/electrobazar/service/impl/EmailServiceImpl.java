@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -24,6 +25,18 @@ public class EmailServiceImpl implements EmailService {
     private final AppSettingRepository appSettingRepository;
     private final AesEncryptionUtil aesEncryptionUtil;
 
+    @Value("${spring.mail.host:smtp.gmail.com}")
+    private String defaultHost;
+
+    @Value("${spring.mail.port:587}")
+    private String defaultPort;
+
+    @Value("${spring.mail.username:}")
+    private String defaultUsername;
+
+    @Value("${spring.mail.password:}")
+    private String defaultPassword;
+
     public EmailServiceImpl(AppSettingRepository appSettingRepository, AesEncryptionUtil aesEncryptionUtil) {
         this.appSettingRepository = appSettingRepository;
         this.aesEncryptionUtil = aesEncryptionUtil;
@@ -32,11 +45,13 @@ public class EmailServiceImpl implements EmailService {
     private JavaMailSenderImpl getMailSender() {
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
 
-        String host = appSettingRepository.findByKey("mail.host").map(AppSetting::getValue).orElse("smtp.gmail.com");
-        String portStr = appSettingRepository.findByKey("mail.port").map(AppSetting::getValue).orElse("587");
-        String username = appSettingRepository.findByKey("mail.username").map(AppSetting::getValue).orElse("");
-        String passwordEncrypted = appSettingRepository.findByKey("mail.password").map(AppSetting::getValue).orElse("");
-        String password = aesEncryptionUtil.decrypt(passwordEncrypted);
+        String host = appSettingRepository.findByKey("mail.host").map(AppSetting::getValue).orElse(defaultHost);
+        String portStr = appSettingRepository.findByKey("mail.port").map(AppSetting::getValue).orElse(defaultPort);
+        String username = appSettingRepository.findByKey("mail.username").map(AppSetting::getValue).orElse(defaultUsername);
+        String passwordEncrypted = appSettingRepository.findByKey("mail.password").map(AppSetting::getValue).orElse(null);
+        String password = (passwordEncrypted != null && !passwordEncrypted.isEmpty()) 
+                        ? aesEncryptionUtil.decrypt(passwordEncrypted) 
+                        : defaultPassword;
 
         int port = Integer.parseInt(portStr);
         mailSender.setPort(port);
@@ -67,6 +82,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
 
+            log.info("Sending email FROM: {} TO: {}", mailSender.getUsername(), to);
             helper.setFrom(mailSender.getUsername());
             helper.setTo(to);
             helper.setSubject(subject);
@@ -99,6 +115,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
+            log.info("Sending email with attachment FROM: {} TO: {}", mailSender.getUsername(), to);
             helper.setFrom(mailSender.getUsername());
             helper.setTo(to);
             helper.setSubject(subject);

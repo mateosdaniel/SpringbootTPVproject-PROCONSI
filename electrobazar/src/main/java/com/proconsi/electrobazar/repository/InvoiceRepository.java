@@ -20,6 +20,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
      * @param saleId The ID of the sale.
      * @return Optional containing the invoice if generated.
      */
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = { "sale", "sale.lines", "sale.lines.product", "sale.customer" })
     @Query("SELECT i FROM Invoice i WHERE i.sale.id = :saleId")
     Optional<Invoice> findBySaleId(@Param("saleId") Long saleId);
 

@@ -32,6 +32,18 @@ public class Worker {
     @Column(nullable = false)
     private String password;
 
+    /** Worker email (Used for password reset). */
+    @Column(nullable = true, unique = true)
+    private String email;
+
+    /** Current temporary 6-digit PIN for password reset. */
+    @Column(nullable = true)
+    private String resetPin;
+
+    /** Expiration date for the reset PIN. */
+    @Column(nullable = true)
+    private java.time.LocalDateTime resetPinExpiration;
+
     /** Main role assigned to the worker. */
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")
