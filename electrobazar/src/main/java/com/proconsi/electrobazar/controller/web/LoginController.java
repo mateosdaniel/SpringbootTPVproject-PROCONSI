@@ -2,6 +2,8 @@ package com.proconsi.electrobazar.controller.web;
 
 import com.proconsi.electrobazar.model.Worker;
 import com.proconsi.electrobazar.service.WorkerService;
+
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -21,7 +23,9 @@ public class LoginController {
     private final com.proconsi.electrobazar.service.ActivityLogService activityLogService;
 
     @GetMapping("/login")
-    public String loginForm(Model model) {
+    public String loginForm(HttpServletRequest request, Model model) {
+        // Esto fuerza la creación de la sesión antes de que se empiece a pintar el HTML
+        request.getSession(true);
         return "login";
     }
 
@@ -55,7 +59,8 @@ public class LoginController {
             if (w.getEffectivePermissions().contains("ADMIN_ACCESS")) {
                 session.setAttribute("admin", true);
             }
-            activityLogService.logFiscalEvent("LOGIN", "Inicio de sesión de trabajador: " + w.getUsername(), w.getUsername());
+            activityLogService.logFiscalEvent("LOGIN", "Inicio de sesión de trabajador: " + w.getUsername(),
+                    w.getUsername());
             return "redirect:/tpv";
         } else {
             model.addAttribute("error", "Invalid username or password");
@@ -70,7 +75,8 @@ public class LoginController {
     public String logout(HttpSession session) {
         Worker w = (Worker) session.getAttribute("worker");
         if (w != null) {
-            activityLogService.logFiscalEvent("LOGOUT", "Cierre de sesión de trabajador: " + w.getUsername(), w.getUsername());
+            activityLogService.logFiscalEvent("LOGOUT", "Cierre de sesión de trabajador: " + w.getUsername(),
+                    w.getUsername());
         }
         session.invalidate();
         return "redirect:/login";

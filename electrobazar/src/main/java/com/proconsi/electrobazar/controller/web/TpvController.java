@@ -207,7 +207,8 @@ public class TpvController {
                 }
             }
 
-            sale = saleService.createSaleWithTariff(lines, paymentMethod, notes, receivedAmountDecimal, cashAmountDecimal, cardAmountDecimal, customer,
+            sale = saleService.createSaleWithTariff(lines, paymentMethod, notes, receivedAmountDecimal,
+                    cashAmountDecimal, cardAmountDecimal, customer,
                     worker, tariffOverride);
         } catch (IllegalStateException | IllegalArgumentException e) {
             log.error("Error creating sale: {}", e.getMessage());
@@ -229,7 +230,8 @@ public class TpvController {
                 redirectAttributes.addFlashAttribute("successMessage",
                         "Invoice " + invoice.getInvoiceNumber() + " generated.");
             } else {
-                // For tickets: create ticket record (the sale entity already has the correct applyRecargo flag)
+                // For tickets: create ticket record (the sale entity already has the correct
+                // applyRecargo flag)
                 ticketService.createTicket(sale, applyRecargo);
             }
         } catch (Exception e) {
@@ -331,7 +333,7 @@ public class TpvController {
 
         // 1. Fetch Summary (Combined query for Efficiency)
         SaleSummaryResponse summary = saleService.getSummaryToday();
-        
+
         // 2. Fetch Payments & Movements
         BigDecimal cashSalesToday = saleService.sumTotalByPaymentMethodToday(PaymentMethod.CASH);
         BigDecimal cardSalesToday = saleService.sumTotalByPaymentMethodToday(PaymentMethod.CARD);
@@ -362,7 +364,7 @@ public class TpvController {
         model.addAttribute("cancelledTotal", summary.getTotalCancelledAmount());
         model.addAttribute("totalToday", summary.getTotalSalesAmount());
         model.addAttribute("countToday", summary.getTotalSalesCount());
-        
+
         model.addAttribute("todayRegister", openRegister);
         model.addAttribute("cashSalesToday", summary.getTotalCashAmount());
         model.addAttribute("cashRefundsToday", cashRefundsToday);
@@ -371,7 +373,7 @@ public class TpvController {
         model.addAttribute("totalWithdrawals", totalWithdrawals);
         model.addAttribute("totalEntries", totalEntries);
         model.addAttribute("expectedCashInDrawer", expectedCashInDrawer);
-        
+
         model.addAttribute("categories", categoryService.findAllActive());
         model.addAttribute("companySettings", companySettingsService.getSettings());
 
@@ -695,7 +697,8 @@ public class TpvController {
             }
             model.addAttribute("negativeLines", negativeLines);
             model.addAttribute("totalAmount", saleReturn.getTotalRefunded().negate());
-            model.addAttribute("qrCodeBase64", invoiceService.generateQrCodeBase64(saleReturn.getRectificativeInvoice()));
+            model.addAttribute("qrCodeBase64",
+                    invoiceService.generateQrCodeBase64(saleReturn.getRectificativeInvoice()));
 
             return "tpv/rectificative-invoice";
         }

@@ -36,22 +36,18 @@ self.addEventListener('fetch', event => {
 
     const url = new URL(event.request.url);
 
-    // Strategy: Network First for the main navigation (/tpv) and API calls
-    if (url.pathname === '/tpv' || url.pathname === '/admin' || url.pathname.includes('/api/') || event.request.mode === 'navigate') {
+    // Strategy: Network First for the main navigation (/tpv)
+    if (url.pathname === '/tpv' || (url.pathname.startsWith('/admin') && !url.pathname.includes('/api/')) || url.pathname.startsWith('/tpv/receipt') || url.pathname.startsWith('/tpv/return-receipt') || event.request.mode === 'navigate') {
+        // Exclude /api/ and /admin/api/ from SW to avoid session/token issues with fetch(event.request)
+        if (url.pathname.includes('/api/')) return;
+
         event.respondWith(
             fetch(event.request)
                 .then(response => {
-                    // Only cache successful GET responses
-                    if (response.ok && response.status === 200 && event.request.method === 'GET') {
-                        // Check if it's the admin page and potentially clear its cache first
-                        if (url.pathname === '/admin') {
-                            // Optionally skip caching for admin if it's too problematic
-                            // For now, let's try to cache only if we think it's complete
-                        }
-                        
+                    // Only cache successful GET responses that are not ADMIN pages (admin pages change too much)
+                    if (response.ok && response.status === 200 && event.request.method === 'GET' && !url.pathname.startsWith('/admin')) {
                         const copy = response.clone();
                         caches.open(CACHE_NAME).then(cache => {
-                            // We use a trial put and catch error
                             cache.put(event.request, copy).catch(err => {
                                 console.warn('SW: Cache put failed (possibly incomplete):', err.message);
                             });
@@ -59,7 +55,13 @@ self.addEventListener('fetch', event => {
                     }
                     return response;
                 })
-                .catch(() => caches.match(event.request))
+                .catch(err => {
+                    // Fallback to cache if offline
+                    return caches.match(event.request).then(r => {
+                        if (r) return r;
+                        throw err;
+                    });
+                })
         );
         return;
     }
@@ -77,6 +79,9 @@ self.addEventListener('fetch', event => {
                     });
                 }
                 return networkResponse;
+            }).catch(err => {
+                // If everything fails, throw so the browser shows its error page
+                throw err;
             });
         })
     );

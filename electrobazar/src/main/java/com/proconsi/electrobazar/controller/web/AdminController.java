@@ -414,6 +414,59 @@ public class AdminController {
         }
     }
 
+    @GetMapping("/admin/cash-register/{id}")
+    public String cashRegisterDetail(@PathVariable Long id, Model model, HttpSession session) {
+        if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
+            return "redirect:/login";
+        }
+        com.proconsi.electrobazar.model.CashRegister register = cashRegisterService.findById(id);
+        if (register == null) {
+            return "redirect:/admin?view=cashCloseView";
+        }
+
+        LocalDateTime startTime = register.getOpeningTime() != null ? register.getOpeningTime() : register.getRegisterDate().atStartOfDay();
+        // If closed, use the end of that day to match previous (buggy) totals aggregation if Shift 3 has missing sales
+        LocalDateTime endTime = register.getClosedAt() != null ? register.getClosedAt().with(java.time.LocalTime.MAX) : LocalDateTime.now();
+
+        model.addAttribute("register", register);
+        model.addAttribute("sales", saleService.findBetween(startTime, endTime));
+        model.addAttribute("companySettings", companySettingsService.getSettings());
+
+        return "admin/cash-register-detail";
+    }
+
+    @GetMapping("/admin/sale/{id}")
+    public String saleDetail(@PathVariable Long id, Model model, HttpSession session) {
+        if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
+            return "redirect:/login";
+        }
+        com.proconsi.electrobazar.model.Sale sale = saleService.findById(id);
+        if (sale == null) {
+            return "redirect:/admin?view=invoicesView";
+        }
+
+        model.addAttribute("sale", sale);
+        model.addAttribute("companySettings", companySettingsService.getSettings());
+
+        return "admin/sale-detail";
+    }
+
+    @GetMapping("/admin/return/{id}")
+    public String returnDetail(@PathVariable Long id, Model model, HttpSession session) {
+        if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
+            return "redirect:/login";
+        }
+        com.proconsi.electrobazar.model.SaleReturn ret = returnService.findById(id).orElse(null);
+        if (ret == null) {
+            return "redirect:/admin?view=returnsHistoryView";
+        }
+
+        model.addAttribute("return", ret);
+        model.addAttribute("companySettings", companySettingsService.getSettings());
+
+        return "admin/return-detail";
+    }
+
     @PostMapping("/admin/settings")
     public String saveSettings(
             @ModelAttribute com.proconsi.electrobazar.model.CompanySettings companySettings,

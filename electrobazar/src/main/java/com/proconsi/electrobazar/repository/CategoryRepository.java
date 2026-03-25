@@ -6,17 +6,18 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Repository for {@link Category} entities.
- * Handles product classification and supports advanced filtering via JPA Specifications.
+ * Handles product classification and supports advanced filtering via JPA
+ * Specifications.
  */
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long>, JpaSpecificationExecutor<Category> {
 
     /**
-     * Checks if a category with a given Spanish name exists, ignoring case sensitivity.
+     * Checks if a category with a given Spanish name exists, ignoring case
+     * sensitivity.
      */
     boolean existsByNameEsIgnoreCase(String name);
 

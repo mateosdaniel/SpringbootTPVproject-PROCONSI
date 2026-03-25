@@ -112,7 +112,7 @@
                                         style="color:var(--text-muted)">—</span>
                                 </td>
                                 <td class="fw-bold" style="color: #000;"
-                                     th:text="${#numbers.formatDecimal(p.price,1,2)} + ' &euro;'">
+                                    th:text="${#numbers.formatDecimal(p.price,1,2)} + ' &euro;'">
                                 </td>
                                 <td>
                                     <div class="d-flex flex-column align-items-center" style="gap: 0.2rem;">
@@ -321,16 +321,19 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/admin/admin-productos.js}"></script>
     <script th:inline="javascript">
+        /*<![CDATA[*/
         window.sharedInventoryI18n = {
-            lowStock: [[#{admin.inventory.filter.stock.low}]],
-            yes: [[#{common.yes}]],
-            no: [[#{common.no}]],
-            noItems: [[#{admin.inventory.products.empty}]], 
-            noCats: [[#{admin.inventory.categories.empty}]],
-            actions_edit: [[#{common.edit}]],
-            actions_delete: [[#{common.delete}]]
+            lowStock: /*[[#{admin.inventory.filter.stock.low}]]*/ 'Stock Bajo',
+            yes: /*[[#{common.yes}]]*/ 'Sí',
+            no: /*[[#{common.no}]]*/ 'No',
+            noItems: /*[[#{admin.inventory.products.empty}]]*/ 'No hay productos registrados',
+            noCats: /*[[#{admin.inventory.categories.empty}]]*/ 'No hay categorías registradas',
+            actions_edit: /*[[#{common.edit}]]*/ 'Editar',
+            actions_delete: /*[[#{common.delete}]]*/ 'Eliminar'
         };
+        /*]]>*/
 
         function getSharedInvLocale() {
             try {
@@ -351,7 +354,7 @@
                     tbody.innerHTML = `<tr><td colspan="9" class="text-center p-4 text-muted">${sharedInventoryI18n.noItems}</td></tr>`;
                     return;
                 }
-                
+
                 const locale = getSharedInvLocale();
                 const isEn = locale === 'en';
 
@@ -361,7 +364,7 @@
                     const formattedPrice = (p.price || 0).toFixed(2) + ' €';
                     const stockStyle = p.stock < 5 ? 'fw-bold text-danger' : '';
                     const badgeLowStock = p.stock < 5 ? `<span class="badge-stock-low" style="font-size: 0.7rem;">${sharedInventoryI18n.lowStock}</span>` : '';
-                    
+
                     let catName = '—';
                     if (p.category) {
                         catName = isEn && p.category.nameEn ? p.category.nameEn : (p.category.nameEs || p.category.name);

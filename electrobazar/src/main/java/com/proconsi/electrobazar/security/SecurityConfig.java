@@ -15,6 +15,8 @@ import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 
 /**
@@ -47,7 +49,7 @@ public class SecurityConfig {
 
         /**
          * Disables the 'Using generated security password' log by providing a custom
-         * UserDetailsService. Since the app uses JWT/Custom PIN auth, we provide 
+         * UserDetailsService. Since the app uses JWT/Custom PIN auth, we provide
          * an empty manager to satisfy Spring Boot's requirements.
          */
         @Bean
@@ -67,6 +69,14 @@ public class SecurityConfig {
         }
 
         /**
+         * Bean to manage security context persistence across requests.
+         */
+        @Bean
+        public SecurityContextRepository securityContextRepository() {
+                return new HttpSessionSecurityContextRepository();
+        }
+
+        /**
          * Configures the main HTTP Filter Chain.
          * 
          * @param http The Spring Security object to configure.
@@ -80,7 +90,8 @@ public class SecurityConfig {
                                 // Enabling it for browser sessions (/admin, /tpv, /login)
                                 // While ignoring it for API calls that use Bearer tokens
                                 .csrf(csrf -> csrf
-                                                .ignoringRequestMatchers("/api/**", "/admin/login", "/admin/settings/pin"))
+                                                .ignoringRequestMatchers("/api/**", "/admin/login",
+                                                                "/admin/settings/pin"))
 
                                 // 2. Authorization Rules by Path and Method
                                 .authorizeHttpRequests(auth -> auth
@@ -141,7 +152,8 @@ public class SecurityConfig {
                                                 .hasAnyAuthority("CRM_ACCESS", "ADMIN_ACCESS", "TPV_CLIENT")
 
                                                 // CATCH-ALL FOR ADMIN AND USER INTERFACES
-                                                .requestMatchers("/tpv/**", "/admin/**", "/api/admin/**").authenticated()
+                                                .requestMatchers("/tpv/**", "/admin/**", "/api/admin/**")
+                                                .authenticated()
                                                 .requestMatchers("/api/**").authenticated()
 
                                                 // Strict catch-all for any other request
@@ -156,9 +168,12 @@ public class SecurityConfig {
                                                 // For HTML requests, redirect the browser to the login page
                                                 .defaultAuthenticationEntryPointFor(
                                                                 new LoginUrlAuthenticationEntryPoint("/login"),
-                                                                request -> request.getServletPath().startsWith("/tpv") || 
-                                                                           request.getServletPath().startsWith("/admin") ||
-                                                                           request.getServletPath().equals("/")))
+                                                                request -> request.getServletPath().startsWith("/tpv")
+                                                                                ||
+                                                                                request.getServletPath()
+                                                                                                .startsWith("/admin")
+                                                                                ||
+                                                                                request.getServletPath().equals("/")))
 
                                 // 4. Session Management Strategy
                                 // Using standard session policy for web browser interactions while keeping API
@@ -170,7 +185,15 @@ public class SecurityConfig {
                                 // Order is important: JWT and TPV tokens are validated before the default
                                 // UsernamePassword filter
                                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                                .addFilterBefore(tpvTokenFilter, UsernamePasswordAuthenticationFilter.class);
+                                .addFilterBefore(tpvTokenFilter, UsernamePasswordAuthenticationFilter.class)
+
+                                // 6. Frame Options - Allow same origin for invoice/receipt previews
+                                .headers(headers -> headers
+                                                .frameOptions(frame -> frame.sameOrigin()))
+
+                                // 7. Persist context manually (Spring Security 6 Requirement)
+                                .securityContext(context -> context
+                                                .securityContextRepository(securityContextRepository()));
 
                 return http.build();
         }

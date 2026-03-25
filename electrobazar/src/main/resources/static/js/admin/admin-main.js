@@ -1244,6 +1244,7 @@ function loadFuturePrices() {
         .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
         .then(function (prices) {
             var tbody = document.getElementById('futurePricesBody');
+            if (!tbody) return;
             if (!prices || prices.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4" style="color: var(--text-muted);">No hay precios programados para el futuro.</td></tr>';
                 return;
@@ -1494,6 +1495,8 @@ function renderRolesTable(roles, workers) {
         return;
     }
 
+    // Also check tbody exists before setting innerHTML
+    if (!tbody) return;
     tbody.innerHTML = roles.map(r => {
         const perms = r.permissions.map(p => `<span class="badge me-1" style="font-size:0.7rem; background-color: rgba(148,163,184,0.15); color: var(--text-muted); border: 1px solid rgba(148,163,184,0.25);">${p}</span>`).join('');
         const permsText = r.permissions.join(',');
@@ -2322,5 +2325,9 @@ function deleteCoupon(id) {
             showToast('Error al eliminar', 'error');
         }
     }).catch(() => showToast('Error de red', 'error'));
+}
+
+function openCashRegisterDetail(id) {
+    window.open('/admin/cash-register/' + id, '_blank', 'width=1100,height=800,scrollbars=yes');
 }
 

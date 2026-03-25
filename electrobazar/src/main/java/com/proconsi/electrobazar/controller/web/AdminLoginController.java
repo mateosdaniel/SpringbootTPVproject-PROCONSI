@@ -1,8 +1,11 @@
 package com.proconsi.electrobazar.controller.web;
 
 import com.proconsi.electrobazar.service.AdminPinService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,9 +19,11 @@ import java.util.Map;
 public class AdminLoginController {
 
     private final AdminPinService adminPinService;
+    private final SecurityContextRepository securityContextRepository;
 
-    public AdminLoginController(AdminPinService adminPinService) {
+    public AdminLoginController(AdminPinService adminPinService, SecurityContextRepository securityContextRepository) {
         this.adminPinService = adminPinService;
+        this.securityContextRepository = securityContextRepository;
     }
 
     /**
@@ -26,7 +31,7 @@ public class AdminLoginController {
      */
     @PostMapping("/login")
     @ResponseBody
-    public ResponseEntity<?> login(@RequestBody Map<String, String> body, HttpSession session) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> body, HttpSession session, HttpServletRequest request, HttpServletResponse response) {
         String pin = body.getOrDefault("pin", "");
         if (adminPinService.verifyPin(pin)) {
             session.setAttribute("admin", true);
@@ -53,11 +58,12 @@ public class AdminLoginController {
                     username, null, authorities);
 
             org.springframework.security.core.context.SecurityContext context = org.springframework.security.core.context.SecurityContextHolder
-                    .getContext();
+                    .createEmptyContext();
             context.setAuthentication(newAuth);
-            session.setAttribute(
-                    org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-                    context);
+            
+            // Modern way to save context in Spring Security 6
+            securityContextRepository.saveContext(context, request, response);
+            org.springframework.security.core.context.SecurityContextHolder.setContext(context);
 
             return ResponseEntity.ok(Map.of("ok", true));
         }

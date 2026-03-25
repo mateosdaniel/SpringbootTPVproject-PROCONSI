@@ -71,7 +71,7 @@ public class CashRegisterServiceImpl implements CashRegisterService {
                         .build());
 
         LocalDateTime startTime = register.getOpeningTime() != null ? register.getOpeningTime() : today.atStartOfDay();
-        LocalDateTime endOfDay = today.plusDays(1).atStartOfDay().minusNanos(1);
+        LocalDateTime endOfDay = LocalDateTime.now();
 
         // Aggregate totals for the current shift
         BigDecimal cashSales = saleRepository.sumTotalBetweenByPaymentMethod(startTime, endOfDay, PaymentMethod.CASH)

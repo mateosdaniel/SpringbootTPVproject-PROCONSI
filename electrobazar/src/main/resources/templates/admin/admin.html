@@ -13,7 +13,7 @@
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <th:block th:replace="~{fragments/theme :: themeScript}" />
-    <script th:src="@{/js/admin/admin-main.js(v='1.2')}"></script>
+    <script th:src="@{/js/admin/admin-main.js(v='1.3')}"></script>
     <link rel="stylesheet" th:href="@{/css/admin/admin-main.css}">
     <style>
         #ipcUpdateModal .modal-content {
@@ -99,6 +99,11 @@
             border-color: var(--accent) !important;
             color: var(--text-main) !important;
             box-shadow: 0 0 0 0.25rem rgba(245, 166, 35, 0.15) !important;
+        }
+
+        .cash-row:hover, .invoice-row:hover {
+            background: rgba(245, 166, 35, 0.08) !important;
+            transition: background 0.2s ease;
         }
     </style>
 </head>
@@ -413,7 +418,8 @@
                     onclick="switchView('couponsView', document.querySelector('[onclick*=\'couponsView\']'))">
                     <i class="bi bi-ticket-perforated"></i>
                     <h3 th:text="#{admin.dashboard.coupons.title}">Cupones</h3>
-                    <p th:text="#{admin.dashboard.coupons.desc}">Gestiona campañas de descuento mediante códigos promocionales.</p>
+                    <p th:text="#{admin.dashboard.coupons.desc}">Gestiona campañas de descuento mediante códigos
+                        promocionales.</p>
                 </div>
 
                 <div class="dashboard-card"
@@ -876,10 +882,13 @@
                             <td><strong class="text-accent" th:text="${coupon.code}">SUMMER20</strong></td>
                             <td th:text="${coupon.description ?: '—'}">—</td>
                             <td>
-                                <span class="badge" th:classappend="${coupon.discountType.name() == 'PERCENTAGE'} ? 'bg-primary' : 'bg-info'" 
-                                      th:text="${coupon.discountType.name() == 'PERCENTAGE'} ? #{admin.coupons.percentage} : #{admin.coupons.fixed}">%</span>
+                                <span class="badge"
+                                    th:classappend="${coupon.discountType.name() == 'PERCENTAGE'} ? 'bg-primary' : 'bg-info'"
+                                    th:text="${coupon.discountType.name() == 'PERCENTAGE'} ? #{admin.coupons.percentage} : #{admin.coupons.fixed}">%</span>
                             </td>
-                            <td class="fw-bold" th:text="${coupon.discountType.name() == 'PERCENTAGE'} ? (${#numbers.formatDecimal(coupon.discountValue, 1, 0)} + '%') : (${#numbers.formatDecimal(coupon.discountValue, 1, 2)} + ' €')">20%</td>
+                            <td class="fw-bold"
+                                th:text="${coupon.discountType.name() == 'PERCENTAGE'} ? (${#numbers.formatDecimal(coupon.discountValue, 1, 0)} + '%') : (${#numbers.formatDecimal(coupon.discountValue, 1, 2)} + ' €')">
+                                20%</td>
                             <td>
                                 <span class="badge-active" th:classappend="${coupon.active} ? 'yes' : 'no'">
                                     <span th:if="${coupon.active}" th:text="#{common.yes}">Sí</span>
@@ -887,16 +896,18 @@
                                 </span>
                             </td>
                             <td>
-                                <span th:text="${coupon.timesUsed}">0</span> / <span th:text="${coupon.usageLimit ?: '∞'}">∞</span>
+                                <span th:text="${coupon.timesUsed}">0</span> / <span
+                                    th:text="${coupon.usageLimit ?: '∞'}">∞</span>
                             </td>
                             <td th:text="${coupon.validUntil != null ? coupon.validUntil : '—'}">—</td>
                             <td style="text-align:right">
                                 <div style="display:flex;gap:0.4rem;justify-content:flex-end">
-                                    <button class="btn-icon" th:title="#{common.edit}"
-                                        th:data-id="${coupon.id}" th:data-code="${coupon.code}"
-                                        th:data-type="${coupon.discountType}" th:data-value="${coupon.discountValue}"
+                                    <button class="btn-icon" th:title="#{common.edit}" th:data-id="${coupon.id}"
+                                        th:data-code="${coupon.code}" th:data-type="${coupon.discountType}"
+                                        th:data-value="${coupon.discountValue}"
                                         th:data-desc="${coupon.description ?: ''}" th:data-active="${coupon.active}"
-                                        th:data-limit="${coupon.usageLimit ?: ''}" th:data-from="${coupon.validFrom ?: ''}"
+                                        th:data-limit="${coupon.usageLimit ?: ''}"
+                                        th:data-from="${coupon.validFrom ?: ''}"
                                         th:data-until="${coupon.validUntil ?: ''}" th:data-generic="${coupon.generic}"
                                         onclick="openCouponModal(this)">
                                         <i class="bi bi-pencil"></i>
@@ -1033,36 +1044,45 @@
                 <div class="modal-content" style="background:var(--surface);border:1px solid var(--border);">
                     <div class="modal-header border-0">
                         <h5 class="modal-title fw-bold">
-                            <i class="bi bi-ticket-perforated me-2"></i><span th:text="#{admin.coupons.new}">Nuevo Cupón</span>
+                            <i class="bi bi-ticket-perforated me-2"></i><span th:text="#{admin.coupons.new}">Nuevo
+                                Cupón</span>
                         </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" id="couponId">
                         <div class="mb-3">
-                            <label class="form-label small fw-bold"><span th:text="#{admin.coupons.code}">Código</span> <span class="text-danger">*</span></label>
-                            <input type="text" id="couponCode" class="form-control" placeholder="EJ: PROMO20" style="text-transform:uppercase;">
+                            <label class="form-label small fw-bold"><span th:text="#{admin.coupons.code}">Código</span>
+                                <span class="text-danger">*</span></label>
+                            <input type="text" id="couponCode" class="form-control" placeholder="EJ: PROMO20"
+                                style="text-transform:uppercase;">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label small fw-bold" th:text="#{admin.coupons.description}">Descripción</label>
-                            <input type="text" id="couponDesc" class="form-control" th:placeholder="#{common.description.placeholder}">
+                            <label class="form-label small fw-bold"
+                                th:text="#{admin.coupons.description}">Descripción</label>
+                            <input type="text" id="couponDesc" class="form-control"
+                                th:placeholder="#{common.description.placeholder}">
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-bold" th:text="#{admin.coupons.type}">Tipo</label>
                                 <select id="couponType" class="form-select">
-                                    <option value="PERCENTAGE" th:text="#{admin.coupons.percentage}">Porcentaje (%)</option>
-                                    <option value="FIXED_AMOUNT" th:text="#{admin.coupons.fixed}">Importe Fijo (€)</option>
+                                    <option value="PERCENTAGE" th:text="#{admin.coupons.percentage}">Porcentaje (%)
+                                    </option>
+                                    <option value="FIXED_AMOUNT" th:text="#{admin.coupons.fixed}">Importe Fijo (€)
+                                    </option>
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-bold" th:text="#{admin.coupons.value}">Valor</label>
-                                <input type="number" id="couponValue" class="form-control" step="0.01" min="0" value="0">
+                                <input type="number" id="couponValue" class="form-control" step="0.01" min="0"
+                                    value="0">
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label small fw-bold" th:text="#{admin.coupons.limit}">Límite de Uso</label>
+                                <label class="form-label small fw-bold" th:text="#{admin.coupons.limit}">Límite de
+                                    Uso</label>
                                 <input type="number" id="couponLimit" class="form-control" min="0" placeholder="∞">
                             </div>
                             <div class="col-md-6 mb-3">
@@ -1070,29 +1090,35 @@
                                 <div class="d-flex align-items-center gap-4 mt-2">
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" id="couponActive" checked>
-                                        <label class="form-check-label text-muted small" for="couponActive" th:text="#{common.active}">Activo</label>
+                                        <label class="form-check-label text-muted small" for="couponActive"
+                                            th:text="#{common.active}">Activo</label>
                                     </div>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" id="couponGeneric" checked>
-                                        <label class="form-check-label text-muted small" for="couponGeneric" th:text="#{admin.coupons.generic}">Genérico</label>
+                                        <label class="form-check-label text-muted small" for="couponGeneric"
+                                            th:text="#{admin.coupons.generic}">Genérico</label>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="row">
-                          <div class="col-md-6 mb-3">
-                              <label class="form-label small fw-bold" th:text="#{admin.coupons.validFrom}">Inicio</label>
-                              <input type="datetime-local" id="couponFrom" class="form-control">
-                          </div>
-                          <div class="col-md-6 mb-3">
-                              <label class="form-label small fw-bold" th:text="#{admin.coupons.validUntil}">Fin</label>
-                              <input type="datetime-local" id="couponUntil" class="form-control">
-                          </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold"
+                                    th:text="#{admin.coupons.validFrom}">Inicio</label>
+                                <input type="datetime-local" id="couponFrom" class="form-control">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold"
+                                    th:text="#{admin.coupons.validUntil}">Fin</label>
+                                <input type="datetime-local" id="couponUntil" class="form-control">
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer border-0">
-                        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal" th:text="#{common.cancel}">Cancelar</button>
-                        <button type="button" class="btn btn-accent px-4 fw-bold text-primary" onclick="saveCoupon()" th:text="#{common.save}">Guardar Cupón</button>
+                        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal"
+                            th:text="#{common.cancel}">Cancelar</button>
+                        <button type="button" class="btn btn-accent px-4 fw-bold text-primary" onclick="saveCoupon()"
+                            th:text="#{common.save}">Guardar Cupón</button>
                     </div>
                 </div>
             </div>
@@ -1498,16 +1524,17 @@
                         </tr>
                     </thead>
                     <tbody id="invoicesTableBody">
-                        <tr th:each="sale : ${sales}" class="invoice-row" 
-                            th:data-id="${sale.id}"
+                        <tr th:each="sale : ${sales}" class="invoice-row" th:data-id="${sale.id}"
                             th:data-number="${sale.invoice != null ? sale.invoice.invoiceNumber : (sale.ticket != null ? sale.ticket.ticketNumber : '#' + sale.id)}"
                             th:data-customer="${sale.customer != null ? sale.customer.name : ''}"
                             th:data-taxid="${sale.customer != null ? sale.customer.taxId : ''}"
                             th:data-type="${sale.invoice != null ? 'factura' : 'ticket'}"
                             th:data-method="${sale.paymentMethod != null && sale.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}"
                             th:data-date="${#temporals.format(sale.createdAt, 'yyyy-MM-dd')}"
-                            th:onclick="'showDocPreview(\'/tpv/receipt/' + ${sale.id} + '\')'">
-                            <td style="color:var(--text-muted);font-weight:600" th:text="${sale.invoice != null ? sale.invoice.invoiceNumber : (sale.ticket != null ? sale.ticket.ticketNumber : '#' + sale.id)}"></td>
+                            style="cursor:pointer" th:onclick="'window.location.href = \'/admin/sale/' + ${sale.id} + '\''">
+                            <td style="color:var(--text-muted);font-weight:600"
+                                th:text="${sale.invoice != null ? sale.invoice.invoiceNumber : (sale.ticket != null ? sale.ticket.ticketNumber : '#' + sale.id)}">
+                            </td>
                             <td th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
                             <td>
                                 <span th:if="${sale.status != null && sale.status.name() == 'CANCELLED'}"
@@ -1531,14 +1558,15 @@
                                     Consumidor Final —</span>
                             </td>
                             <td style="font-weight: 500;">
-                                <span
-                                    th:text="${sale.worker != null ? sale.worker.username : #{admin.invoices.worker.system}}">—</span>
+                                <span th:with="workerName=${sale.worker != null ? sale.worker.username : null}"
+                                    th:text="${workerName} ?: #{admin.invoices.worker.system}">
+                                </span>
                             </td>
                             <td>
                                 <i th:class="${sale.paymentMethod != null && sale.paymentMethod.name() == 'CASH' ? 'bi bi-cash' : 'bi bi-credit-card'}"
                                     style="margin-right:0.3rem"></i>
                                 <span
-                                    th:text="${sale.paymentMethod != null && sale.paymentMethod.name() == 'CASH' ? #{admin.invoices.payment.cash} : #{admin.invoices.payment.card}}"></span>
+                                    th:text="${sale.paymentMethod != null && sale.paymentMethod.name() == 'CASH'} ? #{admin.invoices.payment.cash} : #{admin.invoices.payment.card}"></span>
                             </td>
                             <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--text-main)"
                                 th:text="${#numbers.formatDecimal(sale.totalAmount,1,2)} + ' &euro;'"></td>
@@ -1546,7 +1574,8 @@
                                 <div style="display:flex;gap:0.4rem;justify-content:flex-end">
                                     <button th:if="${sale.status != null && sale.status.name() == 'ACTIVE'}"
                                         class="btn-icon danger" th:title="#{admin.invoices.cancel}"
-                                        th:data-id="${sale.id}" onclick="event.stopPropagation(); cancelSale(this.getAttribute('data-id'))">
+                                        th:data-id="${sale.id}"
+                                        onclick="event.stopPropagation(); cancelSale(this.getAttribute('data-id'))">
                                         <i class="bi bi-x-circle"></i>
                                     </button>
                                     <button type="button" class="btn-icon" th:title="#{admin.common.preview}"
@@ -1556,8 +1585,7 @@
                                     </button>
                                     <a th:href="@{/tpv/receipt/{id}(id=${sale.id}, autoPrint=true)}" target="_blank"
                                         class="btn-icon" th:title="#{admin.invoices.print}"
-                                        style="text-decoration: none;"
-                                        onclick="event.stopPropagation();">
+                                        style="text-decoration: none;" onclick="event.stopPropagation();">
                                         <i class="bi bi-printer" style="color:#e74c3c;"></i>
                                     </a>
                                 </div>
@@ -1640,25 +1668,27 @@
                             th:data-reason="${ret.reason ?: ''}"
                             th:data-method="${ret.paymentMethod != null && ret.paymentMethod.name() == 'CASH' ? 'Efectivo' : 'Tarjeta'}"
                             th:data-date="${#temporals.format(ret.createdAt, 'yyyy-MM-dd')}"
-                            th:onclick="'showDocPreview(\'/tpv/return-receipt/' + ${ret.id} + '\')'">
+                            style="cursor:pointer" th:onclick="'window.location.href = \'/admin/return/' + ${ret.id} + '\''">
                             <td style="color:var(--text-muted);font-weight:600" th:text="${ret.returnNumber}"></td>
-                             <td th:text="${ret.originalSale.invoice != null ? ret.originalSale.invoice.invoiceNumber : (ret.originalSale.ticket != null ? ret.originalSale.ticket.ticketNumber : '#' + ret.originalSale.id)}"></td>
+                            <td
+                                th:text="${ret.originalSale.invoice != null ? ret.originalSale.invoice.invoiceNumber : (ret.originalSale.ticket != null ? ret.originalSale.ticket.ticketNumber : '#' + ret.originalSale.id)}">
+                            </td>
                             <td th:text="${#temporals.format(ret.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
                             <td>
                                 <span class="badge-active"
                                     th:classappend="${ret.type != null && ret.type.name() == 'TOTAL'} ? 'yes' : 'no'"
-                                    th:text="${ret.type != null && ret.type.name() == 'TOTAL' ? #{common.total} : #{common.partial}}"></span>
+                                    th:text="${ret.type != null && ret.type.name() == 'TOTAL'} ? #{common.total} : #{common.partial}"></span>
                             </td>
                             <td th:text="${#strings.abbreviate(ret.reason ?: '—', 40)}"></td>
                             <td style="font-weight: 500;">
-                                <span
-                                    th:text="${ret.worker != null ? ret.worker.username : #{admin.invoices.worker.system}}">—</span>
+                                <span th:if="${ret.worker != null}" th:text="${ret.worker.username}"></span>
+                                <span th:unless="${ret.worker != null}" th:text="#{admin.invoices.worker.system}"></span>
                             </td>
                             <td>
                                 <i th:class="${ret.paymentMethod != null && ret.paymentMethod.name() == 'CASH' ? 'bi bi-cash' : 'bi bi-credit-card'}"
                                     style="margin-right:0.3rem"></i>
                                 <span
-                                    th:text="${ret.paymentMethod != null && ret.paymentMethod.name() == 'CASH' ? #{admin.invoices.payment.cash} : #{admin.invoices.payment.card}}"></span>
+                                    th:text="${ret.paymentMethod != null && ret.paymentMethod.name() == 'CASH'} ? #{admin.invoices.payment.cash} : #{admin.invoices.payment.card}"></span>
                             </td>
                             <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--danger)"
                                 th:text="'-' + ${#numbers.formatDecimal(ret.totalRefunded,1,2)} + ' &euro;'"></td>
@@ -1971,7 +2001,8 @@
                         <tr th:each="register : ${cashRegisters}" class="cash-row"
                             th:data-worker="${register.worker != null ? register.worker.username : 'Sistema'}"
                             th:data-open-date="${register.openingTime != null ? #temporals.format(register.openingTime, 'yyyy-MM-dd') : ''}"
-                            th:data-close-date="${register.closedAt != null ? #temporals.format(register.closedAt, 'yyyy-MM-dd') : ''}">
+                            th:data-close-date="${register.closedAt != null ? #temporals.format(register.closedAt, 'yyyy-MM-dd') : ''}"
+                            style="cursor:pointer" th:onclick="'window.location.href = \'/admin/cash-register/' + ${register.id} + '\''">
                             <td style="color:var(--text-muted);font-weight:600" th:text="${'#'+register.id}"></td>
                             <td
                                 th:text="${register.openingTime != null ? #temporals.format(register.openingTime, 'dd/MM/yyyy HH:mm') : '—'}">
@@ -1997,8 +2028,8 @@
                                     th:text="${#numbers.formatDecimal(register.difference, 1, 2)} + ' &euro;'"></span>
                             </td>
                             <td style="font-weight: 500;">
-                                <span
-                                    th:text="${register.worker != null ? register.worker.username : #{admin.invoices.worker.system}}">—</span>
+                                <span th:if="${register.worker != null}" th:text="${register.worker.username}"></span>
+                                <span th:unless="${register.worker != null}" th:text="#{admin.invoices.worker.system}"></span>
                             </td>
 
                             <td style="text-align:right">
@@ -2115,12 +2146,14 @@
                                     permisos</span>
                             </td>
                             <td style="text-align:right">
-                                <button class="btn-action" th:data-id="${w.id}" th:data-username="${w.username}"
+                                <button class="btn-icon" th:data-id="${w.id}" th:data-username="${w.username}"
                                     th:data-active="${w.active}" th:data-role="${w.role != null ? w.role.id : ''}"
+                                    th:title="#{common.edit}"
                                     onclick="openWorkerModal(this.getAttribute('data-id'), this.getAttribute('data-username'), this.getAttribute('data-active') === 'true', null, this.getAttribute('data-role'))">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <button class="btn-action btn-action-delete" th:data-id="${w.id}"
+                                <button class="btn-icon danger" th:data-id="${w.id}"
+                                    th:title="#{common.delete}"
                                     onclick="deleteWorker(this.getAttribute('data-id'))">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -2417,7 +2450,7 @@
                             <td>
                                 <span class="badge"
                                     th:classappend="${c.type != null && c.type.name() == 'COMPANY'} ? 'badge-type-company' : 'badge-type-individual'"
-                                    th:text="${c.type != null && c.type.name() == 'COMPANY' ? #{admin.crm.type.company.label} : #{admin.crm.type.individual.label}}"></span>
+                                    th:text="${c.type != null && c.type.name() == 'COMPANY'} ? #{admin.crm.type.company.label} : #{admin.crm.type.individual.label}"></span>
                             </td>
                             <td>
                                 <span th:if="${c.tariff != null}" class="badge"
@@ -3423,15 +3456,17 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script th:src="@{/js/util/nif-cif-validator.js}"></script>
     <script th:inline="javascript">
+        /*<![CDATA[*/
         window.sharedInventoryI18n = {
-            lowStock: [[#{admin.inventory.filter.stock.low}]],
-            yes: [[#{common.yes}]],
-            no: [[#{common.no}]],
-            noItems: [[#{admin.inventory.products.empty}]], 
-            noCats: [[#{admin.inventory.categories.empty}]],
-            actions_edit: [[#{common.edit}]],
-            actions_delete: [[#{common.delete}]]
+            lowStock: /*[[#{admin.inventory.filter.stock.low}]]*/ 'Stock Bajo',
+            yes: /*[[#{common.yes}]]*/ 'Sí',
+            no: /*[[#{common.no}]]*/ 'No',
+            noItems: /*[[#{admin.inventory.products.empty}]]*/ 'No hay productos registrados',
+            noCats: /*[[#{admin.inventory.categories.empty}]]*/ 'No hay categorías registradas',
+            actions_edit: /*[[#{common.edit}]]*/ 'Editar',
+            actions_delete: /*[[#{common.delete}]]*/ 'Eliminar'
         };
+        /*]]>*/
     </script>
     <script th:src="@{/js/shared/inventory-filter.js}"></script>
     <!-- admin-main.js is now in the head -->
@@ -3772,7 +3807,7 @@
                     const formattedPrice = (p.price || 0).toFixed(2) + ' €';
                     const stockStyle = p.stock < 5 ? 'fw-bold text-danger' : '';
                     const badgeLowStock = p.stock < 5 ? `<span class="badge-stock-low">${sharedInventoryI18n.lowStock}</span>` : '';
-                    
+
                     let catName = '—';
                     if (p.category) {
                         catName = isEn && p.category.nameEn ? p.category.nameEn : (p.category.nameEs || p.category.name);
@@ -3911,6 +3946,11 @@
             if (iframe && iframe.contentWindow) {
                 iframe.contentWindow.print();
             }
+        }
+    </script>
+    <script>
+        function openCashRegisterDetail(id) {
+            window.location.href = '/admin/cash-register/' + id;
         }
     </script>
 </body>
