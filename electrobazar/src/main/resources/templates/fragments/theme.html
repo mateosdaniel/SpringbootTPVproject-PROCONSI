@@ -144,6 +144,9 @@
 
                 // ── Logo / favicon swap ─────────────────────────────────────
                 let logoFile = isDark ? '/icons/favicon.svg' : '/icons/favicon-light.svg';
+                // Root font size for rem/em scaling
+                document.documentElement.style.fontSize = prefs.fontSize;
+
                 document.addEventListener('DOMContentLoaded', function () {
                     document.querySelectorAll('img[alt="Logo"], img[alt="Logo ' + appName + '"]')
                         .forEach(function (img) { img.src = logoFile; });
@@ -154,8 +157,6 @@
                         link.href = logoFile;
                     });
 
-                    // Root font size for rem/em scaling
-                    document.documentElement.style.fontSize = prefs.fontSize;
                     // Body font size as fallback
                     document.body.style.fontSize = prefs.fontSize;
                     document.body.style.fontFamily = prefs.fontFamily;
