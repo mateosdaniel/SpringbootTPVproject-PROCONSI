@@ -52,7 +52,6 @@ public class TpvController {
     private final AdminPinService adminPinService;
     private final ActivityLogService activityLogService;
 
-
     @GetMapping
     public String index(
             @RequestParam(required = false) Long categoryId,
@@ -161,12 +160,13 @@ public class TpvController {
             if (unitPrices != null && i < unitPrices.size() && unitPrices.get(i) != null
                     && !unitPrices.get(i).isBlank()) {
                 unitPrice = new BigDecimal(unitPrices.get(i).replace(",", "."));
-                
+
                 if (product != null) {
                     vatRate = product.getTaxRate() != null && product.getTaxRate().getVatRate() != null
                             ? product.getTaxRate().getVatRate()
                             : new BigDecimal("0.21");
-                } else if (vatRates != null && i < vatRates.size() && vatRates.get(i) != null && !vatRates.get(i).isBlank()) {
+                } else if (vatRates != null && i < vatRates.size() && vatRates.get(i) != null
+                        && !vatRates.get(i).isBlank()) {
                     vatRate = new BigDecimal(vatRates.get(i).replace(",", "."));
                 }
             } else if (product != null) {
@@ -182,9 +182,10 @@ public class TpvController {
                 }
             }
 
-            String customName = (productNames != null && i < productNames.size() && productNames.get(i) != null && !productNames.get(i).isBlank())
-                    ? productNames.get(i) 
-                    : (product != null ? product.getName() : "Producto Comodín");
+            String customName = (productNames != null && i < productNames.size() && productNames.get(i) != null
+                    && !productNames.get(i).isBlank())
+                            ? productNames.get(i)
+                            : (product != null ? product.getName() : "Producto Comodín");
 
             lines.add(SaleLine.builder()
                     .product(product)
@@ -300,8 +301,8 @@ public class TpvController {
             for (SaleLine line : sale.getLines()) {
                 BigDecimal vatRate = line.getVatRate() != null ? line.getVatRate() : new BigDecimal("0.21");
                 Long pId = (line.getProduct() != null) ? line.getProduct().getId() : null;
-                String pName = (line.getProductName() != null) ? line.getProductName() : 
-                              (line.getProduct() != null ? line.getProduct().getName() : "Producto Comodín");
+                String pName = (line.getProductName() != null) ? line.getProductName()
+                        : (line.getProduct() != null ? line.getProduct().getName() : "Producto Comodín");
                 TaxBreakdown bd = recargoCalculator.calculateLineBreakdown(
                         pId, pName, line.getUnitPrice(), line.getQuantity(), vatRate, applyRecargo);
                 breakdowns.add(bd);
@@ -802,7 +803,9 @@ public class TpvController {
      * Updates the price of a cart item, either for the current session only
      * or permanently in the database (requires admin PIN).
      *
-     * <p>Both modes generate a mandatory fiscal audit log entry.</p>
+     * <p>
+     * Both modes generate a mandatory fiscal audit log entry.
+     * </p>
      */
     @PostMapping("/cart/update-price")
     @ResponseBody
@@ -857,24 +860,28 @@ public class TpvController {
                     productId, product.getName(), oldPrice, displayNewPrice, username);
 
             activityLogService.logFiscalEvent("CAMBIO_PRECIO",
-                    String.format("PRECIO_DB | Producto: '%s' (ID: %d) | Precio anterior: %.2f€ | Nuevo precio: %.2f€ | Cajero: %s",
+                    String.format(
+                            "PRECIO_DB | Producto: '%s' (ID: %d) | Precio anterior: %.2f€ | Nuevo precio: %.2f€ | Cajero: %s",
                             product.getName(), productId, oldPrice, displayNewPrice, username),
                     username);
 
             result.put("savedToDb", true);
-            result.put("message", String.format("Precio de '%s' actualizado en BD: %.2f€", product.getName(), displayNewPrice));
+            result.put("message",
+                    String.format("Precio de '%s' actualizado en BD: %.2f€", product.getName(), displayNewPrice));
         } else {
             // --- Opción A: solo sesión actual ---
             log.info("[PRICE] Session price override: product={} ({}), oldPrice={}, newPrice={}, by={}",
                     productId, product.getName(), oldPrice, displayNewPrice, username);
 
             activityLogService.logFiscalEvent("CAMBIO_PRECIO",
-                    String.format("PRECIO_SESION | Producto: '%s' (ID: %d) | Precio anterior: %.2f€ | Nuevo precio: %.2f€ | Cajero: %s",
+                    String.format(
+                            "PRECIO_SESION | Producto: '%s' (ID: %d) | Precio anterior: %.2f€ | Nuevo precio: %.2f€ | Cajero: %s",
                             product.getName(), productId, oldPrice, displayNewPrice, username),
                     username);
 
             result.put("savedToDb", false);
-            result.put("message", String.format("Precio de '%s' modificado para esta venta: %.2f€", product.getName(), displayNewPrice));
+            result.put("message", String.format("Precio de '%s' modificado para esta venta: %.2f€", product.getName(),
+                    displayNewPrice));
         }
 
         result.put("newPrice", displayNewPrice);

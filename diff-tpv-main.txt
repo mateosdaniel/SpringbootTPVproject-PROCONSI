@@ -1,0 +1,260 @@
+diff --git a/electrobazar/src/main/resources/static/js/tpv/tpv-main.js b/electrobazar/src/main/resources/static/js/tpv/tpv-main.js
+index 12544f2..991eb00 100644
+--- a/electrobazar/src/main/resources/static/js/tpv/tpv-main.js
++++ b/electrobazar/src/main/resources/static/js/tpv/tpv-main.js
+@@ -144,6 +144,7 @@ function addToTicket(card) {
+     var name = card.dataset.name;
+     var price = parseFloat(card.dataset.price);
+     var stock = parseInt(card.dataset.stock) || 0;
++    var categoryId = card.dataset.categoryId;
+ 
+     var currentQty = ticket[id] ? ticket[id].quantity : 0;
+     if (currentQty + 1 > stock) {
+@@ -154,7 +155,7 @@ function addToTicket(card) {
+     if (ticket[id]) {
+         ticket[id].quantity++;
+     } else {
+-        ticket[id] = { name: name, price: price, quantity: 1, stock: stock };
++        ticket[id] = { name: name, price: price, quantity: 1, stock: stock, categoryId: categoryId };
+     }
+ 
+     // ALWAYS fetch the price from the API to respect the "only tariffs" rule.
+@@ -251,6 +252,7 @@ function clearTicket() {
+  */
+ function updateStockBubbles() {
+     document.querySelectorAll('.product-card').forEach(function (card) {
++        if (card.dataset.id === 'wildcard' || card.classList.contains('wildcard-card')) return; // Skip wildcard card
+         var id = card.dataset.id;
+         var initialStock = parseInt(card.dataset.stock) || 0;
+         var inTicket = ticket[id] ? ticket[id].quantity : 0;
+@@ -335,20 +337,45 @@ function renderTicket() {
+                 </div>
+             </div>`;
+ 
+-        formHTML += `<input type="hidden" name="productIds" value="${id}">`;
++        var isManual = (typeof id === 'string' && id.indexOf('manual-') === 0);
++        var productIdToSend = isManual ? 0 : id;
++        formHTML += `<input type="hidden" name="productIds" value="${productIdToSend}">`;
+         formHTML += `<input type="hidden" name="quantities" value="${item.quantity}">`;
+         formHTML += `<input type="hidden" name="unitPrices" value="${unitPrice.toFixed(4)}">`;
++        formHTML += `<input type="hidden" name="productNames" value="${escapeHtml(item.name)}">`;
++        formHTML += `<input type="hidden" name="vatRates" value="${item.vatRate != null ? item.vatRate : ''}">`;
+     });
+ 
+     // Calculate Coupon Discount
+     var couponDiscountAmount = 0;
+     if (currentCoupon) {
+-        if (currentCoupon.discountType === 'PERCENTAGE') {
+-            couponDiscountAmount = totalAmount * (currentCoupon.discountValue / 100);
++        var eligibleAmount = 0;
++        var hasProductRestrictions = currentCoupon.restrictedProductIds && currentCoupon.restrictedProductIds.length > 0;
++        var hasCategoryRestrictions = currentCoupon.restrictedCategoryIds && currentCoupon.restrictedCategoryIds.length > 0;
++
++        if (hasProductRestrictions || hasCategoryRestrictions) {
++            ids.forEach(function (id) {
++                var item = ticket[id];
++                var isProductRestricted = hasProductRestrictions && currentCoupon.restrictedProductIds.map(rid => String(rid)).includes(id);
++                var isCategoryRestricted = hasCategoryRestrictions && item.categoryId && currentCoupon.restrictedCategoryIds.map(cid => String(cid)).includes(String(item.categoryId));
++                
++                if (isProductRestricted || isCategoryRestricted) {
++                    var unitPrice = (window.currentHasRE && item.priceWithRe) ? item.priceWithRe : item.price;
++                    eligibleAmount += unitPrice * item.quantity;
++                }
++            });
+         } else {
+-            couponDiscountAmount = currentCoupon.discountValue;
++            eligibleAmount = totalAmount;
++        }
++
++        if (eligibleAmount > 0) {
++            if (currentCoupon.discountType === 'PERCENTAGE') {
++                couponDiscountAmount = eligibleAmount * (currentCoupon.discountValue / 100);
++            } else {
++                couponDiscountAmount = currentCoupon.discountValue;
++            }
++            if (couponDiscountAmount > eligibleAmount) couponDiscountAmount = eligibleAmount;
+         }
+-        if (couponDiscountAmount > totalAmount) couponDiscountAmount = totalAmount;
+     }
+ 
+     var finalTotal = totalAmount - couponDiscountAmount;
+@@ -735,8 +762,11 @@ function processSaleWithInvoiceValidation() {
+ 
+     // Validar límite de pago en efectivo (Ley 11/2021)
+     var total = parseFloat(document.getElementById('ticketTotal').textContent.replace('\u20AC', '').trim());
+-    var customerId = document.getElementById('customerIdInput').value;
+-    var customerType = document.getElementById('customerTypeInput').value;
++    var customerIdInputEl = document.getElementById('customerIdInput');
++    var customerTypeInputEl = document.getElementById('customerTypeInput');
++    
++    var customerId = customerIdInputEl ? customerIdInputEl.value : null;
++    var customerType = customerTypeInputEl ? customerTypeInputEl.value : null;
+ 
+     if (paymentMethod === 'CASH') {
+         if (customerType === 'COMPANY' && total >= 1000) {
+@@ -861,7 +891,8 @@ function renderProducts(products) {
+             ' data-name="' + escapeHtml(product.name) + '"' +
+             ' data-price="' + product.price + '"' +
+             ' data-category="' + catName + '"' +
+-            ' data-stock="' + (product.stock || 0) + '">' +
++            ' data-stock="' + (product.stock || 0) + '"' +
++            ' onclick="addToTicket(this)">' +
+             ' <div class="product-image-container">' +
+             imgHtml +
+             ' <span class="stock-badge ' + badgeClass + '">' + available + '</span>' +
+@@ -892,14 +923,7 @@ function performSearch() {
+ }
+ 
+ // Event delegation for product card clicks - attach to the products container
+-if (productsContainer) {
+-    productsContainer.addEventListener('click', function (e) {
+-        var productCard = e.target.closest('.product-card');
+-        if (productCard) {
+-            addToTicket(productCard);
+-        }
+-    });
+-}
++// Product card clicks are now handled directly via onclick="addToTicket(this)" for better reliability and user preference.
+ 
+ function updateCategoryButtons(activeId) {
+     categoryButtons.forEach(function (btn) {
+@@ -1344,10 +1368,13 @@ function confirmSuspend() {
+     var label = (document.getElementById('suspendLabelInput').value || '').trim();
+ 
+     var lines = Object.keys(ticket).map(function (id) {
++        var item = ticket[id];
+         return {
+-            productId: parseInt(id),
+-            quantity: ticket[id].quantity,
+-            unitPrice: ticket[id].price
++            productId: (typeof id === 'string' && id.indexOf('manual-') === 0) ? 0 : parseInt(id),
++            productName: item.name,
++            quantity: item.quantity,
++            unitPrice: item.price,
++            vatRate: item.vatRate
+         };
+     });
+ 
+@@ -1422,14 +1449,28 @@ function resumeSale(id) {
+                 return r.json();
+             })
+             .then(function (sale) {
+-                (sale.lines || []).forEach(function (line) {
+-                    var productId = String(line.productId);
+-                    ticket[productId] = {
++                (sale.lines || []).forEach(function (line, index) {
++                    var isManual = (!line.productId || line.productId === 0);
++                    var key = isManual ? ('manual-resumed-' + index + '-' + Date.now()) : String(line.productId);
++                    ticket[key] = {
+                         name: line.productName,
+                         price: parseFloat(line.unitPrice),
+                         quantity: line.quantity,
+-                        stock: 999
++                        vatRate: line.vatRate,
++                        priceWithRe: parseFloat(line.unitPrice), // Simplified restoration
++                        stock: isManual ? '∞' : (line.stock || 999)
+                     };
++                    
++                    // RE recalculation if needed
++                    if (isManual && window.currentHasRE) {
++                        var v = line.vatRate || 0.21;
++                        var net = ticket[key].price / (1 + v);
++                        var reRate = 0;
++                        if (v >= 0.20) reRate = 0.052;
++                        else if (v >= 0.09) reRate = 0.014;
++                        else if (v >= 0.03) reRate = 0.005;
++                        ticket[key].priceWithRe = net * (1 + v + reRate);
++                    }
+                 });
+                 renderTicket();
+                 if (suspendedSalesModalInstance) suspendedSalesModalInstance.hide();
+@@ -1764,7 +1805,9 @@ function applyCoupon() {
+             currentCoupon = {
+                 code: data.code,
+                 discountType: data.discountType,
+-                discountValue: parseFloat(data.discountValue)
++                discountValue: parseFloat(data.discountValue),
++                restrictedProductIds: data.restrictedProductIds || [],
++                restrictedCategoryIds: data.restrictedCategoryIds || []
+             };
+             input.value = '';
+             showToast('Cupón aplicado: ' + data.code, 'success');
+@@ -2167,3 +2210,78 @@ document.addEventListener('DOMContentLoaded', function () {
+     };
+ })();
+ 
++/* ── PRODUCTO COMODÍN ── */
++var wildcardModalInstance;
++/* ── PRODUCTO COMODÍN ── */
++var wildcardModalInstance;
++window.openWildcardModal = function() {
++    if (typeof window.tpv_is_register_open !== 'undefined' && !window.tpv_is_register_open) {
++        showToast('Debes abrir la caja antes de vender', 'warning');
++        return;
++    }
++    if (!wildcardModalInstance) {
++        wildcardModalInstance = new bootstrap.Modal(document.getElementById('wildcardModal'));
++    }
++    var nameEl = document.getElementById('wildcardName');
++    var priceEl = document.getElementById('wildcardPrice');
++    var vatEl = document.getElementById('wildcardVat');
++    
++    if (nameEl) nameEl.value = '';
++    if (priceEl) priceEl.value = '0.00';
++    if (vatEl) vatEl.value = '0.21';
++
++    wildcardModalInstance.show();
++    setTimeout(function() { if (nameEl) nameEl.focus(); }, 400);
++};
++
++window.submitWildcard = function() {
++    var name = (document.getElementById('wildcardName').value || '').trim();
++    var priceStr = document.getElementById('wildcardPrice').value;
++    var price = parseFloat(priceStr);
++    var vat = parseFloat(document.getElementById('wildcardVat').value);
++
++    if (!name) { 
++        showToast('Introduce un nombre para el producto', 'warning'); 
++        return; 
++    }
++    if (isNaN(price) || price < 0) { 
++        showToast('Precio no válido', 'warning'); 
++        return; 
++    }
++
++    addWildcardToTicket(name, price, vat);
++    if (wildcardModalInstance) wildcardModalInstance.hide();
++};
++
++/**
++ * Añade un producto manual al ticket con un ID ficticio "manual-X".
++ */
++function addWildcardToTicket(name, price, vat) {
++    var id = 'manual-' + Date.now();
++    var pWithRE = price;
++    
++    if (window.currentHasRE) {
++        // Cálculo RE: Base imponible (Precio_Con_IVA / (1 + IVA)) por tipos impositivos RE oficiales
++        var net = price / (1 + vat);
++        var reRate = 0;
++        if (vat >= 0.20) reRate = 0.052;
++        else if (vat >= 0.09) reRate = 0.014;
++        else if (vat >= 0.03) reRate = 0.005;
++        
++        pWithRE = net * (1 + vat + reRate);
++    }
++
++    ticket[id] = {
++        name: name,
++        price: price,
++        priceWithRe: pWithRE,
++        quantity: 1,
++        vatRate: vat,
++        categoryId: null,
++        stock: '∞'
++    };
++    
++    renderTicket();
++    showToast('Producto manual añadido: ' + name, 'success');
++}
++

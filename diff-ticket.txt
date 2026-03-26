@@ -1,0 +1,384 @@
+diff --git a/electrobazar/src/main/resources/templates/tpv/index.html b/electrobazar/src/main/resources/templates/tpv/index.html
+index 041be0a..6872c53 100644
+--- a/electrobazar/src/main/resources/templates/tpv/index.html
++++ b/electrobazar/src/main/resources/templates/tpv/index.html
+@@ -142,280 +142,130 @@
+         </div>
+     </header>
+ 
+-    <!-- ── BODY ── -->
+     <div class="tpv-body">
+-
+-        <!-- SIDEBAR CATEGORÃAS -->
++        <!-- SIDEBAR CATEGORÍAS (Izquierda) -->
+         <nav class="tpv-sidebar">
+             <div class="sidebar-title">Categorías</div>
+-
+             <button type="button" class="cat-btn" id="catAll"
+                 th:classappend="${selectedCategoryId == null and search == null} ? 'active' : ''">
+                 <i class="bi bi-grid-3x3-gap"></i> Todos
+             </button>
+-
+             <button type="button" th:each="cat : ${categories}" th:attr="data-category-id=${cat.id}" class="cat-btn"
+                 th:classappend="${selectedCategoryId == cat.id} ? 'active' : ''" th:text="${cat.name}">
+                 Categoría
+             </button>
+         </nav>
+ 
+-        <aside class="tpv-ticket">
++        <!-- TICKET (Derecha) - Cargado antes que productos para evitar saltos, forzando order a 3 inline -->
++        <aside class="tpv-ticket" style="order: 3;">
+             <div class="ticket-header">
+                 <span class="ticket-title"><i class="bi bi-receipt me-1"></i> Ticket</span>
+                 <span class="ticket-count" id="ticketCount">0</span>
+             </div>
+ 
+-            <!-- Customer Management Section -->
+-            <div class="customer-section px-3 py-2"
+-                style="border-bottom: 1px solid var(--border); background: rgba(var(--accent-rgb), 0.02);"
+-                th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
+-                <div id="selectedCustomerCard" style="display: none; animation: fadeIn 0.2s ease;">
+-                    <div class="d-flex justify-content-between align-items-center p-2 rounded"
+-                        style="background: var(--surface); border: 1px solid var(--border);">
++            <div class="customer-section px-3 py-2" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
++                <div id="selectedCustomerCard" style="display: none;">
++                    <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background: var(--surface); border: 1px solid var(--border);">
+                         <div class="d-flex flex-column overflow-hidden">
+-                            <div class="d-flex align-items-center gap-2">
+-                                <span id="sidebarCustomerName" class="fw-bold truncate"
+-                                    style="font-size: 0.9rem; color: var(--text-main);"></span>
+-                                <span id="sidebarTariffBadge" class="badge-tariff-small"></span>
+-                            </div>
++                            <span id="sidebarCustomerName" class="fw-bold truncate" style="font-size: 0.95rem; color: var(--text-main);"></span>
+                             <span id="sidebarCustomerTaxId" class="small text-muted" style="font-size: 0.75rem;"></span>
+                         </div>
+-                        <button type="button" class="btn-clear-customer ms-2" onclick="clearSelectedCustomer()"
+-                            style="background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0.2rem;">
+-                            <i class="bi bi-x-circle fs-5"></i>
+-                        </button>
++                        <button type="button" class="btn-clear-customer ms-2" onclick="clearSelectedCustomer()" style="background: none; border: none; color: var(--text-muted); cursor: pointer;"><i class="bi bi-x-circle fs-5"></i></button>
+                     </div>
+                 </div>
+ 
+                 <div id="customerSelectionControls">
+-                    <ul class="nav nav-pills nav-fill mb-2 gap-1 p-1 rounded" id="sidebarCustomerTabs" role="tablist"
+-                        style="background: var(--primary); border: 1px solid var(--border); font-size: 0.78rem;">
+-                        <li class="nav-item" role="presentation">
+-                            <button class="nav-link active py-1 px-2 rounded-pill fw-bold" id="sidebar-search-tab"
+-                                data-bs-toggle="pill" data-bs-target="#sidebar-search-pane" type="button" role="tab"
+-                                style="color: var(--text-muted);">
+-                                <i class="bi bi-search me-1"></i> Buscar
+-                            </button>
+-                        </li>
+-                        <li class="nav-item" role="presentation">
+-                            <button class="nav-link py-1 px-2 rounded-pill fw-bold" id="sidebar-new-tab"
+-                                data-bs-toggle="pill" data-bs-target="#sidebar-new-pane" type="button" role="tab"
+-                                style="color: var(--text-muted);">
+-                                <i class="bi bi-person-plus me-1"></i> Nuevo
+-                            </button>
+-                        </li>
++                    <ul class="nav nav-pills nav-fill mb-2 gap-1 p-1 rounded" id="sidebarCustomerTabs" role="tablist" style="background: var(--primary); border: 1px solid var(--border); font-size: 0.78rem;">
++                        <li class="nav-item"><button class="nav-link active py-1 px-2 rounded-pill fw-bold" id="sidebar-search-tab" data-bs-toggle="pill" data-bs-target="#sidebar-search-pane" type="button">Buscar</button></li>
++                        <li class="nav-item"><button class="nav-link py-1 px-2 rounded-pill fw-bold" id="sidebar-new-tab" data-bs-toggle="pill" data-bs-target="#sidebar-new-pane" type="button">Nuevo</button></li>
+                     </ul>
+-
+-                    <div class="tab-content" id="sidebarCustomerTabsContent">
+-                        <!-- Tab: Buscar Cliente -->
+-                        <div class="tab-pane fade show active" id="sidebar-search-pane" role="tabpanel">
+-                            <div class="position-relative">
+-                                <div class="input-group input-group-sm">
+-                                    <span class="input-group-text"
+-                                        style="background: var(--primary); border-color: var(--border); color: var(--text-muted);">
+-                                        <i class="bi bi-search"></i>
+-                                    </span>
+-                                    <input type="text" id="customerSearchInput" class="form-control form-control-sm"
+-                                        placeholder="Nombre o NIF..."
+-                                        style="background: var(--primary); color: var(--text-main); border-color: var(--border);"
+-                                        autocomplete="off">
+-                                </div>
+-                                <div id="customerSearchResults" class="customer-dropdown-sidebar"
+-                                    style="display: none;"></div>
+-                            </div>
+-                        </div>
+-
+-                        <!-- Tab: Crear Nuevo Cliente -->
+-                        <div class="tab-pane fade" id="sidebar-new-pane" role="tabpanel">
+-                            <div class="d-grid gap-2">
+-                                <button type="button" class="btn btn-sm btn-outline-secondary"
+-                                    onclick="openFullCustomerModal()"
+-                                    style="font-size: 0.75rem; border-color: var(--border); color: var(--text-main);">
+-                                    <i class="bi bi-plus-lg me-1"></i> Rellenar ficha nueva
+-                                </button>
++                    <div class="tab-content">
++                        <div class="tab-pane fade show active" id="sidebar-search-pane">
++                            <div class="input-group input-group-sm">
++                                <span class="input-group-text"><i class="bi bi-search"></i></span>
++                                <input type="text" id="customerSearchInput" class="form-control form-control-sm" placeholder="Nombre o NIF..." autocomplete="off">
+                             </div>
++                            <div id="customerSearchResults" class="customer-dropdown-sidebar" style="display: none;"></div>
+                         </div>
++                        <div class="tab-pane fade" id="sidebar-new-pane"><button type="button" class="btn btn-sm btn-outline-secondary w-100" onclick="openFullCustomerModal()">Ficha nueva</button></div>
+                     </div>
+                 </div>
+             </div>
+ 
+-            <!-- ── Tarifa del Carrito (override por encima del cliente) ── -->
+-            <div id="cartTariffBar"
+-                style="padding: 0.35rem 0.75rem; border-bottom: 1px solid var(--border); background: rgba(var(--accent-rgb),0.03); display:flex; align-items:center; gap:0.5rem;"
+-                th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
+-                <i class="bi bi-tags" style="color: var(--text-muted); font-size:0.8rem;"></i>
+-                <span style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap;">Tarifa carrito:</span>
+-                <select id="cartTariffSelect"
+-                    onchange="onCartTariffChange(this)"
+-                    style="flex:1; font-size:0.76rem; background:var(--primary); color:var(--text-main); border:1px solid var(--border); border-radius:6px; padding:0.15rem 0.3rem; cursor:pointer;">
+-                    <option value="" data-discount="0">— Auto (cliente / MINORISTA) —</option>
+-                    <th:block th:each="tariff : ${tariffs}">
+-                        <option th:if="${tariff.active}"
+-                            th:value="${tariff.id}"
+-                            th:text="${tariff.name + (tariff.discountPercentage > 0 ? ' -' + #numbers.formatDecimal(tariff.discountPercentage,1,0) + '%' : '')}"
+-                            th:attr="data-discount=${tariff.discountPercentage}">MINORISTA</option>
+-                    </th:block>
+-                </select>
+-                <span id="cartTariffClearBtn"
+-                    onclick="clearCartTariff()"
+-                    style="display:none; cursor:pointer; color:#ef4444; font-size:0.85rem;"
+-                    title="Quitar tarifa del carrito">
+-                    <i class="bi bi-x-circle-fill"></i>
+-                </span>
+-            </div>
+-
+             <div class="ticket-lines" id="ticketLines" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
+-                <div class="ticket-empty" id="ticketEmpty">
+-                    <i class="bi bi-cart"></i>
+-                    <span th:if="${isRegisterOpen}">Pulsa un producto para añadirlo</span>
+-                    <span th:unless="${isRegisterOpen}">Abre la caja para empezar a vender</span>
+-                </div>
++                <div class="ticket-empty" id="ticketEmpty"><i class="bi bi-cart"></i><span>Pulsa un producto</span></div>
+             </div>
+ 
+-            <div class="ticket-footer">
+-                <!-- Subtotal without discount -->
+-                <div id="originalTotalRow"
+-                    style="display:none; justify-content:space-between; padding:0.25rem 0; font-size:0.82rem; color:var(--text-muted);">
+-                    <span>Precio sin descuento</span>
+-                    <span id="originalTotal" style="text-decoration:line-through;">0.00€</span>
+-                </div>
+-                <div id="discountRow"
+-                    style="display:none; justify-content:space-between; padding:0.25rem 0; font-size:0.82rem; color:#27ae60;">
+-                    <span id="discountLabel">Descuento (0%)</span>
+-                    <span id="discountAmount">-0.00€</span>
+-                </div>
+-
+-                <div id="reRow"
+-                    style="display:none; justify-content:space-between; padding:0.25rem 0; font-size:0.82rem; color:#f59e0b;">
+-                    <span>Recargo de Equivalencia</span>
+-                    <span id="reAmount">+0.00€</span>
+-                </div>
+-
+-                <div class="ticket-total-row">
+-                    <span class="ticket-total-label">Total</span>
+-                    <span class="ticket-total-amount" id="ticketTotal">0.00€</span>
+-                </div>
+-
+-                <!-- Coupon Section -->
+-                <div class="mt-2" id="couponSection">
+-                    <div class="input-group input-group-sm mb-1" style="border: 1px dashed var(--border); border-radius: 6px; overflow: hidden; background: rgba(var(--accent-rgb), 0.05);">
+-                        <span class="input-group-text border-0" style="background: transparent; color: var(--text-muted);"><i class="bi bi-ticket-perforated"></i></span>
+-                        <input type="text" id="couponInput" class="form-control border-0" placeholder="¿Cupón de descuento?" 
+-                            style="background: transparent; box-shadow: none; font-size: 0.8rem; height: 32px;" autocomplete="off">
+-                        <button class="btn btn-sm border-0" type="button" onclick="applyCoupon()" 
+-                            style="background: var(--surface); color: var(--accent); font-weight: 700; font-size: 0.75rem; padding: 0 0.75rem;">Aplicar</button>
+-                    </div>
+-                </div>
+-                <div id="couponRow" style="display:none; justify-content:space-between; padding:0.25rem 0; font-size:0.82rem; color:#27ae60; border-top: 1px dashed var(--border);">
+-                    <div class="d-flex align-items-center gap-1">
+-                        <i class="bi bi-ticket-perforated"></i>
+-                        <span id="couponLabel">CUPÓN</span>
+-                        <button type="button" class="btn btn-sm text-danger p-0 ms-1" onclick="removeCoupon()" title="Quitar cupón" style="font-size: 0.8rem;">
+-                            <i class="bi bi-x-circle"></i>
+-                        </button>
+-                    </div>
+-                    <span id="couponAmountDisplay">-0.00€</span>
+-                </div>
+-
+-                <!-- Selector mÃ©todo de pago -->
+-                <div class="payment-selector" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
+-                    <button type="button" class="pay-btn selected" id="btnCash" onclick="selectPayment('CASH')">
+-                        <i class="bi bi-cash"></i> Efectivo
+-                    </button>
+-                    <button type="button" class="pay-btn" id="btnCard" onclick="selectPayment('CARD')">
+-                        <i class="bi bi-credit-card"></i> Tarjeta
+-                    </button>
+-                    <button type="button" class="pay-btn" id="btnMixed" onclick="selectPayment('MIXED')">
+-                        <i class="bi bi-pie-chart-fill"></i> Mixto
+-                    </button>
++            <div class="ticket-footer p-3">
++                <div id="originalTotalRow" style="display:none;" class="d-flex justify-content-between small text-muted"><span>Subtotal</span><span id="originalTotal">0€</span></div>
++                <div id="reRow" style="display:none;" class="d-flex justify-content-between small text-warning"><span>R.E.</span><span id="reAmount">0€</span></div>
++                <div class="ticket-total-row d-flex justify-content-between align-items-center py-2">
++                    <span class="h5 mb-0">Total</span><span class="h3 mb-0" id="ticketTotal">0.00€</span>
+                 </div>
+ 
+                 <form id="saleForm" th:action="@{/tpv/sale}" method="post">
+                     <input type="hidden" name="paymentMethod" id="paymentMethodInput" value="CASH">
+                     <input type="hidden" name="customerId" id="customerIdInput">
+-                    <input type="hidden" name="customerName" id="customerNameInput">
+-                    <input type="hidden" name="customerType" id="customerTypeInput">
++                    <input type="hidden" id="customerTypeInput">
+                     <input type="hidden" name="receivedAmount" id="receivedAmountInput">
+                     <input type="hidden" name="cashAmount" id="cashAmountInput">
+                     <input type="hidden" name="cardAmount" id="cardAmountInput">
+-                    <input type="hidden" name="requestInvoice" id="requestInvoiceInput" value="false">
+-                    <input type="hidden" name="tariffId" id="tariffIdInput">
+-                    <input type="hidden" name="couponCode" id="couponCodeInput">
+                     <input type="hidden" name="notes" id="notesInput">
+                     <div id="formLines"></div>
+-                    <button type="button" class="btn-cobrar" id="btnCobrar" onclick="openCustomerModal()" disabled
+-                        th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
+-                        <i class="bi bi-lightning-fill me-1"></i> Cobrar
+-                    </button>
++                    <button type="button" class="btn-cobrar w-100" id="btnCobrar" onclick="openCustomerModal()" disabled>Cobrar</button>
+                 </form>
+-
+-                <button type="button" class="btn-clear" onclick="clearTicket()"
+-                    th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
+-                    <i class="bi bi-trash me-1"></i> Vaciar ticket
+-                </button>
+-
+-                <button type="button" id="btnSuspender" onclick="openSuspendLabelModal()" disabled
+-                    th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''"
+-                    style="width:100%; margin-top:0.4rem; padding:0.55rem; border-radius:10px; border:1px solid var(--border); background: var(--surface); color: var(--text-main); font-size:0.85rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.4rem; transition: border-color 0.18s, opacity 0.18s; opacity: 0.4;">
+-                    <i class="bi bi-hourglass-split"></i> Suspender venta
+-                </button>
++                <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-2" onclick="clearTicket()"><i class="bi bi-trash"></i> Vaciar</button>
++                <button type="button" id="btnSuspender" class="btn btn-sm btn-outline-secondary w-100 mt-1" onclick="openSuspendLabelModal()" disabled><i class="bi bi-pause"></i> Espera</button>
+             </div>
+         </aside>
+ 
+-        <!-- GRID DE PRODUCTOS -->
+-        <main class="tpv-products" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
+-
+-            <!-- Alerta de venta completada -->
++        <!-- GRID DE PRODUCTOS (Centro) -->
++        <main class="tpv-products" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''" style="order: 2;">
+             <div th:if="${successMessage}" class="alert-tpv" id="successAlert">
+                 <i class="bi bi-check-circle-fill"></i>
+                 <span th:text="${successMessage}"></span>
+             </div>
+-
+-            <!-- Alerta de error -->
+             <div th:if="${errorMessage}" class="alert-tpv bg-danger" id="errorAlert">
+                 <i class="bi bi-exclamation-octagon-fill"></i>
+                 <span th:text="${errorMessage}"></span>
+             </div>
+-
+             <div class="products-grid">
+-                <!-- Sin productos -->
++                <!-- Wildcard Product (Always first) -->
++                <div class="product-card wildcard-card" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''"
++                    onclick="event.stopPropagation(); openWildcardModal()"
++                    data-id="wildcard" data-stock="&infin;"
++                    style="border: 2px dashed var(--accent); background: rgba(var(--accent-rgb), 0.05);">
++                    <div class="product-image-container">
++                        <i class="bi bi-plus-circle-dotted product-icon" style="color: var(--accent); font-size: 2.5rem;"></i>
++                        <span class="stock-badge stock-neutral" style="background: var(--accent); color: var(--primary);">∞</span>
++                    </div>
++                    <div class="product-info text-center">
++                        <div class="product-name" style="color: var(--accent); font-weight: 800; font-size: 0.95rem;">PRODUCTO COMODÍN</div>
++                        <div class="product-price" style="color: var(--text-muted); font-size: 0.85rem;">Nombre y precio manual</div>
++                        <div class="product-category-badge" style="background: var(--accent); color: var(--primary); font-weight: 700;">GENÉRICO</div>
++                    </div>
++                </div>
+                 <div th:if="${#lists.isEmpty(products)}" class="no-products">
+                     <i class="bi bi-box-seam"></i>
+                     <p>No hay productos disponibles</p>
+                 </div>
+-
+-                <!-- Tarjeta de producto -->
+                 <div th:each="product : ${products}" class="product-card" 
+                     th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''"
+-                    th:attr="
+-                    data-id=${product.id},
+-                    data-name=${product.name},
+-                    data-price=${product.price},
+-                    data-category=${product.category != null ? product.category.name : ''},
+-                    data-stock=${product.stock}">
+-
++                    onclick="addToTicket(this)"
++                    th:attr="data-id=${product.id}, data-name=${product.name}, data-price=${product.price}, data-category=${product.category != null ? product.category.name : ''}, data-category-id=${product.category != null ? product.category.id : ''}, data-stock=${product.stock}">
+                     <div class="product-image-container">
+-                        <img th:if="${product.imageUrl}" th:src="${product.imageUrl}" alt="Imagen producto"
+-                            class="product-image">
++                        <img th:if="${product.imageUrl}" th:src="${product.imageUrl}" alt="Imagen producto" class="product-image">
+                         <i th:unless="${product.imageUrl}" class="bi bi-box product-icon"></i>
+-                        <span class="stock-badge"
+-                            th:classappend="${product.stock == 0 ? 'stock-danger' : (product.stock < 5 ? 'stock-warning' : 'stock-neutral')}"
+-                            th:text="${product.stock}">0</span>
++                        <span class="stock-badge" th:classappend="${product.stock == 0 ? 'stock-danger' : (product.stock < 5 ? 'stock-warning' : 'stock-neutral')}" th:text="${product.stock}">0</span>
+                     </div>
+                     <div class="product-info">
+                         <div class="product-name" th:text="${product.name}">Nombre producto</div>
+-                        <div class="product-price" th:text="${#numbers.formatDecimal(product.price, 1, 2)} + '€'">
+-                            0.00€
+-                        </div>
+-                        <div class="product-category-badge"
+-                            th:text="${product.category != null ? product.category.name : ''}"></div>
++                        <div class="product-price" th:text="${#numbers.formatDecimal(product.price, 1, 2)} + '€'">0.00€</div>
++                        <div class="product-category-badge" th:text="${product.category != null ? product.category.name : ''}"></div>
+                     </div>
+                 </div>
+             </div>
+         </main>
+-
+-
+     </div>
+ 
+     <!-- Modal de Finalizar Venta -->
+@@ -1013,6 +863,47 @@
+ 
+     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+     <script th:src="@{/js/util/nif-cif-validator.js}"></script>
++    <!-- ── MODAL: Producto Comodín ── -->
++    <div class="modal fade" id="wildcardModal" tabindex="-1">
++        <div class="modal-dialog modal-dialog-centered">
++            <div class="modal-content" style="background: var(--secondary); color: var(--text-main); border: 1px solid var(--border); border-radius: 12px;">
++                <div class="modal-header border-0 pb-0" style="background: rgba(var(--accent-rgb), 0.05);">
++                    <h5 class="modal-title fw-bold" style="color: var(--accent);"><i class="bi bi-plus-circle me-1"></i>Añadir Manualmente</h5>
++                    <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter: var(--close-filter);"></button>
++                </div>
++                <div class="modal-body p-4">
++                    <div class="mb-3">
++                        <label class="form-label small fw-bold text-muted">Nombre del Producto / Concepto</label>
++                        <input type="text" id="wildcardName" class="form-control form-control-lg" placeholder="Ej: Servicio Técnico, Montaje..."
++                            style="background: var(--primary); border-color: var(--border); color: var(--text-main);">
++                    </div>
++                    <div class="row g-3">
++                        <div class="col-md-7">
++                            <label class="form-label small fw-bold text-muted">Precio con IVA (€)</label>
++                            <div class="input-group input-group-lg">
++                                <span class="input-group-text" style="background: var(--surface); border-color: var(--border); color: var(--text-muted);">€</span>
++                                <input type="number" id="wildcardPrice" class="form-control" placeholder="0.00" step="0.01" min="0" value="0.00"
++                                    style="background: var(--primary); border-color: var(--border); color: var(--text-main); font-weight: bold;">
++                            </div>
++                        </div>
++                        <div class="col-md-5">
++                            <label class="form-label small fw-bold text-muted">Tipo de IVA</label>
++                            <select id="wildcardVat" class="form-select form-select-lg" style="background: var(--primary); border-color: var(--border); color: var(--text-main);">
++                                <option value="0.21" selected>IVA 21%</option>
++                                <option value="0.10">IVA 10%</option>
++                                <option value="0.04">IVA 4%</option>
++                                <option value="0.00">Exento (0%)</option>
++                            </select>
++                        </div>
++                    </div>
++                </div>
++                <div class="modal-footer border-0 pt-0">
++                    <button type="button" class="btn py-2 px-4" data-bs-dismiss="modal" style="background: var(--primary); color: var(--text-muted); border: 1px solid var(--border);">Cancelar</button>
++                    <button type="button" class="btn py-2 px-4 fw-bold" onclick="submitWildcard()" style="background: var(--accent); color: var(--primary);">Añadir al Ticket</button>
++                </div>
++            </div>
++        </div>
++    </div>
+     <script th:inline="javascript">
+         /*<![CDATA[*/
+         window.tpv_is_register_open = /*[[${isRegisterOpen}]]*/ false;

@@ -93,8 +93,8 @@
                     style="background: var(--accent); color: var(--primary); padding: 0.5rem 1rem; border-radius: 10px; text-decoration: none; font-weight: 700; border: none; display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; font-size: 0.82rem; letter-spacing: 0.3px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); transition: all 0.2s ease;">
                     <i class="bi bi-cash-register"></i> Cierre de caja
                 </a>
-                <a th:unless="${isRegisterOpen}" href="#" class="btn-cash-open"
-                    data-bs-toggle="modal" data-bs-target="#openRegisterModal"
+                <a th:unless="${isRegisterOpen}" href="#" class="btn-cash-open" data-bs-toggle="modal"
+                    data-bs-target="#openRegisterModal"
                     style="background: #2ecc71; color: #fff; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 700; text-decoration: none;">
                     <i class="bi bi-unlock"></i> Abrir caja
                 </a>
@@ -165,57 +165,150 @@
 
             <div class="customer-section px-3 py-2" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
                 <div id="selectedCustomerCard" style="display: none;">
-                    <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background: var(--surface); border: 1px solid var(--border);">
+                    <div class="d-flex justify-content-between align-items-center p-2 rounded"
+                        style="background: var(--surface); border: 1px solid var(--border);">
                         <div class="d-flex flex-column overflow-hidden">
-                            <span id="sidebarCustomerName" class="fw-bold truncate" style="font-size: 0.95rem; color: var(--text-main);"></span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span id="sidebarCustomerName" class="fw-bold truncate" style="font-size: 0.9rem; color: var(--text-main);"></span>
+                                <span id="sidebarTariffBadge" class="badge-tariff-small"></span>
+                            </div>
                             <span id="sidebarCustomerTaxId" class="small text-muted" style="font-size: 0.75rem;"></span>
                         </div>
-                        <button type="button" class="btn-clear-customer ms-2" onclick="clearSelectedCustomer()" style="background: none; border: none; color: var(--text-muted); cursor: pointer;"><i class="bi bi-x-circle fs-5"></i></button>
+                        <button type="button" class="btn-clear-customer ms-2" onclick="clearSelectedCustomer()"
+                            style="background: none; border: none; color: var(--text-muted); cursor: pointer;"><i
+                                class="bi bi-x-circle fs-5"></i></button>
                     </div>
                 </div>
 
-                <div id="customerSelectionControls">
-                    <ul class="nav nav-pills nav-fill mb-2 gap-1 p-1 rounded" id="sidebarCustomerTabs" role="tablist" style="background: var(--primary); border: 1px solid var(--border); font-size: 0.78rem;">
-                        <li class="nav-item"><button class="nav-link active py-1 px-2 rounded-pill fw-bold" id="sidebar-search-tab" data-bs-toggle="pill" data-bs-target="#sidebar-search-pane" type="button">Buscar</button></li>
-                        <li class="nav-item"><button class="nav-link py-1 px-2 rounded-pill fw-bold" id="sidebar-new-tab" data-bs-toggle="pill" data-bs-target="#sidebar-new-pane" type="button">Nuevo</button></li>
+                <div id="customerSelectionControls" style="position: relative;">
+                    <ul class="nav nav-pills nav-fill mb-2 gap-1 p-1 rounded" id="sidebarCustomerTabs" role="tablist"
+                        style="background: var(--primary); border: 1px solid var(--border); font-size: 0.78rem;">
+                        <li class="nav-item"><button class="nav-link active py-1 px-2 rounded-pill fw-bold"
+                                id="sidebar-search-tab" data-bs-toggle="pill" data-bs-target="#sidebar-search-pane"
+                                type="button">Buscar</button></li>
+                        <li class="nav-item"><button class="nav-link py-1 px-2 rounded-pill fw-bold"
+                                id="sidebar-new-tab" data-bs-toggle="pill" data-bs-target="#sidebar-new-pane"
+                                type="button">Nuevo</button></li>
                     </ul>
                     <div class="tab-content">
                         <div class="tab-pane fade show active" id="sidebar-search-pane">
                             <div class="input-group input-group-sm">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input type="text" id="customerSearchInput" class="form-control form-control-sm" placeholder="Nombre o NIF..." autocomplete="off">
+                                <input type="text" id="customerSearchInput" class="form-control form-control-sm"
+                                    placeholder="Nombre o NIF..." autocomplete="off">
                             </div>
-                            <div id="customerSearchResults" class="customer-dropdown-sidebar" style="display: none;"></div>
                         </div>
-                        <div class="tab-pane fade" id="sidebar-new-pane"><button type="button" class="btn btn-sm btn-outline-secondary w-100" onclick="openFullCustomerModal()">Ficha nueva</button></div>
+                        <div class="tab-pane fade" id="sidebar-new-pane">
+                            <button type="button" class="btn btn-sm btn-outline-secondary w-100"
+                                onclick="openFullCustomerModal()">Ficha nueva</button>
+                        </div>
+                    </div>
+                    <!-- Dropdown fuera del tab-content para evitar overflow:hidden de Bootstrap -->
+                    <div id="customerSearchResults" class="customer-dropdown-sidebar"
+                        style="display: none; position: absolute; top: 100%; left: 0; width: 100%; z-index: 99999;">
                     </div>
                 </div>
             </div>
 
+            <div id="cartTariffBar"
+                style="padding: 0.35rem 0.75rem; border-bottom: 1px solid var(--border); background: rgba(var(--accent-rgb),0.03); display:flex; align-items:center; gap:0.5rem;"
+                th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
+                <i class="bi bi-tags" style="color: var(--text-muted); font-size:0.8rem;"></i>
+                <span style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap;">Tarifa carrito:</span>
+                <select id="cartTariffSelect"
+                    onchange="onCartTariffChange(this)"
+                    style="flex:1; font-size:0.76rem; background:var(--primary); color:var(--text-main); border:1px solid var(--border); border-radius:6px; padding:0.15rem 0.3rem; cursor:pointer;">
+                    <option value="" data-discount="0">— Auto (cliente / MINORISTA) —</option>
+                    <th:block th:each="tariff : ${tariffs}">
+                        <option th:if="${tariff.active}"
+                            th:value="${tariff.id}"
+                            th:text="${tariff.name + (tariff.discountPercentage > 0 ? ' -' + #numbers.formatDecimal(tariff.discountPercentage,1,0) + '%' : '')}"
+                            th:attr="data-discount=${tariff.discountPercentage}">MINORISTA</option>
+                    </th:block>
+                </select>
+                <span id="cartTariffClearBtn"
+                    onclick="clearCartTariff()"
+                    style="display:none; cursor:pointer; color:#ef4444; font-size:0.85rem;"
+                    title="Quitar tarifa del carrito">
+                    <i class="bi bi-x-circle-fill"></i>
+                </span>
+            </div>
             <div class="ticket-lines" id="ticketLines" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
-                <div class="ticket-empty" id="ticketEmpty"><i class="bi bi-cart"></i><span>Pulsa un producto</span></div>
+                <div class="ticket-empty" id="ticketEmpty"><i class="bi bi-cart"></i><span>Pulsa un producto</span>
+                </div>
             </div>
 
             <div class="ticket-footer p-3">
-                <div id="originalTotalRow" style="display:none;" class="d-flex justify-content-between small text-muted"><span>Subtotal</span><span id="originalTotal">0€</span></div>
-                <div id="reRow" style="display:none;" class="d-flex justify-content-between small text-warning"><span>R.E.</span><span id="reAmount">0€</span></div>
+                <div id="originalTotalRow" style="display:none;"
+                    class="d-flex justify-content-between small text-muted"><span>Subtotal</span><span
+                        id="originalTotal">0€</span></div>
+                <div id="discountRow"
+                    style="display:none; justify-content:space-between; padding:0.25rem 0; font-size:0.82rem; color:#27ae60;">
+                    <span id="discountLabel">Descuento (0%)</span>
+                    <span id="discountAmount">-0.00€</span>
+                </div>
+                <div id="reRow" style="display:none; justify-content:space-between; padding:0.25rem 0; font-size:0.82rem; color:#e67e22;"></div>
+                <div class="mt-2" id="couponSection">
+                    <div class="input-group input-group-sm mb-1" style="border: 1px dashed var(--border); border-radius: 6px; overflow: hidden; background: rgba(var(--accent-rgb), 0.05);">
+                        <span class="input-group-text border-0" style="background: transparent; color: var(--text-muted);"><i class="bi bi-ticket-perforated"></i></span>
+                        <input type="text" id="couponInput" class="form-control border-0" placeholder="¿Cupón de descuento?"
+                            style="background: transparent; box-shadow: none; font-size: 0.8rem; height: 32px;" autocomplete="off">
+                        <button class="btn btn-sm border-0" type="button" onclick="applyCoupon()"
+                            style="background: var(--surface); color: var(--accent); font-weight: 700; font-size: 0.75rem; padding: 0 0.75rem;">Aplicar</button>
+                    </div>
+                </div>
+                <div id="couponRow" style="display:none; justify-content:space-between; padding:0.25rem 0; font-size:0.82rem; color:#27ae60; border-top: 1px dashed var(--border);">
+                    <div class="d-flex align-items-center gap-1">
+                        <i class="bi bi-ticket-perforated"></i>
+                        <span id="couponLabel">CUPÓN</span>
+                        <button type="button" class="btn btn-sm text-danger p-0 ms-1" onclick="removeCoupon()" title="Quitar cupón" style="font-size: 0.8rem;">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </div>
+                    <span id="couponAmountDisplay">-0.00€</span>
+                </div>
                 <div class="ticket-total-row d-flex justify-content-between align-items-center py-2">
                     <span class="h5 mb-0">Total</span><span class="h3 mb-0" id="ticketTotal">0.00€</span>
                 </div>
 
+                <div class="payment-selector" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
+                    <button type="button" class="pay-btn selected" id="btnCash" onclick="selectPayment('CASH')">
+                        <i class="bi bi-cash"></i> Efectivo
+                    </button>
+                    <button type="button" class="pay-btn" id="btnCard" onclick="selectPayment('CARD')">
+                        <i class="bi bi-credit-card"></i> Tarjeta
+                    </button>
+                    <button type="button" class="pay-btn" id="btnMixed" onclick="selectPayment('MIXED')">
+                        <i class="bi bi-pie-chart-fill"></i> Mixto
+                    </button>
+                </div>
                 <form id="saleForm" th:action="@{/tpv/sale}" method="post">
                     <input type="hidden" name="paymentMethod" id="paymentMethodInput" value="CASH">
                     <input type="hidden" name="customerId" id="customerIdInput">
-                    <input type="hidden" id="customerTypeInput">
+                    <input type="hidden" name="customerName" id="customerNameInput">
+                    <input type="hidden" name="customerType" id="customerTypeInput">
+                    <input type="hidden" name="requestInvoice" id="requestInvoiceInput" value="false">
+                    <input type="hidden" name="tariffId" id="tariffIdInput">
+                    <input type="hidden" name="couponCode" id="couponCodeInput">
                     <input type="hidden" name="receivedAmount" id="receivedAmountInput">
                     <input type="hidden" name="cashAmount" id="cashAmountInput">
                     <input type="hidden" name="cardAmount" id="cardAmountInput">
                     <input type="hidden" name="notes" id="notesInput">
                     <div id="formLines"></div>
-                    <button type="button" class="btn-cobrar w-100" id="btnCobrar" onclick="openCustomerModal()" disabled>Cobrar</button>
+                    <button type="button" class="btn-cobrar" id="btnCobrar" onclick="openCustomerModal()" disabled
+                        th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
+                        <i class="bi bi-lightning-fill me-1"></i> Cobrar
+                    </button>
                 </form>
-                <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-2" onclick="clearTicket()"><i class="bi bi-trash"></i> Vaciar</button>
-                <button type="button" id="btnSuspender" class="btn btn-sm btn-outline-secondary w-100 mt-1" onclick="openSuspendLabelModal()" disabled><i class="bi bi-pause"></i> Espera</button>
+                <button type="button" class="btn-clear" onclick="clearTicket()"
+                    th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
+                    <i class="bi bi-trash me-1"></i> Vaciar ticket
+                </button>
+                <button type="button" id="btnSuspender" onclick="openSuspendLabelModal()" disabled
+                    th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''"
+                    style="width:100%; margin-top:0.4rem; padding:0.55rem; border-radius:10px; border:1px solid var(--border); background: var(--surface); color: var(--text-main); font-size:0.85rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.4rem; transition: border-color 0.18s, opacity 0.18s; opacity: 0.4;">
+                    <i class="bi bi-hourglass-split"></i> Suspender venta
+                </button>
             </div>
         </aside>
 
@@ -232,36 +325,44 @@
             <div class="products-grid">
                 <!-- Wildcard Product (Always first) -->
                 <div class="product-card wildcard-card" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''"
-                    onclick="event.stopPropagation(); openWildcardModal()"
-                    data-id="wildcard" data-stock="&infin;"
+                    onclick="event.stopPropagation(); openWildcardModal()" data-id="wildcard" data-stock="&infin;"
                     style="border: 2px dashed var(--accent); background: rgba(var(--accent-rgb), 0.05);">
                     <div class="product-image-container">
-                        <i class="bi bi-plus-circle-dotted product-icon" style="color: var(--accent); font-size: 2.5rem;"></i>
-                        <span class="stock-badge stock-neutral" style="background: var(--accent); color: var(--primary);">∞</span>
+                        <i class="bi bi-plus-circle-dotted product-icon"
+                            style="color: var(--accent); font-size: 2.5rem;"></i>
+                        <span class="stock-badge stock-neutral"
+                            style="background: var(--accent); color: var(--primary);">∞</span>
                     </div>
                     <div class="product-info text-center">
-                        <div class="product-name" style="color: var(--accent); font-weight: 800; font-size: 0.95rem;">PRODUCTO COMODÍN</div>
-                        <div class="product-price" style="color: var(--text-muted); font-size: 0.85rem;">Nombre y precio manual</div>
-                        <div class="product-category-badge" style="background: var(--accent); color: var(--primary); font-weight: 700;">GENÉRICO</div>
+                        <div class="product-name" style="color: var(--accent); font-weight: 800; font-size: 0.95rem;">
+                            PRODUCTO COMODÍN</div>
+                        <div class="product-price" style="color: var(--text-muted); font-size: 0.85rem;">Nombre y precio
+                            manual</div>
+                        <div class="product-category-badge"
+                            style="background: var(--accent); color: var(--primary); font-weight: 700;">GENÉRICO</div>
                     </div>
                 </div>
                 <div th:if="${#lists.isEmpty(products)}" class="no-products">
                     <i class="bi bi-box-seam"></i>
                     <p>No hay productos disponibles</p>
                 </div>
-                <div th:each="product : ${products}" class="product-card" 
+                <div th:each="product : ${products}" class="product-card"
                     th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''"
-                    onclick="addToTicket(this)"
                     th:attr="data-id=${product.id}, data-name=${product.name}, data-price=${product.price}, data-category=${product.category != null ? product.category.name : ''}, data-category-id=${product.category != null ? product.category.id : ''}, data-stock=${product.stock}">
                     <div class="product-image-container">
-                        <img th:if="${product.imageUrl}" th:src="${product.imageUrl}" alt="Imagen producto" class="product-image">
+                        <img th:if="${product.imageUrl}" th:src="${product.imageUrl}" alt="Imagen producto"
+                            class="product-image">
                         <i th:unless="${product.imageUrl}" class="bi bi-box product-icon"></i>
-                        <span class="stock-badge" th:classappend="${product.stock == 0 ? 'stock-danger' : (product.stock < 5 ? 'stock-warning' : 'stock-neutral')}" th:text="${product.stock}">0</span>
+                        <span class="stock-badge"
+                            th:classappend="${product.stock == 0 ? 'stock-danger' : (product.stock < 5 ? 'stock-warning' : 'stock-neutral')}"
+                            th:text="${product.stock}">0</span>
                     </div>
                     <div class="product-info">
                         <div class="product-name" th:text="${product.name}">Nombre producto</div>
-                        <div class="product-price" th:text="${#numbers.formatDecimal(product.price, 1, 2)} + '€'">0.00€</div>
-                        <div class="product-category-badge" th:text="${product.category != null ? product.category.name : ''}"></div>
+                        <div class="product-price" th:text="${#numbers.formatDecimal(product.price, 1, 2)} + '€'">0.00€
+                        </div>
+                        <div class="product-category-badge"
+                            th:text="${product.category != null ? product.category.name : ''}"></div>
                     </div>
                 </div>
             </div>
@@ -336,29 +437,41 @@
                             <div class="col-6">
                                 <label class="form-label fw-bold small text-muted">A pagar en Tarjeta</label>
                                 <div class="input-group input-group-lg">
-                                    <span class="input-group-text" style="background: var(--surface); border-color: var(--border);"><i class="bi bi-credit-card text-primary"></i></span>
-                                    <input type="number" id="mixedCardAmount" class="form-control" placeholder="0.00" step="0.01" min="0" oninput="calculateMixedChange()" style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
+                                    <span class="input-group-text"
+                                        style="background: var(--surface); border-color: var(--border);"><i
+                                            class="bi bi-credit-card text-primary"></i></span>
+                                    <input type="number" id="mixedCardAmount" class="form-control" placeholder="0.00"
+                                        step="0.01" min="0" oninput="calculateMixedChange()"
+                                        style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
                                 </div>
                             </div>
                             <div class="col-6">
                                 <label class="form-label fw-bold small text-muted">A pagar en Efectivo</label>
                                 <div class="input-group input-group-lg">
-                                    <span class="input-group-text" style="background: var(--surface); border-color: var(--border);"><i class="bi bi-cash text-success"></i></span>
-                                    <input type="number" id="mixedCashAmount" class="form-control" placeholder="0.00" step="0.01" min="0" oninput="calculateMixedChange()" style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
+                                    <span class="input-group-text"
+                                        style="background: var(--surface); border-color: var(--border);"><i
+                                            class="bi bi-cash text-success"></i></span>
+                                    <input type="number" id="mixedCashAmount" class="form-control" placeholder="0.00"
+                                        step="0.01" min="0" oninput="calculateMixedChange()"
+                                        style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
                                 </div>
                             </div>
                         </div>
-                        <div class="mt-3 d-flex justify-content-between align-items-center" style="background: var(--surface); padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border);">
+                        <div class="mt-3 d-flex justify-content-between align-items-center"
+                            style="background: var(--surface); padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border);">
                             <div>
-                                <small style="display: block; color: var(--text-muted); font-size: 0.8rem;">Restante / Cambio</small>
+                                <small style="display: block; color: var(--text-muted); font-size: 0.8rem;">Restante /
+                                    Cambio</small>
                                 <span id="mixedRemainingAmount" class="fw-bold fs-5 text-danger">0.00€ faltan</span>
                             </div>
                             <!-- Botones rápidos para rellenar lo que falta -->
                             <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fillMixedMissing('card')" title="Poner resto en tarjeta">
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                    onclick="fillMixedMissing('card')" title="Poner resto en tarjeta">
                                     <i class="bi bi-credit-card"></i> Resto
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="fillMixedMissing('cash')" title="Poner resto en efectivo">
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                    onclick="fillMixedMissing('cash')" title="Poner resto en efectivo">
                                     <i class="bi bi-cash"></i> Resto
                                 </button>
                             </div>
@@ -368,8 +481,10 @@
 
                     <!-- Comentario opcional -->
                     <div class="mb-3 px-1">
-                        <label class="form-label fw-bold small text-muted"><i class="bi bi-chat-left-text me-1"></i> Comentario / Nota (Opcional)</label>
-                        <textarea id="saleNotes" class="form-control" rows="2" placeholder="Ej: Entregar en mano, frágil, etc."
+                        <label class="form-label fw-bold small text-muted"><i class="bi bi-chat-left-text me-1"></i>
+                            Comentario / Nota (Opcional)</label>
+                        <textarea id="saleNotes" class="form-control" rows="2"
+                            placeholder="Ej: Entregar en mano, frágil, etc."
                             style="background: var(--primary); color: var(--text-main); border-color: var(--border); font-size: 0.85rem; resize: none;"></textarea>
                     </div>
                 </div>
@@ -660,18 +775,22 @@
                                 <i class="bi bi-piggy-bank-fill flex-shrink-0 mt-1"></i>
                                 <span>
                                     Saldo retenido del turno anterior:
-                                    <strong th:text="${#numbers.formatDecimal(suggestedOpeningBalance, 1, 2)} + ' €'">0.00
+                                    <strong
+                                        th:text="${#numbers.formatDecimal(suggestedOpeningBalance, 1, 2)} + ' €'">0.00
                                         €</strong>
                                 </span>
                             </div>
 
                             <div class="input-group input-group-lg">
-                                <span class="input-group-text" style="background: var(--surface); border-color: var(--border); color: var(--text-muted);"><i class="bi bi-cash-coin"></i></span>
+                                <span class="input-group-text"
+                                    style="background: var(--surface); border-color: var(--border); color: var(--text-muted);"><i
+                                        class="bi bi-cash-coin"></i></span>
                                 <input type="number" id="openingBalance" name="openingBalance" class="form-control"
                                     th:value="${hasSuggestion ? suggestedOpeningBalance : null}" placeholder="0.00"
                                     step="0.01" min="0" required
                                     style="background: var(--surface); color: var(--text-main); border-color: var(--border);">
-                                <span class="input-group-text" style="background: var(--surface); border-color: var(--border); color: var(--text-muted);">€</span>
+                                <span class="input-group-text"
+                                    style="background: var(--surface); border-color: var(--border); color: var(--text-muted);">€</span>
                             </div>
                             <div class="form-text mt-2" style="color: var(--text-muted);">
                                 Ingresa la cantidad de efectivo con la que empieza la caja hoy.
@@ -733,7 +852,8 @@
                 <div class="modal-header py-3"
                     style="border-color: var(--border); background: rgba(var(--accent-rgb), 0.06); border-radius: 14px 14px 0 0;">
                     <h6 class="modal-title fw-bold d-flex align-items-center gap-2" id="editPriceModalLabel">
-                        <span style="background: var(--accent); color: var(--primary); border-radius: 8px; padding: 4px 8px; font-size: 0.8rem;">
+                        <span
+                            style="background: var(--accent); color: var(--primary); border-radius: 8px; padding: 4px 8px; font-size: 0.8rem;">
                             <i class="bi bi-pencil-fill"></i>
                         </span>
                         Modificar Precio de Línea
@@ -743,8 +863,7 @@
                 </div>
                 <div class="modal-body p-4">
                     <!-- Info del producto -->
-                    <div class="mb-3 p-3 rounded"
-                        style="background: var(--primary); border: 1px solid var(--border);">
+                    <div class="mb-3 p-3 rounded" style="background: var(--primary); border: 1px solid var(--border);">
                         <div class="d-flex justify-content-between align-items-center">
                             <span id="editPrice_productName" class="fw-bold"
                                 style="font-size: 0.95rem; color: var(--text-main);"></span>
@@ -761,23 +880,23 @@
                             <i class="bi bi-tags me-1"></i> Tarifa para esta línea
                         </label>
                         <div class="input-group input-group-sm">
-                            <select id="editPrice_lineTariff"
-                                onchange="onLineTariffChange()"
+                            <select id="editPrice_lineTariff" onchange="onLineTariffChange()"
                                 style="background: var(--primary); color: var(--text-main); border-color: var(--border); border-radius: 6px 0 0 6px; font-size:0.83rem;">
                                 <option value="" data-discount="0">— Heredar (carrito / cliente) —</option>
                                 <th:block th:each="tariff : ${tariffs}">
-                                    <option th:if="${tariff.active}"
-                                        th:value="${tariff.id}"
+                                    <option th:if="${tariff.active}" th:value="${tariff.id}"
                                         th:text="${tariff.name + (tariff.discountPercentage > 0 ? ' -' + #numbers.formatDecimal(tariff.discountPercentage,1,0) + '%' : '')}"
                                         th:attr="data-discount=${tariff.discountPercentage}">MINORISTA</option>
                                 </th:block>
                             </select>
                             <span class="input-group-text" id="editPrice_tariffFetching"
                                 style="display:none; background: var(--surface); border-color: var(--border);">
-                                <span class="spinner-border spinner-border-sm" style="width:0.8rem;height:0.8rem;"></span>
+                                <span class="spinner-border spinner-border-sm"
+                                    style="width:0.8rem;height:0.8rem;"></span>
                             </span>
                         </div>
-                        <small style="color:var(--text-muted);">Al cambiar la tarifa se calcula el precio automáticamente.</small>
+                        <small style="color:var(--text-muted);">Al cambiar la tarifa se calcula el precio
+                            automáticamente.</small>
                     </div>
 
                     <!-- Nuevo precio -->
@@ -788,8 +907,8 @@
                         <div class="input-group input-group-lg">
                             <span class="input-group-text"
                                 style="background: var(--primary); border-color: var(--border); color: var(--text-muted); font-size: 1.2rem;">€</span>
-                            <input type="number" id="editPrice_newPrice" class="form-control fw-bold"
-                                placeholder="0.00" step="0.01" min="0"
+                            <input type="number" id="editPrice_newPrice" class="form-control fw-bold" placeholder="0.00"
+                                step="0.01" min="0"
                                 style="background: var(--primary); color: var(--text-main); border-color: var(--border); font-size: 1.3rem; height: 60px;"
                                 oninput="editPriceOnInput()">
                         </div>
@@ -804,11 +923,12 @@
                             <label class="d-flex align-items-center gap-2 p-2 rounded"
                                 style="cursor: pointer; border: 1px solid var(--border); background: var(--primary);"
                                 id="editPrice_optA_label">
-                                <input type="radio" name="editPriceSaveMode" id="editPrice_optA" value="SESSION"
-                                    checked onchange="onEditPriceModeChange()" style="accent-color: var(--accent);">
+                                <input type="radio" name="editPriceSaveMode" id="editPrice_optA" value="SESSION" checked
+                                    onchange="onEditPriceModeChange()" style="accent-color: var(--accent);">
                                 <div>
                                     <div class="fw-bold" style="font-size: 0.85rem;">Solo esta venta</div>
-                                    <small style="color: var(--text-muted);">El precio se aplica únicamente al carrito actual.</small>
+                                    <small style="color: var(--text-muted);">El precio se aplica únicamente al carrito
+                                        actual.</small>
                                 </div>
                             </label>
                             <label class="d-flex align-items-center gap-2 p-2 rounded"
@@ -820,7 +940,8 @@
                                     <div class="fw-bold" style="font-size: 0.85rem; color: #ef4444;">
                                         <i class="bi bi-database-fill-gear me-1"></i> Corregir en Base de Datos
                                     </div>
-                                    <small style="color: var(--text-muted);">Actualiza el precio permanentemente para todos los cajeros.</small>
+                                    <small style="color: var(--text-muted);">Actualiza el precio permanentemente para
+                                        todos los cajeros.</small>
                                 </div>
                             </label>
                         </div>
@@ -844,8 +965,10 @@
                     </div>
 
                     <!-- Alerta de error interna -->
-                    <div id="editPrice_alert" class="alert alert-danger py-2 mt-2" style="display:none; font-size:0.85rem;"></div>
-                    <div id="editPrice_success" class="alert alert-success py-2 mt-2" style="display:none; font-size:0.85rem;"></div>
+                    <div id="editPrice_alert" class="alert alert-danger py-2 mt-2"
+                        style="display:none; font-size:0.85rem;"></div>
+                    <div id="editPrice_success" class="alert alert-success py-2 mt-2"
+                        style="display:none; font-size:0.85rem;"></div>
                 </div>
                 <div class="modal-footer" style="border-color: var(--border);">
                     <button type="button" class="btn" data-bs-dismiss="modal"
@@ -866,29 +989,36 @@
     <!-- ── MODAL: Producto Comodín ── -->
     <div class="modal fade" id="wildcardModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" style="background: var(--secondary); color: var(--text-main); border: 1px solid var(--border); border-radius: 12px;">
+            <div class="modal-content"
+                style="background: var(--secondary); color: var(--text-main); border: 1px solid var(--border); border-radius: 12px;">
                 <div class="modal-header border-0 pb-0" style="background: rgba(var(--accent-rgb), 0.05);">
-                    <h5 class="modal-title fw-bold" style="color: var(--accent);"><i class="bi bi-plus-circle me-1"></i>Añadir Manualmente</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter: var(--close-filter);"></button>
+                    <h5 class="modal-title fw-bold" style="color: var(--accent);"><i
+                            class="bi bi-plus-circle me-1"></i>Añadir Manualmente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        style="filter: var(--close-filter);"></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-muted">Nombre del Producto / Concepto</label>
-                        <input type="text" id="wildcardName" class="form-control form-control-lg" placeholder="Ej: Servicio Técnico, Montaje..."
+                        <input type="text" id="wildcardName" class="form-control form-control-lg"
+                            placeholder="Ej: Servicio Técnico, Montaje..."
                             style="background: var(--primary); border-color: var(--border); color: var(--text-main);">
                     </div>
                     <div class="row g-3">
                         <div class="col-md-7">
                             <label class="form-label small fw-bold text-muted">Precio con IVA (€)</label>
                             <div class="input-group input-group-lg">
-                                <span class="input-group-text" style="background: var(--surface); border-color: var(--border); color: var(--text-muted);">€</span>
-                                <input type="number" id="wildcardPrice" class="form-control" placeholder="0.00" step="0.01" min="0" value="0.00"
+                                <span class="input-group-text"
+                                    style="background: var(--surface); border-color: var(--border); color: var(--text-muted);">€</span>
+                                <input type="number" id="wildcardPrice" class="form-control" placeholder="0.00"
+                                    step="0.01" min="0" value="0.00"
                                     style="background: var(--primary); border-color: var(--border); color: var(--text-main); font-weight: bold;">
                             </div>
                         </div>
                         <div class="col-md-5">
                             <label class="form-label small fw-bold text-muted">Tipo de IVA</label>
-                            <select id="wildcardVat" class="form-select form-select-lg" style="background: var(--primary); border-color: var(--border); color: var(--text-main);">
+                            <select id="wildcardVat" class="form-select form-select-lg"
+                                style="background: var(--primary); border-color: var(--border); color: var(--text-main);">
                                 <option value="0.21" selected>IVA 21%</option>
                                 <option value="0.10">IVA 10%</option>
                                 <option value="0.04">IVA 4%</option>
@@ -898,8 +1028,10 @@
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn py-2 px-4" data-bs-dismiss="modal" style="background: var(--primary); color: var(--text-muted); border: 1px solid var(--border);">Cancelar</button>
-                    <button type="button" class="btn py-2 px-4 fw-bold" onclick="submitWildcard()" style="background: var(--accent); color: var(--primary);">Añadir al Ticket</button>
+                    <button type="button" class="btn py-2 px-4" data-bs-dismiss="modal"
+                        style="background: var(--primary); color: var(--text-muted); border: 1px solid var(--border);">Cancelar</button>
+                    <button type="button" class="btn py-2 px-4 fw-bold" onclick="submitWildcard()"
+                        style="background: var(--accent); color: var(--primary);">Añadir al Ticket</button>
                 </div>
             </div>
         </div>

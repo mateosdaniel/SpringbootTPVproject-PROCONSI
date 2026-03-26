@@ -91,8 +91,10 @@ public class SecurityConfig {
                                 // While ignoring it for API calls that use Bearer tokens
                                 .csrf(csrf -> csrf
                                                 .ignoringRequestMatchers("/api/**", "/admin/login",
-                                                                "/admin/products/**", "/admin/upload-csv", "/admin/upload-customers-csv",
-                                                                "/admin/settings/pin", "/forgot-password", "/reset-password"))
+                                                                "/admin/products/**", "/admin/upload-csv",
+                                                                "/admin/upload-customers-csv",
+                                                                "/admin/settings/pin", "/forgot-password",
+                                                                "/reset-password"))
 
                                 // 2. Authorization Rules by Path and Method
                                 .authorizeHttpRequests(auth -> auth
@@ -103,7 +105,9 @@ public class SecurityConfig {
                                                 .permitAll()
 
                                                 // Public authentication and generic informational pages
-                                                .requestMatchers("/login", "/register", "/error", "/logout", "/forgot-password", "/reset-password").permitAll()
+                                                .requestMatchers("/login", "/register", "/error", "/logout",
+                                                                "/forgot-password", "/reset-password")
+                                                .permitAll()
                                                 .requestMatchers("/api/workers/login").permitAll()
 
                                                 // TPV PUBLIC CATALOG (Allow public access to read categories and
@@ -169,7 +173,8 @@ public class SecurityConfig {
                                                 // For HTML requests, redirect the browser to the login page
                                                 .defaultAuthenticationEntryPointFor(
                                                                 new LoginUrlAuthenticationEntryPoint("/login"),
-                                                                request -> !request.getServletPath().startsWith("/api")))
+                                                                request -> !request.getServletPath()
+                                                                                .startsWith("/api")))
 
                                 // 4. Session Management Strategy
                                 // Using standard session policy for web browser interactions while keeping API

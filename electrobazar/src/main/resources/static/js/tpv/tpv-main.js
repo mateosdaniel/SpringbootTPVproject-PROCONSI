@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof attachNifCifValidator === 'function') {
         attachNifCifValidator('newCustomerTaxId');
     }
-    
+
     // Add RE compatibility listener for TPV quick customer form
     const tpvTariffSelect = document.getElementById('newCustomerTariffId');
     if (tpvTariffSelect) {
@@ -24,16 +24,16 @@ function formatPrice(price) {
     if (s.includes('.')) {
         let decimals = s.split('.')[1].length;
         if (decimals > 2) {
-             // Localize with target scale, keeping up to 4
-             return price.toLocaleString('es-ES', { 
-                 minimumFractionDigits: 2, 
-                 maximumFractionDigits: 4 
-             });
+            // Localize with target scale, keeping up to 4
+            return price.toLocaleString('es-ES', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 4
+            });
         }
     }
-    return price.toLocaleString('es-ES', { 
-        minimumFractionDigits: 2, 
-        maximumFractionDigits: 2 
+    return price.toLocaleString('es-ES', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
     });
 }
 
@@ -58,7 +58,7 @@ function getEffectiveTariffId(productId) {
 }
 
 // -- Explicitly global tariff functions --
-window.onCartTariffChange = function(selectEl) {
+window.onCartTariffChange = function (selectEl) {
     var newTariffId = selectEl.value || null;
     window.cartTariffId = newTariffId;
 
@@ -89,7 +89,7 @@ window.onCartTariffChange = function(selectEl) {
     });
 };
 
-window.clearCartTariff = function() {
+window.clearCartTariff = function () {
     window.cartTariffId = null;
     var sel = document.getElementById('cartTariffSelect');
     if (sel) sel.value = '';
@@ -98,12 +98,12 @@ window.clearCartTariff = function() {
     onCartTariffChange({ value: '' });
 };
 
-window.onLineTariffChange = function() {
+window.onLineTariffChange = function () {
     var productId = _editPriceProductId;
     if (!productId) return;
 
     var tariffSel = document.getElementById('editPrice_lineTariff');
-    var spinner   = document.getElementById('editPrice_tariffFetching');
+    var spinner = document.getElementById('editPrice_tariffFetching');
     var priceInput = document.getElementById('editPrice_newPrice');
     var selectedTariffId = tariffSel ? tariffSel.value : '';
 
@@ -129,7 +129,7 @@ window.onLineTariffChange = function() {
         });
 };
 
-window._syncLineTariffSelector = function(productId) {
+window._syncLineTariffSelector = function (productId) {
     var lineTariffSel = document.getElementById('editPrice_lineTariff');
     if (!lineTariffSel) return;
     lineTariffSel.value = (ticket[productId] && ticket[productId].lineTariffId)
@@ -311,14 +311,14 @@ function renderTicket() {
     var totalItems = 0;
     var totalAmount = 0;
     var linesHTML = '';
-    var formHTML = '';    ids.forEach(function (id) {
+    var formHTML = ''; ids.forEach(function (id) {
         var item = ticket[id];
-        // Use priceWithRe if customer has RE, otherwise normal tariff price
-        var unitPrice = (window.currentHasRE && item.priceWithRe) ? item.priceWithRe : item.price;
+        // Use normal ticket price always (backend handles RE calculations on invoice generation)
+        var unitPrice = item.price;
         var subtotal = unitPrice * item.quantity;
         totalItems += item.quantity;
         totalAmount += subtotal;
-        
+
         linesHTML += `
             <div class="ticket-line">
                 <div class="line-info">
@@ -358,7 +358,7 @@ function renderTicket() {
                 var item = ticket[id];
                 var isProductRestricted = hasProductRestrictions && currentCoupon.restrictedProductIds.map(rid => String(rid)).includes(id);
                 var isCategoryRestricted = hasCategoryRestrictions && item.categoryId && currentCoupon.restrictedCategoryIds.map(cid => String(cid)).includes(String(item.categoryId));
-                
+
                 if (isProductRestricted || isCategoryRestricted) {
                     var unitPrice = (window.currentHasRE && item.priceWithRe) ? item.priceWithRe : item.price;
                     eligibleAmount += unitPrice * item.quantity;
@@ -412,29 +412,7 @@ function renderTicket() {
     if (originalTotalRow) { originalTotalRow.style.display = 'none'; }
     if (discountRow) { discountRow.style.display = 'none'; }
 
-    // Recargo de Equivalencia (RE)
-    var reRow = document.getElementById('reRow');
-    var reAmountEl = document.getElementById('reAmount');
-    if (window.currentHasRE) {
-        var totalRe = 0;
-        ids.forEach(function (id) {
-            var item = ticket[id];
-            if (item.priceWithRe && item.price) {
-                totalRe += (item.priceWithRe - item.price) * item.quantity;
-            }
-        });
-        if (totalRe > 0) {
-            totalAmount += totalRe;
-            if (reRow && reAmountEl) {
-                reAmountEl.textContent = '+' + totalRe.toFixed(2) + '\u20AC';
-                reRow.style.display = 'flex';
-            }
-        } else {
-            if (reRow) reRow.style.display = 'none';
-        }
-    } else {
-        if (reRow) reRow.style.display = 'none';
-    }
+    // Recargo de Equivalencia removed from visual ticket (handled automatically by backend on invoice generation)
 
     totalEl.textContent = totalAmount.toFixed(2) + '\u20AC';
 
@@ -450,13 +428,13 @@ function selectPayment(method) {
     var btnCard = document.getElementById('btnCard');
     var btnMixed = document.getElementById('btnMixed');
     var paymentInput = document.getElementById('paymentMethodInput');
-    
+
     if (paymentInput) paymentInput.value = method;
-    
+
     if (btnCash) btnCash.classList.toggle('selected', method === 'CASH');
     if (btnCard) btnCard.classList.toggle('selected', method === 'CARD');
     if (btnMixed) btnMixed.classList.toggle('selected', method === 'MIXED');
-    
+
     // Automatically switch sections if modal is somehow open
     var cashSection = document.getElementById('cashInputSection');
     var mixedSection = document.getElementById('mixedInputSection');
@@ -593,7 +571,7 @@ function calculateMixedChange() {
     var cashVal = parseFloat(document.getElementById('mixedCashAmount').value) || 0;
     var total = parseFloat(document.getElementById('ticketTotal').textContent.replace('\u20AC', '').trim());
     var remainingEl = document.getElementById('mixedRemainingAmount');
-    
+
     var diff = (cardVal + cashVal) - total;
     if (diff < 0) {
         remainingEl.textContent = 'Faltan ' + Math.abs(diff).toFixed(2) + '\u20AC';
@@ -611,10 +589,10 @@ function fillMixedMissing(type) {
     var total = parseFloat(document.getElementById('ticketTotal').textContent.replace('\u20AC', '').trim());
     var cardInput = document.getElementById('mixedCardAmount');
     var cashInput = document.getElementById('mixedCashAmount');
-    
+
     var currentCard = parseFloat(cardInput.value) || 0;
     var currentCash = parseFloat(cashInput.value) || 0;
-    
+
     if (type === 'card') {
         var missing = total - currentCash;
         if (missing > 0) cardInput.value = missing.toFixed(2);
@@ -764,7 +742,7 @@ function processSaleWithInvoiceValidation() {
     var total = parseFloat(document.getElementById('ticketTotal').textContent.replace('\u20AC', '').trim());
     var customerIdInputEl = document.getElementById('customerIdInput');
     var customerTypeInputEl = document.getElementById('customerTypeInput');
-    
+
     var customerId = customerIdInputEl ? customerIdInputEl.value : null;
     var customerType = customerTypeInputEl ? customerTypeInputEl.value : null;
 
@@ -891,8 +869,7 @@ function renderProducts(products) {
             ' data-name="' + escapeHtml(product.name) + '"' +
             ' data-price="' + product.price + '"' +
             ' data-category="' + catName + '"' +
-            ' data-stock="' + (product.stock || 0) + '"' +
-            ' onclick="addToTicket(this)">' +
+            ' data-stock="' + (product.stock || 0) + '">' +
             ' <div class="product-image-container">' +
             imgHtml +
             ' <span class="stock-badge ' + badgeClass + '">' + available + '</span>' +
@@ -923,7 +900,14 @@ function performSearch() {
 }
 
 // Event delegation for product card clicks - attach to the products container
-// Product card clicks are now handled directly via onclick="addToTicket(this)" for better reliability and user preference.
+if (productsContainer) {
+    productsContainer.addEventListener('click', function (e) {
+        var productCard = e.target.closest('.product-card');
+        if (productCard && !productCard.classList.contains('wildcard-card')) {
+            addToTicket(productCard);
+        }
+    });
+}
 
 function updateCategoryButtons(activeId) {
     categoryButtons.forEach(function (btn) {
@@ -1070,7 +1054,11 @@ if (customerSearchInput) {
         clearTimeout(customerSearchTimeout);
 
         if (query.length === 0) {
-            loadAllCustomers();
+            var container = document.getElementById('customerSearchResults');
+            if (container) {
+                container.style.display = 'none';
+                container.innerHTML = '';
+            }
             return;
         }
 
@@ -1085,30 +1073,42 @@ if (customerSearchInput) {
     });
 
     customerSearchInput.addEventListener('focus', function () {
-        if (this.value.trim().length === 0) {
+        var query = this.value.trim();
+        if (query.length === 0) {
             loadAllCustomers();
+        } else {
+            fetch('/api/customers/search?query=' + encodeURIComponent(query))
+                .then(function (r) { return r.json(); })
+                .then(function (customers) {
+                    renderCustomerResults(customers);
+                })
+                .catch(function (err) { console.error('Error searching customers', err); });
         }
     });
 }
 
 function renderCustomerResults(customers) {
     var container = document.getElementById('customerSearchResults');
+    var input = document.getElementById('customerSearchInput');
+
     container.innerHTML = '';
 
     if (customers.length === 0) {
-        container.innerHTML = '<div class="p-3" style="color: var(--text-primary); background-color: var(--surface);">No se encontraron clientes</div>';
+        container.innerHTML = '<div class="p-3" style="color: var(--text-main);">No se encontraron clientes</div>';
     } else {
         customers.forEach(function (c) {
             var div = document.createElement('div');
             div.className = 'customer-search-item';
-            div.style.color = 'var(--text-primary)';
+            div.style.color = 'var(--text-main)';
             div.style.backgroundColor = 'var(--surface)';
-            div.innerHTML = '<span class="name" style="color: var(--text-primary);">' + escapeHtml(c.name) + '</span>' +
-                '<span class="details" style="color: var(--text-primary); opacity: 0.8;">' + (c.taxId || 'Sin NIF') + ' · ' + (c.city || '') + '</span>';
+            div.innerHTML = '<span style="color: var(--text-main); display:block; font-weight:600;">' + escapeHtml(c.name) + '</span>' +
+                '<span style="color: var(--text-muted); font-size: 0.75rem;">' +
+                (c.taxId || 'Sin NIF') + ' · ' + (c.city || '') + '</span>';
             div.onclick = function () { selectCustomer(c); };
             container.appendChild(div);
         });
     }
+
     container.style.display = 'block';
 }
 
@@ -1120,6 +1120,7 @@ function selectCustomer(c) {
 
     document.getElementById('customerSearchInput').value = '';
     document.getElementById('customerSearchResults').style.display = 'none';
+    document.getElementById('customerSearchResults').innerHTML = '';
     document.getElementById('selectedCustomerCard').style.display = 'block';
     document.getElementById('customerSelectionControls').style.display = 'none';
 
@@ -1142,6 +1143,8 @@ function clearSelectedCustomer() {
     document.getElementById('customerTypeInput').value = '';
     document.getElementById('selectedCustomerCard').style.display = 'none';
     document.getElementById('customerSelectionControls').style.display = 'block';
+    var _csr = document.getElementById('customerSearchResults');
+    if (_csr) { _csr.style.display = 'none'; _csr.innerHTML = ''; }
     window.currentTariffId = null; // clear so addToTicket uses base prices again
     window.currentTariffColor = null;
     window.currentHasRE = false;
@@ -1292,7 +1295,7 @@ function createNewCustomerAjax() {
         const selectedOption = tariffSelect.options[tariffSelect.selectedIndex];
         const tariffText = selectedOption ? selectedOption.text.toLowerCase() : "";
         const isMinorista = (tariffSelect.value === "" || tariffText.includes("minorista"));
-        
+
         if (!isMinorista) {
             showToast('No es posible aplicar el recargo de equivalencia a esta tarifa', 'warning');
             return;
@@ -1460,7 +1463,7 @@ function resumeSale(id) {
                         priceWithRe: parseFloat(line.unitPrice), // Simplified restoration
                         stock: isManual ? '∞' : (line.stock || 999)
                     };
-                    
+
                     // RE recalculation if needed
                     if (isManual && window.currentHasRE) {
                         var v = line.vatRate || 0.21;
@@ -1797,11 +1800,11 @@ function applyCoupon() {
     if (!code) return;
 
     fetch('/api/coupons/validate?code=' + encodeURIComponent(code))
-        .then(function(r) {
-            if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'error'); });
+        .then(function (r) {
+            if (!r.ok) return r.json().then(function (d) { throw new Error(d.error || 'error'); });
             return r.json();
         })
-        .then(function(data) {
+        .then(function (data) {
             currentCoupon = {
                 code: data.code,
                 discountType: data.discountType,
@@ -1813,7 +1816,7 @@ function applyCoupon() {
             showToast('Cupón aplicado: ' + data.code, 'success');
             renderTicket();
         })
-        .catch(function(err) {
+        .catch(function (err) {
             showToast(err.message || 'Cupón no válido', 'warning');
         });
 }
@@ -2105,7 +2108,7 @@ function confirmEditPrice() {
         adminPin: adminPin
     });
 
-    var csrfToken  = document.querySelector('meta[name="_csrf"]')        ? document.querySelector('meta[name="_csrf"]').getAttribute('content')        : '';
+    var csrfToken = document.querySelector('meta[name="_csrf"]') ? document.querySelector('meta[name="_csrf"]').getAttribute('content') : '';
     var csrfHeader = document.querySelector('meta[name="_csrf_header"]') ? document.querySelector('meta[name="_csrf_header"]').getAttribute('content') : 'X-CSRF-TOKEN';
 
     var headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
@@ -2116,46 +2119,46 @@ function confirmEditPrice() {
         headers: headers,
         body: params.toString()
     })
-    .then(function (response) {
-        return response.json().then(function (data) {
-            return { status: response.status, data: data };
+        .then(function (response) {
+            return response.json().then(function (data) {
+                return { status: response.status, data: data };
+            });
+        })
+        .then(function (res) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Aplicar cambio';
+
+            if (res.status !== 200) {
+                _editPriceShowError(res.data.error || 'Error al actualizar el precio.');
+                return;
+            }
+
+            // ✅ Update local ticket state with the new price
+            var adjustedPrice = parseFloat(res.data.newPrice);
+            if (ticket[productId]) {
+                ticket[productId].price = adjustedPrice;
+                // Clear any RE cached price to force recalc from base
+                ticket[productId].priceWithRe = null;
+            }
+
+            // Show success briefly, then close
+            var successEl = document.getElementById('editPrice_success');
+            successEl.textContent = '✓ ' + (res.data.message || 'Precio actualizado correctamente.');
+            successEl.style.display = 'block';
+            document.getElementById('editPrice_alert').style.display = 'none';
+
+            setTimeout(function () {
+                if (_editPriceModalInstance) _editPriceModalInstance.hide();
+                renderTicket();
+                showToast(res.data.message || 'Precio actualizado.', 'success');
+            }, 900);
+        })
+        .catch(function (err) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Aplicar cambio';
+            _editPriceShowError('Error de conexión. Inténtalo de nuevo.');
+            console.error('[EditPrice] Fetch error:', err);
         });
-    })
-    .then(function (res) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Aplicar cambio';
-
-        if (res.status !== 200) {
-            _editPriceShowError(res.data.error || 'Error al actualizar el precio.');
-            return;
-        }
-
-        // ✅ Update local ticket state with the new price
-        var adjustedPrice = parseFloat(res.data.newPrice);
-        if (ticket[productId]) {
-            ticket[productId].price = adjustedPrice;
-            // Clear any RE cached price to force recalc from base
-            ticket[productId].priceWithRe = null;
-        }
-
-        // Show success briefly, then close
-        var successEl = document.getElementById('editPrice_success');
-        successEl.textContent = '✓ ' + (res.data.message || 'Precio actualizado correctamente.');
-        successEl.style.display = 'block';
-        document.getElementById('editPrice_alert').style.display = 'none';
-
-        setTimeout(function () {
-            if (_editPriceModalInstance) _editPriceModalInstance.hide();
-            renderTicket();
-            showToast(res.data.message || 'Precio actualizado.', 'success');
-        }, 900);
-    })
-    .catch(function (err) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Aplicar cambio';
-        _editPriceShowError('Error de conexión. Inténtalo de nuevo.');
-        console.error('[EditPrice] Fetch error:', err);
-    });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2191,7 +2194,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ? tariffSel.options[tariffSel.selectedIndex].text
             : null;
 
-        ticket[productId].lineTariffId    = chosenId;
+        ticket[productId].lineTariffId = chosenId;
         ticket[productId].lineTariffLabel = chosenLabel;
         renderTicket();
     });
@@ -2214,7 +2217,7 @@ document.addEventListener('DOMContentLoaded', function () {
 var wildcardModalInstance;
 /* ── PRODUCTO COMODÍN ── */
 var wildcardModalInstance;
-window.openWildcardModal = function() {
+window.openWildcardModal = function () {
     if (typeof window.tpv_is_register_open !== 'undefined' && !window.tpv_is_register_open) {
         showToast('Debes abrir la caja antes de vender', 'warning');
         return;
@@ -2225,28 +2228,28 @@ window.openWildcardModal = function() {
     var nameEl = document.getElementById('wildcardName');
     var priceEl = document.getElementById('wildcardPrice');
     var vatEl = document.getElementById('wildcardVat');
-    
+
     if (nameEl) nameEl.value = '';
     if (priceEl) priceEl.value = '0.00';
     if (vatEl) vatEl.value = '0.21';
 
     wildcardModalInstance.show();
-    setTimeout(function() { if (nameEl) nameEl.focus(); }, 400);
+    setTimeout(function () { if (nameEl) nameEl.focus(); }, 400);
 };
 
-window.submitWildcard = function() {
+window.submitWildcard = function () {
     var name = (document.getElementById('wildcardName').value || '').trim();
     var priceStr = document.getElementById('wildcardPrice').value;
     var price = parseFloat(priceStr);
     var vat = parseFloat(document.getElementById('wildcardVat').value);
 
-    if (!name) { 
-        showToast('Introduce un nombre para el producto', 'warning'); 
-        return; 
+    if (!name) {
+        showToast('Introduce un nombre para el producto', 'warning');
+        return;
     }
-    if (isNaN(price) || price < 0) { 
-        showToast('Precio no válido', 'warning'); 
-        return; 
+    if (isNaN(price) || price < 0) {
+        showToast('Precio no válido', 'warning');
+        return;
     }
 
     addWildcardToTicket(name, price, vat);
@@ -2258,18 +2261,7 @@ window.submitWildcard = function() {
  */
 function addWildcardToTicket(name, price, vat) {
     var id = 'manual-' + Date.now();
-    var pWithRE = price;
-    
-    if (window.currentHasRE) {
-        // Cálculo RE: Base imponible (Precio_Con_IVA / (1 + IVA)) por tipos impositivos RE oficiales
-        var net = price / (1 + vat);
-        var reRate = 0;
-        if (vat >= 0.20) reRate = 0.052;
-        else if (vat >= 0.09) reRate = 0.014;
-        else if (vat >= 0.03) reRate = 0.005;
-        
-        pWithRE = net * (1 + vat + reRate);
-    }
+    var pWithRE = price; // Unused but kept for structure parity
 
     ticket[id] = {
         name: name,
@@ -2280,7 +2272,7 @@ function addWildcardToTicket(name, price, vat) {
         categoryId: null,
         stock: '∞'
     };
-    
+
     renderTicket();
     showToast('Producto manual añadido: ' + name, 'success');
 }
