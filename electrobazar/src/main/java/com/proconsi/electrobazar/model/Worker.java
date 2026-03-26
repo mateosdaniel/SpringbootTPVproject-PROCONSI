@@ -61,13 +61,22 @@ public class Worker {
      * @return A set of permission keys.
      */
     public Set<String> getEffectivePermissions() {
-        if (this.role != null && this.role.getPermissions() != null) {
-            if (this.role.getPermissions().contains("ACCESO_TOTAL_ADMIN")) {
+        if (this.role != null) {
+            // Case 1: MASTER KEY - Full admin by name or specific Spanish key
+            if ("ADMIN".equalsIgnoreCase(this.role.getName()) || 
+                (this.role.getPermissions() != null && this.role.getPermissions().contains("ACCESO_TOTAL_ADMIN"))) {
+                
                 return new HashSet<>(java.util.Arrays.asList(
-                        "ACCESO_TOTAL_ADMIN", "CIERRE_CAJA", "GESTION_INVENTARIO",
-                        "GESTION_DEVOLUCIONES", "GESTION_VENTAS_PAUSADAS", "MODIFICAR_PREFERENCIAS"));
+                    "ACCESO_TOTAL_ADMIN", "ADMIN_ACCESS", "ACCESO_TPV", "VER_VENTAS", 
+                    "GESTION_INVENTARIO", "MANAGE_PRODUCTS_TPV", "GESTION_VENTAS_PAUSADAS", "HOLD_SALES",
+                    "GESTION_CAJA", "CASH_CLOSE", "CIERRE_CAJA", "GESTION_DEVOLUCIONES", "RETURNS",
+                    "GESTION_CLIENTES_CRM", "MODIFICAR_PREFERENCIAS", "PREFERENCES"
+                ));
             }
-            return new HashSet<>(this.role.getPermissions());
+            // Case 2: Specific permissions from database
+            if (this.role.getPermissions() != null) {
+                return new HashSet<>(this.role.getPermissions());
+            }
         }
         return new HashSet<>();
     }

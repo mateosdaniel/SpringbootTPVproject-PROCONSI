@@ -80,7 +80,18 @@ public class ElectrobazarApplication {
                 return newRole;
             });
             
-            adminRole.setPermissions(Set.of("GESTION_INVENTARIO", "CIERRE_CAJA", "ACCESO_TOTAL_ADMIN"));
+            adminRole.setPermissions(Set.of(
+                "ACCESO_TOTAL_ADMIN", 
+                "ACCESO_TPV", 
+                "VER_VENTAS", 
+                "GESTION_INVENTARIO", 
+                "GESTION_VENTAS_PAUSADAS", 
+                "GESTION_CAJA", 
+                "CIERRE_CAJA", 
+                "GESTION_DEVOLUCIONES", 
+                "GESTION_CLIENTES_CRM",
+                "MODIFICAR_PREFERENCIAS"
+            ));
             final Role finalAdminRole = roleRepository.save(adminRole);
 
             // 2. Ensure root worker is active and has the ADMIN role

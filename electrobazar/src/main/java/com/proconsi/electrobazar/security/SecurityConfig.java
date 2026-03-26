@@ -108,7 +108,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/login", "/register", "/error", "/logout",
                                                                 "/forgot-password", "/reset-password")
                                                 .permitAll()
-                                                .requestMatchers("/api/workers/login").permitAll()
+                                                .requestMatchers("/api/workers/login", "/api/debug/**").permitAll()
 
                                                 // TPV PUBLIC CATALOG (Allow public access to read categories and
                                                 // products)
