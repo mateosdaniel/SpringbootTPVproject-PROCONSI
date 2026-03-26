@@ -42,7 +42,7 @@ public class RoleServiceImpl implements RoleService {
 
         activityLogService.logActivity(
                 isNew ? "CREAR_ROL" : "ACTUALIZAR_ROL",
-                (isNew ? "New role created: " : "Role updated: ") + saved.getName(),
+                (isNew ? "Nuevo rol creado: " : "Rol actualizado: ") + saved.getName(),
                 "Admin",
                 "ROLE",
                 saved.getId());
@@ -56,7 +56,7 @@ public class RoleServiceImpl implements RoleService {
             roleRepository.deleteById(id);
             activityLogService.logActivity(
                     "ELIMINAR_ROL",
-                    "Role permanently deleted: " + role.getName(),
+                    "Rol eliminado permanentemente: " + role.getName(),
                     "Admin",
                     "ROLE",
                     id);

@@ -428,6 +428,8 @@ function loadActivityLog() {
                 else if (log.action.includes('CIERRE') || log.action.includes('APERTURA')) iconClasses = 'bi-cash-stack text-info';
                 else if (log.action.includes('ACTUALIZAR')) iconClasses = 'bi-pencil text-warning';
                 else if (log.action.includes('ELIMINAR')) iconClasses = 'bi-trash text-danger';
+                else if (log.action.includes('LOGIN') || log.action.includes('SESION')) iconClasses = 'bi-key text-info';
+                else if (log.action.includes('FISCAL')) iconClasses = 'bi-shield-check text-success';
 
                 var formattedDate = log.timestamp ? formatTimeAgo(log.timestamp) : '';
                 var logShortDate = log.timestamp ? log.timestamp.split('T')[0] : '';

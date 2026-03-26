@@ -161,7 +161,7 @@ public class ReturnServiceImpl implements ReturnService {
 
         String username = (worker != null) ? worker.getUsername() : "System";
         activityLogService.logActivity("DEVOLUCIÓN", 
-                String.format("Return %s processed for Sale #%d. Total: -%.2f €. Payment: %s", 
+                String.format("Devolución %s procesada para Venta nº %d. Total: -%.2f €. Pago: %s", 
                 returnNumber, originalSaleId, totalRefunded, paymentMethod.name()), username, "RETURN", saved.getId());
 
         return saved;

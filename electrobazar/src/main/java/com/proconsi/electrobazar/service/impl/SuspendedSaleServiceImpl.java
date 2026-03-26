@@ -67,9 +67,9 @@ public class SuspendedSaleServiceImpl implements SuspendedSaleService {
 
         SuspendedSale saved = suspendedSaleRepository.save(sale);
 
-        String logLabel = (label != null) ? label : "Unlabeled";
+        String logLabel = (label != null) ? label : "Sin etiqueta";
         activityLogService.logActivity("SUSPENDER_VENTA",
-                String.format("Sale parked: %s with %d item(s)", logLabel, lineRequests.size()),
+                String.format("Venta aparcada: %s con %d artículo(s)", logLabel, lineRequests.size()),
                 (worker != null ? worker.getUsername() : "Anonymous"), "SALE", null);
 
         return saved;
@@ -87,7 +87,7 @@ public class SuspendedSaleServiceImpl implements SuspendedSaleService {
         sale.setStatus(SuspendedSale.SuspendedSaleStatus.RESUMED);
         SuspendedSale saved = suspendedSaleRepository.save(sale);
 
-        activityLogService.logActivity("RECUPERAR_VENTA", "Parked sale #" + id + " resumed.",
+        activityLogService.logActivity("RECUPERAR_VENTA", "Venta aparcada nº " + id + " recuperada.",
                 (worker != null ? worker.getUsername() : "Anonymous"), "SALE", id);
 
         return saved;
@@ -105,7 +105,7 @@ public class SuspendedSaleServiceImpl implements SuspendedSaleService {
         sale.setStatus(SuspendedSale.SuspendedSaleStatus.CANCELLED);
         SuspendedSale saved = suspendedSaleRepository.save(sale);
 
-        activityLogService.logActivity("CANCELAR_VENTA_ESPERA", "Parked sale #" + id + " discarded/cancelled.",
+        activityLogService.logActivity("CANCELAR_VENTA_ESPERA", "Venta aparcada nº " + id + " descartada/cancelada.",
                 (worker != null ? worker.getUsername() : "Anonymous"), "SALE", id);
 
         return saved;

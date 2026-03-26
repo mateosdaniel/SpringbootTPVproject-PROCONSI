@@ -310,20 +310,28 @@ function renderTicket() {
 
     var totalItems = 0;
     var totalAmount = 0;
+    var totalRE = 0;
     var linesHTML = '';
     var formHTML = ''; ids.forEach(function (id) {
         var item = ticket[id];
-        // Use normal ticket price always (backend handles RE calculations on invoice generation)
         var unitPrice = item.price;
         var subtotal = unitPrice * item.quantity;
         totalItems += item.quantity;
         totalAmount += subtotal;
 
+        if (window.currentHasRE) {
+            var vat = item.vatRate || 0.21;
+            var reRate = getReRate(vat);
+            var net = unitPrice / (1 + vat);
+            var reLine = net * reRate * item.quantity;
+            totalRE += reLine;
+        }
+
         linesHTML += `
             <div class="ticket-line">
                 <div class="line-info">
                     <span class="line-name">${escapeHtml(item.name)}</span>
-                    <span class="line-price">${formatPrice(unitPrice)}€ x ${item.quantity}${item.lineTariffLabel ? ' <span style="font-size:0.68rem;color:var(--accent);font-weight:700;margin-left:2px;">[' + escapeHtml(item.lineTariffLabel) + ']</span>' : ''}</span>
+                    <span class="line-price">${formatPrice(unitPrice)}€ x ${item.quantity}</span>
                 </div>
                 <div class="line-actions">
                     <span class="line-subtotal">${formatPrice(subtotal)}€</span>
@@ -407,14 +415,20 @@ function renderTicket() {
     // Prices stored in ticket[id].price are already final (returned by the backend
     // including any tariff discount). No additional discount calculation is applied here.
 
-    var originalTotalRow = document.getElementById('originalTotalRow');
-    var discountRow = document.getElementById('discountRow');
-    if (originalTotalRow) { originalTotalRow.style.display = 'none'; }
-    if (discountRow) { discountRow.style.display = 'none'; }
+    // Recargo de Equivalencia UI
+    var reRow = document.getElementById('reRow');
+    var reAmountEl = document.getElementById('reAmount');
+    if (reRow && reAmountEl) {
+        if (window.currentHasRE && totalRE > 0) {
+            reRow.style.display = 'flex';
+            reAmountEl.textContent = '+' + totalRE.toFixed(2) + '\u20AC';
+        } else {
+            reRow.style.display = 'none';
+        }
+    }
 
-    // Recargo de Equivalencia removed from visual ticket (handled automatically by backend on invoice generation)
-
-    totalEl.textContent = totalAmount.toFixed(2) + '\u20AC';
+    var finalTotal = totalAmount + totalRE - (couponDiscountAmount || 0);
+    totalEl.textContent = finalTotal.toFixed(2) + '\u20AC';
 
     cobrarBtn.disabled = false;
     if (suspenderBtn) { suspenderBtn.disabled = false; suspenderBtn.style.opacity = '1'; }
@@ -876,7 +890,7 @@ function renderProducts(products) {
             ' </div>' +
             ' <div class="product-info">' +
             ' <div class="product-name">' + escapeHtml(product.name) + '</div>' +
-            ' <div class="product-price">' + formatDecimal(product.price, 2, 4) + '\u20AC</div>' +
+            ' <div class="product-price">' + formatDecimal(product.price, 2, 8) + '\u20AC</div>' +
             ' <div class="product-category-badge">' + catName + '</div>' +
             ' </div></div>';
     }).join('');
@@ -1125,16 +1139,24 @@ function selectCustomer(c) {
     document.getElementById('customerSelectionControls').style.display = 'none';
 
     window.currentHasRE = !!c.hasRecargoEquivalencia;
-
     // Auto-apply the customer's tariff and update ticket prices
+    var badge = document.getElementById('sidebarTariffBadge');
     if (c.tariff) {
-        window.currentTariffId = c.tariff.id; // expose for addToTicket
+        window.currentTariffId = c.tariff.id;
         window.currentTariffColor = c.tariff.color;
+        
+        if (badge) {
+            badge.textContent = c.tariff.name + ' (-' + (c.tariff.discountPercentage || 0) + '%)';
+            badge.style.display = 'inline-block';
+            if (c.tariff.color) badge.style.backgroundColor = c.tariff.color;
+        }
+        
         updateTicketPricesForTariff(c.tariff.id, c.tariff.name, parseFloat(c.tariff.discountPercentage || 0));
     } else {
         window.currentTariffId = null;
         window.currentTariffColor = null;
-        resetTicketPrices();
+        if (badge) badge.style.display = 'none';
+        updateTicketPricesForTariff(null, 'MINORISTA', 0);
     }
 }
 
@@ -1975,12 +1997,20 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-function formatDecimal(val, minFrac = 2, maxFrac = 4) {
+function formatDecimal(val, minFrac = 2, maxFrac = 8) {
     if (val === null || val === undefined) return '0,00';
     return new Intl.NumberFormat('es-ES', {
         minimumFractionDigits: minFrac,
         maximumFractionDigits: maxFrac
     }).format(parseFloat(val));
+}
+
+function getReRate(vatRate) {
+    var v = parseFloat(vatRate);
+    if (v >= 0.20) return 0.052;
+    if (v >= 0.09) return 0.014;
+    if (v >= 0.03) return 0.005;
+    return 0;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

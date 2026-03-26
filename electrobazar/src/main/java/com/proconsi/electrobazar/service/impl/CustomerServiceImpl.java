@@ -74,7 +74,7 @@ public class CustomerServiceImpl implements CustomerService {
         Customer saved = customerRepository.save(customer);
         activityLogService.logActivity(
                 "CREAR_CLIENTE",
-                "New customer registered: " + saved.getName(),
+                "Nuevo cliente registrado: " + saved.getName(),
                 "Admin",
                 "CUSTOMER",
                 saved.getId());
@@ -111,7 +111,7 @@ public class CustomerServiceImpl implements CustomerService {
         Customer saved = customerRepository.save(existing);
         activityLogService.logActivity(
                 "ACTUALIZAR_CLIENTE",
-                "Customer updated: " + saved.getName(),
+                "Cliente actualizado: " + saved.getName(),
                 "Admin",
                 "CUSTOMER",
                 saved.getId());
@@ -126,7 +126,7 @@ public class CustomerServiceImpl implements CustomerService {
 
         activityLogService.logActivity(
                 "ELIMINAR_CLIENTE",
-                "Customer deactivated: " + customer.getName(),
+                "Cliente desactivado: " + customer.getName(),
                 "Admin",
                 "CUSTOMER",
                 customer.getId());

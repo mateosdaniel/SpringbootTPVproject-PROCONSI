@@ -261,7 +261,7 @@ public class SaleServiceImpl implements SaleService {
 
         Sale saved = saleRepository.save(sale);
         String username = (worker != null) ? worker.getUsername() : "Anonymous";
-        activityLogService.logActivity("VENTA", String.format("Sale processed by %s. Total: %.2f € (Coupon: %s)", username, finalTotal, (coupon != null ? coupon.getCode() : "None")), username, "SALE", saved.getId());
+        activityLogService.logActivity("VENTA", String.format("Venta procesada por %s. Total: %.2f € (Cupón: %s)", username, finalTotal, (coupon != null ? coupon.getCode() : "Ninguno")), username, "SALE", saved.getId());
 
         return saved;
     }
@@ -328,6 +328,6 @@ public class SaleServiceImpl implements SaleService {
         saleRepository.save(sale);
 
         String username = (worker != null) ? worker.getUsername() : "System";
-        activityLogService.logActivity("ANULAR_VENTA", String.format("Sale #%d annulled by %s. Reason: %s", id, username, reason), username, "SALE", id);
+        activityLogService.logActivity("ANULAR_VENTA", String.format("Venta nº %d anulada por %s. Motivo: %s", id, username, reason), username, "SALE", id);
     }
 }

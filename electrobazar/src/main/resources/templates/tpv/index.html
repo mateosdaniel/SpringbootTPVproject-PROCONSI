@@ -247,7 +247,10 @@
                     <span id="discountLabel">Descuento (0%)</span>
                     <span id="discountAmount">-0.00€</span>
                 </div>
-                <div id="reRow" style="display:none; justify-content:space-between; padding:0.25rem 0; font-size:0.82rem; color:#e67e22;"></div>
+                <div id="reRow" style="display:none; justify-content:space-between; padding:0.25rem 0; font-size:0.82rem; color:#e67e22;">
+                    <span>Recargo Equiv.</span>
+                    <span id="reAmount">0.00€</span>
+                </div>
                 <div class="mt-2" id="couponSection">
                     <div class="input-group input-group-sm mb-1" style="border: 1px dashed var(--border); border-radius: 6px; overflow: hidden; background: rgba(var(--accent-rgb), 0.05);">
                         <span class="input-group-text border-0" style="background: transparent; color: var(--text-muted);"><i class="bi bi-ticket-perforated"></i></span>
@@ -359,8 +362,7 @@
                     </div>
                     <div class="product-info">
                         <div class="product-name" th:text="${product.name}">Nombre producto</div>
-                        <div class="product-price" th:text="${#numbers.formatDecimal(product.price, 1, 2)} + '€'">0.00€
-                        </div>
+                        <div class="product-price" th:text="${formattedPrices[product.id]} + '€'"></div>
                         <div class="product-category-badge"
                             th:text="${product.category != null ? product.category.name : ''}"></div>
                     </div>

@@ -105,7 +105,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Product save(Product product) {
-        autoTranslateProduct(product);
+        // autoTranslateProduct(product);
         Product saved = productRepository.save(product);
         
         // Ensure the product is immediately included in tariff price history/PDFs
@@ -117,7 +117,7 @@ public class ProductServiceImpl implements ProductService {
 
         activityLogService.logActivity(
                 "CREAR_PRODUCTO",
-                "New product added: " + saved.getName(),
+                "Nuevo producto añadido: " + saved.getName(),
                 "Admin",
                 "PRODUCT",
                 saved.getId());
@@ -130,8 +130,8 @@ public class ProductServiceImpl implements ProductService {
         existing.setNameEs(request.getName());
         existing.setDescriptionEs(request.getDescription());
         
-        // Trigger auto-translation on update as well
-        autoTranslateProduct(existing);
+        // Trigger auto-translation on update (Currently disabled by request: no API Key)
+        // autoTranslateProduct(existing);
 
         // 1. Update Tax Rate
         if (request.getTaxRateId() != null) {
@@ -178,41 +178,19 @@ public class ProductServiceImpl implements ProductService {
 
         activityLogService.logActivity(
                 "ACTUALIZAR_PRODUCTO",
-                "Product updated: " + saved.getName(),
+                "Producto actualizado: " + saved.getName(),
                 "Admin",
                 "PRODUCT",
                 saved.getId());
         return saved;
     }
 
+    /*
     private void autoTranslateProduct(Product product) {
         if (product.getNameEs() == null || product.getNameEs().isBlank()) return;
-
-        // Use name to detect language
-        TranslationService.TranslationResult nameResult = translationService.translateWithDetection(product.getNameEs(), "EN");
-        String detected = nameResult.detectedLanguage();
-
-        if (detected != null) {
-            if (detected.equalsIgnoreCase("ES")) {
-                // Input is ES: Fill _en fields
-                product.setNameEn(nameResult.text());
-                product.setDescriptionEn(translationService.translate(product.getDescriptionEs(), "EN"));
-                product.setStatusEn(translationService.translate(product.getStatusEs(), "EN"));
-                product.setLowStockMessageEn(translationService.translate(product.getLowStockMessageEs(), "EN"));
-            } else if (detected.toUpperCase().startsWith("EN")) {
-                // Input is EN: Swap current values to _en and translate to _es
-                product.setNameEn(product.getNameEs());
-                product.setDescriptionEn(product.getDescriptionEs());
-                product.setStatusEn(product.getStatusEs());
-                product.setLowStockMessageEn(product.getLowStockMessageEs());
-
-                product.setNameEs(translationService.translate(product.getNameEn(), "ES"));
-                product.setDescriptionEs(translationService.translate(product.getDescriptionEn(), "ES"));
-                product.setStatusEs(translationService.translate(product.getStatusEn(), "ES"));
-                product.setLowStockMessageEs(translationService.translate(product.getLowStockMessageEn(), "ES"));
-            }
-        }
+        ...
     }
+    */
 
     @Override
     public void delete(Long id) {
@@ -221,7 +199,7 @@ public class ProductServiceImpl implements ProductService {
         productRepository.save(product);
         activityLogService.logActivity(
                 "ELIMINAR_PRODUCTO",
-                "Product deactivated: " + product.getName(),
+                "Producto desactivado: " + product.getName(),
                 "Admin",
                 "PRODUCT",
                 product.getId());
@@ -246,7 +224,7 @@ public class ProductServiceImpl implements ProductService {
         
         activityLogService.logActivity(
                 "ELIMINAR_PRODUCTO_HARD",
-                "Product permanently deleted: " + product.getName(),
+                "Producto eliminado permanentemente: " + product.getName(),
                 "Admin",
                 "PRODUCT",
                 id);
@@ -261,7 +239,7 @@ public class ProductServiceImpl implements ProductService {
         product.setStock(product.getStock() - quantity);
         productRepository.save(product);
         activityLogService.logActivity("AJUSTE_STOCK", 
-                "Manual stock decrease: -" + quantity + " for " + product.getName(), "Admin", "PRODUCT", product.getId());
+                "Disminución manual de stock: -" + quantity + " para " + product.getName(), "Admin", "PRODUCT", product.getId());
     }
 
     @Override
@@ -270,7 +248,7 @@ public class ProductServiceImpl implements ProductService {
         product.setStock(product.getStock() + quantity);
         productRepository.save(product);
         activityLogService.logActivity("AJUSTE_STOCK", 
-                "Manual stock increase: +" + quantity + " for " + product.getName(), "Admin", "PRODUCT", product.getId());
+                "Aumento manual de stock: +" + quantity + " para " + product.getName(), "Admin", "PRODUCT", product.getId());
     }
 
     @Override
@@ -283,7 +261,7 @@ public class ProductServiceImpl implements ProductService {
         product.setStock(newStock);
         productRepository.save(product);
         activityLogService.logActivity("AJUSTE_STOCK", 
-                "Stock adjustment: " + quantity + " (New stock: " + newStock + ") for " + product.getName(), "Admin", "PRODUCT", product.getId());
+                "Ajuste de stock: " + quantity + " (Nuevo stock: " + newStock + ") para " + product.getName(), "Admin", "PRODUCT", product.getId());
     }
 
     @Override
@@ -312,7 +290,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         activityLogService.logActivity("APLICAR_IVA_MASIVO", 
-                "Bulk VAT update: " + newRate.getDescription() + " (applied to all matching products)", "Admin", "TAX_RATE", newTaxRateId);
+                "Actualización masiva de IVA: " + newRate.getDescription() + " (aplicado a todos los productos coincidentes)", "Admin", "TAX_RATE", newTaxRateId);
     }
 
     @Override

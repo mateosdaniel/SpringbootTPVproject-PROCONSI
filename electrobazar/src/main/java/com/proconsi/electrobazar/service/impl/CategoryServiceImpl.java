@@ -59,11 +59,11 @@ public class CategoryServiceImpl implements CategoryService {
         if (categoryRepository.existsByNameEsIgnoreCase(category.getName())) {
             throw new DuplicateResourceException("A category with name '" + category.getName() + "' already exists.");
         }
-        autoTranslateCategory(category);
+        // autoTranslateCategory(category);
         Category saved = categoryRepository.save(category);
         activityLogService.logActivity(
                 "CREAR_CATEGORIA",
-                "New category created: " + saved.getName(),
+                "Nueva categoría creada: " + saved.getName(),
                 "Admin",
                 "CATEGORY",
                 saved.getId());
@@ -83,12 +83,12 @@ public class CategoryServiceImpl implements CategoryService {
         existing.setDescriptionEs(updated.getDescription());
         existing.setActive(updated.getActive());
         
-        autoTranslateCategory(existing);
+        // autoTranslateCategory(existing);
 
         Category saved = categoryRepository.save(existing);
         activityLogService.logActivity(
                 "ACTUALIZAR_CATEGORIA",
-                "Category updated: " + saved.getName(),
+                "Categoría actualizada: " + saved.getName(),
                 "Admin",
                 "CATEGORY",
                 saved.getId());
@@ -124,7 +124,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         activityLogService.logActivity(
                 "DESACTIVAR_CATEGORIA",
-                "Category deactivated: " + category.getName(),
+                "Categoría desactivada: " + category.getName(),
                 "Admin",
                 "CATEGORY",
                 category.getId());
@@ -140,7 +140,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         activityLogService.logActivity(
                 "ELIMINAR_CATEGORIA_HARD",
-                "Category permanently deleted: " + category.getName(),
+                "Categoría eliminada permanentemente: " + category.getName(),
                 "Admin",
                 "CATEGORY",
                 id);

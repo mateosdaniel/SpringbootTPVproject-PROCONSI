@@ -154,7 +154,7 @@ public class AdminController {
         workerService.findById(id).ifPresent(w -> {
             w.setActive(false);
             workerService.save(w);
-            activityLogService.logActivity("DEACTIVATE_WORKER", "Worker deactivated: " + w.getUsername(), "Admin",
+            activityLogService.logActivity("DEACTIVATE_WORKER", "Trabajador desactivado: " + w.getUsername(), "Admin",
                     "WORKER", id);
         });
         return ResponseEntity.ok().build();
@@ -188,7 +188,7 @@ public class AdminController {
 
         try {
             String result = csvImportService.importProductsCsv(file);
-            activityLogService.logActivity("IMPORT_CSV", "CSV Import successful: " + result, "Admin", "IMPORT", null);
+            activityLogService.logActivity("IMPORT_CSV", "Importación de CSV exitosa: " + result, "Admin", "IMPORT", null);
             return ResponseEntity.ok(Map.of("ok", true, "message", result));
         } catch (Exception e) {
             return ResponseEntity.status(500)

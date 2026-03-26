@@ -2,6 +2,8 @@ package com.proconsi.electrobazar.service;
 
 import com.proconsi.electrobazar.model.ActivityLog;
 import com.proconsi.electrobazar.repository.ActivityLogRepository;
+import org.springframework.transaction.annotation.Transactional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +15,7 @@ import java.util.List;
  * Provides auditing capabilities by recording user actions.
  */
 @Service
+@Transactional
 public class ActivityLogService {
 
     @Autowired
@@ -34,7 +37,8 @@ public class ActivityLogService {
     /**
      * Records a new activity in the log with a specific level.
      */
-    public void logActivity(String level, String action, String description, String username, String entityType, Long entityId) {
+    public void logActivity(String level, String action, String description, String username, String entityType,
+            Long entityId) {
         ActivityLog log = ActivityLog.builder()
                 .action(action)
                 .level(level != null ? level : "INFO")
@@ -56,7 +60,7 @@ public class ActivityLogService {
 
     /**
      * Records a critical fiscal event for Verifactu compliance.
-     * These events include system startup/shutdown, configuration changes, 
+     * These events include system startup/shutdown, configuration changes,
      * and security-related actions.
      */
     public void logFiscalEvent(String eventType, String description, String username) {

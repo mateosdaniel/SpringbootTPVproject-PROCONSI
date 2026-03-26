@@ -127,9 +127,9 @@ public class CashRegisterServiceImpl implements CashRegisterService {
         // Audit Trail
         String username = (worker != null) ? worker.getUsername() : "Anonymous";
         BigDecimal diff = saved.getDifference() != null ? saved.getDifference() : BigDecimal.ZERO;
-        String logMsg = String.format("Shift closed by %s. Discrepancy: %.2f €", username, diff);
+        String logMsg = String.format("Turno cerrado por %s. Diferencial: %.2f €", username, diff);
         if (retainedAmount != null) {
-            logMsg += String.format(". Retained for next shift: %.2f €", retainedAmount);
+            logMsg += String.format(". Retenido para el próximo turno: %.2f €", retainedAmount);
         }
 
         activityLogService.logActivity("CIERRE_CAJA", logMsg, username, "CASH_REGISTER", saved.getId());
@@ -179,7 +179,7 @@ public class CashRegisterServiceImpl implements CashRegisterService {
 
         activityLogService.logActivity(
                 "APERTURA_CAJA",
-                String.format("New shift opened by %s with %.2f €", username, openingBalance),
+                String.format("Nuevo turno abierto por %s con %.2f €", username, openingBalance),
                 username,
                 "CASH_REGISTER",
                 saved.getId());

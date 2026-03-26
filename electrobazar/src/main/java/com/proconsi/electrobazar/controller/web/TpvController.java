@@ -93,6 +93,19 @@ public class TpvController {
             model.addAttribute("suggestedOpeningBalance", suggestion.getSuggestedBalance());
         }
 
+        Map<Long, String> formattedPrices = new java.util.LinkedHashMap<>();
+        for (Product p : products) {
+            BigDecimal price = p.getPrice();
+            if (price != null) {
+                // Elimina ceros finales pero mantiene mínimo 2 decimales
+                BigDecimal stripped = price.stripTrailingZeros();
+                int decimals = Math.max(2, stripped.scale());
+                formattedPrices.put(p.getId(), price.setScale(decimals, java.math.RoundingMode.HALF_UP)
+                        .toPlainString());
+            }
+        }
+        model.addAttribute("formattedPrices", formattedPrices);
+
         return "tpv/index";
     }
 

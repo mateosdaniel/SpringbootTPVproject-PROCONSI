@@ -84,7 +84,7 @@ public class TariffServiceImpl implements TariffService {
                 .build();
         Tariff saved = tariffRepository.save(tariff);
         activityLogService.logActivity("CREAR_TARIFA", 
-            String.format("Tariff created: %s (Discount: %.2f%%, Color: %s)", upperName, saved.getDiscountPercentage(), color), 
+            String.format("Tarifa creada: %s (Descuento: %.2f%%, Color: %s)", upperName, saved.getDiscountPercentage(), color), 
             "Admin", "TARIFF", saved.getId());
         return saved;
     }
@@ -97,7 +97,7 @@ public class TariffServiceImpl implements TariffService {
         tariff.setColor(color);
         Tariff saved = tariffRepository.save(tariff);
         activityLogService.logActivity("ACTUALIZAR_TARIFA", 
-            String.format("Tariff updated: %s (New Discount: %.2f%%, New Color: %s)", saved.getName(), saved.getDiscountPercentage(), color), 
+            String.format("Tarifa actualizada: %s (Nuevo descuento: %.2f%%, Nuevo color: %s)", saved.getName(), saved.getDiscountPercentage(), color), 
             "Admin", "TARIFF", saved.getId());
         return saved;
     }
@@ -117,7 +117,7 @@ public class TariffServiceImpl implements TariffService {
         affected.forEach(c -> c.setTariff(defaultTariff));
         customerRepository.saveAll(affected);
 
-        activityLogService.logActivity("DESACTIVAR_TARIFA", "Tariff deactivated: " + tariff.getName(), "Admin", "TARIFF", tariff.getId());
+        activityLogService.logActivity("DESACTIVAR_TARIFA", "Tarifa desactivada: " + tariff.getName(), "Admin", "TARIFF", tariff.getId());
     }
 
     @Override
@@ -183,7 +183,7 @@ public class TariffServiceImpl implements TariffService {
         if (!newRecords.isEmpty()) {
             tariffPriceHistoryRepository.saveAll(newRecords);
             activityLogService.logActivity("REGENERAR_PRECIOS_TARIFA", 
-                String.format("Prices regenerated for %d products across %d active tariffs.", affectedProducts.size(), activeTariffs.size()), "System", "TARIFF", null);
+                String.format("Precios regenerados para %d productos en %d tarifas activas.", affectedProducts.size(), activeTariffs.size()), "System", "TARIFF", null);
         }
     }
 }

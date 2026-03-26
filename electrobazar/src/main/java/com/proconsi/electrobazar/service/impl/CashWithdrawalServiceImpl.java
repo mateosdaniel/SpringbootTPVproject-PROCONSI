@@ -52,15 +52,14 @@ public class CashWithdrawalServiceImpl implements CashWithdrawalService {
 
         CashWithdrawal saved = cashWithdrawalRepository.save(movement);
 
-        String typeLabel = type == CashWithdrawal.MovementType.ENTRY ? "ENTRY" : "WITHDRAWAL";
-        String username = worker != null ? worker.getUsername() : "Anonymous";
-
+        String typeLabel = type == CashWithdrawal.MovementType.ENTRY ? "ENTRADA" : "RETIRADA";
+        
         activityLogService.logActivity(
-                type == CashWithdrawal.MovementType.ENTRY ? "ENTRADA_CAJA" : "RETIRADA_CAJA",
-                String.format("%s of %.2f €. Reason: %s", typeLabel, amount, (reason != null ? reason : "N/A")),
-                username,
-                "CASH_REGISTER",
-                register.getId());
+                "MOVIMIENTO_CAJA",
+                String.format("%s de %.2f €. Motivo: %s", typeLabel, amount, (reason != null ? reason : "N/A")),
+                "Admin",
+                "CASH_WITHDRAWAL",
+                saved.getId());
 
         return saved;
     }

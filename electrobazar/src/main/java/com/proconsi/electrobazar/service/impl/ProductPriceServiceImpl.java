@@ -98,7 +98,7 @@ public class ProductPriceServiceImpl implements ProductPriceService {
         productRepository.save(product);
 
         activityLogService.logActivity("PROGRAMAR_PRECIO", 
-                String.format("New price scheduled for '%s': %.2f € starting %s", 
+                String.format("Nuevo precio programado para '%s': %.2f € a partir de %s", 
                 product.getName(), saved.getPrice(), newStartDate), "Admin", "PRODUCT", productId);
 
         return toResponse(saved, false);
@@ -236,7 +236,7 @@ public class ProductPriceServiceImpl implements ProductPriceService {
         }
 
         activityLogService.logActivity("PROGRAMAR_PRECIOS_MASIVOS", 
-                "Bulk price update for " + responses.size() + " products.", "Admin", "PRODUCT", null);
+                "Actualización masiva de precios para " + responses.size() + " productos.", "Admin", "PRODUCT", null);
 
         return responses;
     }
@@ -302,7 +302,7 @@ public class ProductPriceServiceImpl implements ProductPriceService {
         }
         
         activityLogService.logActivity("MATRIZ_PRECIOS_CAMBIO", 
-                "Bulk price matrix update processed for " + request.getChanges().size() + " entries.", "Admin", "PRICE", null);
+                "Actualización de matriz de precios procesada para " + request.getChanges().size() + " entradas.", "Admin", "PRICE", null);
     }
 
     @Override

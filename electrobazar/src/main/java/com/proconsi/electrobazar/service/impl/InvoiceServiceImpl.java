@@ -108,7 +108,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         activityLogService.logActivity(
                 "CREAR_FACTURA",
-                String.format("Invoice %s generated for Sale #%d. Verifactu Hash: %s",
+                String.format("Factura %s generada para Venta nº %d. Hash Verifactu: %s",
                         invoiceNumber, sale.getId(), saved.getHashCurrentInvoice()),
                 "System",
                 "INVOICE",
