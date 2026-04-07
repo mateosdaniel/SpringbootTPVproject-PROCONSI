@@ -105,6 +105,8 @@ public class PromotionServiceImpl implements PromotionService {
                         }
                         return true;
                     })
+                    // Sort ascending by unit price so the CHEAPEST items are the ones discounted (free)
+                    .sorted((l1, l2) -> l1.getUnitPrice().compareTo(l2.getUnitPrice()))
                     .collect(Collectors.toList());
 
             // 2. Count total units
@@ -113,10 +115,31 @@ public class PromotionServiceImpl implements PromotionService {
             if (promo.getNValue() <= 0) continue;
 
             // 3. Calculate how many items are "free" using BigDecimal precision
-            // For 3x2: floorBy(units, 3) * (3 - 2)
             BigDecimal nVal = BigDecimal.valueOf(promo.getNValue());
             BigDecimal mVal = BigDecimal.valueOf(promo.getMValue());
-            BigDecimal timesApplicable = totalUnits.divideToIntegralValue(nVal);
+            
+            BigDecimal timesApplicable;
+            
+            if (promo.getRestrictedProducts() != null && promo.getRestrictedProducts().size() > 1) {
+                // Combo logic: must have at least 1 of EACH restricted product to form a group.
+                BigDecimal minQty = null;
+                for (Product rp : promo.getRestrictedProducts()) {
+                    BigDecimal qtyInCart = promoLines.stream()
+                            .filter(l -> l.getProduct() != null && l.getProduct().getId().equals(rp.getId()))
+                            .map(SaleLine::getQuantity)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    if (minQty == null || qtyInCart.compareTo(minQty) < 0) {
+                        minQty = qtyInCart;
+                    }
+                }
+                BigDecimal setsByProducts = minQty != null ? minQty.divideToIntegralValue(BigDecimal.ONE) : BigDecimal.ZERO;
+                BigDecimal setsByUnits = totalUnits.divideToIntegralValue(nVal);
+                // The number of promotions applied is the minimum of "available complete combos" and "N-sized groups"
+                timesApplicable = setsByProducts.compareTo(setsByUnits) < 0 ? setsByProducts : setsByUnits;
+            } else {
+                timesApplicable = totalUnits.divideToIntegralValue(nVal);
+            }
+
             BigDecimal freeUnitsNeededB = timesApplicable.multiply(nVal.subtract(mVal));
 
             if (freeUnitsNeededB.compareTo(BigDecimal.ZERO) <= 0) continue;
@@ -177,6 +200,16 @@ public class PromotionServiceImpl implements PromotionService {
 
     @Override
     public Promotion save(Promotion promotion) {
+        if (promotion.getRestrictedProducts() != null) {
+            for (Product pRef : promotion.getRestrictedProducts()) {
+                if (pRef.getId() != null) {
+                    Product dbProduct = productRepository.findById(pRef.getId()).orElse(null);
+                    if (dbProduct != null && dbProduct.getMeasurementUnit() != null && dbProduct.getMeasurementUnit().getDecimalPlaces() > 0) {
+                        throw new IllegalArgumentException("El producto '" + dbProduct.getName() + "' es fraccionario y no puede incluirse en promociones NxM.");
+                    }
+                }
+            }
+        }
         return repository.save(promotion);
     }
 
