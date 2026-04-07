@@ -55,13 +55,13 @@
 
                     <!-- Botones de Acción (Admin & Gestión) -->
                     <div class="d-flex align-items-center gap-2">
-                        <button th:if="${session.worker.getEffectivePermissions().contains('ADMIN_ACCESS')}"
+                        <button th:if="${session.worker.getEffectivePermissions().contains('ADMIN_ACCESS') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}"
                             class="btn-action-tpv p-0" id="adminLockBtn" title="Panel de Administración"
                             onclick="openAdminPinModal()">
                             <i class="bi bi-shield-lock"></i>
                         </button>
 
-                        <a th:if="${session.worker.getEffectivePermissions().contains('MANAGE_PRODUCTS_TPV') or session.worker.getEffectivePermissions().contains('ADMIN_ACCESS')}"
+                        <a th:if="${session.worker.getEffectivePermissions().contains('MANAGE_PRODUCTS_TPV') or session.worker.getEffectivePermissions().contains('ADMIN_ACCESS') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}"
                             th:href="@{/productos-categorias}" class="btn-action-tpv"
                             title="Administrar productos y categorías">
                             <i class="bi bi-box-seam"></i> <span>Inventario</span>
@@ -81,7 +81,7 @@
         <!-- Derecha: Acciones y Menú -->
         <div class="d-flex align-items-center gap-3">
             <!-- Stats (solo con permiso) -->
-            <th:block th:if="${session.worker.getEffectivePermissions().contains('CASH_CLOSE')}">
+            <th:block th:if="${session.worker.getEffectivePermissions().contains('CASH_CLOSE') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}">
                 <div class="header-stats d-flex gap-3"
                     style="border-right: 1px solid var(--border); padding-right: 1rem;"
                     th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
@@ -107,7 +107,7 @@
 
 
             <!-- Ventas en espera badge button -->
-            <button th:if="${session.worker.getEffectivePermissions().contains('HOLD_SALES')}" id="btnSuspendedList"
+            <button th:if="${session.worker.getEffectivePermissions().contains('HOLD_SALES') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}" id="btnSuspendedList"
                 class="btn-action-tpv" onclick="openSuspendedModal()" title="Ventas en espera"
                 th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
                 <i class="bi bi-hourglass-split"></i>
@@ -117,7 +117,7 @@
             </button>
 
             <!-- Devoluciones button -->
-            <button th:if="${session.worker.getEffectivePermissions().contains('RETURNS')}" type="button"
+            <button th:if="${session.worker.getEffectivePermissions().contains('RETURNS') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}" type="button"
                 class="btn-action-tpv flex-shrink-0" id="btnReturnSearch" title="Gestionar Devolución"
                 data-bs-toggle="modal" data-bs-target="#returnSearchModal"
                 style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2);"
@@ -130,7 +130,7 @@
                     <i class="bi bi-list"></i>
                 </button>
                 <div class="menu-dropdown" id="menuDropdown">
-                    <a th:if="${session.worker.getEffectivePermissions().contains('PREFERENCES')}" class="menu-item"
+                    <a th:if="${session.worker.getEffectivePermissions().contains('PREFERENCES') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}" class="menu-item"
                         href="/tpv/preferences" style="text-decoration:none;">
                         <i class="bi bi-gear"></i> Preferencias
                     </a>

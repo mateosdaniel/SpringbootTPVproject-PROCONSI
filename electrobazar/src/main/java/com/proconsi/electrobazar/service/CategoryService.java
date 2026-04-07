@@ -23,6 +23,11 @@ public interface CategoryService {
     List<Category> getFilteredCategories(String search);
 
     /**
+     * Filters categories with pagination and sorting support.
+     */
+    org.springframework.data.domain.Page<Category> getFilteredCategories(String search, org.springframework.data.domain.Pageable pageable);
+
+    /**
      * Retrieves all categories currently marked as active.
      * @return A list of active Category entities.
      */

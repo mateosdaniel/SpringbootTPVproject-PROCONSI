@@ -107,6 +107,13 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<Product> getFilteredProducts(String search, String category, String stock, Boolean active, Pageable pageable) {
+        Specification<Product> spec = ProductSpecification.filterProducts(search, category, stock, active);
+        return productRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Product findById(Long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));

@@ -2,6 +2,7 @@ package com.proconsi.electrobazar.repository;
 
 import com.proconsi.electrobazar.model.ActivityLog;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -13,7 +14,7 @@ import java.util.List;
  * Provides audit trail tracking and log maintenance functionality.
  */
 @Repository
-public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> {
+public interface ActivityLogRepository extends JpaRepository<ActivityLog, Long>, JpaSpecificationExecutor<ActivityLog> {
 
     /**
      * Retrieves the 50 most recent activity logs for general monitoring.

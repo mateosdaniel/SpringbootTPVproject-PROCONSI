@@ -2,6 +2,10 @@ package com.proconsi.electrobazar.service;
 
 import com.proconsi.electrobazar.model.ActivityLog;
 import com.proconsi.electrobazar.repository.ActivityLogRepository;
+import com.proconsi.electrobazar.repository.specification.ActivityLogSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +24,15 @@ public class ActivityLogService {
 
     @Autowired
     private ActivityLogRepository activityLogRepository;
+
+    /**
+     * Retrieves paginated logs with optional filtering.
+     */
+    @Transactional(readOnly = true)
+    public Page<ActivityLog> getFilteredLogs(String search, String action, String username, Pageable pageable) {
+        Specification<ActivityLog> spec = ActivityLogSpecification.filterLogs(search, action, username);
+        return activityLogRepository.findAll(spec, pageable);
+    }
 
     /**
      * Records a new activity in the log.
@@ -60,8 +73,6 @@ public class ActivityLogService {
 
     /**
      * Records a critical fiscal event for Verifactu compliance.
-     * These events include system startup/shutdown, configuration changes,
-     * and security-related actions.
      */
     public void logFiscalEvent(String eventType, String description, String username) {
         logActivity("FISCAL_" + eventType, "[VERIFACTU] " + description, username, "SYSTEM", null);
@@ -69,8 +80,6 @@ public class ActivityLogService {
 
     /**
      * Retrieves the 50 most recent activity logs.
-     *
-     * @return A list of ActivityLog entities ordered by timestamp descending.
      */
     public List<ActivityLog> getRecentActivities() {
         return activityLogRepository.findTop50ByOrderByTimestampDesc();
@@ -78,8 +87,6 @@ public class ActivityLogService {
 
     /**
      * Retrieves the 20 most recent activity logs for dashboard previews.
-     *
-     * @return A list of ActivityLog entities.
      */
     public List<ActivityLog> getMostRecentActivities() {
         return activityLogRepository.findTop20ByOrderByTimestampDesc();

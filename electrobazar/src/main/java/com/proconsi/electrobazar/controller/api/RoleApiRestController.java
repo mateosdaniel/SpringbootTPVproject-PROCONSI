@@ -18,18 +18,35 @@ public class RoleApiRestController {
 
     @GetMapping
     public ResponseEntity<List<Role>> getAll() {
-        return ResponseEntity.ok(roleService.findAll());
+        List<Role> roles = roleService.findAll();
+        // Force master permission in response for consistent UI display
+        roles.forEach(r -> {
+            if ("ADMIN".equalsIgnoreCase(r.getName()) && r.getPermissions().isEmpty()) {
+                r.getPermissions().add("ACCESO_TOTAL_ADMIN");
+            }
+        });
+        return ResponseEntity.ok(roles);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Role> getById(@PathVariable Long id) {
         return roleService.findById(id)
-                .map(ResponseEntity::ok)
+                .map(r -> {
+                    // Force master permission in response for consistent UI display
+                    if ("ADMIN".equalsIgnoreCase(r.getName()) && r.getPermissions().isEmpty()) {
+                        r.getPermissions().add("ACCESO_TOTAL_ADMIN");
+                    }
+                    return ResponseEntity.ok(r);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Role> create(@RequestBody Role request) {
+    public ResponseEntity<?> create(@RequestBody Role request) {
+        // Prevent creating duplicate ADMIN role
+        if ("ADMIN".equalsIgnoreCase(request.getName())) {
+            return ResponseEntity.badRequest().body("El nombre 'ADMIN' está reservado y no se puede duplicar.");
+        }
         Role role = Role.builder()
                 .name(request.getName())
                 .description(request.getDescription())
@@ -56,11 +73,16 @@ public class RoleApiRestController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (roleService.findById(id).isPresent()) {
-            roleService.delete(id);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        return roleService.findById(id)
+                .map(role -> {
+                    // Prevent deleting the master ADMIN role
+                    if ("ADMIN".equalsIgnoreCase(role.getName())) {
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("El rol de administrador principal no se puede eliminar.");
+                    }
+                    roleService.delete(id);
+                    return ResponseEntity.noContent().build();
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 }

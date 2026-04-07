@@ -16,12 +16,12 @@ import java.util.Optional;
  */
 public interface ReturnService {
 
-    /**
-     * Retrieves all returns with pagination support.
-     * @param pageable Pagination and sorting criteria.
-     * @return A page of returns.
-     */
     Page<SaleReturn> findAll(Pageable pageable);
+
+    /**
+     * Retrieves returns with optional filtering (search query, payment method, and date).
+     */
+    Page<SaleReturn> getFilteredReturns(String search, String method, String date, Pageable pageable);
 
     /**
      * Processes a return for an original sale.

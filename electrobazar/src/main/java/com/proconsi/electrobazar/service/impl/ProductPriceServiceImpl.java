@@ -21,9 +21,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.proconsi.electrobazar.repository.specification.ProductPriceSpecification;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -58,6 +62,13 @@ public class ProductPriceServiceImpl implements ProductPriceService {
     @Cacheable(value = CACHE_NAME, key = "#productId", unless = "#result == null")
     public ProductPrice getCurrentPrice(Long productId, LocalDateTime at) {
         return productPriceRepository.findActivePriceAt(productId, at).orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProductPrice> getFilteredFuturePrices(String search, Pageable pageable) {
+        Specification<ProductPrice> spec = ProductPriceSpecification.filterFuturePrices(search);
+        return productPriceRepository.findAll(spec, pageable);
     }
 
     @Override

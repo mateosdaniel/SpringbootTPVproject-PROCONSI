@@ -5,6 +5,7 @@ import com.proconsi.electrobazar.model.Customer;
 import com.proconsi.electrobazar.model.Tariff;
 import com.proconsi.electrobazar.repository.CustomerRepository;
 import com.proconsi.electrobazar.repository.TariffRepository;
+import com.proconsi.electrobazar.repository.specification.CustomerSpecification;
 import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.CustomerService;
 import com.proconsi.electrobazar.util.NifCifValidator;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,13 @@ public class CustomerServiceImpl implements CustomerService {
     private final ActivityLogService activityLogService;
     private final TariffRepository tariffRepository;
     private final NifCifValidator nifCifValidator;
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Customer> getFilteredCustomers(String search, Customer.CustomerType type, Boolean hasRecargo, Pageable pageable) {
+        Specification<Customer> spec = CustomerSpecification.filterCustomers(search, type, hasRecargo);
+        return customerRepository.findAll(spec, pageable);
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -149,5 +158,3 @@ public class CustomerServiceImpl implements CustomerService {
         return customerRepository.searchActive(query.trim());
     }
 }
-
-

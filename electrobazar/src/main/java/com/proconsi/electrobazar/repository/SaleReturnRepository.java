@@ -3,6 +3,7 @@ package com.proconsi.electrobazar.repository;
 import com.proconsi.electrobazar.model.PaymentMethod;
 import com.proconsi.electrobazar.model.SaleReturn;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,7 +17,7 @@ import java.util.List;
  * Tracks merchandise returns and associated refunds for shift reporting.
  */
 @Repository
-public interface SaleReturnRepository extends JpaRepository<SaleReturn, Long> {
+public interface SaleReturnRepository extends JpaRepository<SaleReturn, Long>, JpaSpecificationExecutor<SaleReturn> {
 
     /**
      * Retrieves all returns processed for a specific original sale.
@@ -43,5 +44,3 @@ public interface SaleReturnRepository extends JpaRepository<SaleReturn, Long> {
      */
     List<SaleReturn> findByCreatedAtBetweenOrderByCreatedAtDesc(LocalDateTime from, LocalDateTime to);
 }
-
-

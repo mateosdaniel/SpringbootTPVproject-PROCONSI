@@ -93,6 +93,7 @@ public class SecurityConfig {
                                                 .ignoringRequestMatchers("/api/**", "/admin/login",
                                                                 "/admin/products/**", "/admin/upload-csv",
                                                                 "/admin/upload-customers-csv",
+                                                                "/admin/workers/**",
                                                                 "/admin/settings/pin", "/forgot-password",
                                                                 "/reset-password"))
 

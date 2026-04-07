@@ -15,7 +15,7 @@ function debounceSharedFilter() {
     }, 350);
 }
 
-const sharedInventoryI18n = Object.assign({
+var sharedInventoryI18n = Object.assign({
     lowStock: 'Stock Bajo',
     yes: 'Sí',
     no: 'No',
@@ -44,16 +44,23 @@ function runSharedBackendFilter() {
     const stock = document.getElementById('sharedFilterStock').value;
     let active = document.getElementById('sharedFilterActive').value;
 
+    const sortBy = (document.getElementById('sharedFilterSortBy') || {}).value || 'id';
+    const sortDir = (document.getElementById('sharedFilterSortDir') || {}).value || 'asc';
+
     const queryParams = new URLSearchParams();
     if (search) queryParams.append('search', search);
     if (category) queryParams.append('category', category);
     if (stock) queryParams.append('stock', stock);
     if (active) queryParams.append('active', active);
+    queryParams.append('sortBy', sortBy);
+    queryParams.append('sortDir', sortDir);
 
-    fetch(`/api/products/filter?${queryParams.toString()}`)
+    fetch(`/api/admin/products?${queryParams.toString()}`)
         .then(res => res.json())
-        .then(products => {
-            renderSharedProductsTable(products);
+        .then(data => {
+            // Check if it's the new paginated API format
+            const items = data.content ? data.content : data;
+            renderSharedProductsTable(items);
         })
         .catch(err => console.error("Error filtrando productos combinados:", err));
 }
@@ -67,6 +74,10 @@ function resetSharedBackendFilter() {
     document.getElementById('sharedFilterCategory').value = '';
     document.getElementById('sharedFilterStock').value = '';
     document.getElementById('sharedFilterActive').value = '';
+    const sortByEl = document.getElementById('sharedFilterSortBy');
+    const sortDirEl = document.getElementById('sharedFilterSortDir');
+    if (sortByEl) sortByEl.value = 'id';
+    if (sortDirEl) sortDirEl.value = 'asc';
 
     const btn = document.getElementById('btnSharedLowStock');
     if (btn) {
@@ -104,7 +115,7 @@ function renderSharedProductsTable(products) {
     tbody.innerHTML = ''; 
 
     if (!products || products.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-muted">${sharedInventoryI18n.noItems}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center p-4 text-muted">${sharedInventoryI18n.noItems}</td></tr>`;
         return;
     }
 
@@ -136,13 +147,21 @@ function renderSharedProductsTable(products) {
         let tr = document.createElement('tr');
         tr.className = 'product-row';
         tr.innerHTML = `
+            <td style="color:var(--text-muted);font-weight:600">#${p.id}</td>
             <td>${imgHtml}</td>
             <td>
                 <strong>${name}</strong>
                 <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">${description ? description.substring(0, 60) : ''}</div>
             </td>
-            <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--accent)">${formattedPrice}</td>
-            <td><span class="${stockStyle}">${p.stock}</span> ${badgeLowStock}</td>
+            <td>${p.vatRate ? Math.round(p.vatRate * 100) + '%' : '—'}</td>
+            <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--accent);text-align:right">${formattedPrice}</td>
+            <td>
+                <div class="d-flex flex-column align-items-center">
+                    <span class="${stockStyle}">${p.stock}</span>
+                    ${badgeLowStock}
+                </div>
+            </td>
+            <td style="text-align:center"><span style="font-size:0.8rem;font-weight:600;color:var(--text-muted)">${p.measurementUnitSymbol || '—'}</span></td>
             <td><span style="font-size:0.82rem;padding:0.2rem 0.5rem;border-radius:6px;background:var(--surface);color:var(--text-muted)">${catName}</span></td>
             <td>${activeBadge}</td>
             <td style="text-align:right">
@@ -161,13 +180,19 @@ function runSharedBackendCategoryFilter() {
     const catSearch = document.getElementById('categoryFilterSearch');
     const search = (globalSearch ? globalSearch.value.trim() : '') || (catSearch ? catSearch.value.trim() : '');
 
+    const sortBy = (document.getElementById('categoryFilterSortBy') || {}).value || 'id';
+    const sortDir = (document.getElementById('categoryFilterSortDir') || {}).value || 'asc';
+
     const queryParams = new URLSearchParams();
     if (search) queryParams.append('search', search);
+    queryParams.append('sortBy', sortBy);
+    queryParams.append('sortDir', sortDir);
 
-    fetch(`/api/categories/filter?${queryParams.toString()}`)
+    fetch(`/api/admin/categories?${queryParams.toString()}`)
         .then(res => res.json())
-        .then(categories => {
-            renderSharedCategoriesTable(categories);
+        .then(data => {
+            const items = data.content ? data.content : data;
+            renderSharedCategoriesTable(items);
         })
         .catch(err => console.error("Error filtrando categorias combinadas:", err));
 }

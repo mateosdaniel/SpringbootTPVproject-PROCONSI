@@ -51,6 +51,13 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Category> getFilteredCategories(String search, org.springframework.data.domain.Pageable pageable) {
+        Specification<Category> spec = CategorySpecification.filterCategories(search);
+        return categoryRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Category findById(Long id) {
         return categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));

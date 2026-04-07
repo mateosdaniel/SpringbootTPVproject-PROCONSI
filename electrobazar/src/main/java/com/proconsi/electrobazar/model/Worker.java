@@ -57,27 +57,28 @@ public class Worker {
     private boolean active = true;
 
     /**
-     * Resolves the effective set of permissions based on the assigned role.
+     * Resolves the effective set of permissions from the assigned role.
+     * If the role name is 'ADMIN' or contains 'ACCESO_TOTAL_ADMIN', it acts as a 
+     * master key and returns all available system permissions for UI visibility.
      * @return A set of permission keys.
      */
     public Set<String> getEffectivePermissions() {
+        Set<String> perms = new HashSet<>();
         if (this.role != null) {
-            // Case 1: MASTER KEY - Full admin by name or specific Spanish key
-            if ("ADMIN".equalsIgnoreCase(this.role.getName()) || 
-                (this.role.getPermissions() != null && this.role.getPermissions().contains("ACCESO_TOTAL_ADMIN"))) {
-                
-                return new HashSet<>(java.util.Arrays.asList(
+            if (this.role.getPermissions() != null) {
+                perms.addAll(this.role.getPermissions());
+            }
+            
+            // Master key check: either by specific permission OR by role name
+            if (perms.contains("ACCESO_TOTAL_ADMIN") || "ADMIN".equals(this.role.getName())) {
+                perms.addAll(java.util.Arrays.asList(
                     "ACCESO_TOTAL_ADMIN", "ADMIN_ACCESS", "ACCESO_TPV", "VER_VENTAS", 
                     "GESTION_INVENTARIO", "MANAGE_PRODUCTS_TPV", "GESTION_VENTAS_PAUSADAS", "HOLD_SALES",
                     "GESTION_CAJA", "CASH_CLOSE", "CIERRE_CAJA", "GESTION_DEVOLUCIONES", "RETURNS",
                     "GESTION_CLIENTES_CRM", "MODIFICAR_PREFERENCIAS", "PREFERENCES"
                 ));
             }
-            // Case 2: Specific permissions from database
-            if (this.role.getPermissions() != null) {
-                return new HashSet<>(this.role.getPermissions());
-            }
         }
-        return new HashSet<>();
+        return perms;
     }
 }

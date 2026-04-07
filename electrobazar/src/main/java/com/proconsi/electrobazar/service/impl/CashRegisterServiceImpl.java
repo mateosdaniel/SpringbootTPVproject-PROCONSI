@@ -11,9 +11,13 @@ import com.proconsi.electrobazar.repository.CashRegisterRepository;
 import com.proconsi.electrobazar.repository.ProductRepository;
 import com.proconsi.electrobazar.repository.SaleRepository;
 import com.proconsi.electrobazar.repository.SaleReturnRepository;
+import com.proconsi.electrobazar.repository.specification.CashRegisterSpecification;
 import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.CashRegisterService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,8 +58,15 @@ public class CashRegisterServiceImpl implements CashRegisterService {
 
     @Override
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<CashRegister> findAllClosed(org.springframework.data.domain.Pageable pageable) {
+    public Page<CashRegister> findAllClosed(Pageable pageable) {
         return cashRegisterRepository.findByClosedTrue(pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CashRegister> getFilteredRegisters(String worker, String date, Pageable pageable) {
+        Specification<CashRegister> spec = CashRegisterSpecification.filterRegisters(worker, date);
+        return cashRegisterRepository.findAll(spec, pageable);
     }
 
     @Override
@@ -148,8 +159,6 @@ public class CashRegisterServiceImpl implements CashRegisterService {
 
     @Override
     public void checkOpenRegisterForToday() {
-        // More lenient check: Allow any open shift even if it was opened on a previous day.
-        // This prevents the "No hay ninguna sesión de caja abierta" error when a shift spans past midnight.
         boolean isRegisterOpen = cashRegisterRepository.findFirstByClosedFalseOrderByRegisterDateDesc()
                 .isPresent();
 
@@ -288,5 +297,3 @@ public class CashRegisterServiceImpl implements CashRegisterService {
                 .build();
     }
 }
-
-

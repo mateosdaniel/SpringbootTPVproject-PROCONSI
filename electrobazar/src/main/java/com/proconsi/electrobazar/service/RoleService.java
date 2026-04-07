@@ -1,6 +1,8 @@
 package com.proconsi.electrobazar.service;
 
 import com.proconsi.electrobazar.model.Role;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Optional;
 
@@ -8,6 +10,11 @@ import java.util.Optional;
  * Interface for managing worker roles and their associated permissions.
  */
 public interface RoleService {
+
+    /**
+     * Retrieves roles with optional filtering (search query and required permissions).
+     */
+    Page<Role> getFilteredRoles(String search, List<String> permissions, Pageable pageable);
 
     /**
      * Retrieves all roles defined in the system.

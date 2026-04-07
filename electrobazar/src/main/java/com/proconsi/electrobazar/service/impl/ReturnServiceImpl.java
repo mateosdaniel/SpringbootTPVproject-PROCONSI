@@ -4,6 +4,7 @@ import com.proconsi.electrobazar.dto.ReturnLineRequest;
 import com.proconsi.electrobazar.exception.InsufficientCashException;
 import com.proconsi.electrobazar.model.*;
 import com.proconsi.electrobazar.repository.*;
+import com.proconsi.electrobazar.repository.specification.ReturnSpecification;
 import com.proconsi.electrobazar.service.CashRegisterService;
 import com.proconsi.electrobazar.service.InvoiceService;
 import com.proconsi.electrobazar.service.ProductService;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,6 +57,13 @@ public class ReturnServiceImpl implements ReturnService {
     @Transactional(readOnly = true)
     public Page<SaleReturn> findAll(Pageable pageable) {
         return saleReturnRepository.findAll(pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<SaleReturn> getFilteredReturns(String search, String method, String date, Pageable pageable) {
+        Specification<SaleReturn> spec = ReturnSpecification.filterReturns(search, method, date);
+        return saleReturnRepository.findAll(spec, pageable);
     }
 
     @Override
@@ -225,5 +234,3 @@ public class ReturnServiceImpl implements ReturnService {
         return saleReturnRepository.findByCreatedAtBetweenOrderByCreatedAtDesc(from, to);
     }
 }
-
-

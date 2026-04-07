@@ -5,7 +5,7 @@ function switchView(viewId, btnElement) {
         'dashboardView', 'productsView', 'invoicesView', 'cashCloseView',
         'returnsHistoryView', 'settingsView', 'workersView', 'rolesView', 'analyticsView',
         'crmView', 'preciosTempView', 'preciosMasivosView', 'activityView', 'tarifasView',
-        'tiposIvaView', 'couponsView', 'promotionsView', 'measurementUnitsView'
+        'tiposIvaView', 'couponsView', 'promotionsView', 'measurementUnitsView', 'abonosView'
     ];
     views.forEach(v => {
         const el = document.getElementById(v);
@@ -49,11 +49,23 @@ function switchView(viewId, btnElement) {
         fetchSalesPage(0);
     } else if (viewId === 'measurementUnitsView') {
         loadMeasurementUnits();
+    } else if (viewId === 'cashCloseView') {
+        filterCashClosures();
+    } else if (viewId === 'returnsHistoryView') {
+        filterReturns();
+    } else if (viewId === 'workersView') {
+        filterWorkers();
+    } else if (viewId === 'rolesView') {
+        filterRoles();
+    } else if (viewId === 'crmView') {
+        filterCRM();
+    } else if (viewId === 'abonosView') {
+        document.getElementById('abonosTableBody').innerHTML = '<tr><td colspan="8" class="text-center text-muted">Introduce un ID de Cliente para buscar sus abonos</td></tr>';
     }
 }
 
 // Global Modal Variables
-var productModal, categoryModal, workerModal, customerModal, roleModal, ipcUpdateModal, couponModal, promotionModal, measurementUnitModal;
+var productModal, categoryModal, workerModal, customerModal, roleModal, ipcUpdateModal, couponModal, promotionModal, measurementUnitModal, abonoModal;
 var schedulePriceModal; // Also used in the script
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -73,6 +85,7 @@ document.addEventListener('DOMContentLoaded', function () {
     couponModal = initModal('couponModal');
     promotionModal = initModal('promotionModal');
     measurementUnitModal = initModal('measurementUnitModal');
+    abonoModal = initModal('abonoModal');
 
     if (typeof attachNifCifValidator === 'function') {
         attachNifCifValidator('customerTaxId');
@@ -432,55 +445,99 @@ function uploadCustomersCsvFile(input) {
 }
 
 // -- Activity Log --------------------------------------------------------
+// -- Activity Log --------------------------------------------------------
+var activityCurrentPage = 0;
+
 function loadActivityLog() {
+    fetchActivityLogs(0);
+}
+
+function fetchActivityLogs(page) {
+    activityCurrentPage = page;
     var container = document.getElementById('activityFeedContainer');
     if (!container) return;
 
     container.innerHTML = '<div class="text-center p-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div></div>';
 
-    fetch('/api/activity-log/recent')
+    const search = document.getElementById('activityFilterSearch').value;
+    const action = document.getElementById('activityFilterAction').value;
+    const username = document.getElementById('activityFilterUsername').value;
+    const sortBy = document.getElementById('activitySortBy').value;
+    const sortDir = document.getElementById('activitySortDir').value;
+
+    const params = new URLSearchParams({
+        page: page,
+        size: 50,
+        search: search,
+        action: action,
+        username: username,
+        sortBy: sortBy,
+        sortDir: sortDir
+    });
+
+    fetch('/api/admin/activity-logs?' + params.toString())
         .then(function (res) {
             if (!res.ok) throw new Error('Error de red');
             return res.json();
         })
-        .then(function (logs) {
-            if (logs.length === 0) {
-                if (container) {
-                    container.innerHTML = `<div class="text-center p-4" style="color: var(--text-muted);">${window.adminI18n.noActivity || 'No hay actividad reciente.'}</div>`;
-                }
-                return;
-            }
-
-            var html = '';
-            logs.forEach(function (log) {
-                var iconClasses = 'bi-info-circle text-info';
-
-                // Determinar el ícono y color basado en la acción
-                if (log.action === 'VENTA') iconClasses = 'bi-cart-check text-primary';
-                else if (log.action.includes('CREAR')) iconClasses = 'bi-plus-circle text-success';
-                else if (log.action.includes('CIERRE') || log.action.includes('APERTURA')) iconClasses = 'bi-cash-stack text-info';
-                else if (log.action.includes('ACTUALIZAR')) iconClasses = 'bi-pencil text-warning';
-                else if (log.action.includes('ELIMINAR')) iconClasses = 'bi-trash text-danger';
-                else if (log.action.includes('LOGIN') || log.action.includes('SESION')) iconClasses = 'bi-key text-info';
-                else if (log.action.includes('FISCAL')) iconClasses = 'bi-shield-check text-success';
-
-                var formattedDate = log.timestamp ? formatTimeAgo(log.timestamp) : '';
-                var logShortDate = log.timestamp ? log.timestamp.split('T')[0] : '';
-
-                html += '<div class="activity-item" data-user="' + escHtml(log.username || '') + '" data-action="' + escHtml(log.action) + '" data-date="' + logShortDate + '">' +
-                    '<div class="activity-icon"><i class="bi ' + iconClasses + '"></i></div>' +
-                    '<div class="activity-content">' +
-                    '<div class="activity-text">' + escHtml(log.description) + '</div>' +
-                    '<div class="activity-time">' + formattedDate + '</div>' +
-                    '</div>' +
-                    '</div>';
-            });
-            container.innerHTML = html;
+        .then(function (data) {
+            renderActivityLogs(data.content);
+            renderActivityPagination(data);
         })
         .catch(function (e) {
             container.innerHTML = '<div class="text-center p-4 text-danger">Error al cargar la actividad.</div>';
             console.error(e);
         });
+}
+
+function renderActivityLogs(logs) {
+    var container = document.getElementById('activityFeedContainer');
+    if (!logs || logs.length === 0) {
+        container.innerHTML = `<div class="text-center p-4" style="color: var(--text-muted);">${window.adminI18n ? (window.adminI18n.noActivity || 'No hay actividad reciente.') : 'No hay actividad reciente.'}</div>`;
+        return;
+    }
+
+    var html = '';
+    logs.forEach(function (log) {
+        var iconClasses = 'bi-info-circle text-info';
+        const action = log.action || '';
+
+        if (action === 'VENTA') iconClasses = 'bi-cart-check text-primary';
+        else if (action.includes('CREAR')) iconClasses = 'bi-plus-circle text-success';
+        else if (action.includes('CIERRE') || action.includes('APERTURA')) iconClasses = 'bi-cash-stack text-info';
+        else if (action.includes('ACTUALIZAR')) iconClasses = 'bi-pencil text-warning';
+        else if (action.includes('ELIMINAR')) iconClasses = 'bi-trash text-danger';
+        else if (action.includes('LOGIN') || action.includes('SESION')) iconClasses = 'bi-key text-info';
+        else if (action.includes('FISCAL')) iconClasses = 'bi-shield-check text-success';
+
+        var formattedDate = log.timestamp ? formatTimeAgo(log.timestamp) : '';
+        
+        html += '<div class="activity-item">' +
+            '<div class="activity-icon"><i class="bi ' + iconClasses + '"></i></div>' +
+            '<div class="activity-content">' +
+            '<div class="activity-text">' + escHtml(log.description || '') + '</div>' +
+            '<div class="activity-time">' + formattedDate + ' <small class="ms-2" style="color: var(--text-muted);">por <strong>' + escHtml(log.username || 'Sistema') + '</strong></small></div>' +
+            '</div>' +
+            '</div>';
+    });
+    container.innerHTML = html;
+}
+
+function renderActivityPagination(data) {
+    let container = document.getElementById('activityPaginationContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'activityPaginationContainer';
+        container.className = 'mt-4 d-flex justify-content-center';
+        document.getElementById('activityFeedContainer').after(container);
+    }
+    
+    // Use shared pagination if available or simple one
+    if (typeof createPaginationHTML === 'function') {
+        container.innerHTML = createPaginationHTML(data.currentPage, data.totalPages, 'fetchActivityLogs');
+    } else {
+        container.innerHTML = `Página ${data.currentPage + 1} de ${data.totalPages}`;
+    }
 }
 
 function formatTimeAgo(dateStr) {
@@ -1200,36 +1257,62 @@ function saveScheduledPrice() {
 }
 
 function loadFuturePrices() {
-    fetch('/api/product-prices/future')
-        .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
-        .then(function (prices) {
-            var tbody = document.getElementById('futurePricesBody');
-            if (!tbody) return;
-            if (!prices || prices.length === 0) {
-            if (tbody) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4" style="color: var(--text-muted);">${window.adminI18n.noScheduledPrices || 'No hay precios programados para el futuro.'}</td></tr>`;
-            }
-                return;
-            }
-            tbody.innerHTML = prices.map(function (p) {
-                var vatPct = Math.round(parseFloat(p.vatRate) * 100) + '%';
-                var reRate = RE_RATE_MAP[String(p.vatRate)] || '—';
-                return '<tr class="future-price-row" data-product-name="' + escHtml(p.productName).toLowerCase() + '">'
-                    + '<td><strong>' + escHtml(p.productName) + '</strong></td>'
-                    + '<td>' + formatDecimal(p.price, 2, 4) + ' &euro;</td>'
-                    + '<td>' + vatPct + ' <small style="color: var(--text-muted);">(+' + reRate + ' RE)</small></td>'
-                    + '<td>' + formatDateTime(p.startDate) + '</td>'
-                    + '<td>' + (p.endDate ? formatDateTime(p.endDate) : '<span style="color: var(--text-muted);">Abierto</span>') + '</td>'
-                    + '<td>' + (p.label ? escHtml(p.label) : '<span style="color: var(--text-muted);">—</span>') + '</td>'
-                    + '</tr>';
-            }).join('');
+    filterFuturePrices();
+}
+
+function filterFuturePrices() {
+    const search = document.getElementById('futurePriceFilterSearch').value.trim();
+    const sortBy = document.getElementById('futurePriceSortBy').value;
+    const sortDir = document.getElementById('futurePriceSortDir').value;
+
+    const queryParams = new URLSearchParams();
+    if (search) queryParams.append('search', search);
+    queryParams.append('sortBy', sortBy);
+    queryParams.append('sortDir', sortDir);
+
+    fetch(`/api/admin/future-prices?${queryParams.toString()}`)
+        .then(res => res.json())
+        .then(data => {
+            renderFuturePricesTable(data.content || data);
         })
-        .catch(function () {
+        .catch(err => {
+            console.error("Error filtering future prices:", err);
             const el = document.getElementById('futurePricesBody');
-            if (el) {
-                el.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-danger">Error al cargar los precios programados.</td></tr>';
-            }
+            if (el) el.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-danger">Error al cargar los precios programados.</td></tr>';
         });
+}
+
+function renderFuturePricesTable(prices) {
+    const tbody = document.getElementById('futurePricesBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!prices || prices.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4" style="color: var(--text-muted);">${window.adminI18n.noScheduledPrices || 'No hay precios programados.'}</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = prices.map(function (p) {
+        const vatPct = Math.round(parseFloat(p.vatRate) * 100) + '%';
+        const reRate = (typeof RE_RATE_MAP !== 'undefined') ? (RE_RATE_MAP[String(p.vatRate)] || '—') : '—';
+        return '<tr class="future-price-row">'
+            + '<td><strong>' + p.productName + '</strong></td>'
+            + '<td>' + (typeof formatDecimal === 'function' ? formatDecimal(p.price, 2, 4) : p.price) + ' &euro;</td>'
+            + '<td>' + vatPct + ' <small style="color: var(--text-muted);">(+' + reRate + ' RE)</small></td>'
+            + '<td>' + (typeof formatDateTime === 'function' ? formatDateTime(p.startDate) : p.startDate) + '</td>'
+            + '<td>' + (p.endDate ? (typeof formatDateTime === 'function' ? formatDateTime(p.endDate) : p.endDate) : '<span style="color: var(--text-muted);">Abierto</span>') + '</td>'
+            + '<td>' + (p.label ? p.label : '<span style="color: var(--text-muted);">—</span>') + '</td>'
+            + '</tr>';
+    }).join('');
+}
+
+function resetFuturePriceFilters() {
+    document.getElementById('futurePriceFilterSearch').value = '';
+    const sortBy = document.getElementById('futurePriceSortBy');
+    const sortDir = document.getElementById('futurePriceSortDir');
+    if (sortBy) sortBy.value = 'startDate';
+    if (sortDir) sortDir.value = 'asc';
+    filterFuturePrices();
 }
 
 function loadPriceHistory() {
@@ -1309,33 +1392,44 @@ function escHtml(str) {
 // ── PRECIOS MASIVOS ────────────────────────────────────────────────────────
 var bulkProductsCache = null;
 
-function loadBulkProducts() {
-    if (bulkProductsCache) return bulkProductsCache;
+var bulkSelectedIds = new Set();
 
-    fetch('/api/products')
-        .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
-        .then(function (products) {
-            bulkProductsCache = products;
-            renderBulkProductList(products);
+function loadBulkProducts(page = 0) {
+    const search = document.getElementById('bulkProductSearch').value;
+    const container = document.getElementById('bulkProductList');
+    if (!container) return;
+
+    const params = new URLSearchParams({
+        page: page,
+        size: 100, // Show more in bulk view
+        search: search,
+        active: true,
+        sortBy: 'nameEs',
+        sortDir: 'asc'
+    });
+
+    fetch('/api/admin/products?' + params.toString())
+        .then(r => r.json())
+        .then(data => {
+            renderBulkProductList(data.content);
+            renderBulkPagination(data);
         })
-        .catch(function () {
-            const el = document.getElementById('bulkProductList');
-            if (el) {
-                el.innerHTML = '<div class="text-center text-danger py-3">Error cargando productos</div>';
-            }
+        .catch(e => {
+            container.innerHTML = '<div class="text-center text-danger py-3">Error cargando productos</div>';
         });
 }
 
 function renderBulkProductList(products) {
     var container = document.getElementById('bulkProductList');
     if (!products || products.length === 0) {
-        container.innerHTML = `<div class="text-center py-3" style="color: var(--text-muted);">${window.adminI18n.noProducts || 'No hay productos disponibles'}</div>`;
+        container.innerHTML = `<div class="text-center py-3" style="color: var(--text-muted);">${window.adminI18n ? (window.adminI18n.noProducts || 'No hay productos') : 'No hay productos'}</div>`;
         return;
     }
     container.innerHTML = products.map(function (p) {
-        var catName = p.category ? p.category.name : 'S/C';
-        return '<div class="form-check bulk-product-item" data-category="' + escHtml(catName).toLowerCase() + '" data-search="' + escHtml(p.name).toLowerCase() + ' ' + escHtml(catName).toLowerCase() + '">'
-            + '<input class="form-check-input bulk-product-checkbox" type="checkbox" value="' + p.id + '" id="bulkProd' + p.id + '" onchange="updateBulkSelectedCount()">'
+        let isChecked = bulkSelectedIds.has(p.id) ? 'checked' : '';
+        var catName = p.categoryName || 'S/C';
+        return '<div class="form-check bulk-product-item">'
+            + '<input class="form-check-input bulk-product-checkbox" type="checkbox" value="' + p.id + '" id="bulkProd' + p.id + '" onchange="handleBulkProductToggle(this)" ' + isChecked + '>'
             + '<label class="form-check-label" for="bulkProd' + p.id + '" style="color: var(--text-main); cursor: pointer;">'
             + '<span style="color: var(--text-main);">' + escHtml(p.name) + '</span>'
             + ' <small style="color: var(--text-muted);">(' + catName + ' - ' + parseFloat(p.price).toFixed(2) + ' €)</small>'
@@ -1344,16 +1438,54 @@ function renderBulkProductList(products) {
     }).join('');
 }
 
-function selectAllBulkProducts(select) {
-    var checkboxes = document.querySelectorAll('.bulk-product-checkbox');
-    checkboxes.forEach(function (cb) { cb.checked = select; });
+function renderBulkPagination(data) {
+    let container = document.getElementById('bulkPaginationContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'bulkPaginationContainer';
+        container.className = 'mt-2 d-flex justify-content-between align-items-center tiny-pagination';
+        document.getElementById('bulkProductList').after(container);
+    }
+    
+    container.innerHTML = `
+        <button class="btn btn-sm btn-link p-0" onclick="loadBulkProducts(${data.currentPage - 1})" ${data.currentPage === 0 ? 'disabled' : ''}>Anterior</button>
+        <small class="text-muted">Pág ${data.currentPage + 1} de ${data.totalPages}</small>
+        <button class="btn btn-sm btn-link p-0" onclick="loadBulkProducts(${data.currentPage + 1})" ${data.currentPage + 1 >= data.totalPages ? 'disabled' : ''}>Siguiente</button>
+    `;
+}
+
+function handleBulkProductToggle(checkbox) {
+    const id = parseInt(checkbox.value);
+    if (checkbox.checked) {
+        bulkSelectedIds.add(id);
+    } else {
+        bulkSelectedIds.delete(id);
+    }
     updateBulkSelectedCount();
 }
 
 function updateBulkSelectedCount() {
-    var checked = document.querySelectorAll('.bulk-product-checkbox:checked');
-    document.getElementById('selectedCountLabel').textContent = checked.length + ' productos seleccionados';
+    const label = document.getElementById('selectedCountLabel');
+    if (label) label.textContent = bulkSelectedIds.size + ' productos seleccionados';
 }
+
+function selectAllBulkProducts(select) {
+    if (select) {
+        // Warning: This only selects items in current view. 
+        // For a true "Select All", we'd need a backend "Select All matching search" flag.
+        // For now, we follow current behavior: Select visible.
+        document.querySelectorAll('.bulk-product-checkbox').forEach(cb => {
+            cb.checked = true;
+            bulkSelectedIds.add(parseInt(cb.value));
+        });
+    } else {
+        bulkSelectedIds.clear();
+        document.querySelectorAll('.bulk-product-checkbox').forEach(cb => cb.checked = false);
+    }
+    updateBulkSelectedCount();
+}
+
+
 
 function toggleBulkPriceFields() {
     var type = document.getElementById('bulkPriceType').value;
@@ -1362,7 +1494,7 @@ function toggleBulkPriceFields() {
 }
 
 function applyBulkPriceUpdate() {
-    var selectedIds = Array.from(document.querySelectorAll('.bulk-product-checkbox:checked')).map(function (cb) { return parseInt(cb.value); });
+    var selectedIds = Array.from(bulkSelectedIds);
 
     if (selectedIds.length === 0) {
         showToast('Selecciona al menos un producto', 'error');
@@ -1449,35 +1581,7 @@ function loadRoles() {
         });
 }
 
-function renderRolesTable(roles, workers) {
-    const tbody = document.getElementById('rolesTableBody');
-    if (!tbody) return;
-    if (!roles || roles.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4" style="color: var(--text-muted);">${window.adminI18n.noRoles || 'No hay roles definidos'}</td></tr>`;
-        return;
-    }
-
-    // Also check tbody exists before setting innerHTML
-    if (!tbody) return;
-    tbody.innerHTML = roles.map(r => {
-        const perms = r.permissions.map(p => `<span class="badge me-1" style="font-size:0.7rem; background-color: rgba(148,163,184,0.15); color: var(--text-muted); border: 1px solid rgba(148,163,184,0.25);">${p}</span>`).join('');
-        const permsText = r.permissions.join(',');
-
-        // Count workers with this role
-        const count = workers ? workers.filter(w => w.role && w.role.id === r.id).length : 0;
-
-        return `<tr class="role-row" data-name="${escHtml(r.name)}" data-permissions="${permsText}">
-            <td><strong>${escHtml(r.name)}</strong></td>
-            <td style="font-size:0.85rem; color: var(--text-muted);">${escHtml(r.description || '\u2014')}</td>
-            <td>${perms || '<span class="small" style="color: var(--text-muted);">Sin permisos</span>'}</td>
-            <td><span class="badge" style="font-size:0.85rem; background-color: rgba(6,182,212,0.18); color: #22d3ee; border: 1px solid rgba(6,182,212,0.3);">${count} trabajador(es)</span></td>
-            <td style="text-align:right">
-                <button class="btn-icon" onclick="openRoleModal(${r.id})"><i class="bi bi-pencil"></i></button>
-                <button class="btn-icon danger" onclick="deleteRole(${r.id})"><i class="bi bi-trash"></i></button>
-            </td>
-        </tr>`;
-    }).join('');
-}
+// Duplicate renderRolesTable removed to avoid conflicts with the filtered version below.
 
 function populateRoleSelect(roles) {
     const select = document.getElementById('workerRole');
@@ -1518,12 +1622,14 @@ function openRoleModal(id) {
             }
 
             permissions.forEach(function (p) {
-                const isSpecial = p === 'ACCESO_TOTAL_ADMIN';
+                // EXCLUDE master permission from the list so it can't be assigned to other roles
+                if (p === 'ACCESO_TOTAL_ADMIN') return;
+
+                const isSpecial = p === 'ADMIN_ACCESS';
                 const isChecked = role && role.permissions && role.permissions.includes(p);
 
                 const div = document.createElement('div');
-                div.className = 'form-check ' + (isSpecial ? 'mt-2 pt-2' : 'mb-2');
-                if (isSpecial) div.style.borderTop = '1px solid var(--border)';
+                div.className = 'form-check mb-2';
 
                 div.innerHTML = '<input class="form-check-input role-perm-checkbox" type="checkbox" value="' + p + '" id="perm_' + p + '"' + (isChecked ? ' checked' : '') + '>' +
                     '<label class="form-check-label ' + (isSpecial ? 'text-danger fw-bold' : '') + '" for="perm_' + p + '" style="color: var(--text-main); cursor: pointer;">' +
@@ -1604,69 +1710,165 @@ function onWorkerRoleChange() {
 // ── WORKER FILTERING ────────────────────────────────────────────────────────
 
 function filterWorkers() {
-    const nameQuery = document.getElementById('workerFilterName').value.toLowerCase().trim();
+    const search = document.getElementById('workerFilterName').value.trim();
     const roleId = document.getElementById('workerFilterRole').value;
-    const status = document.getElementById('workerFilterStatus').value;
+    const active = document.getElementById('workerFilterStatus').value;
+    const sortBy = document.getElementById('workerFilterSortBy').value;
+    const sortDir = document.getElementById('workerFilterSortDir').value;
 
-    const rows = document.querySelectorAll('.worker-row');
-    let visibleCount = 0;
+    const queryParams = new URLSearchParams();
+    if (search) queryParams.append('search', search);
+    if (roleId) queryParams.append('roleId', roleId);
+    if (active) queryParams.append('active', active);
+    queryParams.append('sortBy', sortBy);
+    queryParams.append('sortDir', sortDir);
 
-    rows.forEach(row => {
-        const username = row.getAttribute('data-username').toLowerCase();
-        const active = row.getAttribute('data-active');
-        const rowRoleId = row.getAttribute('data-role-id');
+    fetch(`/api/admin/workers?${queryParams.toString()}`)
+        .then(res => res.json())
+        .then(data => {
+            renderWorkersTable(data.content || data);
+            
+            const total = data.totalElements || data.length;
+            const label = document.getElementById('workerCountLabel');
+            if (search || roleId || active !== '') {
+                label.innerHTML = `Mostrando <b>${total}</b> trabajadores encontrados con los filtros aplicados.`;
+            } else {
+                label.textContent = 'Mostrando todas las fichas de trabajadores.';
+            }
+        })
+        .catch(err => console.error("Error filtering workers:", err));
+}
 
-        let matches = true;
-        if (nameQuery && !username.includes(nameQuery)) matches = false;
-        if (roleId && rowRoleId !== roleId) matches = false;
-        if (status && active !== status) matches = false;
+function renderWorkersTable(items) {
+    const tbody = document.querySelector('#workersView table tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
 
-        row.style.display = matches ? '' : 'none';
-        if (matches) visibleCount++;
-    });
-
-    const label = document.getElementById('workerCountLabel');
-    if (nameQuery || roleId || status) {
-        label.innerHTML = `Filtrado activo: <b>${visibleCount}</b> de <b>${rows.length}</b> trabajadores encontrados.`;
-    } else {
-        label.textContent = 'Mostrando todas las fichas de trabajadores.';
+    if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4" style="color: var(--text-muted);">No hay trabajadores registrados.</td></tr>`;
+        return;
     }
+
+    items.forEach(w => {
+        const badgeRole = w.roleName 
+            ? `<span class="badge" style="font-size:0.75rem; background-color: rgba(6,182,212,0.18); color: #22d3ee; border: 1px solid rgba(6,182,212,0.3);">${w.roleName}</span>`
+            : `<span class="small" style="color: var(--text-muted);">Sin rol</span>`;
+
+        const badgeActive = w.active 
+            ? `<span class="badge bg-success">Activo</span>`
+            : `<span class="badge bg-danger">Inactivo</span>`;
+
+        // Permissions display removed from workers table as requested.
+
+        const tr = document.createElement('tr');
+        tr.className = 'worker-row';
+        tr.innerHTML = `
+            <td><strong>${w.username}</strong></td>
+            <td>${badgeRole}</td>
+            <td>${badgeActive}</td>
+            <td style="text-align:right">
+                <button class="btn-icon" title="Editar" 
+                    onclick="openWorkerModal(${w.id}, '${w.username}', ${w.active}, null, ${w.roleId || 'null'})">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn-icon danger" title="Eliminar" onclick="deleteWorker(${w.id})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
 function resetWorkerFilters() {
     document.getElementById('workerFilterName').value = '';
     document.getElementById('workerFilterRole').value = '';
     document.getElementById('workerFilterStatus').value = '';
+    const sortBy = document.getElementById('workerFilterSortBy');
+    const sortDir = document.getElementById('workerFilterSortDir');
+    if (sortBy) sortBy.value = 'username';
+    if (sortDir) sortDir.value = 'asc';
     filterWorkers();
 }
 
 // ── ROLE FILTERING ──────────────────────────────────────────────────────────
 
 function filterRoles() {
-    const nameQuery = document.getElementById('roleFilterName').value.toLowerCase().trim();
-    const selectedPerms = Array.from(document.querySelectorAll('.role-filter-perm:checked')).map(cb => cb.value);
+    const search = document.getElementById('roleFilterName').value.trim();
+    const permissions = Array.from(document.querySelectorAll('.role-filter-perm:checked')).map(cb => cb.value);
+    const sortBy = document.getElementById('roleFilterSortBy').value;
+    const sortDir = document.getElementById('roleFilterSortDir').value;
 
-    const rows = document.querySelectorAll('.role-row');
-    rows.forEach(row => {
-        const name = (row.getAttribute('data-name') || '').toLowerCase();
-        const perms = (row.getAttribute('data-permissions') || '').split(',');
+    const queryParams = new URLSearchParams();
+    if (search) queryParams.append('search', search);
+    if (permissions.length > 0) {
+        permissions.forEach(p => queryParams.append('permissions', p));
+    }
+    queryParams.append('sortBy', sortBy);
+    queryParams.append('sortDir', sortDir);
 
-        let matches = true;
-        if (nameQuery && !name.includes(nameQuery)) matches = false;
+    fetch(`/api/admin/roles?${queryParams.toString()}`)
+        .then(res => res.json())
+        .then(data => {
+            renderRolesTable(data.content || data);
+        })
+        .catch(err => console.error("Error filtering roles:", err));
+}
 
-        if (selectedPerms.length > 0) {
-            const hasAll = selectedPerms.every(p => perms.includes(p));
-            if (!hasAll) matches = false;
-        }
+function renderRolesTable(items) {
+    const tbody = document.getElementById('rolesTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
 
-        row.style.display = matches ? '' : 'none';
+    if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4" style="color: var(--text-muted);">No hay roles registrados.</td></tr>`;
+        return;
+    }
+
+    items.forEach(r => {
+        const perms = (Array.from(r.permissions) || []).map(p => {
+            const isMaster = p === 'ACCESO_TOTAL_ADMIN';
+            const style = isMaster 
+                ? 'background-color: rgba(255, 184, 0, 0.15); color: #ffb800; border: 1px solid rgba(255, 184, 0, 0.3); font-weight: 600;' 
+                : 'background-color: rgba(148,163,184,0.15); color: var(--text-muted); border: 1px solid rgba(148,163,184,0.25);';
+            const text = isMaster ? 'ACCESO TOTAL' : p;
+            return `<span class="badge me-1" style="font-size: 0.65rem; ${style}">${text}</span>`;
+        }).join('') || `<span class="small" style="color: var(--text-muted);">Sin permisos</span>`;
+
+        const tr = document.createElement('tr');
+        tr.className = 'role-row';
+        const count = r.workerCount !== undefined ? r.workerCount : 0;
+        tr.innerHTML = `
+            <td><strong>${r.name}</strong></td>
+            <td class="small" style="color: var(--text-muted);">${r.description || '—'}</td>
+            <td>${perms}</td>
+            <td><span class="badge" style="background-color: rgba(var(--accent-rgb), 0.1); color: var(--accent); border: 1px solid var(--accent);">${count} trabajador(es)</span></td>
+            <td style="text-align:right">
+                <button class="btn-icon" title="Editar" onclick="openRoleModal(${r.id})">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn-icon danger" title="Eliminar" onclick="deleteRole(${r.id})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
     });
 }
 
 function resetRolePermFilters() {
     document.querySelectorAll('.role-filter-perm').forEach(cb => cb.checked = false);
-    filterRoles();
     updateFilterPermLabel('roleFilterPermBtn', '.role-filter-perm', 'Seleccionar Permisos');
+}
+
+function resetRoleFilters() {
+    document.getElementById('roleFilterName').value = '';
+    resetRolePermFilters();
+    const sortBy = document.getElementById('roleFilterSortBy');
+    const sortDir = document.getElementById('roleFilterSortDir');
+    if (sortBy) sortBy.value = 'name';
+    if (sortDir) sortDir.value = 'asc';
+    filterRoles();
 }
 
 
@@ -1712,8 +1914,10 @@ async function fetchSalesPage(page) {
     const type = document.getElementById('invoiceFilterType').value;
     const method = document.getElementById('invoiceFilterMethod').value;
     const date = document.getElementById('invoiceFilterDate').value;
+    const sortBy = (document.getElementById('invoiceSortBy') || {}).value || 'createdAt';
+    const sortDir = (document.getElementById('invoiceSortDir') || {}).value || 'desc';
     
-    const url = `/api/admin/sales?page=${page}&search=${encodeURIComponent(search)}&type=${type}&method=${method}&date=${date}`;
+    const url = `/api/admin/sales?page=${page}&search=${encodeURIComponent(search)}&type=${type}&method=${method}&date=${date}&sortBy=${sortBy}&sortDir=${sortDir}`;
     
     // Show loading state if needed
     const tbody = document.getElementById('invoicesTableBody');
@@ -1817,83 +2021,192 @@ function resetInvoiceFilters() {
     document.getElementById('invoiceFilterType').value = '';
     document.getElementById('invoiceFilterMethod').value = '';
     document.getElementById('invoiceFilterDate').value = '';
+    const sortByEl = document.getElementById('invoiceSortBy');
+    const sortDirEl = document.getElementById('invoiceSortDir');
+    if (sortByEl) sortByEl.value = 'createdAt';
+    if (sortDirEl) sortDirEl.value = 'desc';
     filterInvoices();
 }
 
 function filterCashClosures() {
-    const query = document.getElementById('cashFilterWorker').value.toLowerCase().trim();
-    const dateQuery = document.getElementById('cashFilterDate').value.trim();
+    const worker = document.getElementById('cashFilterWorker').value.trim();
+    const date = document.getElementById('cashFilterDate').value;
+    const sortBy = document.getElementById('cashFilterSortBy').value;
+    const sortDir = document.getElementById('cashFilterSortDir').value;
 
-    document.querySelectorAll('.cash-row').forEach(row => {
-        const worker = (row.getAttribute('data-worker') || '').toLowerCase();
-        const openDate = row.getAttribute('data-open-date');
-        const closeDate = row.getAttribute('data-close-date');
+    const queryParams = new URLSearchParams();
+    if (worker) queryParams.append('worker', worker);
+    if (date) queryParams.append('date', date);
+    queryParams.append('sortBy', sortBy);
+    queryParams.append('sortDir', sortDir);
 
-        let matches = true;
-        if (query && !worker.includes(query)) matches = false;
-        if (dateQuery && openDate !== dateQuery && closeDate !== dateQuery) matches = false;
+    fetch(`/api/admin/cash-closings?${queryParams.toString()}`)
+        .then(res => res.json())
+        .then(data => {
+            renderCashClosuresTable(data.content || data);
+            // Update pagination if needed, but the current UI doesn't have it visible for cash closes yet.
+            // I'll add it later if the user asks for it, for now just the list.
+        })
+        .catch(err => console.error("Error filtering cash closures:", err));
+}
 
-        row.style.display = matches ? '' : 'none';
+function renderCashClosuresTable(items) {
+    const tbody = document.getElementById('cashClosuresTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted)">No hay cierres de caja registrados.</td></tr>`;
+        return;
+    }
+
+    items.forEach(r => {
+        const opening = r.openingTime ? new Date(r.openingTime).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+        const closing = r.closedAt ? new Date(r.closedAt).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+        
+        const calc = (r.totalCalculated || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const decl = (r.closingBalance || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const diffVal = r.difference || 0;
+        
+        let diffBadge = '';
+        if (diffVal === 0) {
+            diffBadge = `<span class="badge-active yes">Cuadrado (0.00 €)</span>`;
+        } else if (diffVal > 0) {
+            diffBadge = `<span class="badge-active yes">+${diffVal.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</span>`;
+        } else {
+            diffBadge = `<span class="badge-active no">${diffVal.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = 'cash-row';
+        tr.style.cursor = 'pointer';
+        tr.onclick = () => window.location.href = `/admin/cash-register/${r.id}`;
+        tr.innerHTML = `
+            <td style="color:var(--text-muted);font-weight:600">#${r.id}</td>
+            <td>${opening}</td>
+            <td>${closing}</td>
+            <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;text-align:right">${calc} €</td>
+            <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;text-align:right">${decl} €</td>
+            <td style="text-align:right">${diffBadge}</td>
+            <td style="font-weight: 500;">${r.workerUsername || 'Sistema'}</td>
+            <td style="text-align:right">
+                <a href="/admin/download/cash-register/${r.id}" target="_blank" class="btn-icon" title="Imprimir" style="text-decoration: none;" onclick="event.stopPropagation();">
+                    <i class="bi bi-printer" style="color:#e74c3c;"></i>
+                </a>
+            </td>
+        `;
+        tbody.appendChild(tr);
     });
 }
+
 function resetCashFilters() {
     document.getElementById('cashFilterWorker').value = '';
     document.getElementById('cashFilterDate').value = '';
+    const sortBy = document.getElementById('cashFilterSortBy');
+    const sortDir = document.getElementById('cashFilterSortDir');
+    if (sortBy) sortBy.value = 'id';
+    if (sortDir) sortDir.value = 'desc';
     filterCashClosures();
 }
 
 function filterCRM() {
-    const query = document.getElementById('crmFilterSearch').value.toLowerCase().trim();
+    const search = document.getElementById('crmFilterSearch').value.trim();
     const type = document.getElementById('crmFilterType').value;
     const re = document.getElementById('crmFilterRE').value;
+    const sortBy = document.getElementById('crmFilterSortBy').value;
+    const sortDir = document.getElementById('crmFilterSortDir').value;
 
-    document.querySelectorAll('.crm-row').forEach(row => {
-        const name = (row.getAttribute('data-name') || '').toLowerCase();
-        const taxid = (row.getAttribute('data-taxid') || '').toLowerCase();
-        const email = (row.getAttribute('data-email') || '').toLowerCase();
-        const phone = (row.getAttribute('data-phone') || '').toLowerCase();
-        const city = (row.getAttribute('data-city') || '').toLowerCase();
-        const rowType = row.getAttribute('data-type');
-        const rowRE = row.getAttribute('data-re');
+    const queryParams = new URLSearchParams();
+    if (search) queryParams.append('search', search);
+    if (type) queryParams.append('type', type);
+    if (re) queryParams.append('re', re);
+    queryParams.append('sortBy', sortBy);
+    queryParams.append('sortDir', sortDir);
 
-        let matches = true;
-        if (query && !name.includes(query) && !taxid.includes(query) && !email.includes(query) && !phone.includes(query) && !city.includes(query)) matches = false;
-        if (type && rowType !== type) matches = false;
-        if (re && rowRE !== re) matches = false;
+    fetch(`/api/admin/customers?${queryParams.toString()}`)
+        .then(res => res.json())
+        .then(data => {
+            renderCRMTable(data.content || data);
+        })
+        .catch(err => console.error("Error filtering CRM:", err));
+}
 
-        row.style.display = matches ? '' : 'none';
+function renderCRMTable(items) {
+    const tbody = document.getElementById('crmTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4" style="color: var(--text-muted);">No hay clientes registrados.</td></tr>`;
+        return;
+    }
+
+    items.forEach(c => {
+        const badgeType = c.type === 'COMPANY' 
+            ? `<span class="badge badge-type-company">Empresa / Prof.</span>`
+            : `<span class="badge badge-type-individual">Particular</span>`;
+
+        const tariffBadge = c.tariffName 
+            ? `<span class="badge" style="background-color:${c.tariffColor}15; color:${c.tariffColor}; border: 1px solid ${c.tariffColor}30;">${c.tariffName}</span>`
+            : `<span class="badge badge-tariff-minorista">MINORISTA</span>`;
+
+        const badgeRE = c.hasRecargoEquivalencia
+            ? `<span class="badge bg-info text-dark">SÍ</span>`
+            : `<span class="badge bg-light text-muted">NO</span>`;
+
+        const tr = document.createElement('tr');
+        tr.className = 'crm-row';
+        tr.innerHTML = `
+            <td><strong>${c.name}</strong></td>
+            <td>${c.taxId || '—'}</td>
+            <td>${c.email || '—'}</td>
+            <td>${c.phone || '—'}</td>
+            <td>${c.city || '—'}</td>
+            <td>${badgeType}</td>
+            <td>${tariffBadge}</td>
+            <td>${badgeRE}</td>
+            <td style="text-align:right">
+                <button class="btn-icon" title="Editar" 
+                    onclick="openCustomerModal(${c.id}, '${c.name}', '${c.taxId || ''}', '${c.email || ''}', '${c.phone || ''}', '${(c.address || '').replace(/'/g, "\\'")}', '${c.city || ''}', '${c.postalCode || ''}', '${c.type}', ${c.hasRecargoEquivalencia}, ${c.tariffId || 'null'})">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn-icon danger" title="Eliminar" onclick="deleteCustomer(${c.id}, '${c.name}')">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
     });
 }
+
 function resetCRMFilters() {
     document.getElementById('crmFilterSearch').value = '';
     document.getElementById('crmFilterType').value = '';
     document.getElementById('crmFilterRE').value = '';
+    const sortBy = document.getElementById('crmFilterSortBy');
+    const sortDir = document.getElementById('crmFilterSortDir');
+    if (sortBy) sortBy.value = 'name';
+    if (sortDir) sortDir.value = 'asc';
     filterCRM();
 }
 
 function filterActivity() {
-    const user = document.getElementById('activityFilterUser').value.toLowerCase().trim();
-    const action = document.getElementById('activityFilterAction').value.toLowerCase().trim();
-    const date = document.getElementById('activityFilterDate').value; // YYYY-MM-DD
-
-    document.querySelectorAll('.activity-item').forEach(item => {
-        const itemUser = (item.getAttribute('data-user') || '').toLowerCase();
-        const itemAction = (item.getAttribute('data-action') || '').toLowerCase();
-        const itemDate = item.getAttribute('data-date'); // YYYY-MM-DD
-
-        let matches = true;
-        if (user && !itemUser.includes(user)) matches = false;
-        if (action && !itemAction.includes(action)) matches = false;
-        if (date && itemDate !== date) matches = false;
-
-        item.style.display = matches ? 'block' : 'none';
-    });
+    fetchActivityLogs(0);
 }
 function resetActivityFilters() {
-    document.getElementById('activityFilterUser').value = '';
-    document.getElementById('activityFilterAction').value = '';
-    document.getElementById('activityFilterDate').value = '';
-    filterActivity();
+    const search = document.getElementById('activityFilterSearch');
+    const action = document.getElementById('activityFilterAction');
+    const username = document.getElementById('activityFilterUsername');
+    const sortBy = document.getElementById('activitySortBy');
+    const sortDir = document.getElementById('activitySortDir');
+    
+    if (search) search.value = '';
+    if (action) action.value = '';
+    if (username) username.value = '';
+    if (sortBy) sortBy.value = 'timestamp';
+    if (sortDir) sortDir.value = 'desc';
+    
+    fetchActivityLogs(0);
 }
 
 // Categories filtering is now powered by shared/inventory-filter.js (runSharedBackendCategoryFilter)
@@ -1902,6 +2215,12 @@ function resetCategoryFilters() {
     if (srch) srch.value = '';
     const globalSearch = document.getElementById('sharedFilterSearch');
     if (globalSearch) globalSearch.value = '';
+
+    const sortByEl = document.getElementById('categoryFilterSortBy');
+    const sortDirEl = document.getElementById('categoryFilterSortDir');
+    if (sortByEl) sortByEl.value = 'id';
+    if (sortDirEl) sortDirEl.value = 'asc';
+
     runSharedBackendCategoryFilter();
 }
 
@@ -1962,22 +2281,66 @@ function selectBulkByCategory() {
 // ── RETURNS FILTERING ────────────────────────────────────────────────────────
 
 function filterReturns() {
-    const query = document.getElementById('returnFilterSearch').value.toLowerCase().trim();
+    const search = document.getElementById('returnFilterSearch').value.trim();
     const method = document.getElementById('returnFilterMethod').value;
     const date = document.getElementById('returnFilterDate').value;
+    const sortBy = document.getElementById('returnFilterSortBy').value;
+    const sortDir = document.getElementById('returnFilterSortDir').value;
 
-    document.querySelectorAll('.return-row').forEach(row => {
-        const number = (row.getAttribute('data-number') || '').toLowerCase();
-        const reason = (row.getAttribute('data-reason') || '').toLowerCase();
-        const rowMethod = row.getAttribute('data-method');
-        const rowDate = row.getAttribute('data-date');
+    const queryParams = new URLSearchParams();
+    if (search) queryParams.append('search', search);
+    if (method) queryParams.append('method', method);
+    if (date) queryParams.append('date', date);
+    queryParams.append('sortBy', sortBy);
+    queryParams.append('sortDir', sortDir);
 
-        let matches = true;
-        if (query && !number.includes(query) && !reason.includes(query)) matches = false;
-        if (method && rowMethod !== method) matches = false;
-        if (date && rowDate !== date) matches = false;
+    fetch(`/api/admin/returns?${queryParams.toString()}`)
+        .then(res => res.json())
+        .then(data => {
+            renderReturnsTable(data.content || data);
+            // Handle pagination if needed
+        })
+        .catch(err => console.error("Error filtering returns:", err));
+}
 
-        row.style.display = matches ? '' : 'none';
+function renderReturnsTable(items) {
+    const tbody = document.getElementById('returnsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted)">No hay devoluciones registradas.</td></tr>`;
+        return;
+    }
+
+    items.forEach(r => {
+        const date = r.createdAt ? new Date(r.createdAt).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+        const amount = (r.amount || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        
+        const typeBadge = r.type === 'TOTAL' 
+            ? `<span class="badge" style="background:#e74c3c22; color:#e74c3c; border:1px solid #e74c3c33;">TOTAL</span>`
+            : `<span class="badge" style="background:#f39c1222; color:#f39c12; border:1px solid #f39c1233;">PARCIAL</span>`;
+
+        const tr = document.createElement('tr');
+        tr.className = 'return-row';
+        tr.style.cursor = 'pointer';
+        tr.onclick = () => window.location.href = r.ticketUrl || `/admin/return/${r.id}`;
+        tr.innerHTML = `
+            <td style="color:var(--text-muted);font-weight:600">${r.returnNumber}</td>
+            <td style="font-weight: 500;">${r.originalNumber || '—'}</td>
+            <td>${date}</td>
+            <td>${typeBadge}</td>
+            <td class="small" style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.reason || '—'}</td>
+            <td>${r.workerUsername || '—'}</td>
+            <td>${r.paymentMethod || '—'}</td>
+            <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;text-align:right">- ${amount} €</td>
+            <td style="text-align:right">
+                <a href="/admin/download/return/${r.id}" target="_blank" class="btn-icon" title="Descargar PDF" style="text-decoration: none;" onclick="event.stopPropagation();">
+                    <i class="bi bi-file-earmark-pdf" style="color:#e74c3c;"></i>
+                </a>
+            </td>
+        `;
+        tbody.appendChild(tr);
     });
 }
 
@@ -1985,6 +2348,10 @@ function resetReturnFilters() {
     document.getElementById('returnFilterSearch').value = '';
     document.getElementById('returnFilterMethod').value = '';
     document.getElementById('returnFilterDate').value = '';
+    const sortBy = document.getElementById('returnFilterSortBy');
+    const sortDir = document.getElementById('returnFilterSortDir');
+    if (sortBy) sortBy.value = 'createdAt';
+    if (sortDir) sortDir.value = 'desc';
     filterReturns();
 }
 
@@ -3250,4 +3617,117 @@ window.saveMeasurementUnit = saveMeasurementUnit;
 window.deleteMeasurementUnit = deleteMeasurementUnit;
 window.loadMeasurementUnits = loadMeasurementUnits;
 
+// ====== GESTIÓN DE ABONOS ======
+function openAbonoModal() {
+    document.getElementById('abonoForm').reset();
+    if(abonoModal) abonoModal.show();
+}
 
+function saveAbono() {
+    const clienteId = document.getElementById('abonoFormClienteId').value;
+    const importe = document.getElementById('abonoFormImporte').value;
+    const tipoAbono = document.getElementById('abonoFormTipo').value;
+    if (!clienteId || !importe || !tipoAbono) {
+        showToast('Cliente, Importe y Tipo son obligatorios', 'error');
+        return;
+    }
+
+    const payload = {
+        clienteId: parseInt(clienteId),
+        ventaOriginalId: document.getElementById('abonoFormVentaId').value ? parseInt(document.getElementById('abonoFormVentaId').value) : null,
+        importe: parseFloat(importe),
+        tipoAbono: tipoAbono,
+        metodoPago: document.getElementById('abonoFormPago').value,
+        motivo: document.getElementById('abonoFormMotivo').value
+    };
+
+    fetch('/api/abonos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => {
+        if (!res.ok) return res.text().then(t => { throw new Error(t) });
+        return res.json();
+    })
+    .then(() => {
+        showToast('Abono creado correctamente');
+        if(abonoModal) abonoModal.hide();
+        document.getElementById('abonoClienteSearch').value = clienteId;
+        filterAbonos();
+    })
+    .catch(err => {
+        showToast(err.message || 'Error al guardar el abono', 'error');
+    });
+}
+
+function filterAbonos() {
+    const clienteIdStr = document.getElementById('abonoClienteSearch').value.trim();
+    if (!clienteIdStr) {
+        document.getElementById('abonosTableBody').innerHTML = '<tr><td colspan="8" class="text-center text-muted">Introduce un ID de Cliente para buscar</td></tr>';
+        return;
+    }
+
+    const clienteId = parseInt(clienteIdStr);
+    if(isNaN(clienteId)) return;
+    
+    fetch('/api/abonos/cliente/' + clienteId)
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.getElementById('abonosTableBody');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No se encontraron abonos para este cliente</td></tr>';
+                return;
+            }
+
+            data.forEach(abono => {
+                const tr = document.createElement('tr');
+                const badgeClass = abono.estado === 'PENDIENTE' ? 'bg-warning' : (abono.estado === 'ANULADO' ? 'bg-danger' : 'bg-success');
+                const isoDate = new Date(abono.fecha).toLocaleString('es-ES');
+                
+                tr.innerHTML = `
+                    <td><strong>${abono.id}</strong></td>
+                    <td class="small text-muted">${isoDate}</td>
+                    <td>Cliente: <strong>${clienteId}</strong> ${abono.ventaOriginalId ? '(Vta: ' + abono.ventaOriginalId + ')' : ''}</td>
+                    <td><span class="badge bg-secondary">${abono.tipoAbono}</span></td>
+                    <td>${abono.metodoPago}</td>
+                    <td class="text-end fw-bold ${abono.importe < 0 ? 'text-danger' : 'text-success'}">${abono.importe.toFixed(2)} &euro;</td>
+                    <td><span class="badge ${badgeClass}">${abono.estado}</span></td>
+                    <td class="text-end">
+                        ${abono.estado === 'PENDIENTE' ? `<button class="btn btn-sm btn-outline-danger" onclick="anularAbono(${abono.id})"><i class="bi bi-x-circle"></i></button>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('abonosTableBody').innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error al cargar abonos</td></tr>';
+        });
+}
+
+function anularAbono(abonoId) {
+    if(!confirm('¿Estás seguro de que quieres anular este abono?')) return;
+    
+    fetch('/api/abonos/' + abonoId + '/anular', {
+        method: 'PATCH'
+    })
+    .then(r => {
+        if (!r.ok) return r.text().then(t => { throw new Error(t) });
+        return r.text();
+    })
+    .then(() => {
+        showToast('Abono anulado con éxito');
+        filterAbonos();
+    })
+    .catch(err => {
+        showToast(err.message || 'Error al anular', 'error');
+    });
+}
+
+window.openAbonoModal = openAbonoModal;
+window.saveAbono = saveAbono;
+window.filterAbonos = filterAbonos;
+window.anularAbono = anularAbono;

@@ -33,6 +33,11 @@ public interface CashRegisterService {
     org.springframework.data.domain.Page<CashRegister> findAllClosed(org.springframework.data.domain.Pageable pageable);
 
     /**
+     * Filters cash registers by worker and date with pagination/sorting.
+     */
+    org.springframework.data.domain.Page<CashRegister> getFilteredRegisters(String worker, String date, org.springframework.data.domain.Pageable pageable);
+
+    /**
      * Finds the register for today if it is already closed.
      * @return The CashRegister if closed, null otherwise.
      */

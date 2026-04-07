@@ -3,6 +3,7 @@ package com.proconsi.electrobazar.repository;
 import com.proconsi.electrobazar.model.CashRegister;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -15,7 +16,7 @@ import java.util.Optional;
  * Uses EntityGraphs to eagerly load associated worker entities and prevent N+1 queries.
  */
 @Repository
-public interface CashRegisterRepository extends JpaRepository<CashRegister, Long> {
+public interface CashRegisterRepository extends JpaRepository<CashRegister, Long>, JpaSpecificationExecutor<CashRegister> {
 
     /**
      * Finds a closed shift for a specific date.

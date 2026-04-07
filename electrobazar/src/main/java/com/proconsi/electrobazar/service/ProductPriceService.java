@@ -6,8 +6,11 @@ import com.proconsi.electrobazar.dto.ProductPriceRequest;
 import com.proconsi.electrobazar.dto.ProductPriceResponse;
 import com.proconsi.electrobazar.dto.PriceMatrixSummaryDTO;
 import com.proconsi.electrobazar.model.ProductPrice;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
 import java.util.List;
+
 
 /**
  * Service interface for managing temporal product prices (Price History Pattern).
@@ -16,6 +19,11 @@ import java.util.List;
 public interface ProductPriceService {
 
     ProductPrice getCurrentPrice(Long productId, LocalDateTime at);
+
+    /**
+     * Retrieves future prices with optional search filtering (paginated).
+     */
+    Page<ProductPrice> getFilteredFuturePrices(String search, Pageable pageable);
 
     /**
      * Bulk fetch active prices for multiple products to avoid N+1 problems.

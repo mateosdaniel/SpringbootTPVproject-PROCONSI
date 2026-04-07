@@ -58,6 +58,8 @@ public class AdminApiRestController {
     private final InvoiceService invoiceService;
     private final TicketService ticketService;
     private final ReturnService returnService;
+    private final CustomerService customerService;
+    private final CategoryService categoryService;
     private final TariffService tariffService;
     private final TariffPriceHistoryService tariffPriceHistoryService;
     private final ActivityLogService activityLogService;
@@ -65,6 +67,8 @@ public class AdminApiRestController {
     private final TemplateEngine templateEngine;
     private final JwtService jwtService;
     private final ProductPriceService productPriceService;
+    private final RoleService roleService;
+    private final WorkerRepository workerRepository;
 
     /**
      * Retrieves aggregated statistics for the management dashboard.
@@ -88,11 +92,18 @@ public class AdminApiRestController {
             @RequestParam(required = false) String method,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size) {
-        
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        // Whitelist allowed sort fields to prevent injection
+        Set<String> allowedSort = Set.of("createdAt", "totalAmount", "id");
+        String safeSort = allowedSort.contains(sortBy) ? sortBy : "createdAt";
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, safeSort));
         Page<Sale> salesPage = saleService.search(search, type, method, date, pageable);
-        
+
         List<AdminSaleListingDTO> list = salesPage.getContent().stream().map(s -> AdminSaleListingDTO.builder()
                 .id(s.getId())
                 .displayId(s.getInvoice() != null ? s.getInvoice().getInvoiceNumber() : (s.getTicket() != null ? s.getTicket().getTicketNumber() : "#" + s.getId()))
@@ -105,13 +116,376 @@ public class AdminApiRestController {
                 .paymentMethod(s.getPaymentMethod() != null ? s.getPaymentMethod().name() : "CASH")
                 .totalAmount(s.getTotalAmount())
                 .build()).toList();
-                
+
         Map<String, Object> response = new HashMap<>();
         response.put("content", list);
         response.put("totalPages", salesPage.getTotalPages());
         response.put("totalElements", salesPage.getTotalElements());
         response.put("currentPage", salesPage.getNumber());
-        
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Paginated list of products with server-side filtering and sorting.
+     */
+    @GetMapping("/products")
+    public ResponseEntity<Map<String, Object>> getProductsPage(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String stock,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        // Whitelist allowed sort fields
+        Set<String> allowedSort = Set.of("id", "nameEs", "price", "stock", "category.nameEs");
+        String safeSort = allowedSort.contains(sortBy) ? sortBy : "id";
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, safeSort));
+        Page<Product> productsPage = productService.getFilteredProducts(search, category, stock, active, pageable);
+
+        List<AdminProductListingDTO> list = productsPage.getContent().stream().map(p -> AdminProductListingDTO.builder()
+                .id(p.getId())
+                .name(p.getNameEs())
+                .description(p.getDescriptionEs())
+                .price(p.getPrice())
+                .stock(p.getStock())
+                .categoryName(p.getCategory() != null ? p.getCategory().getNameEs() : null)
+                .measurementUnitSymbol(p.getMeasurementUnit() != null ? p.getMeasurementUnit().getSymbol() : null)
+                .vatRate(p.getTaxRate() != null ? p.getTaxRate().getVatRate() : null)
+                .imageUrl(p.getImageUrl())
+                .active(Boolean.TRUE.equals(p.getActive()))
+                .build()).collect(java.util.stream.Collectors.toList());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", list);
+        response.put("totalPages", productsPage.getTotalPages());
+        response.put("totalElements", productsPage.getTotalElements());
+        response.put("currentPage", productsPage.getNumber());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Paginated list of categories with server-side filtering and sorting.
+     */
+    @GetMapping("/categories")
+    public ResponseEntity<Map<String, Object>> getCategoriesPage(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        // Whitelist allowed sort fields
+        Set<String> allowedSort = Set.of("id", "nameEs", "descriptionEs");
+        String safeSort = allowedSort.contains(sortBy) ? sortBy : "id";
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, safeSort));
+        Page<com.proconsi.electrobazar.model.Category> categoriesPage = categoryService.getFilteredCategories(search, pageable);
+
+        List<AdminCategoryListingDTO> list = categoriesPage.getContent().stream().map(c -> AdminCategoryListingDTO.builder()
+                .id(c.getId())
+                .name(c.getNameEs())
+                .description(c.getDescriptionEs())
+                .active(Boolean.TRUE.equals(c.getActive()))
+                .build()).collect(java.util.stream.Collectors.toList());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", list);
+        response.put("totalPages", categoriesPage.getTotalPages());
+        response.put("totalElements", categoriesPage.getTotalElements());
+        response.put("currentPage", categoriesPage.getNumber());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/cash-closings")
+    public ResponseEntity<Map<String, Object>> getCashClosingsPage(
+            @RequestParam(required = false) String worker,
+            @RequestParam(required = false) String date,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        // Whitelist allowed sort fields
+        Set<String> allowedSort = Set.of("id", "openingTime", "closedAt", "difference", "totalSales");
+        String safeSort = allowedSort.contains(sortBy) ? sortBy : "id";
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, safeSort));
+        Page<CashRegister> pageData = cashRegisterService.getFilteredRegisters(worker, date, pageable);
+
+        List<AdminCashClosingListingDTO> list = pageData.getContent().stream().map(r -> AdminCashClosingListingDTO.builder()
+                .id(r.getId())
+                .openingTime(r.getOpeningTime())
+                .closedAt(r.getClosedAt())
+                .openingBalance(r.getOpeningBalance())
+                .totalSales(r.getTotalSales())
+                .totalCalculated((r.getOpeningBalance() != null ? r.getOpeningBalance() : BigDecimal.ZERO)
+                        .add(r.getTotalSales() != null ? r.getTotalSales() : BigDecimal.ZERO))
+                .closingBalance(r.getClosingBalance())
+                .difference(r.getDifference())
+                .workerUsername(r.getWorker() != null ? r.getWorker().getUsername() : "Sistema")
+                .build()).toList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", list);
+        response.put("totalPages", pageData.getTotalPages());
+        response.put("totalElements", pageData.getTotalElements());
+        response.put("currentPage", pageData.getNumber());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Paginated list of returns with server-side filtering and sorting.
+     */
+    @GetMapping("/returns")
+    public ResponseEntity<Map<String, Object>> getReturnsPage(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String method,
+            @RequestParam(required = false) String date,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        // Whitelist allowed sort fields
+        Set<String> allowedSort = Set.of("id", "returnNumber", "createdAt", "totalRefunded", "type");
+        String safeSort = allowedSort.contains(sortBy) ? sortBy : "createdAt";
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, safeSort));
+        Page<SaleReturn> pageData = returnService.getFilteredReturns(search, method, date, pageable);
+
+        List<AdminReturnListingDTO> list = pageData.getContent().stream().map(r -> AdminReturnListingDTO.builder()
+                .id(r.getId())
+                .returnNumber(r.getReturnNumber())
+                .originalNumber(r.getOriginalSale().getInvoice() != null ? r.getOriginalSale().getInvoice().getInvoiceNumber() : 
+                                (r.getOriginalSale().getTicket() != null ? r.getOriginalSale().getTicket().getTicketNumber() : "#" + r.getOriginalSale().getId()))
+                .createdAt(r.getCreatedAt())
+                .type(r.getType() != null ? r.getType().name() : "Desconocido")
+                .reason(r.getReason())
+                .workerUsername(r.getWorker() != null ? r.getWorker().getUsername() : "—")
+                .paymentMethod(r.getPaymentMethod() != null ? (r.getPaymentMethod() == PaymentMethod.CASH ? "Efectivo" : "Tarjeta") : "—")
+                .amount(r.getTotalRefunded())
+                .ticketUrl("/admin/return/" + r.getId())
+                .build()).toList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", list);
+        response.put("totalPages", pageData.getTotalPages());
+        response.put("totalElements", pageData.getTotalElements());
+        response.put("currentPage", pageData.getNumber());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Paginated list of workers with server-side filtering and sorting.
+     */
+    @GetMapping("/workers")
+    public ResponseEntity<Map<String, Object>> getWorkersPage(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long roleId,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "username") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        // Whitelist allowed sort fields
+        Set<String> allowedSort = Set.of("id", "username", "active");
+        String safeSort = allowedSort.contains(sortBy) ? sortBy : "username";
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, safeSort));
+        Page<Worker> pageData = workerService.getFilteredWorkers(search, roleId, active, pageable);
+
+        List<AdminWorkerListingDTO> list = pageData.getContent().stream().map(w -> AdminWorkerListingDTO.builder()
+                .id(w.getId())
+                .username(w.getUsername())
+                .active(w.isActive())
+                .roleId(w.getRole() != null ? w.getRole().getId() : null)
+                .roleName(w.getRole() != null ? w.getRole().getName() : null)
+                .permissions(w.getRole() != null ? new ArrayList<>(w.getRole().getPermissions()) : new ArrayList<>())
+                .build()).toList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", list);
+        response.put("totalPages", pageData.getTotalPages());
+        response.put("totalElements", pageData.getTotalElements());
+        response.put("currentPage", pageData.getNumber());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Paginated list of roles with server-side filtering and sorting.
+     */
+    @GetMapping("/roles")
+    public ResponseEntity<Map<String, Object>> getRolesPage(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) List<String> permissions,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        // Whitelist allowed sort fields
+        Set<String> allowedSort = Set.of("id", "name");
+        String safeSort = allowedSort.contains(sortBy) ? sortBy : "name";
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, safeSort));
+        Page<Role> pageData = roleService.getFilteredRoles(search, permissions, pageable);
+
+        // Filter out ADMIN role from the management table listing to avoid accidental deletion/modification
+        List<AdminRoleListingDTO> list = pageData.getContent().stream()
+            .filter(r -> !"ADMIN".equalsIgnoreCase(r.getName()))
+            .map(r -> {
+                long count = workerRepository.findAll().stream()
+                    .filter(w -> w.getRole() != null && w.getRole().getId().equals(r.getId()))
+                    .count();
+                Set<String> perms = new HashSet<>(r.getPermissions());
+                return AdminRoleListingDTO.builder()
+                        .id(r.getId())
+                        .name(r.getName())
+                        .description(r.getDescription())
+                        .permissions(perms)
+                        .workerCount(count)
+                        .build();
+            }).toList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", list);
+        response.put("totalPages", pageData.getTotalPages());
+        // Simple adjustment since ADMIN is usually just 1 role
+        response.put("totalElements", Math.max(0, pageData.getTotalElements() - 1));
+        response.put("currentPage", pageData.getNumber());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Paginated list of customers with server-side filtering and sorting.
+     */
+    @GetMapping("/customers")
+    public ResponseEntity<Map<String, Object>> getCustomersPage(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String re,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        // Convert string filters to typed values
+        Customer.CustomerType customerType = null;
+        if (type != null && !type.isBlank()) {
+            try { customerType = Customer.CustomerType.valueOf(type); } catch (Exception ignored) {}
+        }
+        Boolean hasRecargo = null;
+        if ("yes".equalsIgnoreCase(re)) hasRecargo = true;
+        else if ("no".equalsIgnoreCase(re)) hasRecargo = false;
+
+        // Whitelist allowed sort fields
+        Set<String> allowedSort = Set.of("id", "name", "taxId", "city");
+        String safeSort = allowedSort.contains(sortBy) ? sortBy : "name";
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, safeSort));
+        Page<Customer> pageData = customerService.getFilteredCustomers(search, customerType, hasRecargo, pageable);
+
+        List<AdminCustomerListingDTO> list = pageData.getContent().stream().map(c -> 
+            AdminCustomerListingDTO.builder()
+                .id(c.getId())
+                .name(c.getName())
+                .taxId(c.getTaxId())
+                .email(c.getEmail())
+                .phone(c.getPhone())
+                .city(c.getCity())
+                .type(c.getType())
+                .hasRecargoEquivalencia(c.getHasRecargoEquivalencia() != null && c.getHasRecargoEquivalencia())
+                .tariffId(c.getTariff() != null ? c.getTariff().getId() : null)
+                .tariffName(c.getTariff() != null ? c.getTariff().getName() : null)
+                .tariffColor(c.getTariff() != null ? c.getTariff().getColor() : null)
+                .build()
+        ).toList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", list);
+        response.put("totalPages", pageData.getTotalPages());
+        response.put("totalElements", pageData.getTotalElements());
+        response.put("currentPage", pageData.getNumber());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Paginated list of future (scheduled) prices with server-side filtering.
+     */
+    @GetMapping("/future-prices")
+    public ResponseEntity<Map<String, Object>> getFuturePricesPage(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "startDate") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        Set<String> allowedSort = Set.of("id", "startDate", "price");
+        String safeSort = allowedSort.contains(sortBy) ? sortBy : "startDate";
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, safeSort));
+        Page<ProductPrice> pageData = productPriceService.getFilteredFuturePrices(search, pageable);
+
+        List<ProductPriceResponse> list = pageData.getContent().stream()
+                .map(p -> productPriceService.toResponse(p, false))
+                .toList();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", list);
+        response.put("totalPages", pageData.getTotalPages());
+        response.put("totalElements", pageData.getTotalElements());
+        response.put("currentPage", pageData.getNumber());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Paginated list of system activity logs with server-side filtering.
+     */
+    @GetMapping("/activity-logs")
+    public ResponseEntity<Map<String, Object>> getActivityLogsPage(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) String username,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "timestamp") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        Set<String> allowedSort = Set.of("id", "timestamp", "action", "level", "username");
+        String safeSort = allowedSort.contains(sortBy) ? sortBy : "timestamp";
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, safeSort));
+        Page<ActivityLog> pageData = activityLogService.getFilteredLogs(search, action, username, pageable);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", pageData.getContent());
+        response.put("totalPages", pageData.getTotalPages());
+        response.put("totalElements", pageData.getTotalElements());
+        response.put("currentPage", pageData.getNumber());
+
         return ResponseEntity.ok(response);
     }
 

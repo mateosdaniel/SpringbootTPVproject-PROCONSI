@@ -2,6 +2,7 @@ package com.proconsi.electrobazar.repository;
 
 import com.proconsi.electrobazar.model.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -13,7 +14,7 @@ import java.util.Optional;
  * Manages authorization roles and system permission metadata.
  */
 @Repository
-public interface RoleRepository extends JpaRepository<Role, Long> {
+public interface RoleRepository extends JpaRepository<Role, Long>, JpaSpecificationExecutor<Role> {
 
     /**
      * Finds a role by its unique name (e.g., "ROLE_ADMIN").

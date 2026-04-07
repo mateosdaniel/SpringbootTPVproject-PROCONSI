@@ -45,6 +45,23 @@
                 <option value="false" th:text="#{admin.inventory.filter.status.inactive}">Inactivos</option>
             </select>
         </div>
+        <!-- Ordenamiento -->
+        <div class="col-md-1">
+            <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-sort-down me-1"></i>Orden</label>
+            <select id="sharedFilterSortBy" class="form-select form-select-sm" onchange="runSharedBackendFilter()">
+                <option value="id">ID</option>
+                <option value="nameEs">Nombre</option>
+                <option value="price">Precio</option>
+                <option value="stock">Stock</option>
+            </select>
+        </div>
+        <div class="col-md-1">
+            <label class="form-label small mb-1" style="color: var(--text-main);">&nbsp;</label>
+            <select id="sharedFilterSortDir" class="form-select form-select-sm" onchange="runSharedBackendFilter()">
+                <option value="asc">↑ Asc</option>
+                <option value="desc">↓ Desc</option>
+            </select>
+        </div>
         <!-- Acciones -->
         <div class="col-md-2 d-flex align-items-end gap-1">
             <button class="btn btn-sm btn-outline-danger w-100" onclick="sharedFilterToggleLowStock()"

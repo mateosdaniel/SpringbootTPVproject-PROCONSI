@@ -15,7 +15,7 @@ import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Set;
+
 import java.util.TimeZone;
 
 /**
@@ -72,7 +72,8 @@ public class ElectrobazarApplication {
     @Bean
     public CommandLineRunner initData(WorkerService workerService, RoleRepository roleRepository) {
         return args -> {
-            // 1. Ensure ADMIN role with core permissions exists
+            // 1. Ensure ADMIN role exists without explicit permissions
+            // The system grants full access to any role named "ADMIN" in model/Worker.java
             Role adminRole = roleRepository.findByName("ADMIN").orElseGet(() -> {
                 Role newRole = new Role();
                 newRole.setName("ADMIN");
@@ -80,33 +81,27 @@ public class ElectrobazarApplication {
                 return newRole;
             });
             
-            adminRole.setPermissions(Set.of(
-                "ACCESO_TOTAL_ADMIN", 
-                "ACCESO_TPV", 
-                "VER_VENTAS", 
-                "GESTION_INVENTARIO", 
-                "GESTION_VENTAS_PAUSADAS", 
-                "GESTION_CAJA", 
-                "CIERRE_CAJA", 
-                "GESTION_DEVOLUCIONES", 
-                "GESTION_CLIENTES_CRM",
-                "MODIFICAR_PREFERENCIAS"
-            ));
+            // Clear permissions as they are hardcoded for "ADMIN" in Worker entity
+            adminRole.setPermissions(new java.util.HashSet<>());
             final Role finalAdminRole = roleRepository.save(adminRole);
 
             // 2. Ensure root worker is active and has the ADMIN role
-            workerService.findAll().stream()
-                .filter(w -> "root".equals(w.getUsername()))
+            java.util.List<Worker> allWorkers = workerService.findAll();
+            System.out.println("[BOOTSTRAP] Verified ADMIN role ID: " + finalAdminRole.getId());
+            
+            allWorkers.stream()
+                .filter(w -> "root".equalsIgnoreCase(w.getUsername()))
                 .findFirst()
                 .ifPresentOrElse(w -> {
+                    System.out.println("[BOOTSTRAP] Updating existing 'root' user (ID: " + w.getId() + ") with ADMIN role.");
                     w.setRole(finalAdminRole);
                     w.setActive(true);
-                    // Ensure the email is set to the user's test email if missing or using old placeholder
                     if (w.getEmail() == null || w.getEmail().isEmpty() || w.getEmail().equals("admin@electrobazar.com")) {
                         w.setEmail("danielmateos684@gmail.com");
                     }
                     workerService.save(w);
                 }, () -> {
+                    System.out.println("[BOOTSTRAP] Creating new 'root' user with password 'r00t' and ADMIN role.");
                     Worker defaultWorker = new Worker();
                     defaultWorker.setUsername("root");
                     defaultWorker.setPassword("r00t");

@@ -77,6 +77,11 @@ public interface ProductService {
     List<Product> getFilteredProducts(String search, String category, String stock, Boolean active);
 
     /**
+     * Advanced filtering for products with pagination and sorting.
+     */
+    Page<Product> getFilteredProducts(String search, String category, String stock, Boolean active, Pageable pageable);
+
+    /**
      * Finds a specific product by ID.
      * @param id The primary key.
      * @return The found Product entity.
