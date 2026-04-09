@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -140,7 +140,7 @@
                 <span th:text="#{admin.cash.detail.title}">Detalle de Cierre</span> 
                 <span class="text-muted ms-2" th:text="'#' + ${register.id}"></span>
             </h2>
-            <div class="small text-muted mt-1" th:text="#{common.date} + ': ' + ${#temporals.format(register.registerdate, 'dd/MM/yyyy')}"></div>
+            <div class="small text-muted mt-1" th:text="#{common.date} + ': ' + ${#temporals.format(register.openingTime, 'dd/MM/yyyy')}"></div>
         </div>
         <div class="d-flex gap-3">
             <a th:href="@{/admin?view=cashCloseView}" class="btn-close-win text-decoration-none d-flex align-items-center">
@@ -161,8 +161,8 @@
         </div>
         <div class="summary-item">
             <div class="summary-label" th:text="#{admin.cash.closing}">Cierre</div>
-            <div class="summary-value" th:text="${register.closediat != null ? #temporals.format(register.closediat, 'HH:mm') : '—'}"></div>
-            <div class="small text-muted" th:text="${register.closediat != null ? #temporals.format(register.closediat, 'dd/MM/yyyy') : ''}"></div>
+            <div class="summary-value" th:text="${register.closedAt != null ? #temporals.format(register.closedAt, 'HH:mm') : '—'}"></div>
+            <div class="small text-muted" th:text="${register.closedAt != null ? #temporals.format(register.closedAt, 'dd/MM/yyyy') : ''}"></div>
         </div>
         <div class="summary-item">
             <div class="summary-label" th:text="#{admin.cash.initial}">Saldo Inicial</div>
@@ -248,7 +248,7 @@
                         <td style="font-weight: 600;" th:text="${ws.workerName}"></td>
                         <td class="text-center" th:text="${ws.salesCount}"></td>
                         <td class="text-end" th:text="${#numbers.formatDecimal(ws.cashAmount ?: 0, 1, 2)} + ' '"></td>
-                        <td class="text-end" th:text="${#numbers.formatDecimal(ws.cardiamount ?: 0, 1, 2)} + ' '"></td>
+                        <td class="text-end" th:text="${#numbers.formatDecimal(ws.cardAmount ?: 0, 1, 2)} + ' '"></td>
                         <td class="text-end fw-bold" style="font-family: 'Barlow Condensed'; font-size: 1.1rem; color: var(--accent);" 
                             th:text="${#numbers.formatDecimal(ws.totalAmount ?: 0, 1, 2)} + ' '"></td>
                     </tr>
@@ -362,7 +362,7 @@
     let workermodal = null;
     document.addEventListener('DOMContentLoaded', function() {
         if (document.getElementById('workerSalesmodal')) {
-            workermodal = new bootstrap.modal(document.getElementById('workerSalesmodal'));
+            workermodal = new bootstrap.Modal(document.getElementById('workerSalesmodal'));
         }
     });
 

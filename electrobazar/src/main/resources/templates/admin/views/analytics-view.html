@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <th:block th:fragment="view">
@@ -17,15 +17,15 @@
             <div class="d-flex gap-2 align-items-center">
                 <select id="analyticsPeriod" class="form-select form-select-sm" style="width: 180px;"
                     onchange="onAnalyticsPeriodChange()">
-                    <option value="todiay" th:text="#{common.todiay}">Hoy</option>
-                    <option value="7diays" selected th:text="#{admin.analytics.7diays}">ÚÚltimos 7 dias</option>
-                    <option value="1month" th:text="#{admin.analytics.1month}">ÚÚltimo mes</option>
-                    <option value="6months" th:text="#{admin.analytics.6months}">ÚÚltimos 6 meses</option>
-                    <option value="1year" th:text="#{admin.analytics.1year}">ÚÚltimo año</option>
-                    <option value="custom" th:text="#{admin.analytics.custom}">Dia Especifico</option>
+                    <option value="today" th:text="#{common.today}">Hoy</option>
+                    <option value="7days" selected th:text="#{admin.analytics.7days}">Últimos 7 días</option>
+                    <option value="1month" th:text="#{admin.analytics.1month}">Último mes</option>
+                    <option value="6months" th:text="#{admin.analytics.6months}">Últimos 6 meses</option>
+                    <option value="1year" th:text="#{admin.analytics.1year}">Último año</option>
+                    <option value="custom" th:text="#{admin.analytics.custom}">Día Específico</option>
                     <option value="all" th:text="#{admin.analytics.all}">Desde siempre</option>
                 </select>
-                <input type="date" id="analyticsdate" class="form-control form-control-sm"
+                <input type="date" id="analyticsDate" class="form-control form-control-sm"
                     style="width: 150px; display: none;" onchange="updateAnalytics()">
             </div>
         </div>
@@ -35,7 +35,7 @@
                 <div class="stats-card">
                     <div class="stats-icon"><i class="bi bi-currency-euro"></i></div>
                     <div class="stats-data">
-                        <div class="stats-value" id="statTodiayRevenue">0.00 </div>
+                        <div class="stats-value" id="statTodayRevenue">0,00 </div>
                         <div class="stats-label" id="statRevenueLabel" th:text="#{common.sales}">Ventas</div>
                     </div>
                 </div>
@@ -44,7 +44,7 @@
                 <div class="stats-card">
                     <div class="stats-icon"><i class="bi bi-cart-check"></i></div>
                     <div class="stats-data">
-                        <div class="stats-value" id="statTodiaySales">0</div>
+                        <div class="stats-value" id="statTodaySales">0</div>
                         <div class="stats-label" id="statSalesLabel" th:text="#{common.orders}">Pedidos</div>
                     </div>
                 </div>
@@ -73,7 +73,7 @@
                 <div class="stats-card">
                     <div class="stats-icon"><i class="bi bi-receipt"></i></div>
                     <div class="stats-data">
-                        <div class="stats-value" id="stdatavgTicket">0.00 </div>
+                        <div class="stats-value" id="statAvgTicket">0,00 </div>
                         <div class="stats-label">Ticket Medio</div>
                     </div>
                 </div>
@@ -82,8 +82,8 @@
                 <div class="stats-card">
                     <div class="stats-icon"><i class="bi bi-arrow-counterclockwise"></i></div>
                     <div class="stats-data">
-                        <div class="stats-value" id="statCancellationRate">0.0%</div>
-                        <div class="stats-label">Tasa Devoluciónes</div>
+                        <div class="stats-value" id="statCancellationRate">0,0%</div>
+                        <div class="stats-label">Tasa Devoluciones</div>
                     </div>
                 </div>
             </div>
@@ -93,8 +93,8 @@
             <div class="col-md-8">
                 <div class="chart-container-p">
                     <h6 class="mb-4 fw-bold" id="salesChartTitle"><i class="bi bi-graph-up me-2"></i><span
-                            th:text="#{admin.analytics.trend.7diays}">Tendencia de
-                            Ventas (ÚÚltimos 7 dias)</span>
+                            th:text="#{admin.analytics.trend.7days}">Tendencia de
+                            Ventas (Últimos 7 días)</span>
                     </h6>
                     <canvas id="salesChart" height="120"></canvas>
                 </div>
@@ -102,7 +102,7 @@
             <div class="col-md-4">
                 <div class="chart-container-p">
                     <h6 class="mb-4 fw-bold"><i class="bi bi-pie-chart me-2"></i><span
-                            th:text="#{admin.analytics.salesbycategory}">Ventas por Categoria</span></h6>
+                            th:text="#{admin.analytics.salesbycategory}">Ventas por Categoría</span></h6>
                     <canvas id="categoryChart" height="250"></canvas>
                 </div>
             </div>
@@ -110,7 +110,7 @@
         <div class="row g-4 mt-1 mb-4">
             <div class="col-md-8">
                 <div class="chart-container-p">
-                    <h6 class="mb-4 fw-bold">Ventas por Hora del Dia</h6>
+                    <h6 class="mb-4 fw-bold">Ventas por Hora del Día</h6>
                     <canvas id="hourlyChart" height="120"></canvas>
                 </div>
             </div>

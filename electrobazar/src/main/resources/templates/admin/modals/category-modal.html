@@ -1,61 +1,43 @@
-﻿<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<body>
-<th:block th:fragment="modal">
-
-    <div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categorymodalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="categorymodalLabel" th:text="#{admin.category.modal.title}">
-                        Categoria</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="categoryForm" novalidate>
-                        <input type="hidden" id="categoryId">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label" for="categoryName"
-                                    th:text="#{admin.common.name_required}">Nombre *</label>
-                                <input type="text" class="form-control" id="categoryName" required
-                                    th:placeholder="#{admin.category.placeholder.name}">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label" for="categoryDescription"
-                                    th:text="#{common.description}">Descripción</label>
-                                <textarea class="form-control" id="categoryDescription" rows="2"
-                                    placeholder="..."></textarea>
-                            </div>
-                            <div class="col-12">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="categoryActive" checked>
-                                    <label class="form-check-label" for="categoryActive"
-                                        th:text="#{admin.category.active}">Categoria activa</label>
-                                </div>
+<div th:fragment="modal" class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="categoryModalLabel" th:text="#{admin.category.modal.title}">
+                    Categorí­a</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="categoryForm" novalidate>
+                    <input type="hidden" id="categoryId">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="categoryName"
+                                th:text="#{admin.common.name_required}">Nombre *</label>
+                            <input type="text" class="form-control" id="categoryName" required
+                                th:placeholder="#{admin.category.placeholder.name}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="categoryDescription"
+                                th:text="#{common.description}">Descripción</label>
+                            <textarea class="form-control" id="categoryDescription" rows="2"
+                                placeholder="..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="categoryActive" checked>
+                                <label class="form-check-label" for="categoryActive"
+                                    th:text="#{admin.category.active}">Categorí­a activa</label>
                             </div>
                         </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-cancel" data-bs-dismiss="modal"
-                        th:text="#{common.cancel}">Cancelar</button>
-                    <button type="button" class="btn-save" onclick="saveCategory()"><i
-                            class="bi bi-check-lg me-1"></i><span th:text="#{common.save}">Guardar</span></button>
-                </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" data-bs-dismiss="modal"
+                    th:text="#{common.cancel}">Cancelar</button>
+                <button type="button" class="btn-save" onclick="saveCategory()"><i
+                        class="bi bi-check-lg me-1"></i><span th:text="#{common.save}">Guardar</span></button>
             </div>
         </div>
     </div>
-
-</th:block>
-</body>
-</html>
-
-
-
-
-
-
-
-
-
+</div>

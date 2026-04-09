@@ -1,0 +1,154 @@
+<div th:fragment="view" id="crmView" style="display:none">
+    <div class="panel-header">
+        <span class="panel-title">
+            <button class="btn-icon me-2"
+                onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
+                th:title="#{admin.common.backtopanel}">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <i class="bi bi-person-badge me-2"></i><span th:text="#{admin.crm.title}">Gestión de Clientes
+                (CRM)</span>
+        </span>
+        <div class="d-flex gap-2">
+            <!-- Hidden file input for CSV import -->
+            <input type="file" id="customersCsvFileInput" accept=".csv" style="display:none"
+                onchange="uploadCustomersCsvFile(this)">
+            <button class="btn-nuevo"
+                style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border);"
+                onclick="document.getElementById('customersCsvFileInput').click()"
+                th:title="#{admin.crm.import.csv.title}">
+                <i class="bi bi-file-earmark-person me-1"></i> <span th:text="#{admin.crm.import.csv}">Importar
+                    CSV</span>
+            </button>
+            <button class="btn-nuevo" onclick="openCustomerModal()">
+                <i class="bi bi-plus-lg"></i> <span th:text="#{admin.crm.new}">Nuevo Cliente</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="filter-bar mb-3 p-4 rounded"
+        style="background: var(--surface); border: 1px solid var(--border);">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label small mb-1" style="color: var(--text-main);"><i
+                        class="bi bi-person-badge me-2"></i><span th:text="#{admin.crm.search}">Buscar
+                        cliente</span></label>
+                <input type="text" id="crmFilterSearch" class="form-control form-control-sm"
+                    th:placeholder="#{admin.crm.search.placeholder}" oninput="filterCRM()">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1" style="color: var(--text-main);"><i
+                        class="bi bi-filter-circle me-2"></i><span th:text="#{common.type}">Tipo</span></label>
+                <select id="crmFilterType" class="form-select form-select-sm" onchange="filterCRM()">
+                    <option value="" th:text="#{admin.crm.type.all}">Todos los tipos</option>
+                    <option value="INDIVIDUAL" th:text="#{admin.crm.type.individual}">Particular</option>
+                    <option value="COMPANY" th:text="#{admin.crm.type.company}">Empresa / Profesional</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1" style="color: var(--text-main);"><i
+                        class="bi bi-percent me-2"></i><span th:text="#{admin.crm.re}">R.E.</span></label>
+                <select id="crmFilterRE" class="form-select form-select-sm" onchange="filterCRM()">
+                    <option value="" th:text="#{common.all}">Todos</option>
+                    <option value="yes" th:text="#{admin.crm.re.yes}">Con Recargo</option>
+                    <option value="no" th:text="#{admin.crm.re.no}">Sin Recargo</option>
+                </select>
+            </div>
+            <!-- Ordenamiento -->
+            <div class="col-md-2">
+                <label class="form-label small mb-1" style="color: var(--text-main);"><i
+                        class="bi bi-sort-down me-1"></i>Orden</label>
+                <select id="crmFilterSortBy" class="form-select form-select-sm" onchange="filterCRM()">
+                    <option value="name">Nombre</option>
+                    <option value="taxId">NIF/TaxID</option>
+                    <option value="city">Ciudad</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label small mb-1" style="color: var(--text-main);">&nbsp;</label>
+                <select id="crmFilterSortDir" class="form-select form-select-sm" onchange="filterCRM()">
+                    <option value="asc">↑ Asc</option>
+                    <option value="desc">↓ Desc</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetCRMFilters()">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> <span
+                        th:text="#{common.reset}">Reset</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-table-wrap">
+        <table class="admin-table" id="crmTable">
+            <thead>
+                <tr>
+                    <th th:text="#{common.name}">Nombre</th>
+                    <th th:text="#{common.taxid}">NIF/TaxID</th>
+                    <th th:text="#{common.email}">Email</th>
+                    <th th:text="#{common.phone}">Teléfono</th>
+                    <th th:text="#{common.city}">Ciudad</th>
+                    <th th:text="#{common.type}">Tipo</th>
+                    <th th:text="#{common.tariff}">Tarifa</th>
+                    <th th:title="#{admin.crm.re.title}" th:text="#{admin.crm.re}">R.E.</th>
+                    <th style="text-align:right" th:text="#{common.actions}">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="crmTableBody">
+                <tr th:each="c : ${customers}" class="crm-row" th:data-name="${c.name}"
+                    th:data-taxid="${c.taxId ?: ''}" th:data-email="${c.email ?: ''}"
+                    th:data-phone="${c.phone ?: ''}" th:data-city="${c.city ?: ''}" th:data-type="${c.type}"
+                    th:data-re="${c.hasRecargoEquivalencia ? 'yes' : 'no'}">
+                    <td><strong th:text="${c.name}"></strong></td>
+                    <td th:text="${c.taxId ?: '-'}"></td>
+                    <td th:text="${c.email ?: '-'}"></td>
+                    <td th:text="${c.phone ?: '-'}"></td>
+                    <td th:text="${c.city ?: '-'}"></td>
+                    <td>
+                        <span class="badge"
+                            th:classappend="${c.type != null && c.type.name() == 'COMPANY'} ? 'badge-type-company' : 'badge-type-individual'"
+                            th:text="${c.type != null && c.type.name() == 'COMPANY'} ? #{admin.crm.type.company.label} : #{admin.crm.type.individual.label}"></span>
+                    </td>
+                    <td>
+                        <span th:if="${c.tariff != null}" class="badge"
+                            th:style="${c.tariff.color != null ? 'background-color:' + c.tariff.color + '15; color:' + c.tariff.color + '; border-color:' + c.tariff.color + '30' : ''}"
+                            th:classappend="${c.tariff.color == null ? (#strings.contains(#strings.toLowerCase(c.tariff.name), 'minorista') ? 'badge-tariff-minorista' : (#strings.contains(#strings.toLowerCase(c.tariff.name), 'mayorista') ? 'badge-tariff-mayorista' : 'badge-tariff-custom')) : ''}"
+                            th:text="${c.tariff.name}"></span>
+                        <span th:unless="${c.tariff != null}" class="badge badge-tariff-minorista"
+                            th:text="#{admin.tariffs.minorista}">MINORISTA</span>
+                    </td>
+                    <td>
+                        <span th:if="${c.hasRecargoEquivalencia}" class="badge badge-re-custom"
+                            th:title="#{admin.crm.re.subject}">R.E.</span>
+                        <span th:unless="${c.hasRecargoEquivalencia}" class="badge"
+                            style="color: var(--text-muted); border: 1px solid var(--border); font-size: 0.8rem; padding: 0.3rem 0.6rem;">-</span>
+                    </td>
+                    <td style="text-align:right">
+                        <div style="display:flex;gap:0.4rem;justify-content:flex-end">
+                            <button class="btn-icon" th:title="#{admin.crm.view.sales}" th:data-id="${c.id}"
+                                th:data-name="${c.name}"
+                                onclick="openCustomerSalesModal(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                <i class="bi bi-receipt-cutoff"></i>
+                            </button>
+                            <button class="btn-icon" th:title="#{common.edit}" th:data-id="${c.id}"
+                                onclick="openCustomerModal(this.getAttribute('data-id'))">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn-icon danger" th:title="#{common.delete}" th:data-id="${c.id}"
+                                th:data-name="${c.name}"
+                                onclick="deleteCustomer(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(customers)}">
+                    <td colspan="9" class="text-center py-4" style="color: var(--text-muted);"
+                        th:text="#{admin.crm.empty}">No hay clientes
+                        registrados</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

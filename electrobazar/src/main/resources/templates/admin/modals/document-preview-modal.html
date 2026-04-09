@@ -1,63 +1,44 @@
-﻿<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<body>
-<th:block th:fragment="modal">
-
-    <div class="modal fade" id="documentPreviewmodal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width: 900px;">
-            <div class="modal-content"
-                style="background: var(--surface); border: 1px solid var(--border); height: 90vh; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
-                <div class="modal-header border-0 px-4 py-3" style="background: var(--secondary);">
-                    <h5 class="modal-title fw-800 fs-5" style="letter-spacing: -0.5px;">
-                        <i class="bi bi-eye me-2 text-accent"></i><span
-                            th:text="#{admin.common.preview} ?: 'Vista Previa del Documento'">Vista Previa del
-                            Documento</span>
-                    </h5>
-                    <div class="ms-auto d-flex align-items-center gap-2">
-                        <button type="button" class="btn btn-sm px-3 fw-bold"
-                            style="background: var(primary); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px;"
-                            onclick="printPreviewIframe()">
-                            <i class="bi bi-printer me-1"></i> <span
-                                th:text="#{admin.common.print} ?: 'Imprimir'">Imprimir</span>
-                        </button>
-                        <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal"
-                            aria-label="Close" style="filter: var(close-filter);"></button>
+<div th:fragment="modal" class="modal fade" id="documentPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width: 900px;">
+        <div class="modal-content"
+            style="background: var(--surface); border: 1px solid var(--border); height: 90vh; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+            <div class="modal-header border-0 px-4 py-3" style="background: var(--secondary);">
+                <h5 class="modal-title fw-800 fs-5" style="letter-spacing: -0.5px;">
+                    <i class="bi bi-eye me-2 text-accent"></i><span
+                        th:text="#{admin.common.preview} ?: 'Vista Previa del Documento'">Vista Previa del
+                        Documento</span>
+                </h5>
+                <div class="ms-auto d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm px-3 fw-bold"
+                        style="background: var(--primary); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px;"
+                        onclick="printPreviewIframe()">
+                        <i class="bi bi-printer me-1"></i> <span
+                            th:text="#{admin.common.print} ?: 'Imprimir'">Imprimir</span>
+                    </button>
+                    <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal"
+                        aria-label="Close" style="filter: var(--close-filter);"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0 position-relative" style="background: #f0f2f5;">
+                <div id="previewLoader" class="position-absolute top-50 start-50 translate-middle text-center"
+                    style="z-index: 5;">
+                    <div class="spinner-border text-accent" role="status"></div>
+                    <div class="mt-2 text-muted fw-600 small" th:text="#{common.loading}">Cargando documento...
                     </div>
                 </div>
-                <div class="modal-body p-0 position-relative" style="background: #f0f2f5;">
-                    <div id="previewLoader" class="position-absolute top-50 start-50 translate-middle text-center"
-                        style="z-index: 5;">
-                        <div class="spinner-border text-accent" role="status"></div>
-                        <div class="mt-2 text-muted fw-600 small" th:text="#{common.loading}">Cargando documento...
-                        </div>
-                    </div>
-                    <iframe id="docPreviewIframe" src=""
-                        style="width: 100%; height: 100%; border: none; opacity: 0; transition: opacity 0.3s;"
-                        onload="document.getElementById('previewLoader').style.display='none'; this.style.opacity='1';"></iframe>
-                </div>
-                <!-- Interactive footer instructions -->
-                <div class="modal-footer border-0 bg-secondary px-4 py-2">
-                    <small class="text-muted"><i class="bi bi-info-circle me-1"></i> <span
-                            th:text="#{admin.preview.interactive}">Esta es una vista previa interactiva. Use el botón de
-                            imprimir para generar el PDF de este documento.</span></small>
-                    <button type="button" class="btn btn-sm btn-secondary ms-auto fw-bold" data-bs-dismiss="modal"
-                        th:text="#{common.close} ?: 'Cerrar'">Cerrar</button>
-                </div>
+                <iframe id="docPreviewIframe" src=""
+                    style="width: 100%; height: 100%; border: none; opacity: 0; transition: opacity 0.3s;"
+                    onload="document.getElementById('previewLoader').style.display='none'; this.style.opacity='1';"></iframe>
+            </div>
+            <!-- Interactive footer instructions -->
+            <div class="modal-footer border-0 bg-secondary px-4 py-2">
+                <small class="text-muted"><i class="bi bi-info-circle me-1"></i> <span
+                        th:text="#{admin.preview.interactive}">Esta es una vista previa interactiva. Use el botón
+                        de
+                        imprimir para generar el PDF de este documento.</span></small>
+                <button type="button" class="btn btn-sm btn-secondary ms-auto fw-bold" data-bs-dismiss="modal"
+                    th:text="#{common.close} ?: 'Cerrar'">Cerrar</button>
             </div>
         </div>
     </div>
-
-</th:block>
-</body>
-</html>
-
-
-
-
-
-
-
-
-
-
-
+</div>

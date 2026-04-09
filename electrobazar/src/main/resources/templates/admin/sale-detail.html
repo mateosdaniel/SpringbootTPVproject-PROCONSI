@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -218,14 +218,14 @@
             </div>
             <div class="summary-item">
                 <div class="summary-label" th:text="#{admin.invoices.payment.card}">Tarjeta</div>
-                <div class="summary-value" th:text="${#numbers.formatDecimal(sale.cardiamount, 1, 2)} + ' '"></div>
+                <div class="summary-value" th:text="${#numbers.formatDecimal(sale.cardAmount, 1, 2)} + ' '"></div>
             </div>
         </th:block>
         
-        <th:block th:if="${sale.receivediamount != null && sale.receivediamount > 0}">
+        <th:block th:if="${sale.receivedAmount != null && sale.receivedAmount > 0}">
             <div class="summary-item">
                 <div class="summary-label">Entregado</div>
-                <div class="summary-value" th:text="${#numbers.formatDecimal(sale.receivediamount, 1, 2)} + ' '"></div>
+                <div class="summary-value" th:text="${#numbers.formatDecimal(sale.receivedAmount, 1, 2)} + ' '"></div>
             </div>
             <div class="summary-item">
                 <div class="summary-label">Cambio</div>
@@ -234,7 +234,7 @@
         </th:block>
         
         <div class="summary-item">
-            <div class="summary-label" th:text="#{admin.menu.tariffs}">Tarifa Aplicadia</div>
+            <div class="summary-label" th:text="#{admin.menu.tariffs}">Tarifa Aplicada</div>
             <div class="summary-value" th:text="${sale.appliedTariff}"></div>
         </div>
     </div>

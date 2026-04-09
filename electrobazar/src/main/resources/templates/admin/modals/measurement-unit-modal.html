@@ -1,68 +1,39 @@
-﻿<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<body>
-<th:block th:fragment="modal">
-
-    <div class="modal fade" id="measurementUnitmodal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="measurementUnitmodalLabel">unidad de Medida</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="measurementUnitForm">
-                        <input type="hidden" id="measurementUnitId">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label" for="muName">Nombre *</label>
-                                <input type="text" class="form-control" id="muName" required
-                                    placeholder="Ej: Kilogramo">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label" for="muSymbol">Simbolo *</label>
-                                <input type="text" class="form-control" id="muSymbol" required placeholder="Ej: kg">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label" for="muDecimals">Decimales (0-6) *</label>
-                                <input type="number" class="form-control" id="muDecimals" min="0" max="6" value="0"
-                                    required>
-                            </div>
-                            <div class="col-12">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="muPrompt">
-                                    <label class="form-check-label" for="muPrompt">Pedir cantidiad al añadir al
-                                        ticket</label>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="muActive" checked>
-                                    <label class="form-check-label" for="muActive">Activa</label>
-                                </div>
+<div th:fragment="modal" class="modal fade" id="measurementUnitModal" tabindex="-1" aria-labelledby="measurementUnitModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="measurementUnitModalLabel">Unidad de Medida</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="measurementUnitForm" novalidate>
+                    <input type="hidden" id="measurementUnitId">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="measurementUnitName">Nombre *</label>
+                            <input type="text" class="form-control" id="measurementUnitName" required placeholder="Ej: Kilogramos">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="measurementUnitSymbol">Símbolo *</label>
+                            <input type="text" class="form-control" id="measurementUnitSymbol" required placeholder="Ej: kg">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="measurementUnitDecimals">Número de Decimales</label>
+                            <input type="number" class="form-control" id="measurementUnitDecimals" min="0" max="4" value="0">
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="measurementUnitActive" checked>
+                                <label class="form-check-label" for="measurementUnitActive">Unidad activa</label>
                             </div>
                         </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-cancel" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn-save" onclick="saveMeasurementUnit()">Guardar</button>
-                </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-save" onclick="saveMeasurementUnit()"><i class="bi bi-check-lg me-1"></i>Guardar</button>
             </div>
         </div>
     </div>
-
-</th:block>
-</body>
-</html>
-
-
-
-
-
-
-
-
-
-
-
+</div>

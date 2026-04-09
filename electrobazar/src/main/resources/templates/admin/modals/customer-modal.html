@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <th:block th:fragment="modal">
 
-    <div class="modal fade" id="customermodal" tabindex="-1" aria-labelledby="customermodalLabel" aria-hidden="true">
+    <div class="modal fade" id="customerModal" tabindex="-1" aria-labelledby="customermodalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
@@ -40,7 +40,7 @@
                                 <label class="form-label" id="lblAdminCustomerTaxId" for="customerTaxId"><span
                                         th:text="#{admin.crm.taxId}">NIF/NIE</span>
                                     <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="customerTaxId" required placeholder="...">
+                                <input type="text" class="form-control" id="customerTaxId" required placeholder="Ej: 12345678X">
                             </div>
                             <div class="col-12">
                                 <label class="form-label" for="customerAddress"><span
@@ -63,12 +63,12 @@
                             <div class="col-md-6">
                                 <label class="form-label" for="customerEmail"
                                     th:text="#{admin.common.email_optional}">Email (Opcional)</label>
-                                <input type="email" class="form-control" id="customerEmail" placeholder="...">
+                                <input type="email" class="form-control" id="customerEmail" placeholder="ejemplo@correo.com">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="customerPhone"
                                     th:text="#{admin.common.phone_optional}">Teléfono (Opcional)</label>
-                                <input type="text" class="form-control" id="customerPhone" placeholder="...">
+                                <input type="text" class="form-control" id="customerPhone" placeholder="+34 600 000 000">
                             </div>
                             <!-- Tariff selector -->
                             <div class="col-12">

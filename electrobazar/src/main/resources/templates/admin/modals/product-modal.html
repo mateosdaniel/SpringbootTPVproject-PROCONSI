@@ -1,102 +1,66 @@
-﻿<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<body>
-<th:block th:fragment="modal">
-
-    <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productmodalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="productmodalLabel" th:text="#{admin.product.modal.title}">Producto
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="productForm" novalidate>
-                        <input type="hidden" id="productId">
-                        <div class="row g-3">
-                            <div class="col-md-8">
-                                <label class="form-label" for="productName"
-                                    th:text="#{admin.common.name_required}">Nombre *</label>
-                                <input type="text" class="form-control" id="productName" required
-                                    th:placeholder="#{admin.product.placeholder.name}">
-                            </div>
-
-                            <div class="col-12">
-                                <label class="form-label" for="productDescription"
-                                    th:text="#{common.description}">Descripción</label>
-                                <textarea class="form-control" id="productDescription" rows="2"
-                                    placeholder="..."></textarea>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="productPrice"
-                                    th:text="#{admin.common.price_required}">Precio () *</label>
-                                <input type="number" class="form-control" id="productPrice" step="0.0001" min="0"
-                                    required placeholder="0.0000">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="productIvaRate" th:text="#{common.iva}">IVA</label>
-                                <select class="form-select" id="productIvaRate">
-                                    <option value="" th:text="#{common.loading}">Cargando...</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="productStock">Stock</label>
-                                <input type="number" class="form-control" id="productStock" min="0" placeholder="0">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="productCategory"
-                                    th:text="#{admin.inventory.tabs.categories}">Categoria</label>
-                                <select class="form-select" id="productCategory">
-                                    <option value="" th:text="#{admin.common.nocategory}">— Sin categoria —</option>
-                                    <option th:each="c : ${allCategories}" th:value="${c.id}" th:text="${c.name}">
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="productMeasurementUnit">unidad de Medida</label>
-                                <select class="form-select" id="productMeasurementUnit">
-                                    <option value="">— Sin unidades —</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label" for="productImageUrl" th:text="#{admin.product.imageUrl}">URL
-                                    de imagen (Cloudinary)</label>
-                                <input type="url" class="form-control" id="productImageUrl"
-                                    placeholder="https://res.cloudinary.com/..." oninput="previewImage(this.value)">
-                                <img id="imgPreview" src="" th:alt="#{common.preview}">
-                            </div>
-                            <div class="col-12">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="productActive" checked>
-                                    <label class="form-check-label" for="productActive"
-                                        th:text="#{admin.product.active}">Producto activo</label>
-                                </div>
+<div th:fragment="modal" class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productModalLabel">Nuevo Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="productForm" novalidate>
+                    <input type="hidden" id="productId">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Nombre *</label>
+                            <input type="text" class="form-control" id="productName" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Precio (€) *</label>
+                            <input type="number" class="form-control" id="productPrice" step="0.01" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control" id="productDescription" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Stock</label>
+                            <input type="number" class="form-control" id="productStock" value="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Categoría</label>
+                            <select class="form-select" id="productCategory">
+                                <option th:each="cat : ${categories}" th:value="${cat.id}" th:text="${cat.name}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo IVA</label>
+                            <select class="form-select" id="productTaxRate">
+                                <option th:each="tr : ${taxRates}" th:value="${tr.id}" th:text="${tr.description}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Unidad de Medida</label>
+                            <select class="form-select" id="productUnit">
+                                <option th:each="u : ${measurementUnits}" th:value="${u.id}" th:text="${u.name}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="productActive" checked>
+                                <label class="form-check-label">Producto Activo</label>
                             </div>
                         </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-cancel" data-bs-dismiss="modal"
-                        th:text="#{common.cancel}">Cancelar</button>
-                    <button type="button" class="btn-save" onclick="saveProduct()"><i
-                            class="bi bi-check-lg me-1"></i><span th:text="#{common.save}">Guardar</span></button>
-                </div>
+                        <div class="col-12">
+                            <label class="form-label">Imagen</label>
+                            <input type="file" class="form-control" id="productImage" accept="image/*" onchange="previewImage(this, 'imagePreview')">
+                            <img id="imagePreview" src="" alt="Preview" class="mt-2 img-thumbnail" style="display:none; max-height: 150px;">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-save" onclick="saveProduct()"><i class="bi bi-check-lg me-1"></i>Guardar</button>
             </div>
         </div>
     </div>
-
-</th:block>
-</body>
-</html>
-
-
-
-
-
-
-
-
-
-
-
+</div>

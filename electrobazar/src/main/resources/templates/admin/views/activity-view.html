@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <th:block th:fragment="view">
@@ -20,8 +20,8 @@
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label small mb-1" style="color: var(--text-main);"><i
-                            class="bi bi-search me-2"></i><span th:text="#{admin.activity.search}">Búsquedia
-                            rápidia</span></label>
+                            class="bi bi-search me-2"></i><span th:text="#{admin.activity.search}">Búsqueda
+                            rápida</span></label>
                     <input type="text" id="activityFilterSearch" class="form-control form-control-sm"
                         placeholder="Buscar en descripción..." oninput="filterActivity()">
                 </div>
@@ -30,13 +30,13 @@
                             class="bi bi-lightning-charge me-2"></i><span
                             th:text="#{common.actions}">Acción</span></label>
                     <input type="text" id="activityFilterAction" class="form-control form-control-sm"
-                        placeholder="Ej: VENTA..." oninput="filterActivity()">
+                        placeholder="Ej: VENTA, CREAR, LOGIN..." oninput="filterActivity()">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small mb-1" style="color: var(--text-main);"><i
                             class="bi bi-person me-2"></i><span>Usuario</span></label>
                     <input type="text" id="activityFilterUsername" class="form-control form-control-sm"
-                        placeholder="Usuario..." oninput="filterActivity()">
+                        placeholder="Nombre de usuario..." oninput="filterActivity()">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small mb-1" style="color: var(--text-main);"><i
@@ -51,8 +51,8 @@
                 <div class="col-md-1">
                     <label class="form-label small mb-1" style="color: var(--text-main);">&nbsp;</label>
                     <select id="activitySortDir" class="form-select form-select-sm" onchange="filterActivity()">
-                        <option value="desc"> Reciente</option>
-                        <option value="asc"> Antiguo</option>
+                        <option value="desc">↓ Reciente</option>
+                        <option value="asc">↑ Antiguo</option>
                     </select>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">

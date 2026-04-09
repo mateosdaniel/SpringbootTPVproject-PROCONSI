@@ -1,0 +1,304 @@
+<div th:fragment="view" id="productsView" style="display: none;">
+    <div class="panel-header">
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn-icon"
+                onclick="switchView('dashboardView', document.getElementById('btnDashboard'))"
+                th:title="#{admin.common.backtopanel}">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <span class="panel-title" th:text="#{admin.inventory.title}">Inventario</span>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs mt-4 mb-0" id="mgmtTabs" role="tablist" style="border:none">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-600 px-4" id="products-tab" data-bs-toggle="tab"
+                data-bs-target="#products-pane" type="button" role="tab">
+                <i class="bi bi-box-seam me-2"></i><span
+                    th:text="#{admin.inventory.tabs.products}">Productos</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-600 px-4" id="categories-tab" data-bs-toggle="tab"
+                data-bs-target="#categories-pane" type="button" role="tab">
+                <i class="bi bi-tags me-2"></i><span
+                    th:text="#{admin.inventory.tabs.categories}">Categorí­as</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="mgmtTabsContent">
+        <!-- Tab: Productos -->
+        <div class="tab-pane fade show active" id="products-pane" role="tabpanel">
+            <div th:replace="~{fragments/product-filter :: sharedFilterBar}"></div>
+
+            <div class="d-flex justify-content-end mt-2 mb-2 gap-2">
+                <input type="file" id="csvFileInput" accept=".csv" style="display: none;"
+                    onchange="uploadCsvFile(this)">
+                <button class="btn-nuevo" onclick="document.getElementById('csvFileInput').click()"
+                    style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border);"
+                    th:title="#{admin.inventory.import}">
+                    <i class="bi bi-file-earmark-spreadsheet"></i>
+                </button>
+                <button class="btn-nuevo" onclick="openProductModal()">
+                    <i class="bi bi-plus-lg me-1"></i> <span th:text="#{admin.inventory.new}">Nuevo</span>
+                </button>
+            </div>
+
+            <div class="admin-table-wrap mt-3">
+                <table class="admin-table" id="productsTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">ID</th>
+                            <th th:text="#{admin.common.image}">Imagen</th>
+                            <th th:text="#{common.name}">Nombre</th>
+                            <th th:title="#{admin.common.iva}" th:text="#{admin.common.iva}">IVA</th>
+                            <th style="text-align:right; width: 100px;" th:text="#{admin.common.price}">
+                                Precio
+                            </th>
+                            <th th:text="#{admin.common.stock}" style="text-align:center">Stock</th>
+                            <th style="text-align:center">Unidad</th>
+                            <th th:text="#{admin.common.category}">Categorí­a</th>
+                            <th th:text="#{admin.taxrates.active}">Activo</th>
+                            <th style="text-align:right" th:text="#{common.actions}">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody">
+                        <tr th:each="p : ${products}" class="product-row">
+                            <td style="color:var(--text-muted);font-weight:600" th:text="'#' + ${p.id}">
+                            </td>
+                            <td>
+                                <img th:if="${p.imageUrl != null && !#strings.isEmpty(p.imageUrl)}"
+                                    th:src="${p.imageUrl}" class="thumb" alt="">
+                                <div th:unless="${p.imageUrl != null && !#strings.isEmpty(p.imageUrl)}"
+                                    class="thumb-placeholder"><i class="bi bi-image"></i></div>
+                            </td>
+                            <td>
+                                <strong th:text="${p.name}"></strong>
+                                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px"
+                                    th:if="${p.description != null}"
+                                    th:text="${#strings.abbreviate(p.description,60)}">
+                                </div>
+                            </td>
+                            <td style="font-size:0.9rem; font-weight: 500;">
+                                <span th:if="${p.taxRate != null && p.taxRate.vatRate != null}"
+                                    th:text="${#numbers.formatDecimal(p.taxRate.vatRate * 100, 1, 0)} + '%'"></span>
+                                <span th:unless="${p.taxRate != null && p.taxRate.vatRate != null}"
+                                    style="color:var(--text-muted)">-</span>
+                            </td>
+                            <td style="font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--accent);text-align:right"
+                                th:text="${#numbers.formatDecimal(p.price, 1, 2, 'COMMA')} + ' €'">
+                            </td>
+                            <td>
+                                <div class="d-flex flex-column align-items-center" style="gap: 0.2rem;">
+                                    <span th:text="${p.stock}"
+                                        th:classappend="${p.stock < 5} ? 'fw-bold text-danger' : ''">0</span>
+                                    <span th:if="${p.stock < 5}" class="badge-stock-low"
+                                        th:text="#{admin.inventory.lowstock}">Stock Bajo</span>
+                                </div>
+                            </td>
+                            <td style="text-align:center">
+                                <span style="font-size:0.8rem;font-weight:600;color:var(--text-muted)"
+                                    th:text="${p.measurementUnit != null ? p.measurementUnit.symbol : '-'}"></span>
+                            </td>
+                            <td>
+                                <span th:if="${p.category != null}" th:text="${p.category.name}"
+                                    style="font-size:0.82rem;padding:0.2rem 0.5rem;border-radius:6px;background:var(--surface);color:var(--text-muted)"></span>
+                                <span th:unless="${p.category != null}" style="color:var(--text-muted)">-</span>
+                            </td>
+                            <td>
+                                <span class="badge-active" th:classappend="${p.active} ? 'yes' : 'no'"
+                                    th:text="${p.active} ? #{common.yes} : #{common.no}"></span>
+                            </td>
+                            <td style="text-align:right">
+                                <div style="display:flex;gap:0.4rem;justify-content:flex-end">
+                                    <button class="btn-icon" th:title="#{common.edit}" th:data-id="${p.id}"
+                                        onclick="openProductModal(this.getAttribute('data-id'))">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn-icon danger" th:title="#{common.delete}"
+                                        th:data-id="${p.id}" th:data-name="${p.name}"
+                                        onclick="deleteProduct(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(products)}">
+                            <td colspan="10" style="text-align:center;padding:2rem;color:var(--text-muted)">
+                                <span th:text="#{admin.inventory.products.empty}">No hay productos
+                                    registrados.</span> <a href="javascript:void(0)"
+                                    onclick="openProductModal()" style="color:var(--accent)"
+                                    th:text="#{admin.inventory.products.createfirst}">Crear el primero</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <input type="hidden" id="totalPages" th:value="${productsPage.totalPages}">
+            <input type="hidden" id="currentPage" th:value="${productsPage.number}">
+            <input type="hidden" id="pageSize" th:value="${pageSize}">
+
+            <div class="pagination-wrap mt-3" th:if="${productsPage != null && productsPage.totalPages > 0}">
+                <button class="pagination-btn" th:onclick="|goToPage(0)|"
+                    th:disabled="${productsPage.number == 0}" title="Primera página">
+                    <i class="bi bi-chevron-double-left"></i>
+                </button>
+
+                <button class="pagination-btn" th:onclick="|goToPage(${productsPage.number - 1})|"
+                    th:disabled="${productsPage.number == 0}" title="Página anterior">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+
+                <div class="pagination-jump">
+                    <input type="number" id="pageInput" min="1" th:max="${productsPage.totalPages}"
+                        th:value="${productsPage.number + 1}"
+                        onkeydown="if(event.key === 'Enter') jumpToPage(this.value)" title="Ir a página">
+                    <span class="small text-muted">
+                        de <span th:text="${productsPage.totalPages}">1</span>
+                    </span>
+                </div>
+
+                <button class="pagination-btn" th:onclick="|goToPage(${productsPage.number + 1})|"
+                    th:disabled="${productsPage.number + 1 >= productsPage.totalPages}"
+                    title="Página siguiente">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+
+                <button class="pagination-btn" th:onclick="|goToPage(${productsPage.totalPages - 1})|"
+                    th:disabled="${productsPage.number + 1 >= productsPage.totalPages}" title="Última página">
+                    <i class="bi bi-chevron-double-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab: Categorí­as -->
+        <div class="tab-pane fade" id="categories-pane" role="tabpanel">
+            <div class="filter-bar-custom">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i
+                                class="bi bi-search me-2"></i><span
+                                th:text="#{admin.inventory.categories.search}">Buscar categorí­a</span></label>
+                        <input type="text" id="categoryFilterSearch" class="form-control form-control-sm"
+                            th:placeholder="#{admin.inventory.categories.search.placeholder}"
+                            oninput="debounceSharedFilter()">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1" style="color: var(--text-main);"><i
+                                class="bi bi-sort-down me-1"></i>Orden</label>
+                        <select id="categoryFilterSortBy" class="form-select form-select-sm"
+                            onchange="debounceSharedFilter()">
+                            <option value="id">ID</option>
+                            <option value="nameEs">Nombre</option>
+                            <option value="descriptionEs">Descripción</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1" style="color: var(--text-main);">&nbsp;</label>
+                        <select id="categoryFilterSortDir" class="form-select form-select-sm"
+                            onchange="debounceSharedFilter()">
+                            <option value="asc">â†‘ Asc</option>
+                            <option value="desc">â†“ Desc</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="btn btn-sm btn-outline-secondary w-100" onclick="resetCategoryFilters()">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> <span
+                                th:text="#{common.reset}">Reset</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end mt-2 mb-2">
+                <button class="btn-nuevo" onclick="openCategoryModal()">
+                    <i class="bi bi-plus-lg"></i> <span th:text="#{admin.inventory.categories.new}">Nueva
+                        Categorí­a</span>
+                </button>
+            </div>
+            <div class="admin-table-wrap">
+                <table class="admin-table" id="categoriesTable">
+                    <thead>
+                        <tr>
+                            <th th:text="#{common.id}">ID</th>
+                            <th th:text="#{common.name}">Nombre</th>
+                            <th th:text="#{common.description}">Descripción</th>
+                            <th th:text="#{admin.taxrates.active}">Activa</th>
+                            <th style="text-align:right;width:120px" th:text="#{common.actions}">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="categoriesTableBody">
+                        <tr th:each="c : ${categories}" class="category-row" th:data-name="${c.name}"
+                            th:data-desc="${c.description ?: ''}">
+                            <td style="color:var(--text-muted);font-weight:600" th:text="${'#'+c.id}"></td>
+                            <td><strong th:text="${c.name}"></strong></td>
+                            <td th:text="${c.description ?: '-'}"></td>
+                            <td>
+                                <span class="badge-active" th:classappend="${c.active} ? 'yes' : 'no'"
+                                    th:text="${c.active} ? #{common.yes} : #{common.no}"></span>
+                            </td>
+                            <td style="text-align:right">
+                                <div style="display:flex;gap:0.4rem;justify-content:flex-end">
+                                    <button class="btn-icon" th:title="#{common.edit}" th:data-id="${c.id}"
+                                        onclick="openCategoryModal(this.getAttribute('data-id'))">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn-icon danger" th:title="#{common.delete}"
+                                        th:data-id="${c.id}" th:data-name="${c.name}"
+                                        onclick="deleteCategory(this.getAttribute('data-id'), this.getAttribute('data-name'))">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(categories)}">
+                            <td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted)"
+                                th:text="#{admin.inventory.categories.empty}">No hay categorí­as.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <input type="hidden" id="categoriesTotalPages" th:value="${categoriesPage.totalPages}">
+            <input type="hidden" id="categoriesCurrentPage" th:value="${categoriesPage.number}">
+            <input type="hidden" id="categoriesPageSize" th:value="${categoriesPageSize}">
+
+            <div class="pagination-wrap mt-3"
+                th:if="${categoriesPage != null && categoriesPage.totalPages > 0}">
+                <button class="pagination-btn" th:onclick="|goToCategoriesPage(0)|"
+                    th:disabled="${categoriesPage.number == 0}" title="Primera página">
+                    <i class="bi bi-chevron-double-left"></i>
+                </button>
+
+                <button class="pagination-btn" th:onclick="|goToCategoriesPage(${categoriesPage.number - 1})|"
+                    th:disabled="${categoriesPage.number == 0}" title="Página anterior">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+
+                <div class="pagination-jump">
+                    <input type="number" id="categoriesPageInput" min="1" th:max="${categoriesPage.totalPages}"
+                        th:value="${categoriesPage.number + 1}"
+                        onkeydown="if(event.key === 'Enter') jumpToCategoriesPage(this.value)"
+                        title="Ir a página">
+                    <span class="small text-muted">
+                        de <span th:text="${categoriesPage.totalPages}">1</span>
+                    </span>
+                </div>
+
+                <button class="pagination-btn" th:onclick="|goToCategoriesPage(${categoriesPage.number + 1})|"
+                    th:disabled="${categoriesPage.number + 1 >= categoriesPage.totalPages}"
+                    title="Página siguiente">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+
+                <button class="pagination-btn"
+                    th:onclick="|goToCategoriesPage(${categoriesPage.totalPages - 1})|"
+                    th:disabled="${categoriesPage.number + 1 >= categoriesPage.totalPages}"
+                    title="Última página">
+                    <i class="bi bi-chevron-double-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
