@@ -117,6 +117,7 @@ public class CashRegisterServiceImpl implements CashRegisterService {
         register.setCardSales(cardSales);
         register.setTotalSales(totalSales);
         register.setClosingBalance(closingBalance != null ? closingBalance : BigDecimal.ZERO);
+        register.setActualCash(register.getClosingBalance());
         register.setCashRefunds(cashRefunds);
         register.setCardRefunds(cardRefunds);
         register.setTotalWithdrawals(totalWithdrawals);

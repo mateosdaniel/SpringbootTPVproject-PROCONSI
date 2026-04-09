@@ -4,6 +4,7 @@ import com.proconsi.electrobazar.model.CashRegister;
 import com.proconsi.electrobazar.model.CashWithdrawal;
 import com.proconsi.electrobazar.model.PaymentMethod;
 import com.proconsi.electrobazar.model.Worker;
+import com.proconsi.electrobazar.service.CashRegisterService;
 import com.proconsi.electrobazar.service.CashSessionService;
 import com.proconsi.electrobazar.service.PdfReportService;
 import com.proconsi.electrobazar.service.WorkerService;
@@ -36,6 +37,7 @@ import java.util.Optional;
 public class CashRegisterApiRestController {
 
     private final CashSessionService cashSessionService;
+    private final CashRegisterService cashRegisterService;
     private final PdfReportService pdfReportService;
     private final WorkerService workerService;
     private final SaleService saleService;
@@ -44,6 +46,7 @@ public class CashRegisterApiRestController {
 
     /**
      * Retrieves the details of a specific cash register session.
+     * 
      * @param id Internal ID of the cash register.
      * @return The {@link CashRegister} entity.
      */
@@ -54,6 +57,7 @@ public class CashRegisterApiRestController {
 
     /**
      * Retrieves all historically closed cash sessions.
+     * 
      * @return List of closed {@link CashRegister} sessions.
      */
     @GetMapping("/closed")
@@ -63,6 +67,7 @@ public class CashRegisterApiRestController {
 
     /**
      * Retrieves the currently active (open) cash register session, if any.
+     * 
      * @return 200 with the active {@link CashRegister}, or 204 if none are open.
      */
     @GetMapping("/open")
@@ -73,8 +78,10 @@ public class CashRegisterApiRestController {
     }
 
     /**
-     * Gathers all financial data required to perform a cash close for the active session.
-     * Calculates expected cash in drawer by accounting for sales, returns, and manual entries/withdrawals.
+     * Gathers all financial data required to perform a cash close for the active
+     * session.
+     * Calculates expected cash in drawer by accounting for sales, returns, and
+     * manual entries/withdrawals.
      * 
      * @return Detailed {@link CashCloseInfoDTO}.
      */
@@ -131,6 +138,7 @@ public class CashRegisterApiRestController {
 
     /**
      * Retrieves today's cash session, whether open or recently closed.
+     * 
      * @return Today's {@link CashRegister}.
      */
     @GetMapping("/today")
@@ -148,6 +156,7 @@ public class CashRegisterApiRestController {
 
     /**
      * Generates a PDF closing report for a specific cash session.
+     * 
      * @param id ID of the cash register.
      * @return PDF file as a downloadable resource.
      */
@@ -166,8 +175,9 @@ public class CashRegisterApiRestController {
 
     /**
      * Initializes a new cash session.
+     * 
      * @param openingBalance The initial cash money available in the drawer.
-     * @param workerId ID of the worker opening the register.
+     * @param workerId       ID of the worker opening the register.
      * @return 201 Created with the new session details.
      */
     @PostMapping("/open")
@@ -193,10 +203,13 @@ public class CashRegisterApiRestController {
      * Closes the active cash session.
      * Automatically calculates the difference between expected and actual cash.
      * 
-     * @param closingBalance The physical cash counted in the drawer at the end of the shift.
-     * @param notes Optional notes about the session (e.g., explaining discrepancies).
-     * @param retainedAmount Amount of money to keep in the drawer for the next shift.
-     * @param workerId ID of the worker closing the register.
+     * @param closingBalance The physical cash counted in the drawer at the end of
+     *                       the shift.
+     * @param notes          Optional notes about the session (e.g., explaining
+     *                       discrepancies).
+     * @param retainedAmount Amount of money to keep in the drawer for the next
+     *                       shift.
+     * @param workerId       ID of the worker closing the register.
      * @return 201 Created with the closed session and audit details.
      */
     @PostMapping("/close")
@@ -210,12 +223,11 @@ public class CashRegisterApiRestController {
         if (workerId != null) {
             worker = workerService.findById(workerId).orElse(null);
         }
-        CashRegister cs = cashSessionService.closeSession(closingBalance, worker);
-        
-        // Update notes and retained if provided
-        if (notes != null) cs.setNotes(notes);
-        if (retainedAmount != null) cs.setRetainedForNextShift(retainedAmount);
-        
+
+        // Use CashRegisterService which handles all calculations (sales, returns,
+        // withdrawals, etc.)
+        CashRegister cs = cashRegisterService.closeCashRegister(closingBalance, notes, worker, retainedAmount);
+
         try {
             pdfReportService.generateCashCloseReport(cs);
         } catch (Exception e) {

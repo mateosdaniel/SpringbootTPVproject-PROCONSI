@@ -8,6 +8,7 @@ import com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator;
 import com.proconsi.electrobazar.exception.InsufficientCashException;
 import com.proconsi.electrobazar.dto.ReturnLineRequest;
 import com.proconsi.electrobazar.dto.SaleSummaryResponse;
+import com.proconsi.electrobazar.dto.CashRegisterOpenSuggestion;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.servlet.http.HttpSession;
@@ -49,6 +50,7 @@ public class TpvController {
     private final AdminPinService adminPinService;
     private final ActivityLogService activityLogService;
     private final CashSessionService cashSessionService;
+    private final CashRegisterService cashRegisterService;
 
     @GetMapping
     public String index(
@@ -89,9 +91,9 @@ public class TpvController {
         if (isRegisterOpen) {
             model.addAttribute("activeSession", activeSessionOpt.get());
         } else {
-            // Suggesting 0.00 or the last session's leftover could be done here if needed
-            model.addAttribute("hasSuggestion", false);
-            model.addAttribute("suggestedOpeningBalance", BigDecimal.ZERO);
+            CashRegisterOpenSuggestion suggestion = cashRegisterService.getOpenSuggestion();
+            model.addAttribute("hasSuggestion", suggestion.isHasSuggestion());
+            model.addAttribute("suggestedOpeningBalance", suggestion.getSuggestedBalance());
         }
 
         Map<Long, String> formattedPrices = new java.util.LinkedHashMap<>();
@@ -483,8 +485,9 @@ public class TpvController {
         if (cashSessionService.getActiveSession().isPresent()) {
             return "redirect:/tpv";
         }
-        model.addAttribute("hasSuggestion", false); // Could fetch last session's closed actualCash
-        model.addAttribute("suggestedOpeningBalance", BigDecimal.ZERO);
+        CashRegisterOpenSuggestion suggestion = cashRegisterService.getOpenSuggestion();
+        model.addAttribute("hasSuggestion", suggestion.isHasSuggestion());
+        model.addAttribute("suggestedOpeningBalance", suggestion.getSuggestedBalance());
         return "tpv/open-register";
     }
 

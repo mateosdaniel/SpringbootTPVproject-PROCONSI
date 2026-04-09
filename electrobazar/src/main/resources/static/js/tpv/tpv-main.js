@@ -247,7 +247,7 @@ function addToTicket(card) {
 function changeQty(id, delta) {
     if (window.tpv_is_register_open !== true) return;
     if (!ticket[id]) return;
-    
+
     // For products sold by weight, -1 button might not make sense if current is 0.5
     // But we'll keep it simple: -1 or +1.
     var newQty = ticket[id].quantity + delta;
@@ -332,9 +332,9 @@ function updateStockBubbles() {
             var oldVal = parseFloat(badge.textContent.replace(',', '.')) || 0;
             // Format available to show decimals based on measurement unit (max 2 to fit the bubble)
             var dispDecimals = Math.min(2, decimalPlaces);
-            badge.textContent = available.toLocaleString('es-ES', { 
+            badge.textContent = available.toLocaleString('es-ES', {
                 minimumFractionDigits: dispDecimals,
-                maximumFractionDigits: dispDecimals 
+                maximumFractionDigits: dispDecimals
             });
 
             // Update color states
@@ -541,7 +541,7 @@ function renderTicket() {
 var promoSyncTimeout = null;
 function syncPromotions() {
     if (promoSyncTimeout) clearTimeout(promoSyncTimeout);
-    
+
     var ids = Object.keys(ticket).filter(id => !String(id).startsWith('manual-'));
     if (ids.length === 0) {
         autoPromoDiscount = 0;
@@ -549,7 +549,7 @@ function syncPromotions() {
         return;
     }
 
-    promoSyncTimeout = setTimeout(function() {
+    promoSyncTimeout = setTimeout(function () {
         var payload = {
             lines: ids.map(id => ({
                 productId: parseInt(id),
@@ -562,15 +562,15 @@ function syncPromotions() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
-        .then(r => r.json())
-        .then(data => {
-            autoPromoDiscount = parseFloat(data.totalDiscount) || 0;
-            appliedPromoNames = data.appliedPromotions || [];
-            renderTicket();
-        })
-        .catch(err => {
-            console.error('[Promotions] Error syncing', err);
-        });
+            .then(r => r.json())
+            .then(data => {
+                autoPromoDiscount = parseFloat(data.totalDiscount) || 0;
+                appliedPromoNames = data.appliedPromotions || [];
+                renderTicket();
+            })
+            .catch(err => {
+                console.error('[Promotions] Error syncing', err);
+            });
     }, 150);
 }
 
@@ -605,7 +605,7 @@ function selectPayment(method) {
 
 function submitSale() {
     if (Object.keys(ticket).length === 0) return;
-    
+
     const form = document.getElementById('saleForm');
     const formData = new URLSearchParams(new FormData(form));
 
@@ -617,22 +617,22 @@ function submitSale() {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData.toString()
     })
-    .then(r => {
-        if (r.redirected) {
-            window.location.href = r.url; // Use same tab
-        } else if (r.ok) {
-            return r.json().then(data => {
-                if (data.redirectUrl) window.location.href = data.redirectUrl;
-                else location.reload();
-            });
-        } else {
-            return r.json().then(data => { throw new Error(data.error || 'Error al procesar venta'); });
-        }
-    })
-    .catch(err => {
-        showToast(err.message, 'error');
-        if (btn) btn.disabled = false;
-    });
+        .then(r => {
+            if (r.redirected) {
+                window.location.href = r.url; // Use same tab
+            } else if (r.ok) {
+                return r.json().then(data => {
+                    if (data.redirectUrl) window.location.href = data.redirectUrl;
+                    else location.reload();
+                });
+            } else {
+                return r.json().then(data => { throw new Error(data.error || 'Error al procesar venta'); });
+            }
+        })
+        .catch(err => {
+            showToast(err.message, 'error');
+            if (btn) btn.disabled = false;
+        });
 }
 
 var invoiceModalInstance;
@@ -653,6 +653,7 @@ function openCustomerModal() {
         if (cashSection) cashSection.style.display = 'block';
         if (mixedSection) mixedSection.style.display = 'none';
         receivedInput.value = '';
+        calculateChange();
         document.getElementById('changeAmount').textContent = '0.00\u20AC';
         receivedInputForm.value = '';
     } else if (isMixed) {
@@ -668,6 +669,7 @@ function openCustomerModal() {
         if (cashSection) cashSection.style.display = 'none';
         if (mixedSection) mixedSection.style.display = 'none';
         receivedInput.value = '';
+        calculateChange();
         receivedInputForm.value = '';
     }
 
@@ -713,25 +715,30 @@ function openCustomerModal() {
 function calculateChange() {
     var input = document.getElementById('receivedAmount');
     if (!input) return;
-    var val = parseFloat(input.value);
+
+    var inputVal = input.value.trim();
+    var received = inputVal === '' ? 0 : parseFloat(inputVal.replace(',', '.'));
     var totalElement = document.getElementById('ticketTotal');
     if (!totalElement) return;
+
     var total = parsePrice(totalElement.textContent);
     var changeEl = document.getElementById('changeAmount');
     if (!changeEl) return;
 
-    if (isNaN(val)) {
-        changeEl.textContent = 'Faltan ' + total.toFixed(2).replace('.', ',') + '€';
+    var diff = received - total;
+
+    if (received === 0 && inputVal === '') {
+        // Campo vacío: mostrar neutro
+        changeEl.textContent = '0,00€';
+        changeEl.style.color = 'var(--text-muted)';
+    } else if (diff < 0) {
+        // Falta dinero
+        changeEl.textContent = 'Faltan ' + Math.abs(diff).toFixed(2).replace('.', ',') + '€';
         changeEl.style.color = 'var(--danger)';
     } else {
-        var diff = val - total;
-        if (diff < 0) {
-            changeEl.textContent = 'Faltan ' + Math.abs(diff).toFixed(2).replace('.', ',') + '€';
-            changeEl.style.color = 'var(--danger)';
-        } else {
-            changeEl.textContent = diff.toFixed(2).replace('.', ',') + '€';
-            changeEl.style.color = 'var(--success)';
-        }
+        // Cambio o exacto
+        changeEl.textContent = diff.toFixed(2).replace('.', ',') + '€';
+        changeEl.style.color = diff > 0 ? 'var(--success)' : 'var(--text-muted)';
     }
 }
 
@@ -1035,8 +1042,8 @@ function renderProducts(products) {
         var initialStock = parseFloat(product.stock) || 0;
         var inTicket = ticket[product.id] ? ticket[product.id].quantity : 0;
         var available = parseFloat((initialStock - inTicket).toFixed(4));
-        var decimalPlaces = (product.measurementUnit && product.measurementUnit.decimalPlaces != null) 
-                            ? product.measurementUnit.decimalPlaces : 0;
+        var decimalPlaces = (product.measurementUnit && product.measurementUnit.decimalPlaces != null)
+            ? product.measurementUnit.decimalPlaces : 0;
 
         var badgeClass = 'stock-neutral';
         if (available <= 0) badgeClass = 'stock-danger';
@@ -1055,8 +1062,8 @@ function renderProducts(products) {
             ' data-decimal-places="' + decimalPlaces + '">' +
             ' <div class="product-image-container">' +
             imgHtml +
-            ' <span class="stock-badge ' + badgeClass + '">' + 
-                available.toLocaleString('es-ES', { minimumFractionDigits: dispDecimals, maximumFractionDigits: dispDecimals }) + 
+            ' <span class="stock-badge ' + badgeClass + '">' +
+            available.toLocaleString('es-ES', { minimumFractionDigits: dispDecimals, maximumFractionDigits: dispDecimals }) +
             '</span>' +
             ' </div>' +
             ' <div class="product-info">' +
@@ -1315,13 +1322,13 @@ function selectCustomer(c) {
     if (c.tariff) {
         window.currentTariffId = c.tariff.id;
         window.currentTariffColor = c.tariff.color;
-        
+
         if (badge) {
             badge.textContent = c.tariff.name + ' (-' + (c.tariff.discountPercentage || 0) + '%)';
             badge.style.display = 'inline-block';
             if (c.tariff.color) badge.style.backgroundColor = c.tariff.color;
         }
-        
+
         updateTicketPricesForTariff(c.tariff.id, c.tariff.name, parseFloat(c.tariff.discountPercentage || 0));
     } else {
         window.currentTariffId = null;
@@ -1674,7 +1681,7 @@ function resumeSale(id) {
                 loadSuspendedCount();
 
                 if (sale.warnings && sale.warnings.length > 0) {
-                    sale.warnings.forEach(function(w) { showToast(w, 'warning'); });
+                    sale.warnings.forEach(function (w) { showToast(w, 'warning'); });
                 } else {
                     showToast('Venta reanudada', 'success');
                 }
@@ -1709,7 +1716,7 @@ function resumeSale(id) {
             loadSuspendedCount();
 
             if (sale.warnings && sale.warnings.length > 0) {
-                sale.warnings.forEach(function(w) { showToast(w, 'warning'); });
+                sale.warnings.forEach(function (w) { showToast(w, 'warning'); });
             } else {
                 showToast('Venta reanudada', 'success');
             }
@@ -2526,10 +2533,10 @@ function updatePinDots() {
 
 function submitPinToSell() {
     if (currentPin.length !== 4) return;
-    
+
     const btn = document.getElementById('btnPinSubmit');
     btn.disabled = true;
-    
+
     fetch('/api/workers/verify-pin?pin=' + currentPin)
         .then(r => {
             if (r.ok) {

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <th:block th:fragment="view">
@@ -38,7 +38,7 @@
                     <select id="cashFilterSortBy" class="form-select form-select-sm" onchange="filterCashClosures()">
                         <option value="id">ID</option>
                         <option value="openingTime">Apertura</option>
-                        <option value="closediat">Cierre</option>
+                        <option value="closedAt">Cierre</option>
                         <option value="difference">Diferencia</option>
                         <option value="totalSales">Ventas</option>
                     </select>
@@ -76,7 +76,7 @@
                     <tr th:each="register : ${cashRegisters}" class="cash-row"
                         th:data-worker="${register.worker != null ? register.worker.username : 'Sistema'}"
                         th:data-open-date="${register.openingTime != null ? #temporals.format(register.openingTime, 'yyyy-MM-dd') : ''}"
-                        th:data-close-date="${register.closediat != null ? #temporals.format(register.closediat, 'yyyy-MM-dd') : ''}"
+                        th:data-close-date="${register.closedAt != null ? #temporals.format(register.closedAt, 'yyyy-MM-dd') : ''}"
                         style="cursor:pointer"
                         th:onclick="'window.location.href = \'/admin/cash-register/' + ${register.id} + '\''">
                         <td style="color:var(--text-muted);font-weight:600" th:text="${'#'+register.id}"></td>
@@ -84,7 +84,7 @@
                             th:text="${register.openingTime != null ? #temporals.format(register.openingTime, 'dd/MM/yyyy HH:mm') : '—'}">
                         </td>
                         <td
-                            th:text="${register.closediat != null ? #temporals.format(register.closediat, 'dd/MM/yyyy HH:mm') : '—'}">
+                            th:text="${register.closedAt != null ? #temporals.format(register.closedAt, 'dd/MM/yyyy HH:mm') : '—'}">
                         </td>
 
                         <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;text-align:right"

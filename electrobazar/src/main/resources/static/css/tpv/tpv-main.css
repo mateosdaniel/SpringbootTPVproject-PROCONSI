@@ -1359,6 +1359,7 @@
 
         .nav-pills .nav-link {
             transition: all 0.2s;
+            color: var(--accent) !important;
         }
 
         .nav-pills .nav-link:hover:not(.active) {

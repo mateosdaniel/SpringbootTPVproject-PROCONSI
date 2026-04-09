@@ -67,6 +67,7 @@ public class CashSessionServiceImpl implements CashSessionService {
                 : BigDecimal.ZERO;
 
         session.setActualCash(actualCash);
+        session.setClosingBalance(actualCash);
         session.setDifference(actualCash.subtract(expectedCash));
         session.setClosed(true);
         session.setClosedAt(LocalDateTime.now());
