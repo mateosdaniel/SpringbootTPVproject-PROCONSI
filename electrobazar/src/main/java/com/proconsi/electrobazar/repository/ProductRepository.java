@@ -117,4 +117,10 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.taxRate WHERE p.active = true AND p.price IS NOT NULL")
     List<Product> findAllActiveForSnapshot();
+
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate JOIN SaleLine sl ON sl.product.id = p.id WHERE p.active = true GROUP BY p.id, p.nameEs, p.nameEn, p.descriptionEs, p.descriptionEn, p.statusEs, p.statusEn, p.lowStockMessageEs, p.lowStockMessageEn, p.price, p.basePriceNet, p.stock, p.active, p.imageUrl, p.category, p.taxRate, p.measurementUnit ORDER BY SUM(sl.quantity) DESC")
+    List<Product> findTopSellingProducts(org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE p.active = true AND p.salesRank > 0 ORDER BY p.salesRank ASC, p.nameEs ASC")
+    List<Product> findTop100BySalesRank(org.springframework.data.domain.Pageable pageable);
 }

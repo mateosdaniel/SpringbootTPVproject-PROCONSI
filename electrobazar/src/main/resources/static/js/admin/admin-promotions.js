@@ -81,8 +81,13 @@ function renderSelectedPromoCategories() {
 }
 
 function openPromotionModal(id) {
-    document.getElementById('promotionForm').reset();
-    document.getElementById('promotionId').value = id || '';
+    document.getElementById('promoId').value = id || '';
+    document.getElementById('promoName').value = '';
+    document.getElementById('promoNValue').value = 3;
+    document.getElementById('promoMValue').value = 2;
+    document.getElementById('promoFrom').value = '';
+    document.getElementById('promoUntil').value = '';
+    document.getElementById('promoActive').checked = true;
     selectedPromoProducts.clear();
     selectedPromoCategories.clear();
     renderSelectedPromoProducts();
@@ -92,11 +97,17 @@ function openPromotionModal(id) {
         fetch(`/api/promotions/${id}`)
             .then(res => res.json())
             .then(p => {
-                document.getElementById('promotionName').value = p.name;
-                document.getElementById('promotionDiscount').value = p.discount;
-                document.getElementById('promotionType').value = p.type;
-                p.products.forEach(prod => selectedPromoProducts.add(prod));
-                p.categories.forEach(cat => selectedPromoCategories.add(cat));
+                document.getElementById('promoId').value = p.id || '';
+                document.getElementById('promoName').value = p.name || '';
+                document.getElementById('promoNValue').value = p.nValue || 3;
+                document.getElementById('promoMValue').value = p.mValue || 2;
+                document.getElementById('promoFrom').value = p.validFrom ? p.validFrom.slice(0, 16) : '';
+                document.getElementById('promoUntil').value = p.validUntil ? p.validUntil.slice(0, 16) : '';
+                document.getElementById('promoActive').checked = p.active !== false;
+                selectedPromoProducts.clear();
+                selectedPromoCategories.clear();
+                (p.products || []).forEach(prod => selectedPromoProducts.add(prod));
+                (p.categories || []).forEach(cat => selectedPromoCategories.add(cat));
                 renderSelectedPromoProducts();
                 renderSelectedPromoCategories();
             });

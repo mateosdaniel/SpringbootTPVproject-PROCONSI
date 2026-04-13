@@ -173,4 +173,8 @@ public class Product {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "measurement_unit_id")
     private MeasurementUnit measurementUnit;
+
+    @Column(name = "sales_rank")
+    @Builder.Default
+    private Integer salesRank = 0;
 }

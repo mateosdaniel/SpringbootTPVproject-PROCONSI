@@ -76,7 +76,7 @@ public class TpvController {
             products = productService.findByCategory(categoryId);
         } else {
             // Limit to 100 on initial view to avoid massive HTML payloads
-            products = productService.getTopProducts(100);
+            products = productService.getTopProductsByRank(100);
         }
 
         java.util.Optional<CashRegister> activeSessionOpt = cashSessionService.getActiveSession();

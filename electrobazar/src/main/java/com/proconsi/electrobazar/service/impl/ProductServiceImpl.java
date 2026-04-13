@@ -309,8 +309,8 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public List<Product> getTopProducts(int limit) {
-        // Use PageRequest to limit at DB level
-        return productRepository.findAllActiveWithCategory(org.springframework.data.domain.PageRequest.of(0, limit));
+        // Use salesRank + alphabetical fallback
+        return productRepository.findTop100BySalesRank(org.springframework.data.domain.PageRequest.of(0, limit));
     }
 
     @Override
@@ -362,5 +362,17 @@ public class ProductServiceImpl implements ProductService {
 
         Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by("nameEs").ascending());
         return productRepository.findAllWithCategoryPaged(pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Product> getTopSellingProducts(int limit) {
+        return productRepository.findTopSellingProducts(PageRequest.of(0, limit));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Product> getTopProductsByRank(int limit) {
+        return productRepository.findTop100BySalesRank(org.springframework.data.domain.PageRequest.of(0, limit));
     }
 }

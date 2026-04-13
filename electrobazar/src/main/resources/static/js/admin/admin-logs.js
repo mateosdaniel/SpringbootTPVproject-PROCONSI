@@ -8,10 +8,13 @@ function loadActivityLog() {
 }
 
 function fetchActivityLogs(page) {
-    const type = document.getElementById('logFilterType').value;
-    const worker = document.getElementById('logFilterWorker').value;
+    const search = document.getElementById('activityFilterSearch')?.value || '';
+    const action = document.getElementById('activityFilterAction')?.value || '';
+    const username = document.getElementById('activityFilterUsername')?.value || '';
+    const sortBy = document.getElementById('activitySortBy')?.value || 'timestamp';
+    const sortDir = document.getElementById('activitySortDir')?.value || 'desc';
     
-    fetch(`/api/admin/logs?page=${page}&type=${type}&workerId=${worker}`)
+    fetch(`/api/admin/activity-logs?page=${page}&search=${encodeURIComponent(search)}&action=${encodeURIComponent(action)}&username=${encodeURIComponent(username)}&sortBy=${sortBy}&sortDir=${sortDir}`)
         .then(res => res.json())
         .then(data => {
             renderActivityLogs(data.content);
@@ -20,7 +23,7 @@ function fetchActivityLogs(page) {
 }
 
 function renderActivityLogs(logs) {
-    const container = document.getElementById('activityLogList');
+    const container = document.getElementById('activityFeedContainer');
     if (!container) return;
     container.innerHTML = '';
 
@@ -36,10 +39,10 @@ function renderActivityLogs(logs) {
             <div class="log-icon"><i class="bi bi-info-circle"></i></div>
             <div class="log-content">
                 <div class="log-header">
-                    <span class="log-worker">${escHtml(log.workerName)}</span>
-                    <span class="log-time">${formatTimeAgo(log.createdAt)}</span>
+                    <span class="log-worker">${escHtml(log.username || '-')}</span>
+                    <span class="log-time">${formatTimeAgo(log.timestamp)}</span>
                 </div>
-                <div class="log-message">${escHtml(log.message)}</div>
+                <div class="log-message">${escHtml(log.description)}</div>
             </div>
         `;
         container.appendChild(div);
@@ -47,7 +50,43 @@ function renderActivityLogs(logs) {
 }
 
 function renderActivityPagination(data) {
-    // Implementation for logs pagination
+    const container = document.getElementById('activityFeedContainer');
+    if (!container) return;
+    
+    const totalPages = data.totalPages;
+    const currentPage = data.currentPage;
+    if (totalPages <= 1) return;
+
+    const pagination = document.createElement('nav');
+    pagination.innerHTML = `
+        <ul class="pagination justify-content-center mt-3">
+            <li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
+                <button class="page-link" onclick="fetchActivityLogs(${currentPage - 1})">Anterior</button>
+            </li>
+            ${Array.from({length: totalPages}, (_, i) => `
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <button class="page-link" onclick="fetchActivityLogs(${i})">${i + 1}</button>
+                </li>
+            `).join('')}
+            <li class="page-item ${currentPage === totalPages - 1 ? 'disabled' : ''}">
+                <button class="page-link" onclick="fetchActivityLogs(${currentPage + 1})">Siguiente</button>
+            </li>
+        </ul>
+    `;
+    container.appendChild(pagination);
+}
+
+function filterActivity() {
+    fetchActivityLogs(0);
+}
+
+function resetActivityFilters() {
+    document.getElementById('activityFilterSearch').value = '';
+    document.getElementById('activityFilterAction').value = '';
+    document.getElementById('activityFilterUsername').value = '';
+    document.getElementById('activitySortBy').value = 'timestamp';
+    document.getElementById('activitySortDir').value = 'desc';
+    fetchActivityLogs(0);
 }
 
 function formatTimeAgo(dateStr) {
@@ -68,3 +107,5 @@ window.fetchActivityLogs = fetchActivityLogs;
 window.renderActivityLogs = renderActivityLogs;
 window.renderActivityPagination = renderActivityPagination;
 window.formatTimeAgo = formatTimeAgo;
+window.filterActivity = filterActivity;
+window.resetActivityFilters = resetActivityFilters;

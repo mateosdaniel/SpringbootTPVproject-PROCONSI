@@ -10,7 +10,7 @@ function openCreateTariffModal() {
     document.getElementById('newTariffColor').value = '#94a3b8'; // Default
     document.getElementById('createTariffError').style.display = 'none';
     initColorPicker('newTariffColorGrid', 'newTariffColor', '#94a3b8');
-    new bootstrap.Modal(document.getElementById('createTariffModal')).show();
+    new bootstrap.Modal(document.getElementById('tariffModal')).show();
 }
 
 function saveTariff() {

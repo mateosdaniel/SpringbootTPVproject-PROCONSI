@@ -195,4 +195,8 @@ public interface ProductService {
 
     Page<Product> findAllWithCategoryPaged(int page, int size);
 
+    List<Product> getTopSellingProducts(int limit);
+
+    List<Product> getTopProductsByRank(int limit);
 }
+

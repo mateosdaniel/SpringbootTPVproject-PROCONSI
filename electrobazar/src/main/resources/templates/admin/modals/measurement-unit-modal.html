@@ -2,7 +2,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="measurementUnitModalLabel">Unidad de Medida</h5>
+                <h5 class="modal-title" id="measurementUnitModalLabel" th:text="#{admin.measurements.title}">Measurement Unit</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -10,29 +10,35 @@
                     <input type="hidden" id="measurementUnitId">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label" for="measurementUnitName">Nombre *</label>
-                            <input type="text" class="form-control" id="measurementUnitName" required placeholder="Ej: Kilogramos">
+                            <label class="form-label" for="measurementUnitName" th:text="#{admin.measurements.name}">Name *</label>
+                            <input type="text" class="form-control" id="measurementUnitName" required th:placeholder="#{admin.measurements.name.placeholder}">
                         </div>
                         <div class="col-12">
-                            <label class="form-label" for="measurementUnitSymbol">Símbolo *</label>
-                            <input type="text" class="form-control" id="measurementUnitSymbol" required placeholder="Ej: kg">
+                            <label class="form-label" for="measurementUnitSymbol" th:text="#{admin.measurements.symbol}">Symbol *</label>
+                            <input type="text" class="form-control" id="measurementUnitSymbol" required th:placeholder="#{admin.measurements.symbol.placeholder}">
                         </div>
                         <div class="col-12">
-                            <label class="form-label" for="measurementUnitDecimals">Número de Decimales</label>
+                            <label class="form-label" for="measurementUnitDecimals" th:text="#{admin.measurements.decimals}">Decimals</label>
                             <input type="number" class="form-control" id="measurementUnitDecimals" min="0" max="4" value="0">
                         </div>
                         <div class="col-12">
                             <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="measurementUnitPromptOnAdd">
+                                <label class="form-check-label" for="measurementUnitPromptOnAdd" th:text="#{admin.measurements.promptOnAdd}">Prompt on Add</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="measurementUnitActive" checked>
-                                <label class="form-check-label" for="measurementUnitActive">Unidad activa</label>
+                                <label class="form-check-label" for="measurementUnitActive" th:text="#{admin.measurements.active}">Active</label>
                             </div>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-cancel" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-save" onclick="saveMeasurementUnit()"><i class="bi bi-check-lg me-1"></i>Guardar</button>
+                <button type="button" class="btn btn-cancel" data-bs-dismiss="modal" th:text="#{common.cancel}">Cancel</button>
+                <button type="button" class="btn btn-save" onclick="saveMeasurementUnit()"><i class="bi bi-check-lg me-1"></i><span th:text="#{common.save}">Save</span></button>
             </div>
         </div>
     </div>

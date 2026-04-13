@@ -1,14 +1,14 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <th:block th:fragment="modal">
 
-            <div class="modal fade" id="promotionmodal" tabindex="-1" role="dialog" aria-modal="true"
-                aria-labelledby="promotionmodalLabel">
+<div class="modal fade" id="promotionModal" tabindex="-1" role="dialog" aria-modal="true"
+                aria-labelledby="promotionModalLabel">
                 <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
                     <div class="modal-content" style="background:var(--surface);border:1px solid var(--border);">
                         <div class="modal-header border-0">
-                            <h5 class="modal-title fw-bold" id="promotionmodalLabel">
+                            <h5 class="modal-title fw-bold" id="promotionModalLabel">
                                 <i class="bi bi-megaphone me-2"></i><span
                                     th:text="#{admin.promotions.modal.title}">Promoción NxM</span>
                             </h5>
@@ -92,7 +92,7 @@
                                         <span class="input-group-text bg-primary border-border text-muted"><i
                                                 class="bi bi-tag"></i></span>
                                         <input type="text" id="promoCategorySearch" class="form-control border-border"
-                                            th:placeholder="#{admin.inventory.categories.empty}" autocomplete="off"
+                                            th:placeholder="#{admin.common.searchcategory.placeholder}" autocomplete="off"
                                             onfocus="searchPromoCategories(this.value, true)"
                                             oninput="searchPromoCategories(this.value)">
                                     </div>

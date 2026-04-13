@@ -3,7 +3,7 @@
 <body>
 <th:block th:fragment="view">
 
-            <div id="measurementUnitsView" style="display: none;">
+<div id="measurementUnitsView" style="display: none;">
                 <div class="panel-header">
                     <div class="d-flex align-items-center gap-3">
                         <button class="btn-icon"
@@ -11,10 +11,10 @@
                             th:title="#{admin.common.backtopanel}">
                             <i class="bi bi-arrow-left"></i>
                         </button>
-                        <span class="panel-title"><i class="bi bi-rulers me-2"></i>unidades de Medida</span>
+                        <span class="panel-title"><i class="bi bi-rulers me-2"></i><span th:text="#{admin.measurements.title}">Measurement Units</span></span>
                     </div>
-                    <button class="btn-nuevo" onclick="openMeasurementUnitmodal()">
-                        <i class="bi bi-plus-lg me-1"></i> <span>Nueva unidad</span>
+                    <button class="btn-nuevo" onclick="openMeasurementUnitModal(0, '', '')">
+                        <i class="bi bi-plus-lg me-1"></i> <span th:text="#{admin.measurements.new}">New Unit</span>
                     </button>
                 </div>
 
@@ -22,12 +22,12 @@
                     <table class="admin-table" id="measurementUnitsTable">
                         <thead>
                             <tr>
-                                <th>Nombre</th>
-                                <th>Simbolo</th>
-                                <th>Decimales</th>
-                                <th>Prompt al Añadir</th>
-                                <th>Activa</th>
-                                <th style="text-align:right">Acciones</th>
+                                <th th:text="#{admin.measurements.name}">Name</th>
+                                <th th:text="#{admin.measurements.symbol}">Symbol</th>
+                                <th th:text="#{admin.measurements.decimals}">Decimals</th>
+                                <th th:text="#{admin.measurements.promptOnAdd}">Prompt on Add</th>
+                                <th th:text="#{admin.measurements.active}">Active</th>
+                                <th style="text-align:right" th:text="#{common.actions}">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="measurementUnitsTableBody">

@@ -1,8 +1,34 @@
 // -- Estado del ticket --
 document.addEventListener('DOMContentLoaded', function () {
+    const initialGrid = document.querySelector('.products-grid');
+    if (initialGrid) {
+        initialProductsGridHtml = initialGrid.innerHTML;
+        recordOriginalOrder();
+    }
+
     if (typeof attachNifCifValidator === 'function') {
         attachNifCifValidator('newCustomerTaxId');
     }
+    
+    // -- Lógica de Favoritos (Servidor) --
+    fetch('/api/products/favorites')
+        .then(r => r.json())
+        .then(favs => {
+            window.tpv_user_favorites = favs.map(String);
+            window.tpv_user_favorites.forEach(id => {
+                document.querySelector(`.product-favorite-btn[data-product-id="${id}"]`)?.classList.replace('bi-star', 'bi-star-fill');
+            });
+            reorderGridWithFavorites();
+        }).catch(err => console.error('Error loading favorites:', err));
+
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.product-favorite-btn');
+        if (btn) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleFavorite(btn);
+        }
+    }, true);
 
     // Add RE compatibility listener for TPV quick customer form
     const tpvTariffSelect = document.getElementById('newCustomerTariffId');
@@ -1026,25 +1052,67 @@ var currentCategoryId = null;
 var searchInput = document.getElementById('searchInput');
 var productsContainer = document.querySelector('.tpv-products');
 var categoryButtons = document.querySelectorAll('.cat-btn');
+var initialProductsGridHtml = ''; // Caché para el estado inicial de Thymeleaf
 
 function loadProducts(endpoint) {
+    if (endpoint === '/api/products') {
+        const grid = document.querySelector('.products-grid');
+        if (grid && initialProductsGridHtml) {
+            grid.innerHTML = initialProductsGridHtml;
+            recordOriginalOrder();
+            // Refetch or reset stars based on current session favorites
+            if (window.tpv_user_favorites) {
+                window.tpv_user_favorites.forEach(id => {
+                    grid.querySelector(`.product-favorite-btn[data-product-id="${id}"]`)?.classList.replace('bi-star', 'bi-star-fill');
+                });
+                reorderGridWithFavorites();
+            }
+            if (typeof updateStockBubbles === 'function') updateStockBubbles();
+        }
+        return;
+    }
+
     fetch(endpoint)
         .then(function (response) {
             if (!response.ok) throw new Error('Network response was not ok');
             return response.json();
         })
-        .then(function (products) { renderProducts(products); })
+        .then(function (products) { if (products) renderProducts(products); })
         .catch(function (error) { console.error('Error loading products:', error); });
 }
 
-function renderProducts(products) {
+function renderProducts(data) {
     var productGrid = document.querySelector('.products-grid');
     if (!productGrid) return;
+
+    // Handle both List and Page objects from Spring
+    var products = Array.isArray(data) ? data : (data.content || []);
+
+    var wildcardHtml = `
+                <!-- Wildcard Product (Always first) -->
+                <div class="product-card wildcard-card ${window.tpv_is_register_open ? '' : 'disabled-tpv'}"
+                    onclick="event.stopPropagation(); openWildcardModal()" data-id="wildcard" data-stock="&infin;"
+                    style="border: 2px dashed var(--accent); background: rgba(var(--accent-rgb), 0.05);">
+                    <div class="product-image-container">
+                        <i class="bi bi-plus-circle-dotted product-icon"
+                            style="color: var(--accent); font-size: 2.5rem;"></i>
+                        <span class="stock-badge stock-neutral"
+                            style="background: var(--accent); color: var(--primary);">∞</span>
+                    </div>
+                    <div class="product-info text-center">
+                        <div class="product-name" style="color: var(--accent); font-weight: 800; font-size: 0.95rem;">
+                            PRODUCTO COMODÍN</div>
+                        <div class="product-price" style="color: var(--text-muted); font-size: 0.85rem;">Nombre y precio
+                            manual</div>
+                        <div class="product-category-badge"
+                            style="background: var(--accent); color: var(--primary); font-weight: 700;">GENÉRICO</div>
+                    </div>
+                </div>`;
 
     if (!products || products.length === 0) {
         const transTable = document.getElementById('tpv-js-translations');
         const noProductsMsg = transTable ? transTable.dataset.noProducts : 'No hay productos disponibles';
-        productGrid.innerHTML = `
+        productGrid.innerHTML = wildcardHtml + `
                 <div class="no-products" style="grid-column: 1/-1; text-align: center;">
                     <i class="bi bi-box-seam"></i>
                     <p>${noProductsMsg}</p>
@@ -1052,48 +1120,112 @@ function renderProducts(products) {
         return;
     }
 
-    productGrid.innerHTML = products.map(function (product) {
+    var productsHtml = products.map(function (product) {
         var imgHtml = product.imageUrl
             ? '<img src="' + escapeHtml(product.imageUrl) + '" alt="Imagen producto" class="product-image">'
             : '<i class="bi bi-box product-icon"></i>';
 
         var catName = product.category ? escapeHtml(product.category.name) : '';
+        var catId = product.category ? product.category.id : '';
         var initialStock = parseFloat(product.stock) || 0;
         var inTicket = ticket[product.id] ? ticket[product.id].quantity : 0;
-        var available = parseFloat((initialStock - inTicket).toFixed(4));
-        var decimalPlaces = (product.measurementUnit && product.measurementUnit.decimalPlaces != null)
-            ? product.measurementUnit.decimalPlaces : 0;
+        var unitSymbol = mu.symbol || 'uds.';
 
         var badgeClass = 'stock-neutral';
         if (available <= 0) badgeClass = 'stock-danger';
         else if (available < 5) badgeClass = 'stock-warning';
 
         var dispDecimals = Math.min(2, decimalPlaces);
-
         var disabledClass = window.tpv_is_register_open ? '' : ' disabled-tpv';
 
-        return '<div class="product-card' + disabledClass + '"' +
-            ' data-id="' + product.id + '"' +
-            ' data-name="' + escapeHtml(product.name) + '"' +
-            ' data-price="' + product.price + '"' +
-            ' data-category="' + catName + '"' +
-            ' data-stock="' + (product.stock || 0) + '"' +
-            ' data-decimal-places="' + decimalPlaces + '">' +
-            ' <div class="product-image-container">' +
-            imgHtml +
-            ' <span class="stock-badge ' + badgeClass + '">' +
-            available.toLocaleString('es-ES', { minimumFractionDigits: dispDecimals, maximumFractionDigits: dispDecimals }) +
-            '</span>' +
-            ' </div>' +
-            ' <div class="product-info">' +
-            ' <div class="product-name">' + escapeHtml(product.name) + '</div>' +
-            ' <div class="product-price">' + formatDecimal(product.price, 2, 8) + '\u20AC</div>' +
-            ' <div class="product-category-badge">' + catName + '</div>' +
-            ' </div></div>';
+        var isFav = (window.tpv_user_favorites || []).includes(String(product.id));
+        var starClass = isFav ? 'bi-star-fill' : 'bi-star';
+        
+        return `<div class="product-card" 
+                     style="position: relative; animation: fadeIn 0.3s ease;"
+                     data-id="${product.id}" 
+                     data-name="${escapeHtml(product.name)}" 
+                     data-price="${product.price}"
+                     data-category="${catName}"
+                     data-category-id="${catId}"
+                     data-stock="${product.stock}"
+                     data-prompt-on-add="${product.promptOnAdd || false}"
+                     data-unit-symbol="${product.unitSymbol || 'uds.'}">
+                    <i class="bi ${starClass} product-favorite-btn" 
+                       data-product-id="${product.id}"
+                       style="position: absolute; top: 8px; left: 8px; z-index: 10; font-size: 1.25rem; cursor: pointer; text-shadow: 0 0 3px rgba(0,0,0,0.3);"></i>
+                    <div class="product-image-container">
+                        ${imgHtml}
+                        <span class="stock-badge ${initialStock <= 0 ? 'stock-empty' : (initialStock < 5 ? 'stock-low' : '')}"
+                              data-initial-stock="${initialStock}">
+                            ${(initialStock - inTicket).toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                        </span>
+                    </div>
+                    <div class="product-info text-center">
+                        <div class="product-name">${escapeHtml(product.name)}</div>
+                        <div class="product-price">${formatPrice(product.price)}€</div>
+                        <div class="product-category-badge">${catName}</div>
+                    </div>
+                </div>`;
     }).join('');
+
+    productGrid.innerHTML = wildcardHtml + productsHtml;
 
     // Ensure bubbles are up-to-date and have their correct colors/animations
     updateStockBubbles();
+    reorderGridWithFavorites();
+}
+
+function toggleFavorite(btn) {
+    const id = btn.dataset.productId;
+    const isAdding = btn.classList.contains('bi-star');
+    
+    btn.classList.add('favorite-pulse');
+    setTimeout(() => btn.classList.remove('favorite-pulse'), 400);
+
+    fetch(`/api/products/${id}/favorite`, { method: isAdding ? 'POST' : 'DELETE' })
+        .then(r => {
+            if(r.ok) {
+                if (isAdding) {
+                    btn.classList.replace('bi-star', 'bi-star-fill');
+                    if (!window.tpv_user_favorites.includes(id)) window.tpv_user_favorites.push(id);
+                } else {
+                    btn.classList.replace('bi-star-fill', 'bi-star');
+                    window.tpv_user_favorites = window.tpv_user_favorites.filter(f => f !== id);
+                }
+                reorderGridWithFavorites();
+            }
+        });
+}
+
+function reorderGridWithFavorites() {
+    const grid = document.querySelector('.products-grid');
+    if (!grid) return;
+    
+    const cards = Array.from(grid.querySelectorAll('.product-card:not(.wildcard-card)'));
+    const wildcard = grid.querySelector('.wildcard-card');
+    
+    // Sort logic: Favorites first, then respect original ID sequence
+    cards.sort((a, b) => {
+        const aFav = a.querySelector('.product-favorite-btn.bi-star-fill') ? 1 : 0;
+        const bFav = b.querySelector('.product-favorite-btn.bi-star-fill') ? 1 : 0;
+        
+        if (aFav !== bFav) return bFav - aFav;
+        
+        // If both are same status, respect original order
+        const aIdx = window.originalCardOrder ? window.originalCardOrder.indexOf(String(a.dataset.id)) : 0;
+        const bIdx = window.originalCardOrder ? window.originalCardOrder.indexOf(String(b.dataset.id)) : 0;
+        return aIdx - bIdx;
+    });
+    
+    // Re-append to preserve DOM nodes (and their listeners if any, though we use delegation)
+    if (wildcard) grid.appendChild(wildcard);
+    cards.forEach(c => grid.appendChild(c));
+}
+
+function recordOriginalOrder() {
+    window.originalCardOrder = Array.from(document.querySelectorAll('.products-grid .product-card:not(.wildcard-card)'))
+        .map(card => String(card.dataset.id));
 }
 
 function performSearch() {

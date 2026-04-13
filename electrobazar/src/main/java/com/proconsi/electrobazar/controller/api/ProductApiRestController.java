@@ -2,19 +2,23 @@ package com.proconsi.electrobazar.controller.api;
 
 import com.proconsi.electrobazar.dto.ProductRequest;
 import com.proconsi.electrobazar.dto.ProductSelectionItem;
-import com.proconsi.electrobazar.model.Product;
-import com.proconsi.electrobazar.model.ProductPrice;
+import com.proconsi.electrobazar.model.Worker;
+import com.proconsi.electrobazar.model.UserFavoriteProduct;
 import com.proconsi.electrobazar.service.CategoryService;
 import com.proconsi.electrobazar.service.ProductPriceService;
 import com.proconsi.electrobazar.service.ProductService;
+import com.proconsi.electrobazar.service.WorkerService;
 import com.proconsi.electrobazar.repository.TaxRateRepository;
 import com.proconsi.electrobazar.repository.MeasurementUnitRepository;
+import com.proconsi.electrobazar.repository.UserFavoriteProductRepository;
 import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -36,8 +40,10 @@ public class ProductApiRestController {
     private final ProductService productService;
     private final CategoryService categoryService;
     private final ProductPriceService productPriceService;
+    private final WorkerService workerService;
     private final TaxRateRepository taxRateRepository;
     private final MeasurementUnitRepository measurementUnitRepository;
+    private final UserFavoriteProductRepository userFavoriteProductRepository;
 
     /**
      * Retrieves all active products including their category details.
@@ -45,7 +51,7 @@ public class ProductApiRestController {
      */
     @GetMapping
     public ResponseEntity<List<Product>> getAll() {
-        return ResponseEntity.ok(productService.findAllActiveWithCategory());
+        return ResponseEntity.ok(productService.getTopProductsByRank(100));
     }
 
     /**
@@ -203,7 +209,7 @@ public class ProductApiRestController {
      */
     @GetMapping("/selection-list")
     public ResponseEntity<List<ProductSelectionItem>> getSelectionList() {
-        List<Product> products = productService.findAllActiveWithCategory();
+        List<Product> products = productService.getTopProductsByRank(100);
         LocalDateTime now = LocalDateTime.now();
 
         // 1. Bulk fetch active prices to avoid N+1 queries 
@@ -237,5 +243,42 @@ public class ProductApiRestController {
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(selectionItems);
+    }
+
+    @PostMapping("/{productId}/favorite")
+    @Transactional
+    public ResponseEntity<Void> addFavorite(@PathVariable Long productId) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        
+        if (!userFavoriteProductRepository.findProductIdsByUserId(userId).contains(productId)) {
+            userFavoriteProductRepository.save(UserFavoriteProduct.builder()
+                    .userId(userId)
+                    .productId(productId)
+                    .build());
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{productId}/favorite")
+    @Transactional
+    public ResponseEntity<Void> removeFavorite(@PathVariable Long productId) {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        
+        userFavoriteProductRepository.deleteByUserIdAndProductId(userId, productId);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/favorites")
+    public ResponseEntity<List<Long>> getFavorites() {
+        Long userId = getCurrentUserId();
+        if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.ok(userFavoriteProductRepository.findProductIdsByUserId(userId));
+    }
+
+    private Long getCurrentUserId() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return workerService.findByUsername(username).map(Worker::getId).orElse(null);
     }
 }
