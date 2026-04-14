@@ -18,6 +18,16 @@ function fetchActivityLogs(page) {
         .then(res => res.json())
         .then(data => {
             renderActivityLogs(data.content);
+            
+            const labelEl = document.getElementById('activityCountLabel');
+            if (labelEl) {
+                if (search || action || username) {
+                    labelEl.textContent = `Mostrando ${data.totalElements || data.content.length} registros coincidentes.`;
+                } else {
+                    labelEl.textContent = 'Mostrando todos los registros de actividad.';
+                }
+            }
+
             renderActivityPagination(data);
         });
 }

@@ -47,6 +47,16 @@ function loadFuturePrices() {
         .then(res => res.json())
         .then(data => {
             renderFuturePricesTable(data);
+            
+            const labelEl = document.getElementById('futurePriceCountLabel');
+            if (labelEl) {
+                const search = document.getElementById('futurePriceFilterSearch')?.value || '';
+                if (search) {
+                    labelEl.textContent = `Mostrando ${data.length} precios programados coincidentes.`;
+                } else {
+                    labelEl.textContent = 'Mostrando todos los precios programados.';
+                }
+            }
         });
 }
 
@@ -135,6 +145,17 @@ function renderBulkProductList(products) {
         `;
         container.appendChild(div);
     });
+    const labelEl = document.getElementById('bulkProductCountLabel');
+    if (labelEl) {
+        const query = document.getElementById('bulkProductSearch')?.value || '';
+        const category = document.getElementById('bulkCategoryFilter')?.value || '';
+        if (query || category) {
+            labelEl.textContent = `Mostrando ${products.length} productos coincidentes.`;
+        } else {
+            labelEl.textContent = 'Mostrando todos los productos disponibles.';
+        }
+    }
+
     updateBulkSelectedCount();
 }
 

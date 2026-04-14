@@ -29,6 +29,16 @@ async function fetchSalesPage(page) {
         
         salesTotalPages = data.totalPages;
         renderSalesTable(data.content);
+
+        const labelEl = document.getElementById('invoiceCountLabel');
+        if (labelEl) {
+            if (search || type || method || date) {
+                labelEl.textContent = `Mostrando ${data.totalElements} ventas/facturas coincidentes.`;
+            } else {
+                labelEl.textContent = 'Mostrando todas las ventas y facturas.';
+            }
+        }
+
         updateSalesPaginationUI(data);
     } catch (error) {
         console.error('Error fetching sales:', error);
@@ -187,6 +197,17 @@ function filterCashClosures() {
         .then(res => res.json())
         .then(data => {
             renderCashClosuresTable(data.content || data);
+
+            const labelEl = document.getElementById('cashCountLabel');
+            if (labelEl) {
+                const date = document.getElementById('cashFilterdate').value;
+                const workerId = document.getElementById('cashFilterWorker').value;
+                if (date || workerId) {
+                    labelEl.textContent = `Mostrando ${data.totalElements || (data.content || data).length} cierres de caja coincidentes.`;
+                } else {
+                    labelEl.textContent = 'Mostrando todos los cierres de caja.';
+                }
+            }
         });
 }
 

@@ -79,6 +79,16 @@ function filterAbonos() {
         .then(res => res.json())
         .then(data => {
             tbody.innerHTML = '';
+            
+            const labelEl = document.getElementById('abonoCountLabel');
+            if (labelEl) {
+                if (customerId) {
+                    labelEl.textContent = `Mostrando ${data.length} abonos del cliente #${customerId}.`;
+                } else {
+                    labelEl.textContent = 'Mostrando abonos del cliente.';
+                }
+            }
+
             if (data.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No se encontraron abonos para este cliente</td></tr>';
                 return;

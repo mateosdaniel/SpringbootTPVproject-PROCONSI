@@ -16,7 +16,7 @@
         href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap"
         rel="stylesheet">
     <th:block th:replace="~{fragments/theme :: themeScript}" />
-    <script th:src="@{/js/admin/admin-core.js}"></script>
+    <script th:src="@{/js/admin/admin-core.js}" defer></script>
     <link rel="stylesheet" th:href="@{/css/admin/admin-productos.css}">
     <link rel="stylesheet" th:href="@{/css/admin/admin-productos-categorias.css}">
 </head>
@@ -86,6 +86,9 @@
                 </div>
 
                 <div th:replace="~{fragments/product-filter :: sharedFilterBar}"></div>
+                <div id="productCountLabel" class="small mt-2" style="color: var(--text-muted); padding-left: 0.5rem;">
+                    Mostrando todos los productos.
+                </div>
 
                 <div class="admin-table-wrap">
                     <table class="admin-table">
@@ -131,7 +134,7 @@
                                 </td>
                                 <td class="center">
                                     <div class="d-flex flex-column align-items-center">
-                                        <span th:text="${p.measurementUnit != null ? #numbers.formatDecimal(p.stock, 0, p.measurementUnit.decimalPlaces) : #numbers.formatDecimal(p.stock, 0, 0)}"
+                                        <span th:text="${p.stock == 0 ? '0' : (p.measurementUnit != null ? #numbers.formatDecimal(p.stock, 1, p.measurementUnit.decimalPlaces, 'COMMA') : #numbers.formatDecimal(p.stock, 1, 0, 'COMMA'))}"
                                             th:classappend="${p.stock < 5} ? 'fw-bold text-danger' : ''">0</span>
                                         <span th:if="${p.stock < 5}" class="badge-stock-low"
                                             th:text="#{admin.inventory.stock.low}">Stock Bajo</span>
@@ -236,6 +239,9 @@
                                     th:text="#{common.reset}">Reset</span>
                             </button>
                         </div>
+                    </div>
+                    <div id="categoryCountLabel" class="small mt-2" style="color: var(--text-muted); padding-left: 0.5rem;">
+                        Mostrando todas las categorías.
                     </div>
                 </div>
 

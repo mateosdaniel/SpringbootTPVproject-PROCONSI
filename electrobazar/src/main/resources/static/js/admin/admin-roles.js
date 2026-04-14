@@ -163,6 +163,15 @@ function filterRoles() {
         .then(res => res.json())
         .then(data => {
             renderRolesTable(data.content || data);
+
+            const labelEl = document.getElementById('roleCountLabel');
+            if (labelEl) {
+                if (search || permissions.length > 0) {
+                    labelEl.textContent = `Mostrando ${data.totalElements || (data.content || data).length} roles coincidentes.`;
+                } else {
+                    labelEl.textContent = 'Mostrando todos los roles.';
+                }
+            }
         })
         .catch(err => console.error("Error filtering roles:", err));
 }

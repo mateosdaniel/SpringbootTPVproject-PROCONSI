@@ -592,7 +592,18 @@ function filterCRM() {
 
     fetch('/api/admin/customers?' + params.toString())
         .then(res => res.json())
-        .then(data => renderCRMTable(data.content || data))
+        .then(data => {
+            renderCRMTable(data.content || data);
+
+            const labelEl = document.getElementById('crmCountLabel');
+            if (labelEl) {
+                if (search || type || re) {
+                    labelEl.textContent = `Mostrando ${data.totalElements || (data.content || data).length} clientes coincidentes.`;
+                } else {
+                    labelEl.textContent = 'Mostrando todos los clientes.';
+                }
+            }
+        })
         .catch(err => console.error('Error filtering CRM:', err));
 }
 

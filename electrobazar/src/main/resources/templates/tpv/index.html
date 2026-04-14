@@ -415,7 +415,7 @@
                         <i th:unless="${product.imageUrl}" class="bi bi-box product-icon"></i>
                         <span class="stock-badge"
                             th:classappend="${product.stock <= 0 ? 'stock-danger' : (product.stock < 5 ? 'stock-warning' : 'stock-neutral')}"
-                            th:text="${product.measurementUnit != null ? #numbers.formatDecimal(product.stock, 1, product.measurementUnit.decimalPlaces) : #numbers.formatDecimal(product.stock, 1, 0)}">0</span>
+                            th:text="${(product.stock == 0 or product.stock == null) ? '0' : (product.measurementUnit != null ? #numbers.formatDecimal(product.stock, 1, product.measurementUnit.decimalPlaces, 'COMMA') : #numbers.formatDecimal(product.stock, 1, 0, 'COMMA'))}">0</span>
                     </div>
                     <div class="product-info">
                         <div class="product-name" th:text="${product.name}">Nombre producto</div>

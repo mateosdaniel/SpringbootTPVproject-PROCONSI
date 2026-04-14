@@ -151,7 +151,15 @@ function fetchTariffComparisonData(search, page) {
         .then(res => res.json())
         .then(data => {
             renderTariffComparisonRows(data.content || []);
-            // Optional: Handle pagination if needed, but usually 50 is enough for a quick check
+            
+            const labelEl = document.getElementById('tariffComparisonLabel');
+            if (labelEl) {
+                if (search) {
+                    labelEl.textContent = `Mostrando ${data.totalElements || (data.content || []).length} precios coincidentes con "${search}".`;
+                } else {
+                    labelEl.textContent = 'Mostrando todos los precios actuales.';
+                }
+            }
         })
         .catch(err => {
             console.error("Error fetching tariff comparison:", err);

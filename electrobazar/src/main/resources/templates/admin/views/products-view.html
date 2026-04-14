@@ -43,7 +43,11 @@
                 </button>
             </div>
 
+
             <div th:replace="~{fragments/product-filter :: sharedFilterBar}"></div>
+            <div id="productCountLabel" class="small mt-2" style="color: var(--text-muted);">
+                Mostrando todos los productos.
+            </div>
 
             <div class="admin-table-wrap mt-3">
                 <table class="admin-table" id="productsTable">
@@ -216,6 +220,9 @@
                                 th:text="#{common.reset}">Reset</span>
                         </button>
                     </div>
+                </div>
+                <div id="categoryCountLabel" class="small mt-2" style="color: var(--text-muted);">
+                    Mostrando todas las categorías.
                 </div>
             </div>
 </button>

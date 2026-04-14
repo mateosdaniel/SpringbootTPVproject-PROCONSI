@@ -62,6 +62,16 @@ function runSharedBackendFilter(page = 0) {
         .then(data => {
             const items = data.content || data;
             renderSharedProductsTable(items);
+            
+            const labelEl = document.getElementById('productCountLabel');
+            if (labelEl) {
+                if (search || category || stock || active) {
+                    labelEl.textContent = `Mostrando ${data.totalElements || items.length} productos coincidentes.`;
+                } else {
+                    labelEl.textContent = 'Mostrando todas las fichas de productos.';
+                }
+            }
+
             if (data.totalPages !== undefined) {
                 renderInventoryPagination('productsPagination', data, runSharedBackendFilter);
             }
@@ -161,7 +171,7 @@ function renderSharedProductsTable(products) {
             <td style="font-size:1rem;font-weight:700;color:var(--accent);text-align:right">${formattedPrice}</td>
             <td>
                 <div class="d-flex flex-column align-items-center">
-                    <span class="${stockStyle}">${p.stock}</span>
+                    <span class="${stockStyle}">${(p.stock === 0 || p.stock === null || p.stock === undefined) ? '0' : p.stock}</span>
                     ${badgeLowStock}
                 </div>
             </td>
@@ -199,6 +209,16 @@ function runSharedBackendCategoryFilter(page = 0) {
         .then(data => {
             const items = data.content || data;
             renderSharedCategoriesTable(items);
+
+            const labelEl = document.getElementById('categoryCountLabel');
+            if (labelEl) {
+                if (search) {
+                    labelEl.textContent = `Mostrando ${data.totalElements || items.length} categorías coincidentes.`;
+                } else {
+                    labelEl.textContent = 'Mostrando todas las categorías.';
+                }
+            }
+
             if (data.totalPages !== undefined) {
                 renderInventoryPagination('categoriesPagination', data, runSharedBackendCategoryFilter);
             }
