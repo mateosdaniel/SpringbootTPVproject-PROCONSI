@@ -1449,3 +1449,23 @@
             border-color: var(--accent);
             box-shadow: 0 0 0 0.25rem rgba(var(--accent-rgb), 0.25);
         }
+
+        /* ── Accent Button ── */
+        .btn-accent {
+            background: var(--accent) !important;
+            color: var(--primary) !important;
+            font-weight: 700;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-accent:hover {
+            background: var(--accent-hover) !important;
+            color: var(--primary) !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(245, 166, 35, 0.2);
+        }
+
+        .btn-accent i, .btn-accent span {
+            color: inherit !important;
+        }

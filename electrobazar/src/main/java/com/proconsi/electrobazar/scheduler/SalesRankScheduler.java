@@ -45,9 +45,10 @@ public class SalesRankScheduler implements ApplicationListener<ApplicationReadyE
 
         // 2. Identify and update Top 100
         for (int i = 0; i < topSelling.size(); i++) {
-            Product p = topSelling.get(i);
-            p.setSalesRank(i + 1);
-            productRepository.save(p);
+            jdbcTemplate.update(
+                "UPDATE products SET sales_rank = ? WHERE id = ?",
+                100 - i, topSelling.get(i).getId()
+            );
         }
 
         // 3. Optimized native query to reset others to 0 using JdbcTemplate

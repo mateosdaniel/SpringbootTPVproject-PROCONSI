@@ -770,10 +770,19 @@ public class TpvController {
     @GetMapping("/api/products/{productId}/price")
     @ResponseBody
     public Map<String, BigDecimal> getProductEffectivePrice(
-            @PathVariable Long productId,
+            @PathVariable String productId,
             @RequestParam(required = false) Long tariffId) {
 
-        Product product = productService.findById(productId);
+        log.debug("[TPV] getProductEffectivePrice: productId string={}, tariffId={}", productId, tariffId);
+        Long id;
+        try {
+            id = Long.parseLong(productId);
+        } catch (NumberFormatException e) {
+            log.error("[TPV] Invalid productId format: {}", productId);
+            return Collections.emptyMap();
+        }
+
+        Product product = productService.findById(id);
         if (product == null) {
             return Collections.emptyMap();
         }
@@ -785,7 +794,7 @@ public class TpvController {
                     .orElse(null);
         }
 
-        ProductPrice activePrice = productPriceService.getCurrentPrice(productId, LocalDateTime.now());
+        ProductPrice activePrice = productPriceService.getCurrentPrice(id, LocalDateTime.now());
         BigDecimal basePrice = (activePrice != null) ? activePrice.getPrice() : product.getPrice();
         BigDecimal vatRate = (activePrice != null) ? activePrice.getVatRate()
                 : (product.getTaxRate() != null && product.getTaxRate().getVatRate() != null
@@ -796,7 +805,7 @@ public class TpvController {
         BigDecimal priceWithRe = null;
 
         if (effectiveTariffId != null) {
-            var historyEntry = tariffPriceHistoryRepository.findCurrentByProductAndTariff(productId, effectiveTariffId);
+            var historyEntry = tariffPriceHistoryRepository.findCurrentByProductAndTariff(id, effectiveTariffId);
             if (historyEntry.isPresent()) {
                 finalPrice = historyEntry.get().getPriceWithVat();
                 priceWithRe = historyEntry.get().getPriceWithRe();

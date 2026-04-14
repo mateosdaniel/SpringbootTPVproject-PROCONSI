@@ -402,6 +402,7 @@
                              data-category=${product.category != null ? product.category.name : ''}, 
                              data-category-id=${product.category != null ? product.category.id : ''}, 
                              data-stock=${product.stock},
+                             data-sales-rank=${product.salesRank},
                              data-decimal-places=${product.measurementUnit != null ? product.measurementUnit.decimalPlaces : 0},
                              data-prompt-on-add=${product.measurementUnit != null ? (product.measurementUnit.promptOnAdd or product.measurementUnit.decimalPlaces > 0) : false},
                              data-unit-symbol=${product.measurementUnit != null ? product.measurementUnit.symbol : 'uds.'}">

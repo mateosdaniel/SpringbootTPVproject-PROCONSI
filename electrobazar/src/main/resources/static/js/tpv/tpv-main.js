@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.querySelector(`.product-favorite-btn[data-product-id="${id}"]`)?.classList.replace('bi-star', 'bi-star-fill');
             });
             reorderGridWithFavorites();
+            loadFavoriteExtras();
         }).catch(err => console.error('Error loading favorites:', err));
 
     document.addEventListener('click', function (e) {
@@ -141,9 +142,22 @@ window.onCartTariffChange = function (selectEl) {
         if (ticket[id] && ticket[id].lineTariffId) return Promise.resolve();
         var effectiveTariffId = getEffectiveTariffId(id);
         var url = '/tpv/api/products/' + id + '/price';
-        if (effectiveTariffId) url += '?tariffId=' + effectiveTariffId;
+        if (effectiveTariffId && 
+            effectiveTariffId !== 'undefined' && 
+            effectiveTariffId !== 'null' &&
+            !isNaN(effectiveTariffId)) {
+            url += '?tariffId=' + effectiveTariffId;
+        }
+        
+        console.log('[TPV] Fetching price for product:', id, 'Tariff:', effectiveTariffId, 'URL:', url);
+        
         return fetch(url)
-            .then(function (r) { return r.json(); })
+            .then(function (r) {
+                if (!r.ok) {
+                    console.error('[TPV] Price fetch failed status:', r.status, 'for ID:', id);
+                }
+                return r.json();
+            })
             .then(function (priceData) {
                 if (ticket[id]) {
                     ticket[id].price = parseFloat(priceData.price);
@@ -180,7 +194,12 @@ window.onLineTariffChange = function () {
     if (!selectedTariffId) {
         var eff = getEffectiveTariffId(productId);
         url = '/tpv/api/products/' + productId + '/price';
-        if (eff) url += '?tariffId=' + eff;
+        if (eff && 
+            eff !== 'undefined' && 
+            eff !== 'null' &&
+            !isNaN(eff)) {
+            url += '?tariffId=' + eff;
+        }
     } else {
         url = '/tpv/api/products/' + productId + '/price?tariffId=' + selectedTariffId;
     }
@@ -282,12 +301,22 @@ function finishAddingToTicket(id, name, price, quantity, stock, categoryId, card
     // ALWAYS fetch the price from the API to respect the "only tariffs" rule.
     var effectiveTariffId = getEffectiveTariffId(id);
     var url = '/tpv/api/products/' + id + '/price';
-    if (effectiveTariffId) {
+    if (effectiveTariffId && 
+        effectiveTariffId !== 'undefined' && 
+        effectiveTariffId !== 'null' &&
+        !isNaN(effectiveTariffId)) {
         url += '?tariffId=' + effectiveTariffId;
     }
 
+    console.log('[TPV] Adding product fetching price:', id, 'URL:', url);
+
     fetch(url)
-        .then(function (r) { return r.json(); })
+        .then(function (r) {
+            if (!r.ok) {
+                console.error('[TPV] Add product price fetch failed:', r.status, 'for ID:', id);
+            }
+            return r.json();
+        })
         .then(function (priceData) {
             if (ticket[id]) {
                 ticket[id].price = parseFloat(priceData.price);
@@ -1105,6 +1134,7 @@ function loadProducts(endpoint) {
                     grid.querySelector(`.product-favorite-btn[data-product-id="${id}"]`)?.classList.replace('bi-star', 'bi-star-fill');
                 });
                 reorderGridWithFavorites();
+                loadFavoriteExtras();
             }
             if (typeof updateStockBubbles === 'function') updateStockBubbles();
         }
@@ -1116,15 +1146,17 @@ function loadProducts(endpoint) {
             if (!response.ok) throw new Error('Network response was not ok');
             return response.json();
         })
-        .then(function (products) { if (products) renderProducts(products); })
+        .then(function (products) { 
+            if (products) renderProducts(products); 
+            if (endpoint === '/api/products') loadFavoriteExtras();
+        })
         .catch(function (error) { console.error('Error loading products:', error); });
 }
 
-function renderProducts(data) {
+function renderProducts(data, append = false) {
     var productGrid = document.querySelector('.products-grid');
     if (!productGrid) return;
 
-    // Handle both List and Page objects from Spring
     var products = Array.isArray(data) ? data : (data.content || []);
 
     var wildcardHtml = `
@@ -1148,7 +1180,7 @@ function renderProducts(data) {
                     </div>
                 </div>`;
 
-    if (!products || products.length === 0) {
+    if (!append && (!products || products.length === 0)) {
         const transTable = document.getElementById('tpv-js-translations');
         const noProductsMsg = transTable ? transTable.dataset.noProducts : 'No hay productos disponibles';
         productGrid.innerHTML = wildcardHtml + `
@@ -1191,6 +1223,7 @@ function renderProducts(data) {
                      data-category="${catName}"
                      data-category-id="${catId}"
                      data-stock="${product.stock}"
+                     data-sales-rank="${product.salesRank || 0}"
                      data-prompt-on-add="${decimalPlaces > 0}"
                      data-unit-symbol="${unitSymbol}"
                      data-decimal-places="${decimalPlaces}">
@@ -1212,7 +1245,15 @@ function renderProducts(data) {
                 </div>`;
     }).join('');
 
-    productGrid.innerHTML = wildcardHtml + productsHtml;
+    if (append) {
+        var temp = document.createElement('div');
+        temp.innerHTML = productsHtml;
+        while (temp.firstChild) {
+            productGrid.insertBefore(temp.firstChild, productGrid.firstChild);
+        }
+    } else {
+        productGrid.innerHTML = wildcardHtml + productsHtml;
+    }
 
     // Ensure bubbles are up-to-date and have their correct colors/animations
     updateStockBubbles();
@@ -1229,12 +1270,36 @@ function toggleFavorite(btn) {
     fetch(`/api/products/${id}/favorite`, { method: isAdding ? 'POST' : 'DELETE' })
         .then(r => {
             if (r.ok) {
+                const grid = document.querySelector('.products-grid');
+                const existingCard = grid ? grid.querySelector('[data-id="' + id + '"]') : null;
+
                 if (isAdding) {
                     btn.classList.replace('bi-star', 'bi-star-fill');
                     if (!window.tpv_user_favorites.includes(id)) window.tpv_user_favorites.push(id);
+
+                    if (existingCard) {
+                        // Ensure it's visible and move to front
+                        existingCard.style.display = '';
+                        grid.insertBefore(existingCard, grid.firstChild);
+                    } else {
+                        // Fetch and create new card
+                        fetch('/api/products/' + id)
+                            .then(response => response.json())
+                            .then(product => {
+                                renderProducts([product], true);
+                            });
+                    }
                 } else {
                     btn.classList.replace('bi-star-fill', 'bi-star');
                     window.tpv_user_favorites = window.tpv_user_favorites.filter(f => f !== id);
+
+                    const isSearchActive = searchInput && searchInput.value.trim() !== '';
+                    const salesRank = existingCard ? parseInt(existingCard.dataset.salesRank ?? '1', 10) : 1;
+                    const shouldRemove = existingCard && !isSearchActive && salesRank === 0;
+
+                    if (shouldRemove) {
+                        existingCard.remove();
+                    }
                 }
                 reorderGridWithFavorites();
             }
@@ -1269,6 +1334,21 @@ function reorderGridWithFavorites() {
 function recordOriginalOrder() {
     window.originalCardOrder = Array.from(document.querySelectorAll('.products-grid .product-card:not(.wildcard-card)'))
         .map(card => String(card.dataset.id));
+}
+
+function loadFavoriteExtras() {
+    const grid = document.querySelector('.products-grid');
+    if (!grid || !window.tpv_user_favorites) return;
+
+    const missingIds = window.tpv_user_favorites.filter(id => 
+        !grid.querySelector('[data-id="' + id + '"]')
+    );
+
+    Promise.all(missingIds.map(id => 
+        fetch('/api/products/' + id)
+            .then(r => r.json())
+            .then(product => renderProducts([product], true))
+    )).then(() => reorderGridWithFavorites());
 }
 
 function performSearch() {
@@ -1322,6 +1402,7 @@ if (catAllBtn) {
         currentCategoryId = null;
         updateCategoryButtons(null);
         loadProducts('/api/products');
+        loadFavoriteExtras();
     });
 }
 
@@ -1627,8 +1708,15 @@ function resetTicketPrices() {
     }
 
     var promises = productIds.map(function (id) {
-        return fetch('/tpv/api/products/' + id + '/price') // endpoint returns base price if no tariffId
-            .then(function (r) { return r.json(); })
+        if (id === 'wildcard') return Promise.resolve();
+        console.log('[TPV] Resetting price for product:', id);
+        return fetch('/tpv/api/products/' + id + '/price')
+            .then(function (r) {
+                if (!r.ok) {
+                    console.error('[TPV] Reset price fetch failed:', r.status, 'for ID:', id);
+                }
+                return r.json();
+            })
             .then(function (priceData) {
                 if (ticket[id]) {
                     ticket[id].price = parseFloat(priceData.price);

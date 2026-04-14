@@ -59,7 +59,6 @@ public class ProductPriceServiceImpl implements ProductPriceService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = CACHE_NAME, key = "#productId", unless = "#result == null")
     public ProductPrice getCurrentPrice(Long productId, LocalDateTime at) {
         return productPriceRepository.findActivePriceAt(productId, at).orElse(null);
     }
@@ -79,7 +78,6 @@ public class ProductPriceServiceImpl implements ProductPriceService {
     }
 
     @Override
-    @CacheEvict(value = CACHE_NAME, key = "#productId")
     public ProductPriceResponse schedulePrice(Long productId, ProductPriceRequest request) {
         if (request.getStartDate() == null) {
             throw new IllegalArgumentException("Price start date is mandatory.");
@@ -179,7 +177,6 @@ public class ProductPriceServiceImpl implements ProductPriceService {
 
     @Override
     @Transactional
-    @CacheEvict(value = CACHE_NAME, allEntries = true)
     public List<ProductPriceResponse> bulkSchedulePrice(BulkPriceUpdateRequest request) {
         LocalDateTime effectiveDate = request.getEffectiveDate() != null ? request.getEffectiveDate() : LocalDateTime.now();
         LocalDateTime closingDate = effectiveDate.minusSeconds(1);
