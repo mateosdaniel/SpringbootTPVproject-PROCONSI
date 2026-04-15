@@ -37,12 +37,20 @@
             </select>
         </div>
         <!-- Select Activo -->
-        <div class="col-md-2">
-            <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-check-circle me-2"></i><span th:text="#{admin.inventory.filter.status}">Estado</span></label>
+        <div class="col-md-1">
+            <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-check-circle me-1"></i><span th:text="#{admin.inventory.filter.status}">Estado</span></label>
             <select id="sharedFilterActive" class="form-select form-select-sm" onchange="runSharedBackendFilter()">
                 <option value="" th:text="#{common.all}">Todos</option>
                 <option value="true" th:text="#{admin.inventory.filter.status.active}">Activos</option>
                 <option value="false" th:text="#{admin.inventory.filter.status.inactive}">Inactivos</option>
+            </select>
+        </div>
+        <!-- Select Unidad -->
+        <div class="col-md-1">
+            <label class="form-label small mb-1" style="color: var(--text-main);"><i class="bi bi-rulers me-1"></i><span>Unidad</span></label>
+            <select id="sharedFilterUnitId" class="form-select form-select-sm" onchange="runSharedBackendFilter()">
+                <option value="" th:text="#{common.all}">Todas</option>
+                <option th:each="u : ${measurementUnits}" th:value="${u.id}" th:text="${u.name}"></option>
             </select>
         </div>
         <!-- Ordenamiento -->

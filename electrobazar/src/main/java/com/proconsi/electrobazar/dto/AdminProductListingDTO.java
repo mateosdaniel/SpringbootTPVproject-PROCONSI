@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 
+import com.proconsi.electrobazar.model.MeasurementUnit;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -18,7 +20,8 @@ public class AdminProductListingDTO {
     private BigDecimal stock;
     private String categoryName;
     private Long categoryId;
-    private String measurementUnitSymbol;
+    private MeasurementUnit measurementUnit;
+    private Integer priceDecimals;
     private BigDecimal vatRate;
     private String imageUrl;
     private boolean active;

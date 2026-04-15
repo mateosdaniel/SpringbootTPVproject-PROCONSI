@@ -6,14 +6,43 @@ var debounceTimer;
 function debounceSharedFilter() {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-        const catTab = document.getElementById('categories-tab');
-        if (catTab && catTab.classList.contains('active')) {
+        const activeTab = document.querySelector('#mgmtTabs .nav-link.active');
+        if (!activeTab) return;
+        
+        if (activeTab.id === 'categories-tab') {
             runSharedBackendCategoryFilter();
-        } else {
+        } else if (activeTab.id === 'products-tab') {
             runSharedBackendFilter();
         }
     }, 350);
 }
+
+// Aislamiento estricto de pestañas
+document.addEventListener('DOMContentLoaded', () => {
+    const mgmtTabs = document.getElementById('mgmtTabs');
+    if (mgmtTabs) {
+        mgmtTabs.addEventListener('shown.bs.tab', (event) => {
+            const targetId = event.target.id;
+            if (targetId === 'products-tab') {
+                // Limpiar categorías para evitar mezclas
+                const catBody = document.getElementById('categoriesTableBody');
+                if (catBody) catBody.innerHTML = '';
+                const catPag = document.getElementById('categoriesPagination');
+                if (catPag) catPag.innerHTML = '';
+                
+                runSharedBackendFilter();
+            } else if (targetId === 'categories-tab') {
+                // Limpiar productos para evitar mezclas
+                const prodBody = document.getElementById('productsTableBody');
+                if (prodBody) prodBody.innerHTML = '';
+                const prodPag = document.getElementById('productsPagination');
+                if (prodPag) prodPag.innerHTML = '';
+                
+                runSharedBackendCategoryFilter();
+            }
+        });
+    }
+});
 
 var sharedInventoryI18n = Object.assign({
     lowStock: 'Stock Bajo',
@@ -35,6 +64,10 @@ function getSharedInvLocale() {
 }
 
 function runSharedBackendFilter(page = 0) {
+    // Guard: Only run if we are actually on the products tab
+    const activeTab = document.querySelector('#mgmtTabs .nav-link.active');
+    if (activeTab && activeTab.id !== 'products-tab') return;
+
     // Tomamos el buscador del header del Admin o el buscador del Fragment (Productos-categorias)
     const globalSearch = document.getElementById('sharedFilterSearch');
     const fragSearch = document.getElementById('fragmentFilterSearch');
@@ -43,6 +76,7 @@ function runSharedBackendFilter(page = 0) {
     const category = document.getElementById('sharedFilterCategory').value;
     const stock = document.getElementById('sharedFilterStock').value;
     let active = document.getElementById('sharedFilterActive').value;
+    let unitId = (document.getElementById('sharedFilterUnitId') || {}).value || '';
 
     const sortBy = (document.getElementById('sharedFilterSortBy') || {}).value || 'id';
     const sortDir = (document.getElementById('sharedFilterSortDir') || {}).value || 'asc';
@@ -52,6 +86,7 @@ function runSharedBackendFilter(page = 0) {
     if (category) queryParams.append('category', category);
     if (stock) queryParams.append('stock', stock);
     if (active) queryParams.append('active', active);
+    if (unitId) queryParams.append('unitId', unitId);
     queryParams.append('sortBy', sortBy);
     queryParams.append('sortDir', sortDir);
     queryParams.append('page', page);
@@ -65,7 +100,7 @@ function runSharedBackendFilter(page = 0) {
             
             const labelEl = document.getElementById('productCountLabel');
             if (labelEl) {
-                if (search || category || stock || active) {
+                if (search || category || stock || active || unitId) {
                     labelEl.textContent = `Mostrando ${data.totalElements || items.length} productos coincidentes.`;
                 } else {
                     labelEl.textContent = 'Mostrando todas las fichas de productos.';
@@ -88,6 +123,8 @@ function resetSharedBackendFilter() {
     document.getElementById('sharedFilterCategory').value = '';
     document.getElementById('sharedFilterStock').value = '';
     document.getElementById('sharedFilterActive').value = '';
+    if (document.getElementById('sharedFilterUnitId')) document.getElementById('sharedFilterUnitId').value = '';
+    
     const sortByEl = document.getElementById('sharedFilterSortBy');
     const sortDirEl = document.getElementById('sharedFilterSortDir');
     if (sortByEl) sortByEl.value = 'id';
@@ -126,6 +163,10 @@ function renderSharedProductsTable(products) {
     const tbody = document.getElementById('productsTableBody');
     if (!tbody) return;
 
+    // Limpiar el contador de categorías para evitar confusión si estuviera visible
+    const catLabel = document.getElementById('categoryCountLabel');
+    if (catLabel) catLabel.textContent = '';
+
     tbody.innerHTML = ''; 
 
     if (!products || products.length === 0) {
@@ -139,13 +180,22 @@ function renderSharedProductsTable(products) {
     products.forEach(p => {
         const name = isEn && p.nameEn ? p.nameEn : (p.nameEs || p.name);
         const description = isEn && p.descriptionEn ? p.descriptionEn : (p.descriptionEs || p.description);
-        const formattedPrice = (p.price || 0).toFixed(2) + ' €';
+        
+        const unitDecimals = (p.measurementUnit && p.measurementUnit.decimalPlaces !== undefined) ? p.measurementUnit.decimalPlaces : 0;
+        const symbol = (p.measurementUnit && p.measurementUnit.symbol) ? p.measurementUnit.symbol : '—';
+        
+        const priceDecimals = p.priceDecimals !== undefined ? p.priceDecimals : Math.max(2, unitDecimals);
+        const formattedPrice = typeof formatDecimal === 'function' ? formatDecimal(p.price, priceDecimals, priceDecimals) : (p.price || 0).toFixed(priceDecimals) + ' €';
+        const formattedStock = (p.stock === 0 || p.stock === null || p.stock === undefined) ? '0' : p.stock.toFixed(unitDecimals);
+        
         const stockStyle = p.stock < 5 ? 'fw-bold text-danger' : '';
         const badgeLowStock = p.stock < 5 ? `<span class="badge-stock-low ms-1">${sharedInventoryI18n.lowStock}</span>` : '';
         
         // Category can also be multilingual
         let catName = '—';
-        if (p.category) {
+        if (p.categoryName) {
+            catName = p.categoryName;
+        } else if (p.category) {
             catName = isEn && p.category.nameEn ? p.category.nameEn : (p.category.nameEs || p.category.name);
         }
 
@@ -156,26 +206,30 @@ function renderSharedProductsTable(products) {
             ? `<span class="badge-active yes">${sharedInventoryI18n.yes}</span>`
             : `<span class="badge-active no">${sharedInventoryI18n.no}</span>`;
 
+        const ivaRate = p.vatRate !== undefined ? p.vatRate : (p.taxRate ? p.taxRate.vatRate : null);
+        const ivaDisplay = ivaRate != null ? (ivaRate * 100).toFixed(0) + '%' : '—';
+        const descTruncated = description ? (description.length > 60 ? description.substring(0, 57) + '...' : description) : '—';
         const escapedName = name ? name.replace(/'/g, "\\'").replace(/"/g, "&quot;") : '';
 
         let tr = document.createElement('tr');
         tr.className = 'product-row';
+        tr.setAttribute('data-iva', ivaRate);
         tr.innerHTML = `
             <td style="color:var(--text-muted);font-weight:600">#${p.id}</td>
             <td>${imgHtml}</td>
             <td>
                 <strong>${name}</strong>
-                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">${description ? description.substring(0, 60) : ''}</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">${descTruncated}</div>
             </td>
-            <td>${p.vatRate ? Math.round(p.vatRate * 100) + '%' : '—'}</td>
+            <td>${ivaDisplay}</td>
             <td style="font-size:1rem;font-weight:700;color:var(--accent);text-align:right">${formattedPrice}</td>
             <td>
                 <div class="d-flex flex-column align-items-center">
-                    <span class="${stockStyle}">${(p.stock === 0 || p.stock === null || p.stock === undefined) ? '0' : p.stock}</span>
+                    <span class="${stockStyle}">${formattedStock}</span>
                     ${badgeLowStock}
                 </div>
             </td>
-            <td style="text-align:center"><span style="font-size:0.8rem;font-weight:600;color:var(--text-muted)">${p.measurementUnitSymbol || '—'}</span></td>
+            <td style="text-align:center"><span style="font-size:0.8rem;font-weight:600;color:var(--text-muted)">${symbol}</span></td>
             <td><span style="font-size:0.82rem;padding:0.2rem 0.5rem;border-radius:6px;background:var(--surface);color:var(--text-muted)">${catName}</span></td>
             <td>${activeBadge}</td>
             <td style="text-align:right">
@@ -190,6 +244,10 @@ function renderSharedProductsTable(products) {
 }
 
 function runSharedBackendCategoryFilter(page = 0) {
+    // Guard: Only run if we are actually on the categories tab
+    const activeTab = document.querySelector('#mgmtTabs .nav-link.active');
+    if (activeTab && activeTab.id !== 'categories-tab') return;
+
     const globalSearch = document.getElementById('sharedFilterSearch');
     const catSearch = document.getElementById('categoryFilterSearch');
     const search = (globalSearch ? globalSearch.value.trim() : '') || (catSearch ? catSearch.value.trim() : '');
@@ -230,64 +288,53 @@ function renderInventoryPagination(containerId, pageData, callbackName) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    if (pageData.totalPages <= 1) {
+    const totalPages = pageData.totalPages || 0;
+    if (totalPages <= 1) {
         container.innerHTML = '';
         return;
     }
 
     const currentPage = pageData.currentPage || pageData.number || 0;
-    const totalPages = pageData.totalPages;
-    const totalElements = pageData.totalElements;
+    const callbackStr = (typeof callbackName === 'function') ? callbackName.name : callbackName;
 
     let html = `
-        <div class="d-flex justify-content-between align-items-center mt-3 p-2 bg-light rounded border">
-            <div class="small text-muted">
-                Mostrando <strong>${pageData.content.length}</strong> de <strong>${totalElements}</strong> elementos
+        <div class="pagination-wrap mt-3">
+            <button class="pagination-btn" onclick="${callbackStr}(0)" ${currentPage === 0 ? 'disabled' : ''} title="Primera página">
+                <i class="bi bi-chevron-double-left"></i>
+            </button>
+
+            <button class="pagination-btn" onclick="${callbackStr}(${currentPage - 1})" ${currentPage === 0 ? 'disabled' : ''} title="Página anterior">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+
+            <div class="pagination-jump">
+                <input type="number" value="${currentPage + 1}" min="1" max="${totalPages}"
+                    onkeydown="if(event.key === 'Enter') { 
+                        let p = parseInt(this.value)-1; 
+                        if(p >= 0 && p < ${totalPages}) ${callbackStr}(p); 
+                    }">
+                <span class="small text-muted">de ${totalPages}</span>
             </div>
-            <nav>
-                <ul class="pagination pagination-sm m-0">
-                    <li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
-                        <button class="page-link" onclick="${callbackName.name}(${currentPage - 1})"><i class="bi bi-chevron-left"></i></button>
-                    </li>
-    `;
 
-    // Show a window of pages
-    const startPage = Math.max(0, currentPage - 2);
-    const endPage = Math.min(totalPages - 1, currentPage + 2);
+            <button class="pagination-btn" onclick="${callbackStr}(${currentPage + 1})" ${currentPage >= totalPages - 1 ? 'disabled' : ''} title="Página siguiente">
+                <i class="bi bi-chevron-right"></i>
+            </button>
 
-    if (startPage > 0) {
-        html += `<li class="page-item"><button class="page-link" onclick="${callbackName.name}(0)">1</button></li>`;
-        if (startPage > 1) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-        html += `
-            <li class="page-item ${i === currentPage ? 'active' : ''}">
-                <button class="page-link" onclick="${callbackName.name}(${i})">${i + 1}</button>
-            </li>
-        `;
-    }
-
-    if (endPage < totalPages - 1) {
-        if (endPage < totalPages - 2) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-        html += `<li class="page-item"><button class="page-link" onclick="${callbackName.name}(${totalPages - 1})">${totalPages}</button></li>`;
-    }
-
-    html += `
-                    <li class="page-item ${currentPage === totalPages - 1 ? 'disabled' : ''}">
-                        <button class="page-link" onclick="${callbackName.name}(${currentPage + 1})"><i class="bi bi-chevron-right"></i></button>
-                    </li>
-                </ul>
-            </nav>
+            <button class="pagination-btn" onclick="${callbackStr}(${totalPages - 1})" ${currentPage >= totalPages - 1 ? 'disabled' : ''} title="Última página">
+                <i class="bi bi-chevron-double-right"></i>
+            </button>
         </div>
     `;
-
     container.innerHTML = html;
 }
 
 function renderSharedCategoriesTable(categories) {
     const tbody = document.getElementById('categoriesTableBody');
     if (!tbody) return;
+
+    // Limpiar el contador de productos
+    const prodLabel = document.getElementById('productCountLabel');
+    if (prodLabel) prodLabel.textContent = '';
 
     tbody.innerHTML = '';
 

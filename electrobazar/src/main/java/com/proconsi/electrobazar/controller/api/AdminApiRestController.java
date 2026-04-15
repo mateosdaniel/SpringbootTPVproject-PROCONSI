@@ -138,6 +138,7 @@ public class AdminApiRestController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String stock,
             @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) Long unitId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -149,7 +150,7 @@ public class AdminApiRestController {
         Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, safeSort));
-        Page<Product> productsPage = productService.getFilteredProducts(search, category, stock, active, pageable);
+        Page<Product> productsPage = productService.getFilteredProducts(search, category, stock, active, unitId, pageable);
 
         List<AdminProductListingDTO> list = productsPage.getContent().stream().map(p -> AdminProductListingDTO.builder()
                 .id(p.getId())
@@ -158,7 +159,8 @@ public class AdminApiRestController {
                 .price(p.getPrice())
                 .stock(p.getStock())
                 .categoryName(p.getCategory() != null ? p.getCategory().getNameEs() : null)
-                .measurementUnitSymbol(p.getMeasurementUnit() != null ? p.getMeasurementUnit().getSymbol() : null)
+                .measurementUnit(p.getMeasurementUnit())
+                .priceDecimals(p.getMeasurementUnit() != null ? Math.max(2, p.getMeasurementUnit().getDecimalPlaces()) : 2)
                 .vatRate(p.getTaxRate() != null ? p.getTaxRate().getVatRate() : null)
                 .imageUrl(p.getImageUrl())
                 .active(Boolean.TRUE.equals(p.getActive()))

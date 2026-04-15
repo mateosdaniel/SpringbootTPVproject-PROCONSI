@@ -24,13 +24,14 @@ public class ProductSpecification {
      * @return Specification for the search request.
      */
     public static Specification<Product> filterProducts(String search, String category, String stockFilter,
-            Boolean active) {
+            Boolean active, Long unitId) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             // Optimization: Eager load category if results are requested (not just counting)
             if (Long.class != query.getResultType()) {
                 root.fetch("category", JoinType.LEFT);
+                root.fetch("measurementUnit", JoinType.LEFT);
             }
 
             // 1. Global keyword search
@@ -84,6 +85,11 @@ public class ProductSpecification {
             // 4. Activation status
             if (active != null) {
                 predicates.add(cb.equal(root.get("active"), active));
+            }
+
+            // 5. Measurement Unit filter
+            if (unitId != null) {
+                predicates.add(cb.equal(root.get("measurementUnit").get("id"), unitId));
             }
 
             query.orderBy(cb.asc(root.get("nameEs")));

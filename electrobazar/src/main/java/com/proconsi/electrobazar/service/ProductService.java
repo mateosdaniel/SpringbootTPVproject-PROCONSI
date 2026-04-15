@@ -83,12 +83,12 @@ public interface ProductService {
      * @param active   Active status filter.
      * @return A filtered list of products.
      */
-    List<Product> getFilteredProducts(String search, String category, String stock, Boolean active);
+    List<Product> getFilteredProducts(String search, String category, String stock, Boolean active, Long measurementUnitId);
 
     /**
      * Advanced filtering for products with pagination and sorting.
      */
-    Page<Product> getFilteredProducts(String search, String category, String stock, Boolean active, Pageable pageable);
+    Page<Product> getFilteredProducts(String search, String category, String stock, Boolean active, Long measurementUnitId, Pageable pageable);
 
     /**
      * Finds a specific product by ID.

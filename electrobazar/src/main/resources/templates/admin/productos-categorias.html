@@ -130,7 +130,7 @@
                                         class="text-muted">-</span>
                                 </td>
                                 <td class="price-val right"
-                                    th:text="${#numbers.formatDecimal(p.price, 1, 2, 'COMMA')} + ' €'">
+                                    th:text="${p.measurementUnit != null ? #numbers.formatDecimal(p.price, 1, (p.measurementUnit.decimalPlaces > 2 ? p.measurementUnit.decimalPlaces : 2), 'COMMA') : #numbers.formatDecimal(p.price, 1, 2, 'COMMA')} + ' €'">
                                 </td>
                                 <td class="center">
                                     <div class="d-flex flex-column align-items-center">

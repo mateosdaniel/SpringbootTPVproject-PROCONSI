@@ -36,10 +36,10 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     /**
      * Finds active products within a category, eagerly fetching associations.
      */
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE p.category.id = :categoryId AND p.active = true ORDER BY p.nameEs ASC")
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate LEFT JOIN FETCH p.measurementUnit WHERE p.category.id = :categoryId AND p.active = true ORDER BY p.nameEs ASC")
     List<Product> findByCategoryIdAndActiveTrueOrderByNameEsAsc(@Param("categoryId") Long categoryId);
 
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE (LOWER(p.nameEs) LIKE LOWER(CONCAT('%', :name, '%')) OR LOWER(p.nameEn) LIKE LOWER(CONCAT('%', :name, '%'))) AND p.active = true")
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate LEFT JOIN FETCH p.measurementUnit WHERE (LOWER(p.nameEs) LIKE LOWER(CONCAT('%', :name, '%')) OR LOWER(p.nameEn) LIKE LOWER(CONCAT('%', :name, '%'))) AND p.active = true")
     List<Product> findByNameContainingIgnoreCaseAndActiveTrue(@Param("name") String name);
 
     /**
@@ -50,19 +50,19 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     /**
      * Lists all active products with category and tax data in a single query.
      */
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE p.active = true ORDER BY p.nameEs ASC")
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate LEFT JOIN FETCH p.measurementUnit WHERE p.active = true ORDER BY p.nameEs ASC")
     List<Product> findAllActiveWithCategory();
 
     /**
      * Paginated version of active products retrieval to limit results at DB level.
      */
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE p.active = true ORDER BY p.nameEs ASC")
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate LEFT JOIN FETCH p.measurementUnit WHERE p.active = true ORDER BY p.nameEs ASC")
     List<Product> findAllActiveWithCategory(org.springframework.data.domain.Pageable pageable);
 
     /**
      * Lists all products (including inactive ones) with their associations.
      */
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate ORDER BY p.nameEs ASC")
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate LEFT JOIN FETCH p.measurementUnit ORDER BY p.nameEs ASC")
     List<Product> findAllWithCategory();
 
     /**
@@ -114,15 +114,15 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
      */
     long countByCategoryId(Long categoryId);
 
-    @Query(value = "SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate ORDER BY p.nameEs ASC", countQuery = "SELECT COUNT(p) FROM Product p")
+    @Query(value = "SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate LEFT JOIN FETCH p.measurementUnit ORDER BY p.nameEs ASC", countQuery = "SELECT COUNT(p) FROM Product p")
     Page<Product> findAllWithCategoryPaged(Pageable pageable);
 
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.taxRate WHERE p.active = true AND p.price IS NOT NULL")
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.taxRate LEFT JOIN FETCH p.measurementUnit WHERE p.active = true AND p.price IS NOT NULL")
     List<Product> findAllActiveForSnapshot();
 
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate JOIN SaleLine sl ON sl.product.id = p.id WHERE p.active = true GROUP BY p.id, p.nameEs, p.nameEn, p.descriptionEs, p.descriptionEn, p.statusEs, p.statusEn, p.lowStockMessageEs, p.lowStockMessageEn, p.price, p.basePriceNet, p.stock, p.active, p.imageUrl, p.category, p.taxRate, p.measurementUnit ORDER BY SUM(sl.quantity) DESC")
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate LEFT JOIN FETCH p.measurementUnit JOIN SaleLine sl ON sl.product.id = p.id WHERE p.active = true GROUP BY p.id, p.nameEs, p.nameEn, p.descriptionEs, p.descriptionEn, p.statusEs, p.statusEn, p.lowStockMessageEs, p.lowStockMessageEn, p.price, p.basePriceNet, p.stock, p.active, p.imageUrl, p.category, p.taxRate, p.measurementUnit ORDER BY SUM(sl.quantity) DESC")
     List<Product> findTopSellingProducts(org.springframework.data.domain.Pageable pageable);
 
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE p.active = true AND p.salesRank > 0 ORDER BY p.salesRank ASC, p.nameEs ASC")
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate LEFT JOIN FETCH p.measurementUnit WHERE p.active = true AND p.salesRank > 0 ORDER BY p.salesRank ASC, p.nameEs ASC")
     List<Product> findTop100BySalesRank(org.springframework.data.domain.Pageable pageable);
 }

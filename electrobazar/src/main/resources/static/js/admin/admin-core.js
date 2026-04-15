@@ -147,6 +147,14 @@ function switchView(viewId, btn, isBack = false) {
     // 4. Specific logic for views (initial data-loading)
     if (viewId === 'activityView' && typeof loadActivityLog === 'function') loadActivityLog();
     if (viewId === 'rolesView' && typeof loadRoles === 'function') loadRoles();
+    if (viewId === 'productsView') {
+        const activeTab = document.querySelector('#mgmtTabs .nav-link.active');
+        if (activeTab && activeTab.id === 'categories-tab') {
+            if (typeof runSharedBackendCategoryFilter === 'function') runSharedBackendCategoryFilter();
+        } else {
+            if (typeof runSharedBackendFilter === 'function') runSharedBackendFilter();
+        }
+    }
     if (viewId === 'crmView' && typeof filterCRM === 'function') filterCRM();
     if (viewId === 'workersView' && typeof filterWorkers === 'function') filterWorkers();
     if (viewId === 'invoicesView' && typeof fetchSalesPage === 'function') fetchSalesPage(0);

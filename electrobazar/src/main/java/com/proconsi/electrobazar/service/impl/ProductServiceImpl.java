@@ -102,16 +102,16 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Product> getFilteredProducts(String search, String category, String stock, Boolean active) {
-        Specification<Product> spec = ProductSpecification.filterProducts(search, category, stock, active);
+    public List<Product> getFilteredProducts(String search, String category, String stock, Boolean active, Long measurementUnitId) {
+        Specification<Product> spec = ProductSpecification.filterProducts(search, category, stock, active, measurementUnitId);
         return productRepository.findAll(spec);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<Product> getFilteredProducts(String search, String category, String stock, Boolean active,
-            Pageable pageable) {
-        Specification<Product> spec = ProductSpecification.filterProducts(search, category, stock, active);
+            Long measurementUnitId, Pageable pageable) {
+        Specification<Product> spec = ProductSpecification.filterProducts(search, category, stock, active, measurementUnitId);
         return productRepository.findAll(spec, pageable);
     }
 
@@ -186,9 +186,20 @@ public class ProductServiceImpl implements ProductService {
             existing.setCategory(categoryRepository.findById(request.getCategoryId()).orElse(null));
         }
 
+        // Always update measurementUnit — null clears it, non-null assigns it.
+        // Bug fix: previously only set when non-null, so unsetting a unit had no effect.
         if (request.getMeasurementUnitId() != null) {
             existing.setMeasurementUnit(
                     measurementUnitRepository.findById(request.getMeasurementUnitId()).orElse(null));
+        } else {
+            existing.setMeasurementUnit(null);
+        }
+
+        // Round price to unit's decimal places (after unit is resolved).
+        // e.g. unit=ud(2dp) → price rounded to 2; unit=L(3dp) → price rounded to 3.
+        if (existing.getPrice() != null && existing.getMeasurementUnit() != null) {
+            int dp = existing.getMeasurementUnit().getDecimalPlaces();
+            existing.setPrice(existing.getPrice().setScale(dp, java.math.RoundingMode.HALF_UP));
         }
 
         if (request.getStock() != null && request.getStock().compareTo(BigDecimal.ZERO) >= 0) {

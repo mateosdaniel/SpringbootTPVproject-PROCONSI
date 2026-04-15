@@ -100,7 +100,7 @@ public class ProductApiRestController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "15") int size) {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        return ResponseEntity.ok(productService.getFilteredProducts(q, null, null, true, pageable));
+        return ResponseEntity.ok(productService.getFilteredProducts(q, null, null, true, null, pageable));
     }
 
     /**
@@ -114,10 +114,11 @@ public class ProductApiRestController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String stock,
             @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) Long unitId, // Added
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        return ResponseEntity.ok(productService.getFilteredProducts(search, category, stock, active, pageable));
+        return ResponseEntity.ok(productService.getFilteredProducts(search, category, stock, active, unitId, pageable));
     }
 
     /**

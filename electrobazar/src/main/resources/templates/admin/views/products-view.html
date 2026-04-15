@@ -13,14 +13,14 @@
     <ul class="nav nav-tabs mt-4 mb-0" id="mgmtTabs" role="tablist" style="border:none">
         <li class="nav-item" role="presentation">
             <button class="nav-link active fw-600 px-4" id="products-tab" data-bs-toggle="tab"
-                data-bs-target="#products-pane" type="button" role="tab">
+                data-bs-target="#products-pane" type="button" role="tab" onclick="runSharedBackendFilter()">
                 <i class="bi bi-box-seam me-2"></i><span
                     th:text="#{admin.inventory.tabs.products}">Productos</span>
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link fw-600 px-4" id="categories-tab" data-bs-toggle="tab"
-                data-bs-target="#categories-pane" type="button" role="tab">
+                data-bs-target="#categories-pane" type="button" role="tab" onclick="runSharedBackendCategoryFilter()">
                 <i class="bi bi-tags me-2"></i><span
                     th:text="#{admin.inventory.tabs.categories}">Categorí­as</span>
             </button>
@@ -140,41 +140,7 @@
                 </table>
             </div>
 
-            <input type="hidden" id="totalPages" th:value="${productsPage.totalPages}">
-            <input type="hidden" id="currentPage" th:value="${productsPage.number}">
-            <input type="hidden" id="pageSize" th:value="${pageSize}">
-
-            <div class="pagination-wrap mt-3" th:if="${productsPage != null && productsPage.totalPages > 0}">
-                <button class="pagination-btn" th:onclick="|goToPage(0)|"
-                    th:disabled="${productsPage.number == 0}" title="Primera página">
-                    <i class="bi bi-chevron-double-left"></i>
-                </button>
-
-                <button class="pagination-btn" th:onclick="|goToPage(${productsPage.number - 1})|"
-                    th:disabled="${productsPage.number == 0}" title="Página anterior">
-                    <i class="bi bi-chevron-left"></i>
-                </button>
-
-                <div class="pagination-jump">
-                    <input type="number" id="pageInput" min="1" th:max="${productsPage.totalPages}"
-                        th:value="${productsPage.number + 1}"
-                        onkeydown="if(event.key === 'Enter') jumpToPage(this.value)" title="Ir a página">
-                    <span class="small text-muted">
-                        de <span th:text="${productsPage.totalPages}">1</span>
-                    </span>
-                </div>
-
-                <button class="pagination-btn" th:onclick="|goToPage(${productsPage.number + 1})|"
-                    th:disabled="${productsPage.number + 1 >= productsPage.totalPages}"
-                    title="Página siguiente">
-                    <i class="bi bi-chevron-right"></i>
-                </button>
-
-                <button class="pagination-btn" th:onclick="|goToPage(${productsPage.totalPages - 1})|"
-                    th:disabled="${productsPage.number + 1 >= productsPage.totalPages}" title="Última página">
-                    <i class="bi bi-chevron-double-right"></i>
-                </button>
-            </div>
+            <div id="productsPagination"></div>
         </div>
 
         <!-- Tab: Categorí­as -->
@@ -225,8 +191,7 @@
                     Mostrando todas las categorías.
                 </div>
             </div>
-</button>
-            </div>
+
             <div class="admin-table-wrap">
                 <table class="admin-table" id="categoriesTable">
                     <thead>
@@ -270,45 +235,7 @@
                 </table>
             </div>
 
-            <input type="hidden" id="categoriesTotalPages" th:value="${categoriesPage.totalPages}">
-            <input type="hidden" id="categoriesCurrentPage" th:value="${categoriesPage.number}">
-            <input type="hidden" id="categoriesPageSize" th:value="${categoriesPageSize}">
-
-            <div class="pagination-wrap mt-3"
-                th:if="${categoriesPage != null && categoriesPage.totalPages > 0}">
-                <button class="pagination-btn" th:onclick="|goToCategoriesPage(0)|"
-                    th:disabled="${categoriesPage.number == 0}" title="Primera página">
-                    <i class="bi bi-chevron-double-left"></i>
-                </button>
-
-                <button class="pagination-btn" th:onclick="|goToCategoriesPage(${categoriesPage.number - 1})|"
-                    th:disabled="${categoriesPage.number == 0}" title="Página anterior">
-                    <i class="bi bi-chevron-left"></i>
-                </button>
-
-                <div class="pagination-jump">
-                    <input type="number" id="categoriesPageInput" min="1" th:max="${categoriesPage.totalPages}"
-                        th:value="${categoriesPage.number + 1}"
-                        onkeydown="if(event.key === 'Enter') jumpToCategoriesPage(this.value)"
-                        title="Ir a página">
-                    <span class="small text-muted">
-                        de <span th:text="${categoriesPage.totalPages}">1</span>
-                    </span>
-                </div>
-
-                <button class="pagination-btn" th:onclick="|goToCategoriesPage(${categoriesPage.number + 1})|"
-                    th:disabled="${categoriesPage.number + 1 >= categoriesPage.totalPages}"
-                    title="Página siguiente">
-                    <i class="bi bi-chevron-right"></i>
-                </button>
-
-                <button class="pagination-btn"
-                    th:onclick="|goToCategoriesPage(${categoriesPage.totalPages - 1})|"
-                    th:disabled="${categoriesPage.number + 1 >= categoriesPage.totalPages}"
-                    title="Última página">
-                    <i class="bi bi-chevron-double-right"></i>
-                </button>
-            </div>
+            <div id="categoriesPagination"></div>
         </div>
     </div>
 </div>
