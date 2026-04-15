@@ -130,8 +130,8 @@ public class ProductApiRestController {
      */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Product> create(
-            @Valid @RequestPart("product") ProductRequest request,
-            @RequestPart(value = "image", required = false) MultipartFile image) {
+            @Valid @ModelAttribute ProductRequest request,
+            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile) {
         log.info("Creating product with request: {}", request);
 
         if (request.getTaxRateId() == null) {
@@ -159,8 +159,8 @@ public class ProductApiRestController {
         product.setStock(request.getStock() != null ? request.getStock() : BigDecimal.ZERO);
         
         // Handle image upload
-        if (image != null && !image.isEmpty()) {
-            String imageUrl = saveImage(image);
+        if (imageFile != null && !imageFile.isEmpty()) {
+            String imageUrl = saveImage(imageFile);
             product.setImageUrl(imageUrl);
         } else {
             product.setImageUrl(request.getImageUrl());
@@ -187,13 +187,13 @@ public class ProductApiRestController {
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Product> update(
             @PathVariable Long id,
-            @Valid @RequestPart("product") ProductRequest request,
-            @RequestPart(value = "image", required = false) MultipartFile image) {
+            @Valid @ModelAttribute ProductRequest request,
+            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile) {
         log.info("Updating product {} with request: {}", id, request);
         
         // If there's a new image, handle it before updating the service
-        if (image != null && !image.isEmpty()) {
-            request.setImageUrl(saveImage(image));
+        if (imageFile != null && !imageFile.isEmpty()) {
+            request.setImageUrl(saveImage(imageFile));
         }
         
         return ResponseEntity.ok(productService.update(id, request));

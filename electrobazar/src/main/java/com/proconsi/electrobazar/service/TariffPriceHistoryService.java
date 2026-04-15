@@ -3,7 +3,6 @@ package com.proconsi.electrobazar.service;
 import com.proconsi.electrobazar.model.TariffPriceHistory;
 import com.proconsi.electrobazar.dto.TariffPriceEntryDTO;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -53,12 +52,15 @@ public interface TariffPriceHistoryService {
     /**
      * Retrieves prices that started EXACTLY at a specific date and time.
      */
-    Page<com.proconsi.electrobazar.dto.TariffPriceEntryDTO> getPricesForTariffAtExactDateTime(Long tariffId, java.time.LocalDate date, java.time.LocalTime time, Pageable pageable);
+    Page<com.proconsi.electrobazar.dto.TariffPriceEntryDTO> getPricesForTariffAtExactDateTime(Long tariffId,
+            java.time.LocalDate date, java.time.LocalTime time, Pageable pageable);
 
     /**
-     * Retrieves prices list that started EXACTLY at a specific date and time (for PDF).
+     * Retrieves prices list that started EXACTLY at a specific date and time (for
+     * PDF).
      */
-    List<com.proconsi.electrobazar.dto.TariffPriceEntryDTO> getPricesForTariffAtExactDateTimeList(Long tariffId, java.time.LocalDate date, java.time.LocalTime time);
+    List<com.proconsi.electrobazar.dto.TariffPriceEntryDTO> getPricesForTariffAtExactDateTimeList(Long tariffId,
+            java.time.LocalDate date, java.time.LocalTime time);
 
     void generateInitialSnapshotIfEmpty(Long tariffId);
 

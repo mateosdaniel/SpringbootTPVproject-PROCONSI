@@ -9,8 +9,6 @@ import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import com.proconsi.electrobazar.model.*;
 import com.proconsi.electrobazar.repository.CashRegisterRepository;
 import com.proconsi.electrobazar.repository.CouponRepository;
-import com.proconsi.electrobazar.repository.DailyCategorySummaryRepository;
-import com.proconsi.electrobazar.repository.DailySaleSummaryRepository;
 import com.proconsi.electrobazar.repository.SaleRepository;
 import com.proconsi.electrobazar.repository.TariffRepository;
 import com.proconsi.electrobazar.service.ActivityLogService;
@@ -65,8 +63,6 @@ public class SaleServiceImpl implements SaleService {
     private final CouponRepository couponRepository;
     private final CashRegisterService cashRegisterService;
     private final MessageSource messageSource;
-    private final DailySaleSummaryRepository dailySaleSummaryRepository;
-    private final DailyCategorySummaryRepository dailyCategorySummaryRepository;
     private final JdbcTemplate jdbcTemplate;
 
     @Override

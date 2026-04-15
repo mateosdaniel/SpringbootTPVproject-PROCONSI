@@ -39,7 +39,7 @@ public class AbonoTestRunner {
 
             // 1. Crear Abono
             AbonoRequest request = new AbonoRequest();
-            request.setClienteId(clienteId);
+            request.setClienteId(String.valueOf(clienteId));
             request.setImporte(new BigDecimal("15.50"));
             request.setMetodoPago(MetodoPagoAbono.EFECTIVO);
             request.setTipoAbono(TipoAbono.COMPENSACION);
@@ -52,7 +52,7 @@ public class AbonoTestRunner {
 
             // 2. Listar Abonos
             System.out.println("\n⏳ Listando abonos mediante el endpoint Service...");
-            List<Abono> abonosCliente = abonoService.getAbonosByCliente(clienteId);
+            List<Abono> abonosCliente = abonoService.getAbonosByCliente(String.valueOf(clienteId));
             System.out.println("✅ El cliente ID: " + clienteId + " tiene actualmente " + abonosCliente.size()
                     + " abonos en el sistema.");
 

@@ -17,12 +17,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.util.*;
 
 /**
  * Implementation of {@link TariffService}.
- * Orchestrates tariff management and ensures that price history across all tariffs 
+ * Orchestrates tariff management and ensures that price history across all
+ * tariffs
  * remains in sync whenever product prices or VAT rates are updated.
  */
 @Slf4j
@@ -83,28 +83,32 @@ public class TariffServiceImpl implements TariffService {
                 .systemTariff(false)
                 .build();
         Tariff saved = tariffRepository.save(tariff);
-        activityLogService.logActivity("CREAR_TARIFA", 
-            String.format("Tarifa creada: %s (Descuento: %.2f%%, Color: %s)", upperName, saved.getDiscountPercentage(), color), 
-            "Admin", "TARIFF", saved.getId());
+        activityLogService.logActivity("CREAR_TARIFA",
+                String.format("Tarifa creada: %s (Descuento: %.2f%%, Color: %s)", upperName,
+                        saved.getDiscountPercentage(), color),
+                "Admin", "TARIFF", saved.getId());
         return saved;
     }
 
     @Override
     public Tariff update(Long id, BigDecimal discount, String description, String color) {
-        Tariff tariff = tariffRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Tariff #" + id + " not found."));
+        Tariff tariff = tariffRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Tariff #" + id + " not found."));
         tariff.setDiscountPercentage(discount != null ? discount : BigDecimal.ZERO);
         tariff.setDescription(description);
         tariff.setColor(color);
         Tariff saved = tariffRepository.save(tariff);
-        activityLogService.logActivity("ACTUALIZAR_TARIFA", 
-            String.format("Tarifa actualizada: %s (Nuevo descuento: %.2f%%, Nuevo color: %s)", saved.getName(), saved.getDiscountPercentage(), color), 
-            "Admin", "TARIFF", saved.getId());
+        activityLogService.logActivity("ACTUALIZAR_TARIFA",
+                String.format("Tarifa actualizada: %s (Nuevo descuento: %.2f%%, Nuevo color: %s)", saved.getName(),
+                        saved.getDiscountPercentage(), color),
+                "Admin", "TARIFF", saved.getId());
         return saved;
     }
 
     @Override
     public void deactivate(Long id) {
-        Tariff tariff = tariffRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Tariff #" + id + " not found."));
+        Tariff tariff = tariffRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Tariff #" + id + " not found."));
         if (Boolean.TRUE.equals(tariff.getSystemTariff())) {
             throw new IllegalStateException("Cannot deactivate system tariff: " + tariff.getName());
         }
@@ -113,11 +117,13 @@ public class TariffServiceImpl implements TariffService {
 
         // Safety: Reassign customers to default MINORISTA tariff
         Tariff defaultTariff = getDefault();
-        List<Customer> affected = customerRepository.findAll().stream().filter(c -> tariff.equals(c.getTariff())).toList();
+        List<Customer> affected = customerRepository.findAll().stream().filter(c -> tariff.equals(c.getTariff()))
+                .toList();
         affected.forEach(c -> c.setTariff(defaultTariff));
         customerRepository.saveAll(affected);
 
-        activityLogService.logActivity("DESACTIVAR_TARIFA", "Tarifa desactivada: " + tariff.getName(), "Admin", "TARIFF", tariff.getId());
+        activityLogService.logActivity("DESACTIVAR_TARIFA", "Tarifa desactivada: " + tariff.getName(), "Admin",
+                "TARIFF", tariff.getId());
     }
 
     @Override
@@ -138,37 +144,47 @@ public class TariffServiceImpl implements TariffService {
 
     @Override
     public void regenerateTariffHistoryForProducts(List<Product> affectedProducts) {
-        if (affectedProducts == null || affectedProducts.isEmpty()) return;
+        if (affectedProducts == null || affectedProducts.isEmpty())
+            return;
         List<Tariff> activeTariffs = findAllActive();
-        if (activeTariffs.isEmpty()) return;
+        if (activeTariffs.isEmpty())
+            return;
 
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
         java.time.LocalDateTime justBefore = now.minusSeconds(1);
 
         // 1. Bulk find and close current histories for all products
-        List<Long> productIds = affectedProducts.stream().map(Product::getId).collect(java.util.stream.Collectors.toList());
+        List<Long> productIds = affectedProducts.stream().map(Product::getId)
+                .collect(java.util.stream.Collectors.toList());
         List<TariffPriceHistory> toClose = tariffPriceHistoryRepository.findAllCurrentByProductIds(productIds);
-        
+
         for (TariffPriceHistory history : toClose) {
             history.setValidTo(justBefore);
         }
-        if (!toClose.isEmpty()) tariffPriceHistoryRepository.saveAll(toClose);
+        if (!toClose.isEmpty())
+            tariffPriceHistoryRepository.saveAll(toClose);
 
         // 2. Open new histories with current VAT and product prices
         List<TariffPriceHistory> newRecords = new ArrayList<>();
         for (Product product : affectedProducts) {
-            if (product.getPrice() == null) continue;
+            if (product.getPrice() == null)
+                continue;
 
-            BigDecimal vatRate = (product.getTaxRate() != null) ? product.getTaxRate().getVatRate() : new BigDecimal("0.21");
+            BigDecimal vatRate = (product.getTaxRate() != null) ? product.getTaxRate().getVatRate()
+                    : new BigDecimal("0.21");
             BigDecimal reRate = recargoCalculator.getRecargoRate(vatRate);
             BigDecimal baseGross = product.getPrice();
 
             for (Tariff tariff : activeTariffs) {
-                BigDecimal discountMult = BigDecimal.ONE.subtract((tariff.getDiscountPercentage() != null ? tariff.getDiscountPercentage() : BigDecimal.ZERO).divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP));
-                
-                BigDecimal net = baseGross.divide(BigDecimal.ONE.add(vatRate), 10, RoundingMode.HALF_UP).multiply(discountMult).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal discountMult = BigDecimal.ONE.subtract(
+                        (tariff.getDiscountPercentage() != null ? tariff.getDiscountPercentage() : BigDecimal.ZERO)
+                                .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP));
+
+                BigDecimal net = baseGross.divide(BigDecimal.ONE.add(vatRate), 10, RoundingMode.HALF_UP)
+                        .multiply(discountMult).setScale(2, RoundingMode.HALF_UP);
                 BigDecimal withVat = net.multiply(BigDecimal.ONE.add(vatRate)).setScale(2, RoundingMode.HALF_UP);
-                BigDecimal withRecargo = net.multiply(BigDecimal.ONE.add(vatRate).add(reRate)).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal withRecargo = net.multiply(BigDecimal.ONE.add(vatRate).add(reRate)).setScale(2,
+                        RoundingMode.HALF_UP);
 
                 newRecords.add(TariffPriceHistory.builder()
                         .product(product).tariff(tariff).basePrice(baseGross).netPrice(net).vatRate(vatRate)
@@ -178,10 +194,10 @@ public class TariffServiceImpl implements TariffService {
         }
         if (!newRecords.isEmpty()) {
             tariffPriceHistoryRepository.saveAll(newRecords);
-            activityLogService.logActivity("REGENERAR_PRECIOS_TARIFA", 
-                String.format("Precios regenerados para %d productos en %d tarifas activas.", affectedProducts.size(), activeTariffs.size()), "System", "TARIFF", null);
+            activityLogService.logActivity("REGENERAR_PRECIOS_TARIFA",
+                    String.format("Precios regenerados para %d productos en %d tarifas activas.",
+                            affectedProducts.size(), activeTariffs.size()),
+                    "System", "TARIFF", null);
         }
     }
 }
-
-

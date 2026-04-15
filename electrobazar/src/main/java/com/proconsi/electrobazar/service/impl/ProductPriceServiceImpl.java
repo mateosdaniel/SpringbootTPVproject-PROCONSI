@@ -189,7 +189,7 @@ public class ProductPriceServiceImpl implements ProductPriceService {
         List<Long> productIds = request.getProductIds();
         if (request.isApplyToAll()) {
             Specification<Product> spec = com.proconsi.electrobazar.repository.specification.ProductSpecification
-                    .filterProducts(request.getSearch(), request.getCategoryName(), null, true);
+                    .filterProducts(request.getSearch(), request.getCategoryName(), null, true, null);
             // Fetch ONLY IDs to save memory
             productIds = productRepository.findAll(spec).stream().map(Product::getId).collect(Collectors.toList());
         }

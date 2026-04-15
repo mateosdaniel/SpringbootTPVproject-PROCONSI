@@ -5,7 +5,6 @@ import com.proconsi.electrobazar.service.*;
 import com.proconsi.electrobazar.repository.TaxRateRepository;
 import com.proconsi.electrobazar.model.Tariff;
 import java.util.Map;
-import java.util.LinkedHashMap;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
@@ -404,7 +403,8 @@ public class AdminController {
             return "redirect:/login";
         }
 
-        Tariff tariff = tariffService.findById(id).orElseThrow(() -> new ResourceNotFoundException("Tarifa no encontrada"));
+        Tariff tariff = tariffService.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Tarifa no encontrada"));
         List<LocalDate> availableDates = tariffPriceHistoryService.getDistinctValidFromDates(id);
 
         LocalDate today = LocalDate.now();
@@ -414,7 +414,7 @@ public class AdminController {
         LocalDate targetDate = date != null ? date : (availableDates.isEmpty() ? today : availableDates.get(0));
 
         List<LocalTime> dayVersions = tariffPriceHistoryService.getVersionsForDate(id, targetDate);
-        
+
         boolean needsVersionSelection = false;
         LocalTime selectedTime = time;
 
@@ -429,16 +429,18 @@ public class AdminController {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<com.proconsi.electrobazar.dto.TariffPriceEntryDTO> pricesPage;
-        
+
         if (needsVersionSelection) {
             pricesPage = org.springframework.data.domain.Page.empty();
         } else {
             // Consulta exacta por fecha y hora
-            pricesPage = tariffPriceHistoryService.getPricesForTariffAtExactDateTime(id, targetDate, selectedTime, pageable);
+            pricesPage = tariffPriceHistoryService.getPricesForTariffAtExactDateTime(id, targetDate, selectedTime,
+                    pageable);
         }
 
         boolean isInitializing = false;
-        if (pricesPage.isEmpty() && !needsVersionSelection && tariffPriceHistoryService.isInitializationInProgress(id)) {
+        if (pricesPage.isEmpty() && !needsVersionSelection
+                && tariffPriceHistoryService.isInitializationInProgress(id)) {
             isInitializing = true;
         }
 
@@ -450,8 +452,6 @@ public class AdminController {
         model.addAttribute("needsVersionSelection", needsVersionSelection);
         model.addAttribute("availableDates", availableDates);
         model.addAttribute("returnView", returnView);
-
-
 
         boolean dateExists = !pricesPage.isEmpty();
 
@@ -522,7 +522,7 @@ public class AdminController {
 
             LocalDate targetDate = date != null ? date : LocalDate.now();
             LocalTime targetTime = time != null ? time : LocalTime.now();
-            
+
             List<com.proconsi.electrobazar.dto.TariffPriceEntryDTO> history = tariffPriceHistoryService
                     .getPricesForTariffAtExactDateTimeList(id, targetDate, targetTime);
 

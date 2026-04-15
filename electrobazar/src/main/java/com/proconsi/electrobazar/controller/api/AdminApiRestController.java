@@ -30,7 +30,6 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -150,7 +149,8 @@ public class AdminApiRestController {
         Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, safeSort));
-        Page<Product> productsPage = productService.getFilteredProducts(search, category, stock, active, unitId, pageable);
+        Page<Product> productsPage = productService.getFilteredProducts(search, category, stock, active, unitId,
+                pageable);
 
         List<AdminProductListingDTO> list = productsPage.getContent().stream().map(p -> AdminProductListingDTO.builder()
                 .id(p.getId())
@@ -160,7 +160,8 @@ public class AdminApiRestController {
                 .stock(p.getStock())
                 .categoryName(p.getCategory() != null ? p.getCategory().getNameEs() : null)
                 .measurementUnit(p.getMeasurementUnit())
-                .priceDecimals(p.getMeasurementUnit() != null ? Math.max(2, p.getMeasurementUnit().getDecimalPlaces()) : 2)
+                .priceDecimals(
+                        p.getMeasurementUnit() != null ? Math.max(2, p.getMeasurementUnit().getDecimalPlaces()) : 2)
                 .vatRate(p.getTaxRate() != null ? p.getTaxRate().getVatRate() : null)
                 .imageUrl(p.getImageUrl())
                 .active(Boolean.TRUE.equals(p.getActive()))
@@ -660,7 +661,8 @@ public class AdminApiRestController {
         LocalDate targetDate = date != null ? date : LocalDate.now();
         LocalTime targetTime = time != null ? time : LocalTime.now();
 
-        List<TariffPriceEntryDTO> history = tariffPriceHistoryService.getPricesForTariffAtExactDateTimeList(id, targetDate, targetTime);
+        List<TariffPriceEntryDTO> history = tariffPriceHistoryService.getPricesForTariffAtExactDateTimeList(id,
+                targetDate, targetTime);
         byte[] pdfData = pdfReportService.generateTariffSheet(tariff, history, targetDate);
         String filename = String.format("Tarifa_%s_%s_%s.pdf", tariff.getName(), targetDate,
                 targetTime.toString().replace(":", "-"));

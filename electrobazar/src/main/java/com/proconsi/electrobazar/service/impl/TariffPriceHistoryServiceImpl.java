@@ -41,7 +41,6 @@ public class TariffPriceHistoryServiceImpl implements TariffPriceHistoryService 
     private final ProductRepository productRepository;
     private final TariffRepository tariffRepository;
     private final RecargoEquivalenciaCalculator recargoCalculator;
-    private final ActivityLogService activityLogService;
     private final EntityManager entityManager; // <-- AÑADIDO: Necesario para liberar memoria
 
     private static final Set<Long> activeInitializations = ConcurrentHashMap.newKeySet();
@@ -75,7 +74,8 @@ public class TariffPriceHistoryServiceImpl implements TariffPriceHistoryService 
 
     @Override
     public Page<TariffPriceEntryDTO> getCurrentPricesForTariff(Long tariffId, Pageable pageable) {
-        // Just return current data snapshot (use LocalDateTime.now() for approximation or latest specific)
+        // Just return current data snapshot (use LocalDateTime.now() for approximation
+        // or latest specific)
         return getPricesForTariffAtExactDateTime(tariffId, LocalDate.now(), LocalTime.now(), pageable);
     }
 
@@ -83,7 +83,7 @@ public class TariffPriceHistoryServiceImpl implements TariffPriceHistoryService 
     public Page<TariffPriceEntryDTO> getPricesForTariffAtExactDateTime(Long tariffId, LocalDate date, LocalTime time,
             Pageable pageable) {
         LocalDateTime targetDateTime = (time != null) ? date.atTime(time) : date.atTime(LocalTime.MAX);
-        
+
         // Buscamos los registros que estaban activos en ese instante exacto
         Page<TariffPriceHistory> historyPage = tariffPriceHistoryRepository.findByTariffIdAndDateTime(tariffId,
                 targetDateTime, pageable);
@@ -92,9 +92,10 @@ public class TariffPriceHistoryServiceImpl implements TariffPriceHistoryService 
     }
 
     @Override
-    public List<TariffPriceEntryDTO> getPricesForTariffAtExactDateTimeList(Long tariffId, LocalDate date, LocalTime time) {
+    public List<TariffPriceEntryDTO> getPricesForTariffAtExactDateTimeList(Long tariffId, LocalDate date,
+            LocalTime time) {
         LocalDateTime targetDateTime = (time != null) ? date.atTime(time) : date.atTime(LocalTime.MAX);
-        
+
         // Buscamos los registros activos en ese instante para la lista completa
         List<TariffPriceHistory> histories = tariffPriceHistoryRepository.findAllByTariffIdAndDateTime(tariffId,
                 targetDateTime);
@@ -208,8 +209,10 @@ public class TariffPriceHistoryServiceImpl implements TariffPriceHistoryService 
             }
 
             // --- SINCRONIZACIÓN DE VERSIÓN ---
-            // El proceso puede tardar varios segundos/minutos. Forzamos que todos los registros
-            // compartan exactamente el mismo segundo de finalización para agruparlos como una única versión.
+            // El proceso puede tardar varios segundos/minutos. Forzamos que todos los
+            // registros
+            // compartan exactamente el mismo segundo de finalización para agruparlos como
+            // una única versión.
             LocalDateTime endTime = LocalDateTime.now();
             tariffPriceHistoryRepository.updateValidFromForTariffAndTime(tariffId, snapshotTime, endTime);
             // ----------------------------------
