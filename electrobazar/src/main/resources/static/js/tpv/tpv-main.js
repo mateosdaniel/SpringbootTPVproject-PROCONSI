@@ -142,15 +142,15 @@ window.onCartTariffChange = function (selectEl) {
         if (ticket[id] && ticket[id].lineTariffId) return Promise.resolve();
         var effectiveTariffId = getEffectiveTariffId(id);
         var url = '/tpv/api/products/' + id + '/price';
-        if (effectiveTariffId && 
-            effectiveTariffId !== 'undefined' && 
+        if (effectiveTariffId &&
+            effectiveTariffId !== 'undefined' &&
             effectiveTariffId !== 'null' &&
             !isNaN(effectiveTariffId)) {
             url += '?tariffId=' + effectiveTariffId;
         }
-        
+
         console.log('[TPV] Fetching price for product:', id, 'Tariff:', effectiveTariffId, 'URL:', url);
-        
+
         return fetch(url)
             .then(function (r) {
                 if (!r.ok) {
@@ -194,8 +194,8 @@ window.onLineTariffChange = function () {
     if (!selectedTariffId) {
         var eff = getEffectiveTariffId(productId);
         url = '/tpv/api/products/' + productId + '/price';
-        if (eff && 
-            eff !== 'undefined' && 
+        if (eff &&
+            eff !== 'undefined' &&
             eff !== 'null' &&
             !isNaN(eff)) {
             url += '?tariffId=' + eff;
@@ -301,8 +301,8 @@ function finishAddingToTicket(id, name, price, quantity, stock, categoryId, card
     // ALWAYS fetch the price from the API to respect the "only tariffs" rule.
     var effectiveTariffId = getEffectiveTariffId(id);
     var url = '/tpv/api/products/' + id + '/price';
-    if (effectiveTariffId && 
-        effectiveTariffId !== 'undefined' && 
+    if (effectiveTariffId &&
+        effectiveTariffId !== 'undefined' &&
         effectiveTariffId !== 'null' &&
         !isNaN(effectiveTariffId)) {
         url += '?tariffId=' + effectiveTariffId;
@@ -810,8 +810,8 @@ function openCheckoutModal() {
     invoiceModalInstance.show();
 
     if (isCash) {
-        setTimeout(function () { 
-            receivedInput.focus(); 
+        setTimeout(function () {
+            receivedInput.focus();
         }, 150);
     }
 }
@@ -1147,8 +1147,8 @@ function loadProducts(endpoint) {
             if (!response.ok) throw new Error('Network response was not ok');
             return response.json();
         })
-        .then(function (products) { 
-            if (products) renderProducts(products); 
+        .then(function (products) {
+            if (products) renderProducts(products);
             if (endpoint === '/api/products') loadFavoriteExtras();
         })
         .catch(function (error) { console.error('Error loading products:', error); });
@@ -1341,29 +1341,43 @@ function loadFavoriteExtras() {
     const grid = document.querySelector('.products-grid');
     if (!grid || !window.tpv_user_favorites) return;
 
-    const missingIds = window.tpv_user_favorites.filter(id => 
+    const missingIds = window.tpv_user_favorites.filter(id =>
         !grid.querySelector('[data-id="' + id + '"]')
     );
 
-    Promise.all(missingIds.map(id => 
+    Promise.all(missingIds.map(id =>
         fetch('/api/products/' + id)
             .then(r => r.json())
             .then(product => renderProducts([product], true))
     )).then(() => reorderGridWithFavorites());
 }
 
-function performSearch() {
-    var query = searchInput.value.trim();
+// -- PRODUCT GRID SEARCH (Back to Basics) --
+var productSearchTimeout = null;
 
-    if (query) {
-        loadProducts(`/api/products/search?name=${encodeURIComponent(query)}`);
-        updateCategoryButtons(null);
-        currentCategoryId = null;
-    } else if (currentCategoryId) {
-        loadProducts(`/api/products/category/${currentCategoryId}`);
-    } else {
-        loadProducts('/api/products');
+function performGridSearch() {
+    var query = searchInput.value.trim();
+    var clearBtn = document.getElementById('clearSearchBtn');
+
+    if (clearBtn) clearBtn.style.display = query.length > 0 ? 'block' : 'none';
+
+    if (query.length < 2) {
+        if (query.length === 0) loadProducts('/api/products');
+        return;
     }
+
+    clearTimeout(productSearchTimeout);
+    productSearchTimeout = setTimeout(function () {
+        fetch(`/api/products/search?q=${encodeURIComponent(query)}&size=100`)
+            .then(r => r.json())
+            .then(data => {
+                var products = data.content || data; // Handle both paginated and list responses
+                renderProducts(products);
+                // After searching, categories should be inactive
+                updateCategoryButtons(null);
+            })
+            .catch(err => console.error('[GridSearch] Error:', err));
+    }, 300);
 }
 
 // Event delegation for product card clicks - attach to the products container
@@ -1388,11 +1402,19 @@ function updateCategoryButtons(activeId) {
     }
 }
 
-// Real-time search with debounce
+// Real-time grid search
 if (searchInput) {
-    searchInput.addEventListener('input', function () {
-        performSearch();
-    });
+    searchInput.addEventListener('input', performGridSearch);
+
+    // Clear button functionality
+    var clearBtn = document.getElementById('clearSearchBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+            searchInput.value = '';
+            performGridSearch();
+            searchInput.focus();
+        });
+    }
 }
 
 // Category button click handlers
@@ -1737,40 +1759,40 @@ function resetTicketPrices() {
 // ── SHARED CUSTOMER LOGIC (EXTRACTED FROM ADMIN) ────────────────────────────
 const DOC_TYPE_CONFIG = {
     DNI: {
-        label:       'DNI',
+        label: 'DNI',
         placeholder: 'Ej: 12345678Z',
-        hint:        '🇪🇸 DNI – 8 dígitos + letra (ej: 12345678Z)',
-        validate:    validateDni,
+        hint: '🇪🇸 DNI – 8 dígitos + letra (ej: 12345678Z)',
+        validate: validateDni,
     },
     NIE: {
-        label:       'NIE',
+        label: 'NIE',
         placeholder: 'Ej: X1234567L',
-        hint:        '🇪🇸 NIE – X, Y o Z + 7 dígitos + letra (ej: X1234567L)',
-        validate:    validateNie,
+        hint: '🇪🇸 NIE – X, Y o Z + 7 dígitos + letra (ej: X1234567L)',
+        validate: validateNie,
     },
     NIF: {
-        label:       'CIF / NIF',
+        label: 'CIF / NIF',
         placeholder: 'Ej: B12345678',
-        hint:        '🏢 NIF/CIF – letra de empresa + 7 dígitos + control (ej: B12345678)',
-        validate:    validateNif,
+        hint: '🏢 NIF/CIF – letra de empresa + 7 dígitos + control (ej: B12345678)',
+        validate: validateNif,
     },
     PASSPORT: {
-        label:       'N.º Pasaporte',
+        label: 'N.º Pasaporte',
         placeholder: 'Ej: AAB123456',
-        hint:        '🌍 Pasaporte – entre 5 y 9 caracteres alfanuméricos',
-        validate:    validatePassport,
+        hint: '🌍 Pasaporte – entre 5 y 9 caracteres alfanuméricos',
+        validate: validatePassport,
     },
     FOREIGN_ID: {
-        label:       'Doc. identidad extranjero',
+        label: 'Doc. identidad extranjero',
         placeholder: 'Ej: 987654321',
-        hint:        '🌐 Documento extranjero – entre 4 y 25 caracteres',
-        validate:    validateForeignId,
+        hint: '🌐 Documento extranjero – entre 4 y 25 caracteres',
+        validate: validateForeignId,
     },
     INTRACOMMUNITY_VAT: {
-        label:       'NIF intracomunitario',
+        label: 'NIF intracomunitario',
         placeholder: 'Ej: DE123456789',
-        hint:        '🇪🇺 NIF UE – 2 letras de país + sufijo (ej: DE123456789, FR12345678901)',
-        validate:    validateIntracom,
+        hint: '🇪🇺 NIF UE – 2 letras de país + sufijo (ej: DE123456789, FR12345678901)',
+        validate: validateIntracom,
     },
 };
 
@@ -1796,17 +1818,17 @@ function validateNif(val) {
 }
 
 function validateCifAlgorithm(cif) {
-    const digits  = cif.substring(1, 8);
+    const digits = cif.substring(1, 8);
     const control = cif[8];
     let even = 0, odd = 0;
     for (let i = 0; i < digits.length; i++) {
         const d = parseInt(digits[i], 10);
         if (i % 2 === 0) { const dd = d * 2; odd += dd >= 10 ? dd - 9 : dd; }
-        else              { even += d; }
+        else { even += d; }
     }
     const ctrl = (10 - (even + odd) % 10) % 10;
     const expectedLetter = 'JABCDEFGHI'[ctrl];
-    const expectedDigit  = String(ctrl);
+    const expectedDigit = String(ctrl);
     return control === expectedDigit || control === expectedLetter;
 }
 
@@ -1823,12 +1845,12 @@ function toggleAdminCustomerType() {
     if (taxSection) taxSection.style.display = isCompany ? '' : 'none';
     const nifTypeSection = document.getElementById('customerNifTypeSection');
     if (nifTypeSection) nifTypeSection.style.display = isCompany ? '' : 'none';
-    const docTypeSection   = document.getElementById('customerDocTypeSection');
+    const docTypeSection = document.getElementById('customerDocTypeSection');
     const docNumberSection = document.getElementById('customerDocNumberSection');
-    const docHintSection   = document.getElementById('customerDocHintSection');
-    if (docTypeSection)   docTypeSection.style.display   = isCompany ? 'none' : '';
+    const docHintSection = document.getElementById('customerDocHintSection');
+    if (docTypeSection) docTypeSection.style.display = isCompany ? 'none' : '';
     if (docNumberSection) docNumberSection.style.display = isCompany ? 'none' : '';
-    if (docHintSection)   docHintSection.style.display   = isCompany ? 'none' : '';
+    if (docHintSection) docHintSection.style.display = isCompany ? 'none' : '';
     const reSection = document.getElementById('adminCustomerReSection');
     if (reSection) {
         reSection.style.display = isCompany ? 'block' : 'none';
@@ -1840,19 +1862,19 @@ function toggleAdminCustomerType() {
 }
 
 function onDocTypeChange() {
-    const sel  = document.getElementById('customerIdDocumentType');
-    const inp  = document.getElementById('customerIdDocumentNumber');
+    const sel = document.getElementById('customerIdDocumentType');
+    const inp = document.getElementById('customerIdDocumentNumber');
     const hint = document.getElementById('customerDocHint');
     const hintSection = document.getElementById('customerDocHintSection');
-    const lbl  = document.getElementById('lblDocNumber');
+    const lbl = document.getElementById('lblDocNumber');
     if (!sel) return;
-    const type   = sel.value;
+    const type = sel.value;
     const config = DOC_TYPE_CONFIG[type];
     if (inp) inp.value = '';
     clearDocValidation();
     if (config && type) {
-        if (lbl)  lbl.textContent = config.label;
-        if (inp)  inp.placeholder = config.placeholder;
+        if (lbl) lbl.textContent = config.label;
+        if (inp) inp.placeholder = config.placeholder;
         if (hint) hint.textContent = config.hint;
         if (hintSection) hintSection.style.display = '';
         const numSection = document.getElementById('customerDocNumberSection');
@@ -1878,7 +1900,7 @@ function validateDocNumberInline() {
     const inp = document.getElementById('customerIdDocumentNumber');
     const msg = document.getElementById('docNumberValidationMsg');
     if (!sel || !inp || !msg) return;
-    const raw  = inp.value.trim().toUpperCase();
+    const raw = inp.value.trim().toUpperCase();
     const type = sel.value;
     inp.value = raw;
     if (!raw || !type) { clearDocValidation(); return; }
@@ -1888,15 +1910,15 @@ function validateDocNumberInline() {
 }
 
 function validateTaxIdInline() {
-    const inp     = document.getElementById('customerTaxId');
-    const msg     = document.getElementById('taxIdValidationMsg');
-    const nifSel  = document.getElementById('customerNifDocType');
+    const inp = document.getElementById('customerTaxId');
+    const msg = document.getElementById('taxIdValidationMsg');
+    const nifSel = document.getElementById('customerNifDocType');
     if (!inp || !msg) return;
-    const raw  = inp.value.trim().toUpperCase();
+    const raw = inp.value.trim().toUpperCase();
     inp.value = raw;
     if (!raw) { clearTaxIdValidation(); return; }
     const docType = nifSel ? nifSel.value : 'NIF';
-    const config  = DOC_TYPE_CONFIG[docType] || DOC_TYPE_CONFIG['NIF'];
+    const config = DOC_TYPE_CONFIG[docType] || DOC_TYPE_CONFIG['NIF'];
     showFieldFeedback(inp, msg, config.validate(raw));
 }
 
@@ -1927,14 +1949,14 @@ function clearTaxIdValidation() {
 
 function checkCustomerReCompatibility() {
     const tariffSelect = document.getElementById('customerTariffId');
-    const reCheckbox   = document.getElementById('customerRecargoEquivalencia');
-    const reSection    = document.getElementById('adminCustomerReSection');
-    const reWarning    = document.getElementById('adminCustomerReIncompatibleMsg');
-    const reInfo       = document.getElementById('adminCustomerReInfoMsg');
+    const reCheckbox = document.getElementById('customerRecargoEquivalencia');
+    const reSection = document.getElementById('adminCustomerReSection');
+    const reWarning = document.getElementById('adminCustomerReIncompatibleMsg');
+    const reInfo = document.getElementById('adminCustomerReInfoMsg');
     if (!tariffSelect || !reCheckbox) return;
     const selectedOption = tariffSelect.options[tariffSelect.selectedIndex];
-    const tariffText     = selectedOption ? selectedOption.text.toLowerCase() : '';
-    const isMinorista    = tariffSelect.value === '' || tariffText.includes('minorista');
+    const tariffText = selectedOption ? selectedOption.text.toLowerCase() : '';
+    const isMinorista = tariffSelect.value === '' || tariffText.includes('minorista');
     if (isMinorista) {
         reCheckbox.disabled = false;
         if (reSection) reSection.style.opacity = '1';
@@ -1959,7 +1981,7 @@ function openFullCustomerModal() {
     clearDocValidation();
     toggleAdminCustomerType();
     checkCustomerReCompatibility();
-    
+
     customerCreationModalInstance = new bootstrap.Modal(document.getElementById('customerModal'));
     customerCreationModalInstance.show();
 }
@@ -2020,21 +2042,21 @@ function saveCustomer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
     })
-    .then(r => {
-        if (!r.ok) return r.json().then(d => { throw new Error(d.error || d.message || 'Error'); });
-        return r.json();
-    })
-    .then(savedCustomer => {
-        if (customerCreationModalInstance) customerCreationModalInstance.hide();
-        else bootstrap.Modal.getInstance(document.getElementById('customerModal')).hide();
-        
-        selectCustomer(savedCustomer);
-        showToast('Cliente creado y seleccionado', 'success');
-    })
-    .catch(e => {
-        console.error(e);
-        showToast('Error al crear el cliente: ' + e.message, 'warning');
-    });
+        .then(r => {
+            if (!r.ok) return r.json().then(d => { throw new Error(d.error || d.message || 'Error'); });
+            return r.json();
+        })
+        .then(savedCustomer => {
+            if (customerCreationModalInstance) customerCreationModalInstance.hide();
+            else bootstrap.Modal.getInstance(document.getElementById('customerModal')).hide();
+
+            selectCustomer(savedCustomer);
+            showToast('Cliente creado y seleccionado', 'success');
+        })
+        .catch(e => {
+            console.error(e);
+            showToast('Error al crear el cliente: ' + e.message, 'warning');
+        });
 }
 
 // Ensure global exports for TPV context if needed

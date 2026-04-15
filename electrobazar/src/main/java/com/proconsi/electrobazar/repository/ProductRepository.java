@@ -39,11 +39,13 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE p.category.id = :categoryId AND p.active = true ORDER BY p.nameEs ASC")
     List<Product> findByCategoryIdAndActiveTrueOrderByNameEsAsc(@Param("categoryId") Long categoryId);
 
-    /**
-     * Generic search for active products by name (multi-lingual).
-     */
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate WHERE (LOWER(p.nameEs) LIKE LOWER(CONCAT('%', :name, '%')) OR LOWER(p.nameEn) LIKE LOWER(CONCAT('%', :name, '%'))) AND p.active = true")
     List<Product> findByNameContainingIgnoreCaseAndActiveTrue(@Param("name") String name);
+
+    /**
+     * Specialized autocomplete search limited to 15 results for performance.
+     */
+    List<Product> findTop15ByNameEsContainingIgnoreCaseAndActiveTrue(String name);
 
     /**
      * Lists all active products with category and tax data in a single query.

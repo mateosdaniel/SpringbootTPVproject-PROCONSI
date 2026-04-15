@@ -19,8 +19,6 @@ import com.proconsi.electrobazar.service.ProductPriceService;
 import com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -30,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.proconsi.electrobazar.repository.specification.ProductPriceSpecification;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -47,8 +45,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional
 public class ProductPriceServiceImpl implements ProductPriceService {
-
-    private static final String CACHE_NAME = "productPrices";
 
     private final ProductPriceRepository productPriceRepository;
     private final ProductRepository productRepository;
@@ -74,7 +70,8 @@ public class ProductPriceServiceImpl implements ProductPriceService {
     @Override
     @Transactional(readOnly = true)
     public List<ProductPrice> getActivePrices(List<Long> productIds, LocalDateTime at) {
-        if (productIds == null || productIds.isEmpty()) return new ArrayList<>();
+        if (productIds == null || productIds.isEmpty())
+            return new ArrayList<>();
         return productPriceRepository.findActivePricesForProducts(productIds, at);
     }
 
@@ -96,8 +93,8 @@ public class ProductPriceServiceImpl implements ProductPriceService {
         });
 
         // 2. Schedule new price
-        BigDecimal vatRate = request.getVatRate() != null ? request.getVatRate() : 
-                (product.getTaxRate() != null ? product.getTaxRate().getVatRate() : new BigDecimal("0.21"));
+        BigDecimal vatRate = request.getVatRate() != null ? request.getVatRate()
+                : (product.getTaxRate() != null ? product.getTaxRate().getVatRate() : new BigDecimal("0.21"));
 
         ProductPrice newPrice = ProductPrice.builder()
                 .product(product)
@@ -113,9 +110,10 @@ public class ProductPriceServiceImpl implements ProductPriceService {
         product.setPrice(request.getPrice());
         productRepository.save(product);
 
-        activityLogService.logActivity("PROGRAMAR_PRECIO", 
-                String.format("Nuevo precio programado para '%s': %.2f € a partir de %s", 
-                product.getName(), saved.getPrice(), newStartDate), "Admin", "PRODUCT", productId);
+        activityLogService.logActivity("PROGRAMAR_PRECIO",
+                String.format("Nuevo precio programado para '%s': %.2f € a partir de %s",
+                        product.getName(), saved.getPrice(), newStartDate),
+                "Admin", "PRODUCT", productId);
 
         return toResponse(saved, false);
     }
@@ -139,7 +137,8 @@ public class ProductPriceServiceImpl implements ProductPriceService {
 
         for (ProductPrice p : allPrices) {
             BigDecimal diff = (previousPrice != null) ? p.getPrice().subtract(previousPrice) : null;
-            BigDecimal diffPct = (diff != null) ? diff.divide(previousPrice, 6, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP) : null;
+            BigDecimal diffPct = (diff != null) ? diff.divide(previousPrice, 6, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP) : null;
 
             responses.add(toResponse(p, p.equals(activePrice)).toBuilder()
                     .priceChange(diff)
@@ -148,7 +147,8 @@ public class ProductPriceServiceImpl implements ProductPriceService {
             previousPrice = p.getPrice();
         }
 
-        responses.sort((a, b) -> a.isCurrentlyActive() ? -1 : (b.isCurrentlyActive() ? 1 : b.getStartDate().compareTo(a.getStartDate())));
+        responses.sort((a, b) -> a.isCurrentlyActive() ? -1
+                : (b.isCurrentlyActive() ? 1 : b.getStartDate().compareTo(a.getStartDate())));
         return responses;
     }
 
@@ -182,17 +182,20 @@ public class ProductPriceServiceImpl implements ProductPriceService {
     @Override
     @Transactional
     public List<ProductPriceResponse> bulkSchedulePrice(BulkPriceUpdateRequest request) {
-        LocalDateTime effectiveDate = request.getEffectiveDate() != null ? request.getEffectiveDate() : LocalDateTime.now();
+        LocalDateTime effectiveDate = request.getEffectiveDate() != null ? request.getEffectiveDate()
+                : LocalDateTime.now();
         LocalDateTime closingDate = effectiveDate.minusSeconds(1);
 
         List<Long> productIds = request.getProductIds();
         if (request.isApplyToAll()) {
-            Specification<Product> spec = com.proconsi.electrobazar.repository.specification.ProductSpecification.filterProducts(request.getSearch(), request.getCategoryName(), null, true);
+            Specification<Product> spec = com.proconsi.electrobazar.repository.specification.ProductSpecification
+                    .filterProducts(request.getSearch(), request.getCategoryName(), null, true);
             // Fetch ONLY IDs to save memory
             productIds = productRepository.findAll(spec).stream().map(Product::getId).collect(Collectors.toList());
         }
 
-        if (productIds == null || productIds.isEmpty()) return new ArrayList<>();
+        if (productIds == null || productIds.isEmpty())
+            return new ArrayList<>();
 
         List<ProductPriceResponse> responses = new ArrayList<>();
         List<Tariff> activeTariffs = tariffRepository.findByActiveTrueOrderByNameAsc();
@@ -203,20 +206,24 @@ public class ProductPriceServiceImpl implements ProductPriceService {
         for (int i = 0; i < productIds.size(); i++) {
             Long productId = productIds.get(i);
             Product product = productRepository.findById(productId).orElse(null);
-            if (product == null) continue;
+            if (product == null)
+                continue;
 
             ProductPrice current = productPriceRepository.findCurrentOpenPrice(productId).orElse(null);
             BigDecimal oldGross = (current != null) ? current.getPrice() : product.getPrice();
-            BigDecimal vatRate = (request.getVatRate() != null) ? request.getVatRate() : 
-                                 ((current != null) ? current.getVatRate() : (product.getTaxRate() != null ? product.getTaxRate().getVatRate() : new BigDecimal("0.21")));
+            BigDecimal vatRate = (request.getVatRate() != null) ? request.getVatRate()
+                    : ((current != null) ? current.getVatRate()
+                            : (product.getTaxRate() != null ? product.getTaxRate().getVatRate()
+                                    : new BigDecimal("0.21")));
 
             if (current != null) {
                 current.setEndDate(closingDate);
                 productPriceRepository.save(current);
             }
 
-            BigDecimal newGross = (request.getPercentage() != null) 
-                    ? oldGross.multiply(BigDecimal.ONE.add(request.getPercentage().divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)))
+            BigDecimal newGross = (request.getPercentage() != null)
+                    ? oldGross.multiply(BigDecimal.ONE
+                            .add(request.getPercentage().divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)))
                     : oldGross.add(request.getFixedAmount() != null ? request.getFixedAmount() : BigDecimal.ZERO);
             newGross = newGross.setScale(2, RoundingMode.HALF_UP);
 
@@ -240,20 +247,21 @@ public class ProductPriceServiceImpl implements ProductPriceService {
                 });
 
                 BigDecimal discountMult = BigDecimal.ONE.subtract(
-                    (t.getDiscountPercentage() != null ? t.getDiscountPercentage() : BigDecimal.ZERO)
-                    .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
-                );
+                        (t.getDiscountPercentage() != null ? t.getDiscountPercentage() : BigDecimal.ZERO)
+                                .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP));
 
                 BigDecimal net = tariffBase.divide(BigDecimal.ONE.add(vatRate), 10, RoundingMode.HALF_UP)
-                                        .multiply(discountMult)
-                                        .setScale(2, RoundingMode.HALF_UP);
+                        .multiply(discountMult)
+                        .setScale(2, RoundingMode.HALF_UP);
 
                 BigDecimal reRate = recargoCalculator.getRecargoRate(vatRate);
 
                 TariffPriceHistory news = TariffPriceHistory.builder()
                         .product(product).tariff(t).basePrice(tariffBase).netPrice(net).vatRate(vatRate)
                         .priceWithVat(net.multiply(BigDecimal.ONE.add(vatRate)).setScale(2, RoundingMode.HALF_UP))
-                        .reRate(reRate).priceWithRe(net.multiply(BigDecimal.ONE.add(vatRate).add(reRate)).setScale(2, RoundingMode.HALF_UP))
+                        .reRate(reRate)
+                        .priceWithRe(
+                                net.multiply(BigDecimal.ONE.add(vatRate).add(reRate)).setScale(2, RoundingMode.HALF_UP))
                         .discountPercent(t.getDiscountPercentage()).validFrom(effectiveDate)
                         .build();
                 tariffPriceHistoryRepository.save(news);
@@ -270,14 +278,17 @@ public class ProductPriceServiceImpl implements ProductPriceService {
             // Progress tracking
             if (request.getTaskId() != null && i % 50 == 0) {
                 int percent = (int) (((double) i / productIds.size()) * 100);
-                taskProgressService.updateProgress(request.getTaskId(), percent, "Procesando " + i + " de " + productIds.size() + "...");
+                taskProgressService.updateProgress(request.getTaskId(), percent,
+                        "Procesando " + i + " de " + productIds.size() + "...");
             }
 
-            // Batch maintenance: avoid OOM by clearing persistence context every 100 products
+            // Batch maintenance: avoid OOM by clearing persistence context every 100
+            // products
             if (i > 0 && i % 100 == 0) {
                 entityManager.flush();
                 entityManager.clear();
-                // Re-fetch Small config lists if needed, but here we can just continue as we fetch Product by ID
+                // Re-fetch Small config lists if needed, but here we can just continue as we
+                // fetch Product by ID
                 activeTariffs = tariffRepository.findByActiveTrueOrderByNameAsc();
             }
         }
@@ -286,8 +297,10 @@ public class ProductPriceServiceImpl implements ProductPriceService {
             taskProgressService.finishTask(request.getTaskId());
         }
 
-        activityLogService.logActivity("PROGRAMAR_PRECIOS_MASIVOS", 
-                "Actualización masiva de precios para " + productIds.size() + " productos. applyToAll=" + request.isApplyToAll(), "Admin", "PRODUCT", null);
+        activityLogService.logActivity("PROGRAMAR_PRECIOS_MASIVOS",
+                "Actualización masiva de precios para " + productIds.size() + " productos. applyToAll="
+                        + request.isApplyToAll(),
+                "Admin", "PRODUCT", null);
 
         return responses;
     }
@@ -295,12 +308,14 @@ public class ProductPriceServiceImpl implements ProductPriceService {
     @Override
     @Transactional
     public void bulkMatrixUpdate(BulkPriceMatrixUpdateRequest request) {
-        LocalDateTime effectiveDate = request.getEffectiveDate() != null ? request.getEffectiveDate() : LocalDateTime.now();
+        LocalDateTime effectiveDate = request.getEffectiveDate() != null ? request.getEffectiveDate()
+                : LocalDateTime.now();
         LocalDateTime closingDate = effectiveDate.minusSeconds(1);
 
         for (BulkPriceMatrixUpdateRequest.PriceChangeItem change : request.getChanges()) {
             Product product = productRepository.findById(change.getProductId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Product " + change.getProductId() + " not found."));
+                    .orElseThrow(
+                            () -> new ResourceNotFoundException("Product " + change.getProductId() + " not found."));
 
             if (change.getTariffId() == null) {
                 // Update BASE price
@@ -311,7 +326,8 @@ public class ProductPriceServiceImpl implements ProductPriceService {
 
                 ProductPrice nextEntry = ProductPrice.builder()
                         .product(product)
-                        .vatRate(product.getTaxRate() != null ? product.getTaxRate().getVatRate() : new BigDecimal("0.21"))
+                        .vatRate(product.getTaxRate() != null ? product.getTaxRate().getVatRate()
+                                : new BigDecimal("0.21"))
                         .startDate(effectiveDate)
                         .price(change.getNewPrice())
                         .build();
@@ -325,15 +341,19 @@ public class ProductPriceServiceImpl implements ProductPriceService {
             } else {
                 // Update TARIFF specific price
                 Tariff tariff = tariffRepository.findById(change.getTariffId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Tariff " + change.getTariffId() + " not found."));
+                        .orElseThrow(
+                                () -> new ResourceNotFoundException("Tariff " + change.getTariffId() + " not found."));
 
-                tariffPriceHistoryRepository.findCurrentByProductAndTariff(product.getId(), tariff.getId()).ifPresent(current -> {
-                    current.setValidTo(closingDate);
-                    tariffPriceHistoryRepository.save(current);
-                });
+                tariffPriceHistoryRepository.findCurrentByProductAndTariff(product.getId(), tariff.getId())
+                        .ifPresent(current -> {
+                            current.setValidTo(closingDate);
+                            tariffPriceHistoryRepository.save(current);
+                        });
 
-                BigDecimal vatRate = product.getTaxRate() != null ? product.getTaxRate().getVatRate() : new BigDecimal("0.21");
-                BigDecimal net = change.getNewPrice().divide(BigDecimal.ONE.add(vatRate), 10, RoundingMode.HALF_UP).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal vatRate = product.getTaxRate() != null ? product.getTaxRate().getVatRate()
+                        : new BigDecimal("0.21");
+                BigDecimal net = change.getNewPrice().divide(BigDecimal.ONE.add(vatRate), 10, RoundingMode.HALF_UP)
+                        .setScale(2, RoundingMode.HALF_UP);
                 BigDecimal reRate = recargoCalculator.getRecargoRate(vatRate);
 
                 TariffPriceHistory history = TariffPriceHistory.builder()
@@ -344,16 +364,18 @@ public class ProductPriceServiceImpl implements ProductPriceService {
                         .vatRate(vatRate)
                         .priceWithVat(change.getNewPrice())
                         .reRate(reRate)
-                        .priceWithRe(net.multiply(BigDecimal.ONE.add(vatRate).add(reRate)).setScale(2, RoundingMode.HALF_UP))
+                        .priceWithRe(
+                                net.multiply(BigDecimal.ONE.add(vatRate).add(reRate)).setScale(2, RoundingMode.HALF_UP))
                         .discountPercent(BigDecimal.ZERO) // Using zero because it's now a manual override
                         .validFrom(effectiveDate)
                         .build();
                 tariffPriceHistoryRepository.save(history);
             }
         }
-        
-        activityLogService.logActivity("MATRIZ_PRECIOS_CAMBIO", 
-                "Actualización de matriz de precios procesada para " + request.getChanges().size() + " entradas.", "Admin", "PRICE", null);
+
+        activityLogService.logActivity("MATRIZ_PRECIOS_CAMBIO",
+                "Actualización de matriz de precios procesada para " + request.getChanges().size() + " entradas.",
+                "Admin", "PRICE", null);
     }
 
     @Override
@@ -364,7 +386,8 @@ public class ProductPriceServiceImpl implements ProductPriceService {
 
         // Pending Base price changes
         productPriceRepository.findAllFuturePrices(now).forEach(p -> {
-            BigDecimal oldPrice = productPriceRepository.findActivePriceAt(p.getProduct().getId(), p.getStartDate().minusSeconds(5))
+            BigDecimal oldPrice = productPriceRepository
+                    .findActivePriceAt(p.getProduct().getId(), p.getStartDate().minusSeconds(5))
                     .map(ProductPrice::getPrice).orElse(BigDecimal.ZERO);
             results.add(PriceMatrixSummaryDTO.builder()
                     .id(p.getId())
@@ -382,8 +405,10 @@ public class ProductPriceServiceImpl implements ProductPriceService {
         tariffPriceHistoryRepository.findAll().stream()
                 .filter(h -> h.getValidFrom().isAfter(LocalDateTime.now()))
                 .forEach(h -> {
-                    BigDecimal oldPrice = tariffPriceHistoryRepository.findByProductIdOrderByValidFromDesc(h.getProduct().getId()).stream()
-                            .filter(prev -> prev.getTariff().getId().equals(h.getTariff().getId()) && prev.getValidFrom().isBefore(h.getValidFrom()))
+                    BigDecimal oldPrice = tariffPriceHistoryRepository
+                            .findByProductIdOrderByValidFromDesc(h.getProduct().getId()).stream()
+                            .filter(prev -> prev.getTariff().getId().equals(h.getTariff().getId())
+                                    && prev.getValidFrom().isBefore(h.getValidFrom()))
                             .findFirst().map(TariffPriceHistory::getPriceWithVat).orElse(BigDecimal.ZERO);
                     results.add(PriceMatrixSummaryDTO.builder()
                             .id(h.getId())
@@ -407,15 +432,18 @@ public class ProductPriceServiceImpl implements ProductPriceService {
     public List<PriceMatrixSummaryDTO> getMatrixUpdateHistory() {
         // Just return the last 50 activities or history entries
         List<PriceMatrixSummaryDTO> results = new ArrayList<>();
-        
+
         // From Tariff History (last applied)
         tariffPriceHistoryRepository.findAll().stream()
-                .filter(h -> h.getValidFrom().isBefore(LocalDateTime.now()) || h.getValidFrom().isEqual(LocalDateTime.now()))
+                .filter(h -> h.getValidFrom().isBefore(LocalDateTime.now())
+                        || h.getValidFrom().isEqual(LocalDateTime.now()))
                 .sorted(Comparator.comparing(TariffPriceHistory::getCreatedAt).reversed())
                 .limit(30)
                 .forEach(h -> {
-                    BigDecimal oldPrice = tariffPriceHistoryRepository.findByProductIdOrderByValidFromDesc(h.getProduct().getId()).stream()
-                            .filter(prev -> prev.getTariff().getId().equals(h.getTariff().getId()) && prev.getValidFrom().isBefore(h.getValidFrom()))
+                    BigDecimal oldPrice = tariffPriceHistoryRepository
+                            .findByProductIdOrderByValidFromDesc(h.getProduct().getId()).stream()
+                            .filter(prev -> prev.getTariff().getId().equals(h.getTariff().getId())
+                                    && prev.getValidFrom().isBefore(h.getValidFrom()))
                             .findFirst().map(TariffPriceHistory::getPriceWithVat).orElse(BigDecimal.ZERO);
                     results.add(PriceMatrixSummaryDTO.builder()
                             .productId(h.getProduct().getId())
@@ -427,7 +455,7 @@ public class ProductPriceServiceImpl implements ProductPriceService {
                             .pending(false)
                             .build());
                 });
-                
+
         return results;
     }
 
@@ -441,7 +469,7 @@ public class ProductPriceServiceImpl implements ProductPriceService {
                     productPriceRepository.delete(p);
                 }
             });
-        } 
+        }
         // Then try TariffPriceHistory
         else if (tariffPriceHistoryRepository.existsById(id)) {
             tariffPriceHistoryRepository.findById(id).ifPresent(h -> {

@@ -1,0 +1,41 @@
+/* product-search.css */
+
+.search-dropdown {
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4) !important;
+    animation: slideDown 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.search-result-item {
+    transition: all 0.2s ease !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.search-result-item:hover {
+    background-color: rgba(var(--accent-rgb), 0.12) !important;
+    transform: scale(1.01);
+}
+
+.search-result-item:last-child {
+    border-bottom: none !important;
+}
+
+/* Scrollbar styling */
+.search-dropdown::-webkit-scrollbar {
+    width: 6px;
+}
+
+.search-dropdown::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.search-dropdown::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+}

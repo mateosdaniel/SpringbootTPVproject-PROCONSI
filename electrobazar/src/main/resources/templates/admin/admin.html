@@ -25,6 +25,7 @@
     <!-- Modular Admin Scripts -->
 
 
+    <link rel="stylesheet" th:href="@{/css/common/product-search.css}">
     <link rel="stylesheet" th:href="@{/css/admin/admin-main.css}">
 
 </head>
@@ -795,7 +796,8 @@
         <th:block th:replace="~{admin/modals/document-preview-modal :: modal}" />
         <th:block th:replace="~{admin/modals/abono-modal :: modal}" />
 
-        <script th:src="@{/js/admin/admin-core.js}"></script>
+        <script th:src="@{/js/util/product-autocomplete.js}"></script>
+    <script th:src="@{/js/admin/admin-core.js}"></script>
         <script th:src="@{/js/admin/admin-products.js}"></script>
         <script th:src="@{/js/admin/admin-categories.js}"></script>
         <script th:src="@{/js/admin/admin-workers.js}"></script>

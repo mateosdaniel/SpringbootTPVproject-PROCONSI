@@ -35,23 +35,34 @@ public class ProductSpecification {
 
             // 1. Global keyword search
             if (search != null && !search.trim().isEmpty()) {
-                String searchParam = search.trim();
-                String searchPattern = "%" + searchParam.toLowerCase() + "%";
-                
-                // Search in both Spanish and English names
-                Predicate nameEsPredicate = cb.like(cb.lower(root.get("nameEs")), searchPattern);
-                Predicate nameEnPredicate = cb.like(cb.lower(root.get("nameEn")), searchPattern);
-                
-                // Search in both Spanish and English descriptions
-                Predicate descEsPredicate = cb.like(cb.lower(root.get("descriptionEs")), searchPattern);
-                Predicate descEnPredicate = cb.like(cb.lower(root.get("descriptionEn")), searchPattern);
+                String[] tokens = search.trim().toLowerCase().split("\\s+");
 
-                try {
-                    Long idSearch = Long.parseLong(searchParam);
-                    Predicate idPredicate = cb.equal(root.get("id"), idSearch);
-                    predicates.add(cb.or(nameEsPredicate, nameEnPredicate, descEsPredicate, descEnPredicate, idPredicate));
-                } catch (NumberFormatException e) {
-                    predicates.add(cb.or(nameEsPredicate, nameEnPredicate, descEsPredicate, descEnPredicate));
+                if (tokens.length == 1) {
+                    // Single token: keep original broad search (name + description + ID)
+                    String searchPattern = "%" + tokens[0] + "%";
+                    Predicate nameEsPredicate = cb.like(cb.lower(root.get("nameEs")), searchPattern);
+                    Predicate nameEnPredicate = cb.like(cb.lower(root.get("nameEn")), searchPattern);
+                    Predicate descEsPredicate = cb.like(cb.lower(root.get("descriptionEs")), searchPattern);
+                    Predicate descEnPredicate = cb.like(cb.lower(root.get("descriptionEn")), searchPattern);
+
+                    try {
+                        Long idSearch = Long.parseLong(tokens[0]);
+                        Predicate idPredicate = cb.equal(root.get("id"), idSearch);
+                        predicates.add(cb.or(nameEsPredicate, nameEnPredicate, descEsPredicate, descEnPredicate, idPredicate));
+                    } catch (NumberFormatException e) {
+                        predicates.add(cb.or(nameEsPredicate, nameEnPredicate, descEsPredicate, descEnPredicate));
+                    }
+                } else {
+                    // Multi-token: each token must appear in at least one of the name fields.
+                    // All tokens are AND'd so "Pro 1" requires both "pro" AND "1" to be present.
+                    // Order is irrelevant: "1 Pro" also matches "Producto de prueba 1".
+                    for (String token : tokens) {
+                        String pattern = "%" + token + "%";
+                        Predicate nameEsMatch = cb.like(cb.lower(root.get("nameEs")), pattern);
+                        Predicate nameEnMatch = cb.like(cb.lower(root.get("nameEn")), pattern);
+                        // Each token must appear in at least one name field
+                        predicates.add(cb.or(nameEsMatch, nameEnMatch));
+                    }
                 }
             }
 

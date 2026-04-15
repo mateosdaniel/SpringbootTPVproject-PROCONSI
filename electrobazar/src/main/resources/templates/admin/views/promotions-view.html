@@ -47,12 +47,8 @@
                                 <td th:text="${promo.validUntil != null ? promo.validUntil : '—'}">—</td>
                                 <td style="text-align:right">
                                     <div style="display:flex;gap:0.4rem;justify-content:flex-end">
-                                        <button class="btn-icon" th:title="#{common.edit}" th:data-id="${promo.id}"
-                                            th:data-name="${promo.name}" th:data-nvalue="${promo.nValue}"
-                                            th:data-mvalue="${promo.mValue}" th:data-active="${promo.active}"
-                                            th:data-from="${promo.validFrom ?: ''}"
-                                            th:data-until="${promo.validUntil ?: ''}"
-                                            onclick="openPromotionModal(this)">
+                                        <button class="btn-icon" th:title="#{common.edit}"
+                                            th:onclick="'openPromotionModal(' + ${promo.id} + ')'">
                                             <i class="bi bi-pencil"></i>
                                         </button>
                                         <button class="btn-icon danger" th:title="#{common.delete}"

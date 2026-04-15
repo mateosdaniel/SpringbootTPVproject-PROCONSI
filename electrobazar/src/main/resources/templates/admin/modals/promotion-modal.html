@@ -61,22 +61,22 @@
                             </div>
 
                             <!-- Product Restriction Section -->
-                            <div class="mt-2 pt-3" style="border-top: 1px diashed var(--border);">
+                            <div class="mt-2 pt-3" style="border-top: 1px dashed var(--border);">
                                 <label class="form-label small fw-bold"><i class="bi bi-box-seam me-1"></i> <span
                                         th:text="#{admin.promotions.restrict_products}">Restringir a productos
                                         (Opcional)</span></label>
                                 <div class="position-relative">
-                                    <div class="input-group input-group-sm mb-2">
+                                    <div class="input-group input-group-sm mb-1">
                                         <span class="input-group-text bg-primary border-border text-muted"><i
                                                 class="bi bi-search"></i></span>
                                         <input type="text" id="promoProductSearch" class="form-control border-border"
                                             th:placeholder="#{admin.common.searchproduct.placeholder}"
-                                            autocomplete="off" onfocus="searchPromoProducts(this.value, true)"
-                                            oninput="searchPromoProducts(this.value)">
+                                            autocomplete="off">
                                     </div>
-                                    <div id="promoProductSearchResults"
-                                        class="list-group position-absolute w-100 shadow"
-                                        style="z-index: 2100; display: none; max-height: 300px; overflow-y: auto; border: 1px solid var(--border); background: var(--surface);">
+                                    <!-- Premium Search Dropdown -->
+                                    <div id="promoProductSearchResults" class="search-dropdown shadow-lg" 
+                                         style="display: none; position: absolute; top: calc(100% + 4px); left: 0; width: 100%; z-index: 2050; background: var(--secondary); border: 1px solid var(--border); border-radius: 10px; max-height: 350px; overflow-y: auto;">
+                                         <div class="autocomplete-results-list p-2"></div>
                                     </div>
                                 </div>
                                 <div id="selectedPromoProducts" class="d-flex flex-wrap gap-2 mt-2"></div>

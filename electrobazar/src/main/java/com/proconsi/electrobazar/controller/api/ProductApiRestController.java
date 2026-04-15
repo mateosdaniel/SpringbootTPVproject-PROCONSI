@@ -96,11 +96,11 @@ public class ProductApiRestController {
      */
     @GetMapping("/search")
     public ResponseEntity<org.springframework.data.domain.Page<Product>> search(
-            @RequestParam String name,
+            @RequestParam(value = "q") String q,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size) {
+            @RequestParam(defaultValue = "15") int size) {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        return ResponseEntity.ok(productService.getFilteredProducts(name, null, null, true, pageable));
+        return ResponseEntity.ok(productService.getFilteredProducts(q, null, null, true, pageable));
     }
 
     /**

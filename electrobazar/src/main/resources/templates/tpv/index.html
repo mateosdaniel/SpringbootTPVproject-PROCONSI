@@ -14,7 +14,8 @@
         href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap"
         rel="stylesheet">
     <th:block th:replace="~{fragments/theme :: themeScript}" />
-    <link rel="stylesheet" th:href="@{/css/tpv/tpv-main.css(v=2.2)}">
+    <link rel="stylesheet" th:href="@{/css/common/product-search.css}">
+    <link rel="stylesheet" th:href="@{/css/tpv/tpv-main.css(v=4.9)}">
     <style>
         .disabled-tpv {
             opacity: 0.55;
@@ -22,10 +23,11 @@
             pointer-events: none !important;
             cursor: not-allowed !important;
         }
-        
+
         /* Favoritos Hover & Colors */
         .product-favorite-btn {
-            color: #FFD700; /* Dorado para ambas */
+            color: #FFD700;
+            /* Dorado para ambas */
             transition: all 0.2s ease;
             position: absolute;
             top: 8px;
@@ -34,25 +36,187 @@
             border-radius: 50%;
             z-index: 10;
         }
+
         .product-favorite-btn.bi-star-fill {
-            color: #FFD700 !important; /* Gold corregido */
+            color: #FFD700 !important;
+            /* Gold corregido */
         }
+
         .product-favorite-btn:hover {
             transform: scale(1.3);
             background: rgba(var(--accent-rgb), 0.1);
         }
+
         .product-favorite-btn.bi-star:hover::before {
             content: "\F588";
         }
-        
+
         .favorite-pulse {
             animation: starPulse 0.4s ease;
         }
+
         @keyframes starPulse {
-            0%   { transform: scale(1);   }
-            50%  { transform: scale(1.6); }
-            100% { transform: scale(1);   }
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.6);
+            }
+
+            100% {
+                transform: scale(1);
+            }
         }
+
+        /* Search Dropdown Premium Styles */
+        .search-dropdown {
+            background: var(--secondary) !important;
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border) !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+            animation: slideDown 0.2s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .search-result-item:hover {
+            background: rgba(var(--accent-rgb), 0.1) !important;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none !important;
+        }
+
+        #searchInput:focus+i {
+            color: var(--accent) !important;
+        }
+
+        /* ── TPV Header Density Reduction ── */
+        /* Scoped only to the top bar — nothing else is affected.
+           font-size rules intentionally omit !important so the
+           Preferences menu (font family/size) is respected. */
+        header.tpv-header {
+            padding: 0 0.85rem !important;
+            height: 58px !important;
+            min-height: 58px !important;
+        }
+
+        header.tpv-header .btn-action-tpv {
+            height: 33px !important;
+            font-size: 0.8rem;   /* no !important — preferences can override */
+            padding: 0 0.7rem !important;
+        }
+
+        header.tpv-header .btn-action-tpv i {
+            font-size: 0.95rem;  /* no !important */
+        }
+
+        header.tpv-header .btn-action-tpv.p-0 {
+            width: 33px !important;
+            padding: 0 !important;
+        }
+
+        header.tpv-header .tpv-logo img {
+            width: 28px !important;
+            height: 28px !important;
+        }
+
+        header.tpv-header .tpv-logo span {
+            font-size: 0.95rem;  /* no !important */
+        }
+
+        header.tpv-header .worker-info {
+            padding: 0.3rem 0.7rem !important;
+        }
+
+        header.tpv-header .worker-info span {
+            font-size: 0.8rem;   /* no !important */
+        }
+
+        header.tpv-header .header-search-container {
+            max-width: 360px !important;
+        }
+
+        header.tpv-header .header-search {
+            padding: 0 0.8rem !important;
+        }
+
+        header.tpv-header #searchInput {
+            height: 34px !important;
+        }
+
+        header.tpv-header .header-stats {
+            font-size: 0.75rem;  /* no !important */
+            gap: 0.7rem !important;
+        }
+
+        header.tpv-header .header-stats strong {
+            font-size: 0.85rem;  /* no !important */
+        }
+
+        header.tpv-header .btn-cash-close,
+        header.tpv-header .btn-cash-open {
+            font-size: 0.8rem;   /* no !important */
+            padding: 0.35rem 0.75rem !important;
+        }
+
+        header.tpv-header .hamburger-btn {
+            width: 34px !important;
+            height: 34px !important;
+        }
+
+        header.tpv-header #connectivity-led {
+            padding: 0.3rem 0.65rem !important;
+        }
+
+        header.tpv-header #connectivity-led .led-dot {
+            width: 8px !important;
+            height: 8px !important;
+        }
+
+        /* Tighten gaps between header sections */
+        header.tpv-header>.d-flex,
+        header.tpv-header>div {
+            gap: 0.5rem !important;
+        }
+
+        /* ── Left action buttons: match right-side button size ── */
+        header.tpv-header #tpvLockBtn,
+        header.tpv-header #adminLockBtn {
+            width: 36px !important;
+            height: 36px !important;
+        }
+
+        header.tpv-header #tpvLockBtn i,
+        header.tpv-header #adminLockBtn i {
+            font-size: 1.05rem;
+        }
+
+        /* Inventory link (has text + icon like right buttons) */
+        header.tpv-header a.btn-action-tpv[href*="productos"] {
+            height: 36px !important;
+            padding: 0 0.8rem !important;
+        }
+
+        /* LED indicator same height as buttons */
+        header.tpv-header #connectivity-led {
+            height: 36px !important;
+            padding: 0 0.7rem !important;
+            display: flex;
+            align-items: center;
+        }
+
     </style>
 </head>
 
@@ -77,50 +241,59 @@
                 </div>
 
                 <!-- Grupo de Estado y Acciones (Mantienen su gap actual) -->
-                    <!-- Grupo de Estado y Acciones -->
-                    <div class="d-flex align-items-center gap-2">
-                        <!-- Connectivity LED Indicator -->
-                        <div id="connectivity-led" class="online" th:title="#{tpv.header.connectivity.ok}">
-                            <span class="led-dot"></span>
-                            <span class="led-text" th:text="#{tpv.header.online}">Online</span>
-                        </div>
-
-                        <!-- Botones de Acción -->
-                        <button class="btn-action-tpv p-0" id="tpvLockBtn" th:title="#{tpv.header.lock}" onclick="lockTPV()" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: var(--text-main); cursor: pointer; transition: all 0.2s ease;">
-                            <i class="bi bi-lock-fill"></i>
-                        </button>
-
-                        <button th:if="${session.worker.getEffectivePermissions().contains('ADMIN_ACCESS') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}"
-                            class="btn-action-tpv p-0" id="adminLockBtn" th:title="#{tpv.header.admin}"
-                            onclick="openAdminPinModal()">
-                            <i class="bi bi-shield-lock"></i>
-                        </button>
-
-                        <a th:if="${session.worker.getEffectivePermissions().contains('MANAGE_PRODUCTS_TPV') or session.worker.getEffectivePermissions().contains('ADMIN_ACCESS') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}"
-                            th:href="@{/productos-categorias}" class="btn-action-tpv"
-                            th:title="#{tpv.header.inventory.tooltip}">
-                            <i class="bi bi-box-seam"></i> <span th:text="#{tpv.inventory}">Inventario</span>
-                        </a>
+                <!-- Grupo de Estado y Acciones -->
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Connectivity LED Indicator -->
+                    <div id="connectivity-led" class="online" th:title="#{tpv.header.connectivity.ok}">
+                        <span class="led-dot"></span>
+                        <span class="led-text" th:text="#{tpv.header.online}">Online</span>
                     </div>
+
+                    <!-- Botones de Acción -->
+                    <button class="btn-action-tpv p-0" id="tpvLockBtn" th:title="#{tpv.header.lock}" onclick="lockTPV()">
+                        <i class="bi bi-lock-fill"></i>
+                    </button>
+
+                    <button
+                        th:if="${session.worker.getEffectivePermissions().contains('ADMIN_ACCESS') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}"
+                        class="btn-action-tpv p-0" id="adminLockBtn" th:title="#{tpv.header.admin}"
+                        onclick="openAdminPinModal()">
+                        <i class="bi bi-shield-lock"></i>
+                    </button>
+
+                    <a th:if="${session.worker.getEffectivePermissions().contains('MANAGE_PRODUCTS_TPV') or session.worker.getEffectivePermissions().contains('ADMIN_ACCESS') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}"
+                        th:href="@{/productos-categorias}" class="btn-action-tpv"
+                        th:title="#{tpv.header.inventory.tooltip}">
+                        <i class="bi bi-box-seam"></i> <span th:text="#{tpv.inventory}">Inventario</span>
+                    </a>
                 </div>
             </div>
         </div>
+        </div>
 
         <!-- Centro: Buscador -->
-        <div class="header-search d-flex gap-2" style="max-width: 400px; width: 100%;">
-            <i class="bi bi-search btn-search" id="searchIcon"></i>
-            <input type="text" id="searchInput" class="form-control" th:placeholder="#{tpv.search.placeholder}"
-                autocomplete="off">
+        <div class="header-search-container position-relative" style="max-width: 450px; width: 100%;">
+            <div class="header-search d-flex align-items-center gap-2"
+                style="background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 0.2rem 1rem; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <i class="bi bi-search" style="color: var(--accent); font-size: 1.1rem;"></i>
+                <input type="text" id="searchInput" class="form-control border-0 bg-transparent"
+                    th:placeholder="#{tpv.search.placeholder}" autocomplete="off"
+                    style="box-shadow: none; font-weight: 500; height: 38px; color: var(--text-main);">
+                <i class="bi bi-x-circle-fill" id="clearSearchBtn"
+                    style="color: var(--text-muted); cursor: pointer; display: none;"></i>
+            </div>
         </div>
 
         <!-- Derecha: Acciones y Menú -->
         <div class="d-flex align-items-center gap-3">
             <!-- Stats (solo con permiso) -->
-            <th:block th:if="${session.worker.getEffectivePermissions().contains('CASH_CLOSE') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}">
+            <th:block
+                th:if="${session.worker.getEffectivePermissions().contains('CASH_CLOSE') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}">
                 <div class="header-stats d-flex gap-3"
                     style="border-right: 1px solid var(--border); padding-right: 1rem;"
                     th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
-                    <div><span th:text="#{tpv.stats.sales_today}">Ventas hoy</span> <br><strong th:text="${countToday}">0</strong></div>
+                    <div><span th:text="#{tpv.stats.sales_today}">Ventas hoy</span> <br><strong
+                            th:text="${countToday}">0</strong></div>
                     <div><span th:text="#{tpv.stats.current_cash}">Efectivo en caja</span> <br><strong
                             th:text="${#numbers.formatDecimal(currentCash, 1, 2)} + '€'">0.00€</strong></div>
                     <div><span th:text="#{tpv.stats.total_today}">Total hoy</span> <br><strong
@@ -135,8 +308,8 @@
                     style="background: #2ecc71; color: #fff; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 700; text-decoration: none;">
                     <i class="bi bi-unlock"></i> <span th:text="#{tpv.cash_open}">Abrir caja</span>
                 </a>
-                <button type="button" class="btn-action-tpv flex-shrink-0" id="btnWithdrawal" th:title="#{tpv.withdrawal}"
-                    data-bs-toggle="modal" data-bs-target="#withdrawalModal"
+                <button type="button" class="btn-action-tpv flex-shrink-0" id="btnWithdrawal"
+                    th:title="#{tpv.withdrawal}" data-bs-toggle="modal" data-bs-target="#withdrawalModal"
                     th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
                     <i class="bi bi-cash-stack"></i> <span th:text="#{tpv.withdrawal}">Movimiento</span>
                 </button>
@@ -144,8 +317,9 @@
 
 
             <!-- Ventas en espera badge button -->
-            <button th:if="${session.worker.getEffectivePermissions().contains('HOLD_SALES') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}" id="btnSuspendedList"
-                class="btn-action-tpv" onclick="openSuspendedModal()" th:title="#{tpv.on_hold}"
+            <button
+                th:if="${session.worker.getEffectivePermissions().contains('HOLD_SALES') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}"
+                id="btnSuspendedList" class="btn-action-tpv" onclick="openSuspendedModal()" th:title="#{tpv.on_hold}"
                 th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
                 <i class="bi bi-hourglass-split"></i>
                 <span th:text="#{tpv.on_hold}">En espera</span>
@@ -154,8 +328,9 @@
             </button>
 
             <!-- Devoluciones button -->
-            <button th:if="${session.worker.getEffectivePermissions().contains('RETURNS') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}" type="button"
-                class="btn-action-tpv flex-shrink-0" id="btnReturnSearch" th:title="#{tpv.return}"
+            <button
+                th:if="${session.worker.getEffectivePermissions().contains('RETURNS') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}"
+                type="button" class="btn-action-tpv flex-shrink-0" id="btnReturnSearch" th:title="#{tpv.return}"
                 data-bs-toggle="modal" data-bs-target="#returnSearchModal"
                 style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2);"
                 th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
@@ -167,8 +342,8 @@
                     <i class="bi bi-list"></i>
                 </button>
                 <div class="menu-dropdown" id="menuDropdown">
-                    <a th:if="${session.worker.getEffectivePermissions().contains('PREFERENCES') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}" class="menu-item"
-                        href="/tpv/preferences" style="text-decoration:none;">
+                    <a th:if="${session.worker.getEffectivePermissions().contains('PREFERENCES') or session.worker.getEffectivePermissions().contains('ACCESO_TOTAL_ADMIN')}"
+                        class="menu-item" href="/tpv/preferences" style="text-decoration:none;">
                         <i class="bi bi-gear"></i> <span th:text="#{tpv.preferences}">Preferencias</span>
                     </a>
                     <a class="menu-item" href="/logout" style="text-decoration:none; color: var(--text-muted);">
@@ -196,7 +371,8 @@
         <!-- TICKET (Derecha) - Cargado antes que productos para evitar saltos, forzando order a 3 inline -->
         <aside class="tpv-ticket" style="order: 3;">
             <div class="ticket-header">
-                <span class="ticket-title"><i class="bi bi-receipt me-1"></i> <span th:text="#{tpv.ticket.title}">Ticket</span></span>
+                <span class="ticket-title"><i class="bi bi-receipt me-1"></i> <span
+                        th:text="#{tpv.ticket.title}">Ticket</span></span>
                 <span class="ticket-count" id="ticketCount">0</span>
             </div>
 
@@ -206,7 +382,8 @@
                         style="background: var(--surface); border: 1px solid var(--border);">
                         <div class="d-flex flex-column overflow-hidden">
                             <div class="d-flex align-items-center gap-2">
-                                <span id="sidebarCustomerName" class="fw-bold truncate" style="font-size: 0.9rem; color: var(--text-main);"></span>
+                                <span id="sidebarCustomerName" class="fw-bold truncate"
+                                    style="font-size: 0.9rem; color: var(--text-main);"></span>
                                 <span id="sidebarTariffBadge" class="badge-tariff-small"></span>
                             </div>
                             <span id="sidebarCustomerTaxId" class="small text-muted" style="font-size: 0.75rem;"></span>
@@ -251,27 +428,27 @@
                 style="padding: 0.35rem 0.75rem; border-bottom: 1px solid var(--border); background: rgba(var(--accent-rgb),0.03); display:flex; align-items:center; gap:0.5rem;"
                 th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
                 <i class="bi bi-tags" style="color: var(--text-muted); font-size:0.8rem;"></i>
-                <span style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap;" th:text="#{tpv.ticket.tariff.label}">Tarifa carrito:</span>
-                <select id="cartTariffSelect"
-                    onchange="onCartTariffChange(this)"
+                <span style="font-size:0.75rem; color:var(--text-muted); white-space:nowrap;"
+                    th:text="#{tpv.ticket.tariff.label}">Tarifa carrito:</span>
+                <select id="cartTariffSelect" onchange="onCartTariffChange(this)"
                     style="flex:1; font-size:0.76rem; background:var(--primary); color:var(--text-main); border:1px solid var(--border); border-radius:6px; padding:0.15rem 0.3rem; cursor:pointer;">
-                    <option value="" data-discount="0" th:text="#{tpv.ticket.tariff.auto}">— Auto (cliente / MINORISTA) —</option>
+                    <option value="" data-discount="0" th:text="#{tpv.ticket.tariff.auto}">— Auto (cliente / MINORISTA)
+                        —</option>
                     <th:block th:each="tariff : ${tariffs}">
-                        <option th:if="${tariff.active}"
-                            th:value="${tariff.id}"
+                        <option th:if="${tariff.active}" th:value="${tariff.id}"
                             th:text="${tariff.name + (tariff.discountPercentage > 0 ? ' -' + #numbers.formatDecimal(tariff.discountPercentage,1,0) + '%' : '')}"
                             th:attr="data-discount=${tariff.discountPercentage}">MINORISTA</option>
                     </th:block>
                 </select>
-                <span id="cartTariffClearBtn"
-                    onclick="clearCartTariff()"
+                <span id="cartTariffClearBtn" onclick="clearCartTariff()"
                     style="display:none; cursor:pointer; color:#ef4444; font-size:0.85rem;"
                     th:title="#{tpv.ticket.tariff.remove}">
                     <i class="bi bi-x-circle-fill"></i>
                 </span>
             </div>
             <div class="ticket-lines" id="ticketLines" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
-                <div class="ticket-empty" id="ticketEmpty"><i class="bi bi-cart"></i><span th:text="#{tpv.ticket.empty}">Pulsa un producto</span>
+                <div class="ticket-empty" id="ticketEmpty"><i class="bi bi-cart"></i><span
+                        th:text="#{tpv.ticket.empty}">Pulsa un producto</span>
                 </div>
             </div>
 
@@ -282,38 +459,49 @@
                     <span id="discountLabel" th:text="#{tpv.ticket.discount}">Descuento</span>
                     <span id="discountAmount">-0.00€</span>
                 </div>
-                <div id="reRow" style="display:none; justify-content:space-between; padding:0.25rem 0; font-size:0.82rem; color:#e67e22;">
+                <div id="reRow"
+                    style="display:none; justify-content:space-between; padding:0.25rem 0; font-size:0.82rem; color:#e67e22;">
                     <span th:text="#{tpv.ticket.re}">Recargo Equiv.</span>
                     <span id="reAmount">0.00€</span>
                 </div>
                 <div class="mt-2" id="couponSection">
-                    <div class="input-group input-group-sm mb-1" style="border: 1px dashed var(--border); border-radius: 6px; overflow: hidden; background: rgba(var(--accent-rgb), 0.05);">
-                        <span class="input-group-text border-0" style="background: transparent; color: var(--text-muted);"><i class="bi bi-ticket-perforated"></i></span>
-                        <input type="text" id="couponInput" class="form-control border-0" th:placeholder="#{tpv.ticket.coupon.placeholder}"
-                            style="background: transparent; box-shadow: none; font-size: 0.8rem; height: 32px;" autocomplete="off">
+                    <div class="input-group input-group-sm mb-1"
+                        style="border: 1px dashed var(--border); border-radius: 6px; overflow: hidden; background: rgba(var(--accent-rgb), 0.05);">
+                        <span class="input-group-text border-0"
+                            style="background: transparent; color: var(--text-muted);"><i
+                                class="bi bi-ticket-perforated"></i></span>
+                        <input type="text" id="couponInput" class="form-control border-0"
+                            th:placeholder="#{tpv.ticket.coupon.placeholder}"
+                            style="background: transparent; box-shadow: none; font-size: 0.8rem; height: 32px;"
+                            autocomplete="off">
                         <button class="btn btn-sm border-0" type="button" onclick="applyCoupon()"
-                            style="background: var(--surface); color: var(--accent); font-weight: 700; font-size: 0.75rem; padding: 0 0.75rem;" th:text="#{common.apply}">Aplicar</button>
+                            style="background: var(--surface); color: var(--accent); font-weight: 700; font-size: 0.75rem; padding: 0 0.75rem;"
+                            th:text="#{common.apply}">Aplicar</button>
                     </div>
                 </div>
-                <div id="autoPromoRow" style="display:none; justify-content:space-between; padding:0.25rem 0; font-size:0.82rem; color:var(--accent); font-weight: 600;">
+                <div id="autoPromoRow"
+                    style="display:none; justify-content:space-between; padding:0.25rem 0; font-size:0.82rem; color:var(--accent); font-weight: 600;">
                     <div class="d-flex align-items-center gap-1">
                         <i class="bi bi-stars"></i>
                         <span id="autoPromoLabel" th:text="#{tpv.ticket.promo.label}">PROMO</span>
                     </div>
                     <span id="autoPromoAmountDisplay">-0.00€</span>
                 </div>
-                <div id="couponRow" style="display:none; justify-content:space-between; padding:0.25rem 0; font-size:0.82rem; color:#27ae60; border-top: 1px dashed var(--border);">
+                <div id="couponRow"
+                    style="display:none; justify-content:space-between; padding:0.25rem 0; font-size:0.82rem; color:#27ae60; border-top: 1px dashed var(--border);">
                     <div class="d-flex align-items-center gap-1">
                         <i class="bi bi-ticket-perforated"></i>
                         <span id="couponLabel" th:text="#{tpv.ticket.coupon.label}">CUPÓN</span>
-                        <button type="button" class="btn btn-sm text-danger p-0 ms-1" onclick="removeCoupon()" th:title="#{tpv.ticket.coupon.remove}" style="font-size: 0.8rem;">
+                        <button type="button" class="btn btn-sm text-danger p-0 ms-1" onclick="removeCoupon()"
+                            th:title="#{tpv.ticket.coupon.remove}" style="font-size: 0.8rem;">
                             <i class="bi bi-x-circle"></i>
                         </button>
                     </div>
                     <span id="couponAmountDisplay">-0.00€</span>
                 </div>
                 <div class="ticket-total-row d-flex justify-content-between align-items-center py-2">
-                    <span class="h5 mb-0" th:text="#{common.total}">Total</span><span class="h3 mb-0" id="ticketTotal">0.00€</span>
+                    <span class="h5 mb-0" th:text="#{common.total}">Total</span><span class="h3 mb-0"
+                        id="ticketTotal">0.00€</span>
                 </div>
 
                 <div class="payment-selector" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
@@ -392,8 +580,7 @@
                     <p>No hay productos disponibles</p>
                 </div>
                 <div th:each="product : ${products}" class="product-card"
-                    th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''"
-                    style="position: relative;"
+                    th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''" style="position: relative;"
                     th:attr="data-id=${product.id}, 
                              data-name=${product.name}, 
                              data-price=${product.price}, 
@@ -404,9 +591,8 @@
                              data-decimal-places=${product.measurementUnit != null ? product.measurementUnit.decimalPlaces : 0},
                              data-prompt-on-add=${product.measurementUnit != null ? (product.measurementUnit.promptOnAdd or product.measurementUnit.decimalPlaces > 0) : false},
                              data-unit-symbol=${product.measurementUnit != null ? product.measurementUnit.symbol : 'uds.'}">
-                    <i class="bi bi-star product-favorite-btn" 
-                       th:attr="data-product-id=${product.id}"
-                       style="position: absolute; top: 8px; left: 8px; z-index: 10; font-size: 1.25rem; cursor: pointer; text-shadow: 0 0 3px rgba(0,0,0,0.3);"></i>
+                    <i class="bi bi-star product-favorite-btn" th:attr="data-product-id=${product.id}"
+                        style="position: absolute; top: 8px; left: 8px; z-index: 10; font-size: 1.25rem; cursor: pointer; text-shadow: 0 0 3px rgba(0,0,0,0.3);"></i>
                     <div class="product-image-container">
                         <img th:if="${product.imageUrl}" th:src="${product.imageUrl}" alt="Imagen producto"
                             class="product-image">
@@ -429,31 +615,36 @@
     <!-- Modal para Introducir Cantidad -->
     <div class="modal fade" id="quantityModal" tabindex="-1">
         <div class="modal-dialog modal-sm modal-dialog-centered">
-            <div class="modal-content" style="background: var(--secondary); color: var(--text-main); border-radius: 16px; border: 1px solid var(--border); overflow: hidden;">
+            <div class="modal-content"
+                style="background: var(--secondary); color: var(--text-main); border-radius: 16px; border: 1px solid var(--border); overflow: hidden;">
                 <div class="modal-header border-0 pb-0">
                     <h6 class="modal-title fw-bold" th:text="#{tpv.quantity_modal.title}">Introducir Cantidad</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter: var(--close-filter, invert(1));"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        style="filter: var(--close-filter, invert(1));"></button>
                 </div>
                 <div class="modal-body text-center p-4">
-                    <div id="quantity_productName" class="fw-bold mb-3" style="font-size: 1.1rem; color: var(--accent);"></div>
+                    <div id="quantity_productName" class="fw-bold mb-3"
+                        style="font-size: 1.1rem; color: var(--accent);"></div>
                     <div class="mb-4">
-                        <label for="quantityInput" class="form-label small text-muted d-block text-start" th:text="#{tpv.quantity_modal.label}">Cantidad</label>
+                        <label for="quantityInput" class="form-label small text-muted d-block text-start"
+                            th:text="#{tpv.quantity_modal.label}">Cantidad</label>
                         <div class="input-group input-group-lg">
-                            <input type="number" id="quantityInput" class="form-control text-center" 
-                                   placeholder="0.000" step="any" min="0.001" autocomplete="off"
-                                   style="background: var(--primary); color: var(--text-main); border-color: var(--border); font-weight: 700; font-size: 1.5rem;">
-                            <span class="input-group-text" id="quantity_unitSymbol" 
-                                  style="background: var(--surface); color: var(--text-muted); border-color: var(--border); font-weight: 600;">uds.</span>
+                            <input type="number" id="quantityInput" class="form-control text-center" placeholder="0.000"
+                                step="any" min="0.001" autocomplete="off"
+                                style="background: var(--primary); color: var(--text-main); border-color: var(--border); font-weight: 700; font-size: 1.5rem;">
+                            <span class="input-group-text" id="quantity_unitSymbol"
+                                style="background: var(--surface); color: var(--text-muted); border-color: var(--border); font-weight: 600;">uds.</span>
                         </div>
                         <div class="mt-2 text-start">
                             <small class="text-muted">
-                                <span th:text="#{tpv.quantity_modal.stock_available}">Stock disponible</span>: 
+                                <span th:text="#{tpv.quantity_modal.stock_available}">Stock disponible</span>:
                                 <span id="quantity_stockAvailable" class="fw-bold">0</span>
                             </small>
                         </div>
                     </div>
                     <div class="d-grid">
-                        <button type="button" class="btn btn-accent btn-lg fw-bold" id="confirmQuantityBtn" th:text="#{tpv.quantity_modal.add}">Añadir al Ticket</button>
+                        <button type="button" class="btn btn-accent btn-lg fw-bold" id="confirmQuantityBtn"
+                            th:text="#{tpv.quantity_modal.add}">Añadir al Ticket</button>
                     </div>
                 </div>
             </div>
@@ -475,21 +666,25 @@
                         <i class="bi bi-shield-lock fs-1 text-accent"></i>
                     </div>
                     <div class="mb-4">
-                        <label for="adminPinInput" class="form-label fw-bold" th:text="#{tpv.admin_modal.pin_label}">PIN de Seguridad</label>
+                        <label for="adminPinInput" class="form-label fw-bold" th:text="#{tpv.admin_modal.pin_label}">PIN
+                            de Seguridad</label>
                         <div class="input-group">
                             <input type="password" id="adminPinInput" class="form-control text-center fs-4"
                                 th:placeholder="#{tpv.admin_modal.pin_placeholder}" maxlength="4" autocomplete="off"
                                 style="background: var(--primary); color: var(--text-main); border-color: var(--border); letter-spacing: 0.5rem;">
-                            <button class="btn btn-outline-secondary border-start-0" type="button" onclick="togglePasswordVisibility('adminPinInput', this)" 
+                            <button class="btn btn-outline-secondary border-start-0" type="button"
+                                onclick="togglePasswordVisibility('adminPinInput', this)"
                                 style="border-color: var(--border); background: var(--surface); color: var(--text-muted);">
                                 <i class="bi bi-eye"></i>
                             </button>
                         </div>
                     </div>
                     <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-accent fw-bold" onclick="validateAdminPin()" th:text="#{tpv.admin_modal.enter}">Entrar</button>
+                        <button type="button" class="btn btn-accent fw-bold" onclick="validateAdminPin()"
+                            th:text="#{tpv.admin_modal.enter}">Entrar</button>
                         <button type="button" class="btn" data-bs-dismiss="modal"
-                            style="background: var(--primary); border-color: var(--border); color: var(--text-main);" th:text="#{common.cancel}">Cancelar</button>
+                            style="background: var(--primary); border-color: var(--border); color: var(--text-main);"
+                            th:text="#{common.cancel}">Cancelar</button>
                     </div>
                 </div>
             </div>
@@ -502,7 +697,8 @@
             <div class="modal-content"
                 style="background: var(--secondary); color: var(--text-main); border-color: var(--border);">
                 <div class="modal-header" style="border-color: var(--border);">
-                    <h5 class="modal-title"><i class="bi bi-cart-check me-2"></i> <span th:text="#{tpv.checkout.title}">Finalizar Venta</span></h5>
+                    <h5 class="modal-title"><i class="bi bi-cart-check me-2"></i> <span
+                            th:text="#{tpv.checkout.title}">Finalizar Venta</span></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"
                         style="filter: var(--close-filter, invert(1));"></button>
                 </div>
@@ -523,7 +719,8 @@
                                         <small id="checkoutCustomerTaxId" style="color: var(--text-muted);"></small>
                                     </div>
                                 </div>
-                                <div class="badge bg-success rounded-pill px-3 py-2" th:text="#{tpv.checkout.for_invoice}">PARA FACTURA</div>
+                                <div class="badge bg-success rounded-pill px-3 py-2"
+                                    th:text="#{tpv.checkout.for_invoice}">PARA FACTURA</div>
                             </div>
                         </div>
                         <div id="summaryNoCustomer" class="p-3 rounded text-center border-dashed"
@@ -536,7 +733,8 @@
 
                     <!-- Efectivo: Cantidad recibida -->
                     <div id="cashInputSection" class="mb-4" style="display: none;">
-                        <label class="form-label fw-bold" th:text="#{tpv.checkout.received_cash}">Cantidad recibida (Efectivo)</label>
+                        <label class="form-label fw-bold" th:text="#{tpv.checkout.received_cash}">Cantidad recibida
+                            (Efectivo)</label>
                         <div class="input-group input-group-lg">
                             <span class="input-group-text"
                                 style="background: var(--surface); color: var(--text-main); border-color: var(--border);"><i
@@ -546,14 +744,16 @@
                                 style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
                             <button class="btn btn-outline-secondary" type="button" onclick="setExactAmount()"
                                 style="border-color: var(--border); background: var(--surface); color: var(--text-main); font-size: 0.9rem; font-weight: 600; border-left: none; border-right: none;">
-                                <i class="bi bi-check2-all me-1 text-accent"></i> <span th:text="#{tpv.checkout.exact}">Exacto</span>
+                                <i class="bi bi-check2-all me-1 text-accent"></i> <span
+                                    th:text="#{tpv.checkout.exact}">Exacto</span>
                             </button>
                             <span class="input-group-text"
                                 style="background: var(--surface); color: var(--text-main); border-color: var(--border);"><i
                                     class="bi bi-currency-euro"></i></span>
                         </div>
                         <div class="mt-2 d-flex justify-content-between align-items-center">
-                            <small style="color: var(--text-main);" th:text="#{tpv.checkout.change} + ':'">Cambio a devolver:</small>
+                            <small style="color: var(--text-main);" th:text="#{tpv.checkout.change} + ':'">Cambio a
+                                devolver:</small>
                             <span id="changeAmount" class="fw-bold fs-5 text-success">0.00€</span>
                         </div>
                     </div>
@@ -562,7 +762,8 @@
                     <div id="mixedInputSection" class="mb-4" style="display: none;">
                         <div class="row gx-3">
                             <div class="col-6">
-                                <label class="form-label fw-bold small text-muted" th:text="#{tpv.checkout.mixed.card}">A pagar en Tarjeta</label>
+                                <label class="form-label fw-bold small text-muted"
+                                    th:text="#{tpv.checkout.mixed.card}">A pagar en Tarjeta</label>
                                 <div class="input-group input-group-lg">
                                     <span class="input-group-text"
                                         style="background: var(--surface); border-color: var(--border);"><i
@@ -573,7 +774,8 @@
                                 </div>
                             </div>
                             <div class="col-6">
-                                <label class="form-label fw-bold small text-muted" th:text="#{tpv.checkout.mixed.cash}">A pagar en Efectivo</label>
+                                <label class="form-label fw-bold small text-muted"
+                                    th:text="#{tpv.checkout.mixed.cash}">A pagar en Efectivo</label>
                                 <div class="input-group input-group-lg">
                                     <span class="input-group-text"
                                         style="background: var(--surface); border-color: var(--border);"><i
@@ -587,7 +789,8 @@
                         <div class="mt-3 d-flex justify-content-between align-items-center"
                             style="background: var(--surface); padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border);">
                             <div>
-                                <small style="display: block; color: var(--text-muted); font-size: 0.8rem;" th:text="#{tpv.checkout.mixed.remaining}">Restante /
+                                <small style="display: block; color: var(--text-muted); font-size: 0.8rem;"
+                                    th:text="#{tpv.checkout.mixed.remaining}">Restante /
                                     Cambio</small>
                                 <span id="mixedRemainingAmount" class="fw-bold fs-5 text-danger">0.00€ faltan</span>
                             </div>
@@ -620,10 +823,12 @@
 
                 <div class="modal-footer" style="border-color: var(--border);">
                     <button type="button" class="btn" data-bs-dismiss="modal"
-                        style="background: var(--primary); border-color: var(--border); color: var(--text-main);" th:text="#{common.cancel}">Cancelar</button>
+                        style="background: var(--primary); border-color: var(--border); color: var(--text-main);"
+                        th:text="#{common.cancel}">Cancelar</button>
                     <button type="button" class="btn" id="btnConfirmSale"
                         style="background: var(--accent); color: var(--primary);"
-                        onclick="processSaleWithInvoiceValidation()"><span th:text="#{tpv.ticket.checkout}">Cobrar</span> <span id="cobrarAmount"
+                        onclick="processSaleWithInvoiceValidation()"><span
+                            th:text="#{tpv.ticket.checkout}">Cobrar</span> <span id="cobrarAmount"
                             class="fw-bold fs-5 ms-2"></span></button>
                 </div>
             </div>
@@ -637,12 +842,13 @@
     <!-- ── PIN MODAL (ADMIN ACCESS) ── -->
     <div class="pin-overlay" id="adminPinOverlay">
         <div class="pin-panel">
-            <h4><i class="bi bi-shield-lock" style="color:var(--accent);margin-right:0.4rem"></i><span th:text="#{tpv.admin_modal.title}">Administración</span></h4>
+            <h4><i class="bi bi-shield-lock" style="color:var(--accent);margin-right:0.4rem"></i><span
+                    th:text="#{tpv.admin_modal.title}">Administración</span></h4>
             <p th:text="#{tpv.admin_modal.pin_label}">Introduce el PIN de acceso</p>
             <div style="position: relative; width: 100%; margin-bottom: 1rem;">
                 <input type="password" class="pin-input" id="pinInput" maxlength="10" autocomplete="off"
                     inputmode="numeric" style="padding-right: 45px; width: 100%;">
-                <button type="button" onclick="togglePasswordVisibility('pinInput', this)" 
+                <button type="button" onclick="togglePasswordVisibility('pinInput', this)"
                     style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">
                     <i class="bi bi-eye"></i>
                 </button>
@@ -671,16 +877,18 @@
                 </div>
                 <div class="modal-body">
                     <label class="form-label" style="font-size:0.85rem; color: var(--text-muted);"
-                        th:text="#{tpv.on_hold.table.label} + ' (' + #{common.notes_optional} + ')'">Etiqueta (opcional)</label>
+                        th:text="#{tpv.on_hold.table.label} + ' (' + #{common.notes_optional} + ')'">Etiqueta
+                        (opcional)</label>
                     <input type="text" id="suspendLabelInput" class="form-control"
-                        th:placeholder="#{tpv.on_hold.suspend.placeholder}"
-                        placeholder="Ej: Cliente esperando tarjeta" maxlength="100"
+                        th:placeholder="#{tpv.on_hold.suspend.placeholder}" placeholder="Ej: Cliente esperando tarjeta"
+                        maxlength="100"
                         style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
-                    <small style="color: var(--text-muted); font-size:0.78rem;" th:text="#{tpv.on_hold.suspend.help}">Ayuda a identificar la venta en la lista de espera.</small>
+                    <small style="color: var(--text-muted); font-size:0.78rem;"
+                        th:text="#{tpv.on_hold.suspend.help}">Ayuda a identificar la venta en la lista de
+                        espera.</small>
                 </div>
                 <div class="modal-footer" style="border-color: var(--border);">
-                    <button type="button" class="btn" data-bs-dismiss="modal"
-                        th:text="#{common.cancel}"
+                    <button type="button" class="btn" data-bs-dismiss="modal" th:text="#{common.cancel}"
                         style="background: var(--primary); border-color: var(--border); color: var(--text-main);">Cancelar</button>
                     <button type="button" class="btn" id="btnConfirmSuspend" onclick="confirmSuspend()"
                         th:text="#{tpv.on_hold.suspend.confirm}"
@@ -727,8 +935,7 @@
                     <div class="modal-body">
                         <!-- Selector de Tipo -->
                         <div class="mb-4">
-                            <label class="form-label mb-3"
-                                th:text="#{tpv.withdrawal.type_label}"
+                            <label class="form-label mb-3" th:text="#{tpv.withdrawal.type_label}"
                                 style="font-size:1rem; color: var(--text-muted); font-weight: 600;">Tipo de
                                 movimiento</label>
                             <div class="d-flex gap-3">
@@ -751,7 +958,8 @@
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label fw-bold" th:text="#{tpv.withdrawal.amount_label}" style="font-size:1rem; color: var(--text-muted);">Importe
+                            <label class="form-label fw-bold" th:text="#{tpv.withdrawal.amount_label}"
+                                style="font-size:1rem; color: var(--text-muted);">Importe
                                 a mover</label>
                             <div class="input-group input-group-lg">
                                 <span class="input-group-text px-4"
@@ -763,8 +971,7 @@
                         </div>
                         <div class="mb-1">
                             <div class="mb-2">
-                                <label class="form-label"
-                                    th:text="#{tpv.withdrawal.reason_label}"
+                                <label class="form-label" th:text="#{tpv.withdrawal.reason_label}"
                                     style="font-size:1rem; color: var(--text-muted); font-weight: 500;">Motivo del
                                     movimiento (opcional)</label>
                                 <input type="text" name="reason" class="form-control form-control-lg"
@@ -775,11 +982,9 @@
                         </div>
                     </div>
                     <div class="modal-footer" style="border-color: var(--border);">
-                        <button type="button" class="btn" data-bs-dismiss="modal"
-                            th:text="#{common.cancel}"
+                        <button type="button" class="btn" data-bs-dismiss="modal" th:text="#{common.cancel}"
                             style="background: var(--primary); border-color: var(--border); color: var(--text-main);">Cancelar</button>
-                        <button type="submit" class="btn"
-                            th:text="#{common.confirm}"
+                        <button type="submit" class="btn" th:text="#{common.confirm}"
                             style="background: var(--accent); color: var(--primary); font-weight: 600;">Confirmar</button>
                     </div>
                 </form>
@@ -866,8 +1071,7 @@
                         <label class="form-label" style="font-size:0.85rem; color: var(--text-muted);"
                             th:text="#{tpv.return.search.label}">ID de Venta o Número de Ticket</label>
                         <input type="text" id="returnQueryInput" class="form-control"
-                            th:placeholder="#{tpv.return.search.placeholder}"
-                            placeholder="Ej: 123 o T-2026-0001"
+                            th:placeholder="#{tpv.return.search.placeholder}" placeholder="Ej: 123 o T-2026-0001"
                             style="background: var(--primary); color: var(--text-main); border-color: var(--border);">
                     </div>
                     <small style="color: var(--text-muted); font-size:0.78rem;" th:text="#{tpv.return.search.help}">
@@ -875,8 +1079,7 @@
                     </small>
                 </div>
                 <div class="modal-footer" style="border-color: var(--border);">
-                    <button type="button" class="btn" data-bs-dismiss="modal"
-                        th:text="#{common.cancel}"
+                    <button type="button" class="btn" data-bs-dismiss="modal" th:text="#{common.cancel}"
                         style="background: var(--primary); border-color: var(--border); color: var(--text-main);">Cancelar</button>
                     <button type="button" class="btn" id="btnSubmitReturnSearch" onclick="handleReturnSearch()"
                         th:text="#{tpv.return.search.confirm}"
@@ -1084,8 +1287,7 @@
         /*]]>*/
     </script>
     <!-- Hidden Translations for JS -->
-    <div id="tpv-js-translations" style="display:none;"
-         th:attr="data-ticket-empty=#{tpv.ticket.empty},
+    <div id="tpv-js-translations" style="display:none;" th:attr="data-ticket-empty=#{tpv.ticket.empty},
                   data-customer-not-found=#{tpv.customer.not_found},
                   data-checkout-missing=#{tpv.checkout.missing},
                   data-checkout-exact=#{tpv.checkout.exact},
@@ -1104,6 +1306,7 @@
                   data-error-network=#{common.error.network}">
     </div>
 
+    <script th:src="@{/js/util/product-autocomplete.js}"></script>
     <script th:src="@{/js/tpv/tpv-main.js(v=2.2)}"></script>
     <!-- ── PIN OVERLAY (LOCK SYSTEM) ── -->
     <div id="pinOverlay"
@@ -1144,7 +1347,8 @@
                 <button onclick="appendPinToSell('7')" class="btn-numpad">7</button>
                 <button onclick="appendPinToSell('8')" class="btn-numpad">8</button>
                 <button onclick="appendPinToSell('9')" class="btn-numpad">9</button>
-                <button onclick="clearPinToSell()" class="btn-numpad text-danger"><i class="bi bi-backspace"></i></button>
+                <button onclick="clearPinToSell()" class="btn-numpad text-danger"><i
+                        class="bi bi-backspace"></i></button>
                 <button onclick="appendPinToSell('0')" class="btn-numpad">0</button>
                 <button id="btnPinSubmit" onclick="submitPinToSell()" class="btn-numpad text-success" disabled><i
                         class="bi bi-check-lg"></i></button>
