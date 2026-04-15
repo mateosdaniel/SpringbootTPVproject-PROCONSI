@@ -19,9 +19,28 @@ public class ReturnSpecification {
                 String lSearch = "%" + search.toLowerCase() + "%";
                 Predicate num = cb.like(cb.lower(root.get("returnNumber")), lSearch);
                 Predicate reason = cb.like(cb.lower(root.get("reason")), lSearch);
-                // Also search in original sale number? (invoice or ticket)
-                // This might be complex as it depends on join.
-                predicates.add(cb.or(num, reason));
+
+                // Subquery for original sale invoice number — avoids JOIN+distinct pagination bug
+                jakarta.persistence.criteria.Subquery<Long> invSub = query.subquery(Long.class);
+                jakarta.persistence.criteria.Root<com.proconsi.electrobazar.model.Invoice> invRoot =
+                        invSub.from(com.proconsi.electrobazar.model.Invoice.class);
+                invSub.select(invRoot.get("id"))
+                      .where(cb.and(
+                          cb.equal(invRoot.get("sale"), root.get("originalSale")),
+                          cb.like(cb.lower(invRoot.get("invoiceNumber")), lSearch)
+                      ));
+
+                // Subquery for original sale ticket number
+                jakarta.persistence.criteria.Subquery<Long> tickSub = query.subquery(Long.class);
+                jakarta.persistence.criteria.Root<com.proconsi.electrobazar.model.Ticket> tickRoot =
+                        tickSub.from(com.proconsi.electrobazar.model.Ticket.class);
+                tickSub.select(tickRoot.get("id"))
+                       .where(cb.and(
+                           cb.equal(tickRoot.get("sale"), root.get("originalSale")),
+                           cb.like(cb.lower(tickRoot.get("ticketNumber")), lSearch)
+                       ));
+
+                predicates.add(cb.or(num, reason, cb.exists(invSub), cb.exists(tickSub)));
             }
 
             if (method != null && !method.isBlank()) {

@@ -196,4 +196,7 @@ public interface SaleRepository extends JpaRepository<Sale, Long>, JpaSpecificat
         @Param("from") LocalDateTime from,
         @Param("to") LocalDateTime to,
         Pageable pageable);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = { "customer", "worker", "invoice", "ticket" })
+    org.springframework.data.domain.Slice<Sale> findSliceBy(org.springframework.data.jpa.domain.Specification<Sale> spec, org.springframework.data.domain.Pageable pageable);
 }

@@ -5,35 +5,49 @@
 
 let currentSalesPage = 0;
 let salesTotalPages = 1;
+let salesFetchController = null; // AbortController for cancelling in-flight requests
 
 async function fetchSalesPage(page) {
     if (page < 0) return;
     currentSalesPage = page;
-    
+
     const search = (document.getElementById('invoiceFilterSearch').value || '').trim();
     const type = document.getElementById('invoiceFilterType').value;
     const method = document.getElementById('invoiceFilterMethod').value;
     const date = document.getElementById('invoiceFilterdate').value;
     const sortBy = (document.getElementById('invoiceSortBy') || {}).value || 'createdAt';
     const sortDir = (document.getElementById('invoiceSortDir') || {}).value || 'desc';
-    
+
     const url = `/api/admin/sales?page=${page}&search=${encodeURIComponent(search)}&type=${type}&method=${method}&date=${date}&sortBy=${sortBy}&sortDir=${sortDir}`;
-    
+
     const tbody = document.getElementById('invoicesTableBody');
     if (tbody) tbody.style.opacity = '0.5';
 
+    console.log("--- DISPARANDO PETICIÓN ---", url);
+
+    if (salesFetchController) salesFetchController.abort();
+    salesFetchController = new AbortController();
+
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, { signal: salesFetchController.signal });
         if (!response.ok) throw new Error('Error de red');
         const data = await response.json();
-        
-        salesTotalPages = data.totalPages;
-        renderSalesTable(data.content);
+
+        console.log("DATOS RECIBIDOS:", data);
+
+        currentSalesPage = data.currentPage;
+        salesTotalPages = data.totalPages || 0;
+
+        renderSalesTable(data.content, data.hasMore);
 
         const labelEl = document.getElementById('invoiceCountLabel');
         if (labelEl) {
             if (search || type || method || date) {
-                labelEl.textContent = `Mostrando ${data.totalElements} ventas/facturas coincidentes.`;
+                if (data.totalElements !== undefined) {
+                    labelEl.textContent = `Mostrando ${data.totalElements} ventas/facturas coincidentes.`;
+                } else {
+                    labelEl.textContent = `Mostrando resultados para "${search}".`;
+                }
             } else {
                 labelEl.textContent = 'Mostrando todas las ventas y facturas.';
             }
@@ -41,6 +55,7 @@ async function fetchSalesPage(page) {
 
         updateSalesPaginationUI(data);
     } catch (error) {
+        if (error.name === 'AbortError') return;
         console.error('Error fetching sales:', error);
         showToast('Error al cargar ventas', 'error');
     } finally {
@@ -48,26 +63,38 @@ async function fetchSalesPage(page) {
     }
 }
 
-function renderSalesTable(sales) {
+function renderSalesTable(sales, hasMore) {
+    console.log("Limpiando tabla y dibujando", (sales ? sales.length : 0), "resultados");
     const tbody = document.getElementById('invoicesTableBody');
     if (!tbody) return;
+
+    // 1. LIMPIEZA TOTAL: Esto garantiza que no veas resultados viejos
     tbody.innerHTML = '';
 
+    // 2. GESTIÓN DE CERO RESULTADOS
     if (!sales || sales.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4">No se encontraron ventas con los filtros aplicados.</td></tr>';
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center py-5">
+                    <div class="py-4">
+                        <i class="bi bi-search" style="font-size: 2rem; color: var(--text-muted); opacity: 0.5;"></i>
+                        <p class="mt-3 mb-0" style="color: var(--text-muted)">No se han encontrado ventas con esos criterios.</p>
+                    </div>
+                </td>
+            </tr>`;
         return;
     }
 
+    // 3. DIBUJADO DE LAS FILAS (Tu código original recuperado)
     sales.forEach(sale => {
         const isCancelled = sale.status === 'CANCELLED';
         const tr = document.createElement('tr');
         tr.className = 'invoice-row';
         tr.style.cursor = 'pointer';
         if (isCancelled) tr.style.opacity = '0.6';
-        
+
         tr.onclick = () => window.location.href = `/admin/sale/${sale.id}`;
 
-        // Type Badge
         const typeLabel = sale.type === 'factura' ? 'Factura' : 'Ticket';
         const typeClass = sale.type === 'factura' ? 'yes' : 'no';
         const cancelBadge = isCancelled ? `
@@ -75,7 +102,6 @@ function renderSalesTable(sales) {
                 <i class="bi bi-x-circle me-1"></i>anulada
             </span>` : '';
 
-        // Customer Info
         let customerHtml = `<span style="color:var(--text-muted)">— Consumidor Final —</span>`;
         if (sale.customerName) {
             customerHtml = `
@@ -85,13 +111,12 @@ function renderSalesTable(sales) {
                 </div>`;
         }
 
-        // Payment Method Icon
         const isCash = sale.paymentMethod === 'CASH';
         const methodIcon = isCash ? 'bi-cash' : 'bi-credit-card';
         const methodLabel = isCash ? 'Efectivo' : 'Tarjeta';
 
         tr.innerHTML = `
-            <td style="color:var(--text-muted);font-weight:600">${escHtml(sale.displayId || '-' )}</td>
+            <td style="color:var(--text-muted);font-weight:600">${escHtml(sale.displayId || '-')}</td>
             <td>${formatDateTime(sale.createdAt)}</td>
             <td>
                 ${cancelBadge}
@@ -123,6 +148,18 @@ function renderSalesTable(sales) {
         `;
         tbody.appendChild(tr);
     });
+
+    // 4. MENSAJE DE LÍMITE (Top 15)
+    if (hasMore) {
+        const warningTr = document.createElement('tr');
+        warningTr.innerHTML = `
+            <td colspan="8" class="text-center py-3" style="background: rgba(var(--accent-rgb), 0.05); color: var(--text-muted); font-style: italic; border-top: 1px dashed var(--border);">
+                <i class="bi bi-info-circle me-2"></i>
+                Mostrando los mejores resultados para optimizar la búsqueda. Sé más específico si no encuentras lo que buscas.
+            </td>
+        `;
+        tbody.appendChild(warningTr);
+    }
 }
 
 function updateSalesPaginationUI(data) {
@@ -130,13 +167,13 @@ function updateSalesPaginationUI(data) {
     if (info) {
         info.textContent = `Página ${data.number + 1} de ${data.totalPages} (${data.totalElements} ventas en total)`;
     }
-    
+
     // Support individual page detail spans
     const currentEl = document.getElementById('salesCurrentPage');
     const totalEl = document.getElementById('salesTotalPages');
     if (currentEl) currentEl.textContent = data.number + 1;
     if (totalEl) totalEl.textContent = data.totalPages;
-    
+
     const prevBtn = document.getElementById('salesPagePrev');
     const nextBtn = document.getElementById('salesPageNext');
     if (prevBtn) prevBtn.disabled = data.first;
@@ -161,9 +198,9 @@ function jumpToSalesPage(val) {
     }
 }
 
-function filterInvoices() {
+const filterInvoices = debounce(function () {
     fetchSalesPage(0);
-}
+}, 200);
 
 function resetInvoiceFilters() {
     document.getElementById('invoiceFilterSearch').value = '';
@@ -175,7 +212,7 @@ function resetInvoiceFilters() {
 
 function cancelSale(id) {
     if (!confirm('¿Seguro que quieres anular esta venta? Esta operación no se puede deshacer.')) return;
-    
+
     fetch(`/api/admin/sales/${id}/cancel`, { method: 'POST' })
         .then(res => {
             if (res.ok) {
@@ -192,7 +229,7 @@ function filterCashClosures() {
     const workerId = document.getElementById('cashFilterWorker').value;
     const sortBy = document.getElementById('cashFilterSortBy')?.value || 'id';
     const sortDir = document.getElementById('cashFilterSortDir')?.value || 'desc';
-    
+
     fetch(`/api/admin/cash-closings?date=${date}&worker=${encodeURIComponent(workerId)}&sortBy=${sortBy}&sortDir=${sortDir}`)
         .then(res => res.json())
         .then(data => {

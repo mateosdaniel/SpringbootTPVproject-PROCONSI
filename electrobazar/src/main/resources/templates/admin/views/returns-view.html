@@ -83,7 +83,7 @@
                         <th th:text="#{common.reason}">Motivo</th>
                         <th th:text="#{admin.invoices.worker}">Atendido por</th>
                         <th th:text="#{admin.invoices.payment.method}">Método Pago</th>
-                        <th style="text-align:right; width: 100px;" th:text="#{common.amount}">Importe</th>
+                        <th style="text-align:right; width: 140px; white-space:nowrap;" th:text="#{common.amount}">Importe</th>
                         <th style="text-align:right" th:text="#{common.download}">Descargar</th>
                     </tr>
                 </thead>
@@ -114,8 +114,8 @@
                             <span
                                 th:text="${ret.paymentMethod != null && ret.paymentMethod.name() == 'CASH'} ? #{admin.invoices.payment.cash} : #{admin.invoices.payment.card}"></span>
                         </td>
-                        <td style="font-size:1rem;font-weight:700;color:var(danger);text-align:right"
-                            th:text="'-' + ${#numbers.formatDecimal(ret.totalRefunded,1,2)} + ' '"></td>
+                        <td style="font-size:1rem;font-weight:700;color:var(--danger);text-align:right"
+                            th:text="'-' + ${#numbers.formatDecimal(ret.totalRefunded,1,2)} + ' €'"></td>
                         <td style="text-align:right">
                             <button type="button" class="btn-icon" th:title="#{admin.common.preview}"
                                 style="text-decoration: none;"

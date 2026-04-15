@@ -1,5 +1,6 @@
 package com.proconsi.electrobazar.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,6 +26,7 @@ public class Abono {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cliente_id", nullable = false)
+    @JsonIgnoreProperties({"tariff", "hasRecargoEquivalencia", "active", "address", "city", "postalCode", "type"})
     private Customer cliente;
 
     @Column(nullable = false, precision = 10, scale = 2)

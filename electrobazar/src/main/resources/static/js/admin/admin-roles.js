@@ -4,20 +4,45 @@
  */
 
 let rolesCache = [];
+let _rolesListenerAttached = false;
 
 function loadRoles() {
     return Promise.all([
-        fetch('/api/roles').then(res => { if (!res.ok) throw new Error('HTTP Status roles ' + res.status); return res.json(); }),
-        fetch('/api/workers').then(res => { if (!res.ok) throw new Error('HTTP Status workers ' + res.status); return res.json(); })
+        fetch('/api/admin/roles?size=200').then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); }),
+        fetch('/api/roles').then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); }),
+        fetch('/api/workers?size=500').then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
     ])
-        .then(function ([roles, workers]) {
-            rolesCache = roles; // Assumes rolesCache is global (needed by openRoleModal)
-            renderRolesTable(roles, workers);
-            populateRoleSelect(roles);
-            return roles;
+        .then(function ([adminRoles, allRoles, workersPage]) {
+            // adminRoles has workerCount but filters out ADMIN.
+            // allRoles has ADMIN. We merge: use adminRoles list + add ADMIN from allRoles with computed count.
+            const adminList = adminRoles.content || adminRoles;
+            const workers = workersPage.content || workersPage;
+
+            // Build a map of roleId -> count from the workers list for roles not in adminList
+            const countMap = {};
+            workers.forEach(w => { if (w.role && w.role.id) countMap[w.role.id] = (countMap[w.role.id] || 0) + 1; });
+
+            // Find ADMIN role and add it at the top if present
+            const adminRole = allRoles.find(r => r.name && r.name.toUpperCase() === 'ADMIN');
+            const merged = [...adminList];
+            if (adminRole && !merged.find(r => r.name && r.name.toUpperCase() === 'ADMIN')) {
+                merged.unshift({
+                    id: adminRole.id,
+                    name: adminRole.name,
+                    description: adminRole.description || null,
+                    permissions: adminRole.permissions || [],
+                    workerCount: countMap[adminRole.id] || 0,
+                    isAdmin: true  // flag to disable edit/delete in UI
+                });
+            }
+
+            rolesCache = allRoles;
+            renderRolesTable(merged);
+            populateRoleSelect(allRoles);
+            return merged;
         })
         .catch(function (err) {
-            console.error('Error loading roles/workers:', err);
+            console.error('Error loading roles:', err);
             const el = document.getElementById('rolesTableBody');
             if (el) {
                 el.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error al cargar datos: ' + err.message + '</td></tr>';
@@ -198,23 +223,130 @@ function renderRolesTable(items) {
 
         const tr = document.createElement('tr');
         tr.className = 'role-row';
+        tr.style.cursor = 'pointer';
         const count = r.workerCount !== undefined ? r.workerCount : 0;
+        const isAdmin = r.isAdmin === true || (r.name && r.name.toUpperCase() === 'ADMIN');
         tr.innerHTML = `
-            <td><strong>${r.name}</strong></td>
-            <td class="small" style="color: var(--text-muted);">${r.description || '—'}</td>
+            <td><strong>${escHtml(r.name)}</strong></td>
+            <td class="small" style="color: var(--text-muted);">${escHtml(r.description || '\u2014')}</td>
             <td>${perms}</td>
-            <td><span class="badge" style="background-color: rgba(var(--accent-rgb), 0.1); color: var(--accent); border: 1px solid var(--accent);">${count} trabajador(es)</span></td>
+            <td>
+                <span class="badge role-worker-badge" 
+                    data-role-id="${r.id}"
+                    data-role-name="${escHtml(r.name)}"
+                    style="background-color: rgba(var(--accent-rgb), 0.1); color: var(--accent); border: 1px solid var(--accent); cursor:pointer;"
+                    title="Ver trabajadores">
+                    ${count} trabajador(es)
+                </span>
+            </td>
             <td style="text-align:right">
-                <button class="btn-icon" title="Editar" onclick="openRoleModal(${r.id})">
+                ${isAdmin ? '<span class="small" style="color:var(--text-muted)">Protegido</span>' : `
+                <button class="btn-icon" data-action="edit" data-role-id="${r.id}" title="Editar">
                     <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn-icon danger" title="Eliminar" onclick="deleteRole(${r.id})">
+                <button class="btn-icon danger" data-action="delete" data-role-id="${r.id}" title="Eliminar">
                     <i class="bi bi-trash"></i>
-                </button>
+                </button>`}
             </td>
         `;
         tbody.appendChild(tr);
     });
+
+    // Register delegated listener once — tbody is guaranteed to exist here
+    if (!_rolesListenerAttached) {
+        _rolesListenerAttached = true;
+        tbody.addEventListener('click', function(e) {
+            const badge = e.target.closest('.role-worker-badge');
+            const editBtn = e.target.closest('[data-action="edit"]');
+            const deleteBtn = e.target.closest('[data-action="delete"]');
+
+            if (badge) {
+                e.stopPropagation();
+                showRoleWorkers(parseInt(badge.dataset.roleId), badge, badge.dataset.roleName);
+                return;
+            }
+            if (editBtn) {
+                e.stopPropagation();
+                openRoleModal(parseInt(editBtn.dataset.roleId));
+                return;
+            }
+            if (deleteBtn) {
+                e.stopPropagation();
+                deleteRole(parseInt(deleteBtn.dataset.roleId));
+            }
+        });
+    }
+}
+
+/**
+ * Shows a small popup listing workers assigned to a role.
+ * Clicking outside dismisses it.
+ */
+function showRoleWorkers(roleId, badgeEl, roleName) {
+    // Remove any existing popover
+    document.querySelectorAll('.role-workers-popup').forEach(el => el.remove());
+
+    const popup = document.createElement('div');
+    popup.className = 'role-workers-popup';
+    popup.style.cssText = [
+        'position:fixed',
+        'z-index:9999',
+        'background:var(--surface)',
+        'border:1px solid var(--border)',
+        'border-radius:8px',
+        'box-shadow:0 4px 16px rgba(0,0,0,0.2)',
+        'padding:0.75rem 1rem',
+        'min-width:220px',
+        'max-width:320px'
+    ].join(';');
+    popup.innerHTML = `<div class="small fw-bold mb-2" style="color:var(--text-main)">
+        <i class="bi bi-people me-1"></i>Trabajadores con rol "${escHtml(roleName)}"
+    </div><div class="role-workers-list"><span class="spinner-border spinner-border-sm"></span></div>`;
+
+    // position:fixed uses viewport coords directly — works regardless of scroll or overflow containers
+    const rect = badgeEl.getBoundingClientRect();
+    popup.style.top = (rect.bottom + 6) + 'px';
+    popup.style.left = Math.max(8, rect.left - 40) + 'px';
+    document.body.appendChild(popup);
+
+    // Ensure popup stays within viewport right edge
+    const popupRect = popup.getBoundingClientRect();
+    if (popupRect.right > window.innerWidth - 8) {
+        popup.style.left = Math.max(8, window.innerWidth - popupRect.width - 8) + 'px';
+    }
+
+    // Close on outside click
+    setTimeout(() => {
+        document.addEventListener('click', function dismissPopup(e) {
+            if (!popup.contains(e.target)) {
+                popup.remove();
+                document.removeEventListener('click', dismissPopup);
+            }
+        });
+    }, 10);
+
+    fetch(`/api/admin/roles/${roleId}/workers`)
+        .then(res => res.json())
+        .then(workers => {
+            const list = popup.querySelector('.role-workers-list');
+            if (!workers || workers.length === 0) {
+                list.innerHTML = '<span class="small" style="color:var(--text-muted)">Sin trabajadores asignados.</span>';
+                return;
+            }
+            list.innerHTML = workers.map(w => `
+                <div class="d-flex align-items-center gap-2 py-1" style="border-bottom:1px solid var(--border)">
+                    <i class="bi bi-person-circle" style="color:var(--accent)"></i>
+                    <span class="small" style="color:var(--text-main)">${escHtml(w.username)}</span>
+                    ${w.active 
+                        ? '<span class="badge" style="background:rgba(34,197,94,0.1);color:#22c55e;border:1px solid rgba(34,197,94,0.3);font-size:0.6rem">Activo</span>'
+                        : '<span class="badge" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.3);font-size:0.6rem">Inactivo</span>'}
+                </div>
+            `).join('');
+        })
+        .catch(() => {
+            popup.querySelector('.role-workers-list').innerHTML =
+                '<span class="small text-danger">Error al cargar trabajadores.</span>';
+        });
 }
 
 function resetRolePermFilters() {
@@ -256,6 +388,7 @@ window.saveRole = saveRole;
 window.deleteRole = deleteRole;
 window.filterRoles = filterRoles;
 window.renderRolesTable = renderRolesTable;
+window.showRoleWorkers = showRoleWorkers;
 window.resetRolePermFilters = resetRolePermFilters;
 window.resetRoleFilters = resetRoleFilters;
 window.updateFilterPermLabel = updateFilterPermLabel;

@@ -26,7 +26,7 @@
                         </label>
                         <input type="text" id="abonoClienteSearch" class="form-control form-control-sm"
                             th:placeholder="#{admin.abonos.search.placeholder}"
-                            onkeydown="if(event.key === 'Enter') filterAbonos()">
+                            oninput="filterAbonos()">
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <button class="btn btn-sm btn-outline-secondary w-100"
@@ -36,9 +36,7 @@
                         </button>
                     </div>
                 </div>
-                <div id="abonoCountLabel" class="small mt-2" style="color: var(--text-muted);">
-                    Mostrando abonos del cliente.
-                </div>
+                <div id="abonoCountLabel" class="small mt-2" style="color: var(--text-muted);">Cargando abonos...</div>
             </div>
 
             <div class="admin-table-wrap">
@@ -47,7 +45,7 @@
                         <tr>
                             <th th:text="#{common.id}">ID</th>
                             <th th:text="#{common.date}">Fecha</th>
-                            <th th:text="#{admin.crm.client_id}">Cliente ID</th>
+                            <th th:text="#{admin.crm.client_id}">DNI/NIE/Doc.</th>
                             <th th:text="#{admin.abonos.type}">T. Abono</th>
                             <th th:text="#{admin.invoices.payment}">M. Pago</th>
                             <th class="text-end" th:text="#{common.amount}">Importe</th>
@@ -57,8 +55,9 @@
                     </thead>
                     <tbody id="abonosTableBody">
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4" th:text="#{admin.abonos.empty}">
-                                Introduce un ID de Cliente para buscar sus abonos</td>
+                            <td colspan="8" class="text-center py-4">
+                                <span class="spinner-border spinner-border-sm me-2"></span>Cargando...
+                            </td>
                         </tr>
                     </tbody>
                 </table>

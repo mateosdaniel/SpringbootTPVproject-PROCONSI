@@ -56,35 +56,38 @@ function renderReturnsTable(items) {
             ? '<span class="badge-active yes">Total</span>' 
             : '<span class="badge-active no">Parcial</span>';
 
-        const isCash = ret.paymentMethod === 'CASH';
+        // paymentMethod comes already translated from DTO ("Efectivo" / "Tarjeta")
+        const isCash = ret.paymentMethod === 'Efectivo';
         const methodIcon = isCash ? 'bi-cash' : 'bi-credit-card';
-        const methodLabel = isCash ? 'Efectivo' : 'Tarjeta';
+        const methodLabel = ret.paymentMethod || '—';
 
-        const workerName = ret.workerName || 'Sistema';
-        
-        // Orig sale info
-        let origSaleInfo = '#' + (ret.originalSaleId || '?');
-        if (ret.originalSaleDisplayId) origSaleInfo = ret.originalSaleDisplayId;
+        const workerName = ret.workerUsername || 'Sistema';
 
+        // originalNumber comes directly from the DTO
+        const origSaleInfo = ret.originalNumber || '—';
+
+        // Abbreviate reason to 40 chars — mirrors Thymeleaf #strings.abbreviate
+        const rawReason = ret.reason || '—';
+        const reason = rawReason.length > 40 ? rawReason.substring(0, 37) + '...' : rawReason;
+
+        // Mirrors exactly the Thymeleaf tr/td structure
         tr.innerHTML = `
-            <td style="color:var(--text-muted);font-weight:600">${ret.returnNumber}</td>
-            <td>${origSaleInfo}</td>
+            <td style="color:var(--text-muted);font-weight:600">${escHtml(ret.returnNumber)}</td>
+            <td>${escHtml(origSaleInfo)}</td>
             <td>${formatDateTime(ret.createdAt)}</td>
             <td>${typeBadge}</td>
-            <td>${escHtml(ret.reason || '—')}</td>
-            <td style="font-weight: 500;">${escHtml(workerName)}</td>
+            <td>${escHtml(reason)}</td>
+            <td style="font-weight: 500;"><span>${escHtml(workerName)}</span></td>
             <td>
                 <i class="bi ${methodIcon}" style="margin-right:0.3rem"></i>
                 <span>${methodLabel}</span>
             </td>
-            <td style="font-size:1rem;font-weight:700;color:var(--danger);text-align:right">
-                -${formatDecimal(ret.totalRefunded)} €
-            </td>
+            <td style="font-size:1rem;font-weight:700;color:var(--danger);text-align:right">-${formatDecimal(ret.amount)} €</td>
             <td style="text-align:right">
-                <button type="button" class="btn-icon" title="Vista Previa" onclick="event.stopPropagation(); showDocPreview('/tpv/return-receipt/${ret.id}')">
+                <button type="button" class="btn-icon" title="Vista Previa" style="text-decoration:none" onclick="event.stopPropagation(); showDocPreview('/tpv/return-receipt/${ret.id}')">
                     <i class="bi bi-eye" style="color:#3498db;"></i>
                 </button>
-                <a href="/admin/download/return/${ret.id}" target="_blank" class="btn-icon" title="Imprimir" onclick="event.stopPropagation();">
+                <a href="/admin/download/return/${ret.id}" target="_blank" class="btn-icon" title="Imprimir" style="text-decoration:none" onclick="event.stopPropagation();">
                     <i class="bi bi-printer" style="color:#e74c3c;"></i>
                 </a>
             </td>

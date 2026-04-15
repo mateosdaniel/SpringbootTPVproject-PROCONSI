@@ -52,6 +52,11 @@ public interface SaleService {
     Page<Sale> search(String search, String type, String method, java.time.LocalDate date, Pageable pageable);
 
     /**
+     * Ultra-fast search for sales using Slice (no total count calculated).
+     */
+    org.springframework.data.domain.Slice<Sale> searchSlice(String search, String type, String method, java.time.LocalDate date, Pageable pageable);
+
+    /**
      * Retrieves sales processed on the current day.
      * @return List of today's sales.
      */

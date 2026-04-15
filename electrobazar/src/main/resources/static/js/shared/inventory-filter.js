@@ -1,6 +1,8 @@
 /* inventory-filter.js */
 
 var debounceTimer;
+let productFetchController = null;
+let categoryFetchController = null;
 
 // Función Anti-rebote para no spamear el servidor mientras el usuario teclea
 function debounceSharedFilter() {
@@ -92,7 +94,13 @@ function runSharedBackendFilter(page = 0) {
     queryParams.append('page', page);
     queryParams.append('size', 50);
 
-    fetch(`/api/admin/products?${queryParams.toString()}`)
+    const tbody = document.getElementById('productsTableBody');
+    if (tbody) tbody.style.opacity = '0.5';
+
+    if (productFetchController) productFetchController.abort();
+    productFetchController = new AbortController();
+
+    fetch(`/api/admin/products?${queryParams.toString()}`, { signal: productFetchController.signal })
         .then(res => res.json())
         .then(data => {
             const items = data.content || data;
@@ -111,7 +119,13 @@ function runSharedBackendFilter(page = 0) {
                 renderInventoryPagination('productsPagination', data, runSharedBackendFilter);
             }
         })
-        .catch(err => console.error("Error filtrando productos combinados:", err));
+        .catch(err => {
+            if (err.name === 'AbortError') return;
+            console.error("Error filtrando productos combinados:", err);
+        })
+        .finally(() => {
+            if (tbody) tbody.style.opacity = '1';
+        });
 }
 
 function resetSharedBackendFilter() {
@@ -262,7 +276,13 @@ function runSharedBackendCategoryFilter(page = 0) {
     queryParams.append('page', page);
     queryParams.append('size', 50);
 
-    fetch(`/api/admin/categories?${queryParams.toString()}`)
+    const tbody = document.getElementById('categoriesTableBody');
+    if (tbody) tbody.style.opacity = '0.5';
+
+    if (categoryFetchController) categoryFetchController.abort();
+    categoryFetchController = new AbortController();
+
+    fetch(`/api/admin/categories?${queryParams.toString()}`, { signal: categoryFetchController.signal })
         .then(res => res.json())
         .then(data => {
             const items = data.content || data;
@@ -281,7 +301,13 @@ function runSharedBackendCategoryFilter(page = 0) {
                 renderInventoryPagination('categoriesPagination', data, runSharedBackendCategoryFilter);
             }
         })
-        .catch(err => console.error("Error filtrando categorias combinadas:", err));
+        .catch(err => {
+            if (err.name === 'AbortError') return;
+            console.error("Error filtrando categorias combinadas:", err);
+        })
+        .finally(() => {
+            if (tbody) tbody.style.opacity = '1';
+        });
 }
 
 function renderInventoryPagination(containerId, pageData, callbackName) {

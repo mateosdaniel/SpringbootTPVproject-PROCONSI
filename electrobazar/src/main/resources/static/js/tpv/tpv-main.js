@@ -656,7 +656,8 @@ function syncPromotions() {
         var payload = {
             lines: ids.map(id => ({
                 productId: parseInt(id),
-                quantity: ticket[id].quantity
+                quantity: ticket[id].quantity,
+                unitPrice: ticket[id].price
             }))
         };
 
@@ -1676,6 +1677,8 @@ function updateTicketPricesForTariff(tariffId, tariffName, discountPct) {
     });
 
     Promise.all(promises).then(function () {
+        // Recalculate promotions now that prices have changed
+        syncPromotions();
         // discountPct=0: prices are already final, renderTicket must not re-discount
         applyTariffById(tariffId, 0, tariffName);
         var badge = document.getElementById('sidebarTariffBadge');
@@ -1749,6 +1752,7 @@ function resetTicketPrices() {
     });
 
     Promise.all(promises).then(function () {
+        syncPromotions();
         resetTariffToDefault();
     }).catch(function (err) {
         console.error('Error resetting ticket prices', err);

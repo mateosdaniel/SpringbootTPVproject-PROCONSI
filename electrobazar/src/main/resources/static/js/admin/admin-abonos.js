@@ -46,9 +46,7 @@ function saveAbono() {
         if (res.ok) {
             if (window.abonoModal) window.abonoModal.hide();
             if (typeof showToast === 'function') showToast(getAdminI18n('successSave') || 'Éxito', 'success');
-            // Refresh search if we have a client ID
-            const searchVal = document.getElementById('abonoClienteSearch').value;
-            if (searchVal) filterAbonos();
+            filterAbonos();
         } else {
             const err = await res.text();
             if (typeof showToast === 'function') showToast(err || 'Error', 'error');
@@ -61,40 +59,43 @@ function saveAbono() {
 }
 
 /**
- * Filters the list by Client ID
+ * Loads abonos paginated — all or filtered by client.
+ * Called on view init and on every filter change.
  */
 function filterAbonos() {
-    const customerId = document.getElementById('abonoClienteSearch').value;
+    const clienteVal = (document.getElementById('abonoClienteSearch')?.value || '').trim();
     const tbody = document.getElementById('abonosTableBody');
     if (!tbody) return;
 
-    if (!customerId) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Introduce un ID de Cliente</td></tr>';
-        return;
-    }
-
     tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Cargando...</td></tr>';
 
-    fetch(`/api/abonos/cliente/${customerId}`)
+    const params = new URLSearchParams();
+    if (clienteVal) params.append('cliente', clienteVal);
+    params.append('sortBy', 'fecha');
+    params.append('sortDir', 'desc');
+    params.append('size', '50');
+
+    fetch(`/api/abonos?${params.toString()}`)
         .then(res => res.json())
         .then(data => {
+            const list = data.content || [];
             tbody.innerHTML = '';
-            
+
             const labelEl = document.getElementById('abonoCountLabel');
             if (labelEl) {
-                if (customerId) {
-                    labelEl.textContent = `Mostrando ${data.length} abonos del cliente #${customerId}.`;
+                if (clienteVal) {
+                    labelEl.textContent = `Mostrando ${data.totalElements ?? list.length} abonos del cliente "${clienteVal}".`;
                 } else {
-                    labelEl.textContent = 'Mostrando abonos del cliente.';
+                    labelEl.textContent = `Mostrando ${data.totalElements ?? list.length} abonos en total.`;
                 }
             }
 
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No se encontraron abonos para este cliente</td></tr>';
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No se encontraron abonos.</td></tr>';
                 return;
             }
 
-            data.forEach(a => {
+            list.forEach(a => {
                 const tr = document.createElement('tr');
                 const statusClass = a.estado === 'PENDIENTE' ? 'badge-status-p status-active-p' : 'badge-status-p status-cancelled-p';
                 const statusText = a.estado === 'PENDIENTE' ? 'ACT. PAGO' : (a.estado === 'APLICADO' ? 'APLICADO' : 'ANULADO');
@@ -102,7 +103,7 @@ function filterAbonos() {
                 tr.innerHTML = `
                     <td><strong>#${a.id}</strong></td>
                     <td>${new Date(a.fecha).toLocaleString()}</td>
-                    <td>${a.cliente ? a.cliente.id : '--'}</td>
+                    <td>${a.cliente ? (a.cliente.idDocumentNumber || a.cliente.taxId || '#' + a.cliente.id) : '--'}</td>
                     <td><span class="text-accent fw-bold">${a.tipoAbono}</span></td>
                     <td>${a.metodoPago}</td>
                     <td class="text-end fw-bold">${parseFloat(a.importe).toFixed(2)} €</td>
@@ -152,3 +153,4 @@ window.openAbonoModal = openAbonoModal;
 window.saveAbono = saveAbono;
 window.filterAbonos = filterAbonos;
 window.anularAbono = anularAbono;
+

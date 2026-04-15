@@ -23,5 +23,6 @@ public class PromotionCalcRequest {
     public static class Line {
         private Long productId;
         private java.math.BigDecimal quantity;
+        private java.math.BigDecimal unitPrice;
     }
 }

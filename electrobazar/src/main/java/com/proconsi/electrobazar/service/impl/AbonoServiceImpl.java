@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
@@ -111,6 +113,27 @@ public class AbonoServiceImpl implements AbonoService {
         }
         return abonoRepository.findByClienteId(cliente.getId());
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Abono> getAbonosPaged(String clienteIdOrDoc, Pageable pageable) {
+        if (clienteIdOrDoc == null || clienteIdOrDoc.trim().isEmpty()) {
+            return abonoRepository.findAll(pageable);
+        }
+        String doc = clienteIdOrDoc.trim();
+        Customer cliente = null;
+        try {
+            Long id = Long.parseLong(doc);
+            cliente = customerRepository.findById(id).orElse(null);
+        } catch (NumberFormatException e) {
+            // not a number
+        }
+        if (cliente == null) cliente = customerRepository.findByIdDocumentNumber(doc).orElse(null);
+        if (cliente == null) cliente = customerRepository.findByTaxId(doc).orElse(null);
+        if (cliente == null) return Page.empty(pageable);
+        return abonoRepository.findByClienteId(cliente.getId(), pageable);
+    }
+
 
     @Override
     @Transactional

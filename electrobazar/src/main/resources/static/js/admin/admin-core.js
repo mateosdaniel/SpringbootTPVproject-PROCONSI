@@ -163,7 +163,7 @@ function switchView(viewId, btn, isBack = false) {
     if (viewId === 'tarifasView' && typeof loadTariffs === 'function') loadTariffs();
     if (viewId === 'tiposIvaView' && typeof loadTaxRates === 'function') loadTaxRates();
     if (viewId === 'analyticsView' && typeof initDashboardCharts === 'function') initDashboardCharts();
-    if (viewId === 'abonosView' && typeof loadAbonos === 'function') loadAbonos();
+    if (viewId === 'abonosView' && typeof filterAbonos === 'function') filterAbonos();
     if (viewId === 'preciosTempView' && typeof loadFuturePrices === 'function') loadFuturePrices();
     if (viewId === 'preciosMasivosView' && typeof loadBulkProducts === 'function') loadBulkProducts();
 

@@ -102,10 +102,31 @@ public class AdminApiRestController {
         String safeSort = allowedSort.contains(sortBy) ? sortBy : "createdAt";
         Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, safeSort));
-        Page<Sale> salesPage = saleService.search(search, type, method, date, pageable);
+        // Tarea 1: Force size to 15 if there is a search query
+        final boolean isSearching = search != null && !search.trim().isEmpty();
+        int finalSize = isSearching ? 15 : size;
 
-        List<AdminSaleListingDTO> list = salesPage.getContent().stream().map(s -> AdminSaleListingDTO.builder()
+        Pageable pageable = PageRequest.of(page, finalSize, Sort.by(direction, safeSort));
+        
+        List<Sale> salesContent;
+        boolean hasMore = false;
+        Long totalElements = null;
+        Integer totalPages = null;
+
+        if (isSearching) {
+            // Use searchSlice to avoid COUNT query
+            org.springframework.data.domain.Slice<Sale> slice = saleService.searchSlice(search, type, method, date, pageable);
+            salesContent = slice.getContent();
+            hasMore = slice.hasNext();
+        } else {
+            Page<Sale> salesPage = saleService.search(search, type, method, date, pageable);
+            salesContent = salesPage.getContent();
+            totalElements = salesPage.getTotalElements();
+            totalPages = salesPage.getTotalPages();
+            hasMore = !salesPage.isLast();
+        }
+
+        List<AdminSaleListingDTO> list = salesContent.stream().map(s -> AdminSaleListingDTO.builder()
                 .id(s.getId())
                 .displayId(s.getInvoice() != null ? s.getInvoice().getInvoiceNumber()
                         : (s.getTicket() != null ? s.getTicket().getTicketNumber() : "#" + s.getId()))
@@ -121,9 +142,13 @@ public class AdminApiRestController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("content", list);
-        response.put("totalPages", salesPage.getTotalPages());
-        response.put("totalElements", salesPage.getTotalElements());
-        response.put("currentPage", salesPage.getNumber());
+        response.put("currentPage", page);
+        response.put("hasMore", hasMore);
+        
+        if (!isSearching) {
+            response.put("totalPages", totalPages);
+            response.put("totalElements", totalElements);
+        }
 
         return ResponseEntity.ok(response);
     }
@@ -367,9 +392,7 @@ public class AdminApiRestController {
         List<AdminRoleListingDTO> list = pageData.getContent().stream()
                 .filter(r -> !"ADMIN".equalsIgnoreCase(r.getName()))
                 .map(r -> {
-                    long count = workerRepository.findAll().stream()
-                            .filter(w -> w.getRole() != null && w.getRole().getId().equals(r.getId()))
-                            .count();
+                    long count = workerRepository.countByRole_Id(r.getId());
                     Set<String> perms = new HashSet<>(r.getPermissions());
                     return AdminRoleListingDTO.builder()
                             .id(r.getId())
@@ -388,6 +411,22 @@ public class AdminApiRestController {
         response.put("currentPage", pageData.getNumber());
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Returns all workers assigned to a specific role.
+     */
+    @GetMapping("/roles/{id}/workers")
+    public ResponseEntity<?> getWorkersByRole(@PathVariable Long id) {
+        List<Map<String, Object>> workers = workerRepository.findByRole_Id(id).stream()
+                .map(w -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", w.getId());
+                    m.put("username", w.getUsername());
+                    m.put("active", w.isActive());
+                    return m;
+                }).toList();
+        return ResponseEntity.ok(workers);
     }
 
     /**

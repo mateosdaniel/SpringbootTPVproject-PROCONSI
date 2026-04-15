@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -109,6 +111,21 @@ public class GlobalExceptionHandler {
         }
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorBody(message));
+    }
+
+    /**
+     * Handles cases where the client closes the connection before the server finishes responding.
+     * Prevents log pollution with stack traces for normal user behavior (canceling search, refreshing page).
+     */
+    @ExceptionHandler({AsyncRequestNotUsableException.class, IOException.class})
+    public void handleClientAbort(Exception ex) {
+        String msg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+        if (ex instanceof AsyncRequestNotUsableException || msg.contains("broken pipe") || msg.contains("connection reset by peer")) {
+            log.warn("Client aborted request: {} (Normal behavior during search/navigation)", ex.getClass().getSimpleName());
+        } else if (ex instanceof IOException) {
+            // Re-throw if it's a real IOException not related to client abortion
+            log.error("Unhandled I/O error: {}", ex.getMessage(), ex);
+        }
     }
 
     /**

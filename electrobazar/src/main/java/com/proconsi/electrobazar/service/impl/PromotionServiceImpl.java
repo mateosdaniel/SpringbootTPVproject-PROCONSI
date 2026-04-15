@@ -44,11 +44,12 @@ public class PromotionServiceImpl implements PromotionService {
         for (PromotionCalcRequest.Line l : request.getLines()) {
             Product p = productRepository.findById(l.getProductId()).orElse(null);
             if (p != null) {
+                BigDecimal currentPrice = l.getUnitPrice() != null ? l.getUnitPrice() : p.getPrice();
                 tempLines.add(SaleLine.builder()
                         .product(p)
                         .quantity(l.getQuantity())
-                        .unitPrice(p.getPrice())
-                        .originalUnitPrice(p.getPrice())
+                        .unitPrice(currentPrice)
+                        .originalUnitPrice(p.getPrice()) // Keeps reference to catalogue price
                         .build());
             }
         }

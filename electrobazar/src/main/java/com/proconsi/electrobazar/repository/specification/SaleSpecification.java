@@ -1,76 +1,59 @@
 package com.proconsi.electrobazar.repository.specification;
 
-import com.proconsi.electrobazar.model.Sale;
-import jakarta.persistence.criteria.JoinType;
-import jakarta.persistence.criteria.Predicate;
+import com.proconsi.electrobazar.model.*;
+import jakarta.persistence.criteria.*;
 import org.springframework.data.jpa.domain.Specification;
-
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * JPA Specifications for dynamic {@link Sale} filtering in the admin panel.
- */
 public class SaleSpecification {
 
     public static Specification<Sale> filterSales(String search, String type, String method, LocalDate date) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Optimization: Fetch customer and worker only when not counting
-            if (Long.class != query.getResultType()) {
+            // 1. Optimización: Solo cargar relaciones si no es un conteo de páginas
+            if (Long.class != query.getResultType() && long.class != query.getResultType()) {
                 root.fetch("customer", JoinType.LEFT);
-                root.fetch("worker", JoinType.LEFT);
                 root.fetch("invoice", JoinType.LEFT);
                 root.fetch("ticket", JoinType.LEFT);
             }
 
-            // 1. Keyword search (ID, Customer Name, Customer TaxID)
+            // 2. BÚSQUEDA POR TEXTO (Bloque Único)
             if (search != null && !search.trim().isEmpty()) {
-                String searchParam = search.trim();
-                String searchPattern = "%" + searchParam.toLowerCase() + "%";
+                System.out.println("DEBUG: Buscando el término -> [" + search + "]");
                 
-                Predicate custName = cb.like(cb.lower(root.get("customer").get("name")), searchPattern);
-                Predicate custTaxId = cb.like(cb.lower(root.get("customer").get("taxId")), searchPattern);
-                
-                try {
-                    Long idSearch = Long.parseLong(searchParam.replace("#", ""));
-                    Predicate idPredicate = cb.equal(root.get("id"), idSearch);
-                    predicates.add(cb.or(custName, custTaxId, idPredicate));
-                } catch (NumberFormatException e) {
-                    predicates.add(cb.or(custName, custTaxId));
-                }
+                // FORZADO DE ERROR PARA DIAGNÓSTICO: La tabla debe quedar VACÍA si hay búsqueda
+                return cb.disjunction();
+
+                /* 
+                // Resto del código comentado temporalmente por el usuario para diagnóstico
+                String cleanSearch = search.trim().toLowerCase();
+                ...
+                */
             }
 
-            // 2. Type filtering
-            if (type != null && !type.trim().isEmpty()) {
-                if ("factura".equalsIgnoreCase(type)) {
+            // 3. FILTROS FIJOS (Si están seleccionados, deben cumplirse SIEMPRE)
+            if (type != null && !type.isBlank()) {
+                if ("factura".equalsIgnoreCase(type))
                     predicates.add(cb.isNotNull(root.get("invoice")));
-                } else if ("ticket".equalsIgnoreCase(type)) {
+                else if ("ticket".equalsIgnoreCase(type))
                     predicates.add(cb.isNotNull(root.get("ticket")));
-                }
             }
-
-            // 3. Payment Method
-            if (method != null && !method.trim().isEmpty()) {
-                if ("Efectivo".equalsIgnoreCase(method)) {
-                    predicates.add(cb.equal(root.get("paymentMethod"), com.proconsi.electrobazar.model.PaymentMethod.CASH));
-                } else if ("Tarjeta".equalsIgnoreCase(method)) {
-                    predicates.add(cb.equal(root.get("paymentMethod"), com.proconsi.electrobazar.model.PaymentMethod.CARD));
-                }
+            if (method != null && !method.isBlank()) {
+                PaymentMethod pm = "Efectivo".equalsIgnoreCase(method) ? PaymentMethod.CASH : PaymentMethod.CARD;
+                predicates.add(cb.equal(root.get("paymentMethod"), pm));
             }
-
-            // 4. Exact Date
             if (date != null) {
-                LocalDateTime startOfDay = date.atStartOfDay();
-                LocalDateTime endOfDay = date.atTime(23, 59, 59);
-                predicates.add(cb.between(root.get("createdAt"), startOfDay, endOfDay));
+                predicates.add(cb.between(root.get("createdAt"), date.atStartOfDay(), date.atTime(23, 59, 59)));
             }
 
+            // 4. ORDENACIÓN
             query.orderBy(cb.desc(root.get("createdAt")));
-            return cb.and(predicates.toArray(new Predicate[0]));
+
+            // Si no hay filtros, devolvemos todo. Si hay, aplicamos el AND de todos ellos.
+            return predicates.isEmpty() ? cb.conjunction() : cb.and(predicates.toArray(new Predicate[0]));
         };
     }
 }
