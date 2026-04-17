@@ -87,21 +87,12 @@ function parsePrice(text) {
     return isNaN(val) ? 0 : val;
 }
 
-function formatPrice(price) {
+function formatPrice(price, decimals) {
     if (price === null || price === undefined) return '0,00';
-    let s = price.toString();
-    if (s.includes('.')) {
-        let decimals = s.split('.')[1].length;
-        if (decimals > 2) {
-            return price.toLocaleString('es-ES', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 4
-            });
-        }
-    }
-    return price.toLocaleString('es-ES', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+    var d = Math.max(2, (decimals !== undefined && decimals !== null) ? decimals : 0);
+    return parseFloat(price).toLocaleString('es-ES', {
+        minimumFractionDigits: d,
+        maximumFractionDigits: d
     });
 }
 
@@ -300,13 +291,15 @@ function addToTicket(card) {
 }
 
 function finishAddingToTicket(id, name, price, quantity, stock, categoryId, card) {
+    var decimalPlaces = parseInt(card ? card.dataset.decimalPlaces : 0) || 0;
     if (ticket[id]) {
         ticket[id].quantity += quantity;
     } else {
         ticket[id] = {
             name: name, price: price,
-            originalPrice: price,  // catalogue price — stays fixed for discount % display
-            quantity: quantity, stock: stock, categoryId: categoryId
+            originalPrice: price,
+            quantity: quantity, stock: stock, categoryId: categoryId,
+            decimalPlaces: decimalPlaces
         };
     }
 
@@ -364,7 +357,8 @@ function changeQty(id, delta) {
         return;
     }
 
-    ticket[id].quantity = Math.max(0, parseFloat(newQty.toFixed(3)));
+    var dp = ticket[id].decimalPlaces !== undefined ? ticket[id].decimalPlaces : 3;
+    ticket[id].quantity = Math.max(0, parseFloat(newQty.toFixed(dp)));
     if (ticket[id].quantity <= 0) delete ticket[id];
     syncPromotions();
     renderTicket();
@@ -380,12 +374,15 @@ function removeLine(id) {
 function editQty(el, id) {
     if (window.tpv_is_register_open !== true) return;
     var current = ticket[id].quantity;
+    var dp = ticket[id].decimalPlaces !== undefined ? ticket[id].decimalPlaces : 0;
+    var stepVal = dp > 0 ? Math.pow(10, -dp) : 1;
+
     var input = document.createElement('input');
     input.type = 'number';
     input.className = 'qty-input';
     input.value = current;
-    input.min = 0.001;
-    input.step = 0.001;
+    input.min = stepVal;
+    input.step = stepVal;
     input.setAttribute('inputmode', 'decimal');
     el.replaceWith(input);
     input.focus();
@@ -399,7 +396,7 @@ function editQty(el, id) {
                 renderTicket();
                 return;
             }
-            ticket[id].quantity = parseFloat(val.toFixed(3));
+            ticket[id].quantity = parseFloat(val.toFixed(dp));
         }
         syncPromotions();
         renderTicket();
@@ -1288,7 +1285,7 @@ function renderProducts(data, append = false) {
                     </div>
                     <div class="product-info text-center">
                         <div class="product-name">${escapeHtml(product.name)}</div>
-                        <div class="product-price">${formatPrice(product.price)}€</div>
+                        <div class="product-price">${formatPrice(product.price, decimalPlaces)}€</div>
                         <div class="product-category-badge">${catName}</div>
                     </div>
                 </div>`;

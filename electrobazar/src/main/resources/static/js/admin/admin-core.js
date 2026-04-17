@@ -304,14 +304,18 @@ function debounce(func, wait) {
     };
 }
 
-function previewImage(event) {
+function previewImage(input, previewId = 'imagePreview') {
+    if (!input || !input.files || !input.files[0]) return;
+    
     var reader = new FileReader();
     reader.onload = function () {
-        var output = document.getElementById('imagePreview');
-        output.src = reader.result;
-        output.style.display = 'block';
+        var output = document.getElementById(previewId);
+        if (output) {
+            output.src = reader.result;
+            output.style.display = 'block';
+        }
     };
-    reader.readAsDataURL(event.target.files[0]);
+    reader.readAsDataURL(input.files[0]);
 }
 
 function runBackupNow() {

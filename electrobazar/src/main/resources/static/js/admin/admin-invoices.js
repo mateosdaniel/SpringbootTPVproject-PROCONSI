@@ -23,7 +23,6 @@ async function fetchSalesPage(page) {
     const tbody = document.getElementById('invoicesTableBody');
     if (tbody) tbody.style.opacity = '0.5';
 
-    console.log("--- DISPARANDO PETICIÓN ---", url);
 
     if (salesFetchController) salesFetchController.abort();
     salesFetchController = new AbortController();
@@ -33,7 +32,6 @@ async function fetchSalesPage(page) {
         if (!response.ok) throw new Error('Error de red');
         const data = await response.json();
 
-        console.log("DATOS RECIBIDOS:", data);
 
         currentSalesPage = data.currentPage;
         salesTotalPages = data.totalPages || 0;
@@ -64,7 +62,6 @@ async function fetchSalesPage(page) {
 }
 
 function renderSalesTable(sales, hasMore) {
-    console.log("Limpiando tabla y dibujando", (sales ? sales.length : 0), "resultados");
     const tbody = document.getElementById('invoicesTableBody');
     if (!tbody) return;
 

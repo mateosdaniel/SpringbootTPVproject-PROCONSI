@@ -51,7 +51,8 @@ public class SecurityConfig {
         @Bean
         public WebSecurityCustomizer webSecurityCustomizer() {
                 return (web) -> web.ignoring()
-                                .requestMatchers("/js/**", "/css/**", "/images/**", "/webjars/**", "/icons/**",
+                                .requestMatchers("/js/**", "/css/**", "/images/**", "/img/**",
+                                                "/vendor/**", "/webjars/**", "/icons/**",
                                                 "/favicon.svg", "/favicon-light.svg");
         }
 
@@ -108,9 +109,10 @@ public class SecurityConfig {
                                 // 2. Authorization Rules by Path and Method
                                 .authorizeHttpRequests(auth -> auth
                                                 // Public static resources (CSS, JS, Images, Favicon)
-                                                .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**",
+                                                .requestMatchers("/css/**", "/js/**", "/images/**", "/img/**",
+                                                                "/vendor/**", "/webjars/**",
                                                                 "/icons/**", "/favicon.svg",
-                                                                "/favicon-light.svg")
+                                                                "/favicon-light.svg", "/uploads/**")
                                                 .permitAll()
 
                                                 // Public authentication and generic informational pages

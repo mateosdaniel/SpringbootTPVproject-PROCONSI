@@ -252,21 +252,18 @@ function loadPromotions() {
             tableBody.innerHTML = promotions.map(p => {
                 let scope = '<span class="text-muted">Todo el catálogo</span>';
                 if (p.restrictedProducts && p.restrictedProducts.length > 0) {
-                    scope = `<span class="badge bg-info-subtle text-info border border-info-subtle">${p.restrictedProducts.length} Productos</span>`;
+                    const names = p.restrictedProducts.map(prod => prod.nameEs || prod.name).join(', ');
+                    scope = `<span class="badge bg-info-subtle text-info border border-info-subtle" title="${escHtml(names)}">${escHtml(names)}</span>`;
                 } else if (p.restrictedCategories && p.restrictedCategories.length > 0) {
                     const names = p.restrictedCategories.map(c => c.nameEs || c.name).join(', ');
-                    scope = `<span class="badge bg-warning-subtle text-warning border border-warning-subtle">${names}</span>`;
+                    scope = `<span class="badge bg-warning-subtle text-warning border border-warning-subtle" title="${escHtml(names)}">${escHtml(names)}</span>`;
                 }
 
                 return `
                 <tr>
-                    <td>
-                        <div class="d-flex flex-column">
-                            <strong class="text-accent">${escHtml(p.name)}</strong>
-                            <small class="text-muted" style="font-size: 0.75rem;">${scope}</small>
-                        </div>
-                    </td>
-                    <td><span class="badge bg-primary" style="background-color: var(--primary) !important;">${p.nValue}x${p.mValue}</span></td>
+                    <td><strong class="text-accent">${escHtml(p.name)}</strong></td>
+                    <td><small class="text-muted" style="font-size: 0.75rem;">${scope}</small></td>
+                    <td><span style="color: var(--text-main) !important; font-weight: 600;">${p.nValue}x${p.mValue}</span></td>
                     <td>
                         <span class="badge-active ${p.active ? 'yes' : 'no'}">
                             ${p.active ? 'Si' : 'No'}

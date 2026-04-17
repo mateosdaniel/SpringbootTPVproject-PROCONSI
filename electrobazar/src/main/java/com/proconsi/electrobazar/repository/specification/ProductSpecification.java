@@ -92,7 +92,20 @@ public class ProductSpecification {
                 predicates.add(cb.equal(root.get("measurementUnit").get("id"), unitId));
             }
 
-            query.orderBy(cb.asc(root.get("nameEs")));
+            // Order by relevance when searching: exact > starts-with > contains > alphabetical
+            if (search != null && !search.trim().isEmpty()) {
+                String fullQuery = search.trim().toLowerCase();
+                String prefixPattern = fullQuery + "%";
+                var exactMatch = cb.<Integer>selectCase()
+                        .when(cb.equal(cb.lower(root.get("nameEs")), fullQuery), 0)
+                        .otherwise(1);
+                var prefixMatch = cb.<Integer>selectCase()
+                        .when(cb.like(cb.lower(root.get("nameEs")), prefixPattern), 0)
+                        .otherwise(1);
+                query.orderBy(cb.asc(exactMatch), cb.asc(prefixMatch), cb.asc(root.get("nameEs")));
+            } else {
+                query.orderBy(cb.asc(root.get("nameEs")));
+            }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }

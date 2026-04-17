@@ -8,6 +8,7 @@
             <div class="modal-body">
                 <form id="productForm" novalidate>
                     <input type="hidden" id="productId">
+                    <input type="hidden" id="productExistingImageUrl">
                     <div class="row g-3">
                         <div class="col-md-8">
                             <label class="form-label" th:text="#{common.name} + ' *'">Nombre *</label>
@@ -15,7 +16,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label" th:text="#{common.price.euro} + ' *'">Precio (€) *</label>
-                            <input type="number" class="form-control" id="productPrice" step="0.01" required>
+                            <input type="number" class="form-control" id="productPrice" step="any" required>
                         </div>
                         <div class="col-12">
                             <label class="form-label" th:text="#{common.description}">Descripción</label>

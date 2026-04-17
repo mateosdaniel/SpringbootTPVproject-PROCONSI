@@ -59,3 +59,13 @@
     -- Mandatory for existing accounts during refactor
     UPDATE workers SET role_id = (SELECT id FROM roles WHERE name = 'ADMIN') WHERE username = 'root';
 
+    -- 6. MIGRATE PRODUCT IMAGE URLs from /uploads/products/ to /img/
+    UPDATE products SET image_url = REPLACE(image_url, '/uploads/products/', '/img/')
+    WHERE image_url LIKE '/uploads/products/%';
+
+    -- 7. CLEAN UP IMAGE URLs: Remove UUID prefixes (e.g., /img/UUID_name.png -> /img/name.png)
+    -- We look for /img/ followed by 36 chars of UUID and an underscore
+    UPDATE products 
+    SET image_url = CONCAT('/img/', SUBSTRING(image_url, 43))
+    WHERE image_url LIKE '/img/%_%' AND LENGTH(SUBSTRING_INDEX(SUBSTRING(image_url, 6), '_', 1)) = 36;
+

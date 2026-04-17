@@ -165,11 +165,10 @@ public class AdminController {
         model.addAttribute("taxRates", taxRateRepository.findAll());
         model.addAttribute("allCategories", categoryService.findAllActive());
         
-        // Limited top products for selection tools (IVA, Tariffs)
-        model.addAttribute("products", productService.getTopProductsByRank(100));
-
+        // Limited top products moved to AJAX to improve LCP
+        model.addAttribute("products", List.of()); 
         model.addAttribute("tariffs", tariffService.findAll());
-        model.addAttribute("tariffCustomerCounts", tariffService.getCustomerCountPerTariff());
+        model.addAttribute("tariffCustomerCounts", Map.of()); 
         
         model.addAttribute("workers", workerService.findAll());
         model.addAttribute("roles", roleService.findAll());

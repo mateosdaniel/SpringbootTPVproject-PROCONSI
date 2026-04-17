@@ -192,7 +192,10 @@ public class ProductServiceImpl implements ProductService {
         if (request.getActive() != null) {
             existing.setActive(request.getActive());
         }
-        existing.setImageUrl(request.getImageUrl());
+        // Only update imageUrl if a new one was provided (preserve existing on edit)
+        if (request.getImageUrl() != null && !request.getImageUrl().isBlank()) {
+            existing.setImageUrl(request.getImageUrl());
+        }
 
         if (request.getCategoryId() != null) {
             existing.setCategory(categoryRepository.findById(request.getCategoryId()).orElse(null));
@@ -208,11 +211,12 @@ public class ProductServiceImpl implements ProductService {
             existing.setMeasurementUnit(null);
         }
 
-        // Round price to unit's decimal places (after unit is resolved).
-        // e.g. unit=ud(2dp) → price rounded to 2; unit=L(3dp) → price rounded to 3.
-        if (existing.getPrice() != null && existing.getMeasurementUnit() != null) {
-            int dp = existing.getMeasurementUnit().getDecimalPlaces();
-            existing.setPrice(existing.getPrice().setScale(dp, java.math.RoundingMode.HALF_UP));
+        // Price precision = max(2, unit.decimalPlaces).
+        // Minimum 2 (monetary). More if unit allows it (e.g. litros=3 → price also 3dp).
+        if (existing.getPrice() != null) {
+            int unitDp = (existing.getMeasurementUnit() != null) ? existing.getMeasurementUnit().getDecimalPlaces() : 0;
+            int priceDp = Math.max(2, unitDp);
+            existing.setPrice(existing.getPrice().setScale(priceDp, java.math.RoundingMode.HALF_UP));
         }
 
         if (request.getStock() != null && request.getStock().compareTo(BigDecimal.ZERO) >= 0) {

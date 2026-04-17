@@ -201,19 +201,18 @@ public class ProductApiRestController {
 
     private String saveImage(MultipartFile file) {
         try {
-            String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-            // Path where images are stored (absolute for the local system or relative for Spring serving)
-            String uploadDir = "src/main/resources/static/uploads/products/";
+            String fileName = file.getOriginalFilename();
+            String uploadDir = "src/main/resources/static/img/";
             Path uploadPath = Paths.get(uploadDir);
-            
+
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
-            
+
             try (var inputStream = file.getInputStream()) {
                 Path filePath = uploadPath.resolve(fileName);
                 Files.copy(inputStream, filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                return "/uploads/products/" + fileName;
+                return "/img/" + fileName;
             }
         } catch (IOException e) {
             log.error("Error saving image", e);

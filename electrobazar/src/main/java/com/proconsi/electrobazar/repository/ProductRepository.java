@@ -39,7 +39,22 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate LEFT JOIN FETCH p.measurementUnit WHERE p.category.id = :categoryId AND p.active = true ORDER BY p.nameEs ASC")
     List<Product> findByCategoryIdAndActiveTrueOrderByNameEsAsc(@Param("categoryId") Long categoryId);
 
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.taxRate LEFT JOIN FETCH p.measurementUnit WHERE (LOWER(p.nameEs) LIKE LOWER(CONCAT('%', :name, '%')) OR LOWER(p.nameEn) LIKE LOWER(CONCAT('%', :name, '%'))) AND p.active = true")
+    @Query("""
+        SELECT p FROM Product p
+        LEFT JOIN FETCH p.category
+        LEFT JOIN FETCH p.taxRate
+        LEFT JOIN FETCH p.measurementUnit
+        WHERE (LOWER(p.nameEs) LIKE LOWER(CONCAT('%', :name, '%'))
+            OR LOWER(p.nameEn) LIKE LOWER(CONCAT('%', :name, '%')))
+          AND p.active = true
+        ORDER BY
+          CASE
+            WHEN LOWER(p.nameEs) = LOWER(:name) THEN 0
+            WHEN LOWER(p.nameEs) LIKE LOWER(CONCAT(:name, '%')) THEN 1
+            ELSE 2
+          END ASC,
+          p.nameEs ASC
+        """)
     List<Product> findByNameContainingIgnoreCaseAndActiveTrue(@Param("name") String name);
 
     /**

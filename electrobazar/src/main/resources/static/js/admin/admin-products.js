@@ -27,6 +27,7 @@ function openProductModal(id) {
                 document.getElementById('productTaxRate').value = p.taxRate ? p.taxRate.id : '';
                 document.getElementById('productUnit').value = p.measurementUnit ? p.measurementUnit.id : '';
                 document.getElementById('productActive').checked = p.active;
+                document.getElementById('productExistingImageUrl').value = p.imageUrl || '';
                 
                 if (p.imageUrl) {
                     const img = document.getElementById('imagePreview');
@@ -63,6 +64,10 @@ function saveProduct() {
     const fileInput = document.getElementById('productImage');
     if (fileInput && fileInput.files && fileInput.files.length > 0) {
         formData.append('imageFile', fileInput.files[0]);
+    } else if (id) {
+        // No new file selected — preserve existing imageUrl
+        const existingImageUrl = document.getElementById('productExistingImageUrl')?.value;
+        if (existingImageUrl) formData.append('imageUrl', existingImageUrl);
     }
 
     fetch('/api/products' + (id ? '/' + id : ''), {
