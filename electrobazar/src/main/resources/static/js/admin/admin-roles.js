@@ -224,6 +224,9 @@ function renderRolesTable(items) {
         const tr = document.createElement('tr');
         tr.className = 'role-row';
         tr.style.cursor = 'pointer';
+        tr.setAttribute('data-role-id', r.id);
+        tr.setAttribute('data-role-name', r.name);
+        
         const count = r.workerCount !== undefined ? r.workerCount : 0;
         const isAdmin = r.isAdmin === true || (r.name && r.name.toUpperCase() === 'ADMIN');
         tr.innerHTML = `
@@ -231,11 +234,7 @@ function renderRolesTable(items) {
             <td class="small" style="color: var(--text-muted);">${escHtml(r.description || '\u2014')}</td>
             <td>${perms}</td>
             <td>
-                <span class="badge role-worker-badge" 
-                    data-role-id="${r.id}"
-                    data-role-name="${escHtml(r.name)}"
-                    style="background-color: rgba(var(--accent-rgb), 0.1); color: var(--accent); border: 1px solid var(--accent); cursor:pointer;"
-                    title="Ver trabajadores">
+                <span class="badge" style="background-color: rgba(var(--accent-rgb), 0.1); color: var(--accent); border: 1px solid var(--accent);">
                     ${count} trabajador(es)
                 </span>
             </td>
@@ -256,15 +255,10 @@ function renderRolesTable(items) {
     if (!_rolesListenerAttached) {
         _rolesListenerAttached = true;
         tbody.addEventListener('click', function(e) {
-            const badge = e.target.closest('.role-worker-badge');
+            const row = e.target.closest('.role-row');
             const editBtn = e.target.closest('[data-action="edit"]');
             const deleteBtn = e.target.closest('[data-action="delete"]');
 
-            if (badge) {
-                e.stopPropagation();
-                showRoleWorkers(parseInt(badge.dataset.roleId), badge, badge.dataset.roleName);
-                return;
-            }
             if (editBtn) {
                 e.stopPropagation();
                 openRoleModal(parseInt(editBtn.dataset.roleId));
@@ -273,70 +267,43 @@ function renderRolesTable(items) {
             if (deleteBtn) {
                 e.stopPropagation();
                 deleteRole(parseInt(deleteBtn.dataset.roleId));
+                return;
+            }
+            if (row) {
+                showRoleWorkers(parseInt(row.dataset.roleId), null, row.dataset.roleName);
             }
         });
     }
 }
 
 /**
- * Shows a small popup listing workers assigned to a role.
- * Clicking outside dismisses it.
+ * Shows a modal listing workers assigned to a role.
  */
-function showRoleWorkers(roleId, badgeEl, roleName) {
-    // Remove any existing popover
-    document.querySelectorAll('.role-workers-popup').forEach(el => el.remove());
-
-    const popup = document.createElement('div');
-    popup.className = 'role-workers-popup';
-    popup.style.cssText = [
-        'position:fixed',
-        'z-index:9999',
-        'background:var(--surface)',
-        'border:1px solid var(--border)',
-        'border-radius:8px',
-        'box-shadow:0 4px 16px rgba(0,0,0,0.2)',
-        'padding:0.75rem 1rem',
-        'min-width:220px',
-        'max-width:320px'
-    ].join(';');
-    popup.innerHTML = `<div class="small fw-bold mb-2" style="color:var(--text-main)">
-        <i class="bi bi-people me-1"></i>Trabajadores con rol "${escHtml(roleName)}"
-    </div><div class="role-workers-list"><span class="spinner-border spinner-border-sm"></span></div>`;
-
-    // position:fixed uses viewport coords directly — works regardless of scroll or overflow containers
-    const rect = badgeEl.getBoundingClientRect();
-    popup.style.top = (rect.bottom + 6) + 'px';
-    popup.style.left = Math.max(8, rect.left - 40) + 'px';
-    document.body.appendChild(popup);
-
-    // Ensure popup stays within viewport right edge
-    const popupRect = popup.getBoundingClientRect();
-    if (popupRect.right > window.innerWidth - 8) {
-        popup.style.left = Math.max(8, window.innerWidth - popupRect.width - 8) + 'px';
-    }
-
-    // Close on outside click
-    setTimeout(() => {
-        document.addEventListener('click', function dismissPopup(e) {
-            if (!popup.contains(e.target)) {
-                popup.remove();
-                document.removeEventListener('click', dismissPopup);
-            }
-        });
-    }, 10);
+function showRoleWorkers(roleId, _unused, roleName) {
+    const list = document.getElementById('roleUsersList');
+    const title = document.getElementById('roleUsersTitle');
+    
+    title.textContent = `Trabajadores con el Rol "${roleName}"`;
+    list.innerHTML = '<div class="text-center py-4"><div class="spinner-border spinner-border-sm text-accent"></div></div>';
+    
+    roleUsersModal.show();
 
     fetch(`/api/admin/roles/${roleId}/workers`)
         .then(res => res.json())
         .then(workers => {
-            const list = popup.querySelector('.role-workers-list');
             if (!workers || workers.length === 0) {
-                list.innerHTML = '<span class="small" style="color:var(--text-muted)">Sin trabajadores asignados.</span>';
+                list.innerHTML = '<div class="text-center py-3 text-muted small">Sin trabajadores asignados.</div>';
                 return;
             }
             list.innerHTML = workers.map(w => `
-                <div class="d-flex align-items-center gap-2 py-1" style="border-bottom:1px solid var(--border)">
-                    <i class="bi bi-person-circle" style="color:var(--accent)"></i>
-                    <span class="small" style="color:var(--text-main)">${escHtml(w.username)}</span>
+                <div class="d-flex align-items-center gap-3 p-2 rounded" style="background:var(--surface); border:1px solid var(--border)">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:36px; height:36px; background:rgba(var(--accent-rgb), 0.1)">
+                        <i class="bi bi-person text-accent"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold small" style="color:var(--text-main)">${escHtml(w.username)}</div>
+                        <div class="text-muted" style="font-size:0.7rem">${escHtml(w.email || 'Sin email')}</div>
+                    </div>
                     ${w.active 
                         ? '<span class="badge" style="background:rgba(34,197,94,0.1);color:#22c55e;border:1px solid rgba(34,197,94,0.3);font-size:0.6rem">Activo</span>'
                         : '<span class="badge" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.3);font-size:0.6rem">Inactivo</span>'}
@@ -344,8 +311,7 @@ function showRoleWorkers(roleId, badgeEl, roleName) {
             `).join('');
         })
         .catch(() => {
-            popup.querySelector('.role-workers-list').innerHTML =
-                '<span class="small text-danger">Error al cargar trabajadores.</span>';
+            list.innerHTML = '<div class="text-center py-3 text-danger small">Error al cargar trabajadores.</div>';
         });
 }
 

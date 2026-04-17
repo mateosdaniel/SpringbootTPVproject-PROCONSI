@@ -1,0 +1,24 @@
+<div th:fragment="modal" class="modal fade" id="roleUsersModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:var(--secondary);border:1px solid var(--border);border-radius:12px">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="roleUsersModalLabel">
+                    <i class="bi bi-people me-2 text-accent"></i>
+                    <span id="roleUsersTitle">Trabajadores con el Rol</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="roleUsersList" class="d-flex flex-column gap-2">
+                    <!-- Dinámico -->
+                    <div class="text-center py-4">
+                        <div class="spinner-border spinner-border-sm text-accent"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" th:text="#{common.close}">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>

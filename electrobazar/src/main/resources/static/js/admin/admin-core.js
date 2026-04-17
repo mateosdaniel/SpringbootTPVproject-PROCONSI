@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function () {
         'customerModal', 'schedulePriceModal', 'ipcUpdateModal', 'couponModal',
         'promotionModal', 'measurementUnitModal', 'abonoModal',
         'tariffModal', 'editTariffModal', 'applyPricesModal', 'priceChangesHistoryModal',
-        'addTariffValueModal', 'deleteTariffModal'
+        'addTariffValueModal', 'deleteTariffModal', 'roleUsersModal'
     ];
 
     modalIds.forEach(id => {
@@ -121,10 +121,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // In addition to window.load, we allow transition as soon as basic init is done
         // to achieve the ~1s goal.
-        if (document.readyState === 'complete') {
+        // Implementation: Show content as soon as DOM is interactive to improve LCP.
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
             setPanelReady();
         } else {
-            window.addEventListener('load', setPanelReady);
+            document.addEventListener('DOMContentLoaded', setPanelReady);
         }
     }
 });

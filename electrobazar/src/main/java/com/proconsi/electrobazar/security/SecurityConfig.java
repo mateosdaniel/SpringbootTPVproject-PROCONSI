@@ -19,7 +19,6 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
-import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 
 /**
  * Main Web Security Configuration.
@@ -118,7 +117,9 @@ public class SecurityConfig {
                                                 .requestMatchers("/login", "/register", "/error", "/logout",
                                                                 "/forgot-password", "/reset-password")
                                                 .permitAll()
-                                                .requestMatchers("/api/workers/login", "/api/workers/verify-pin", "/api/debug/**").permitAll()
+                                                .requestMatchers("/api/workers/login", "/api/workers/verify-pin",
+                                                                "/api/debug/**")
+                                                .permitAll()
 
                                                 // TPV PUBLIC CATALOG (Allow public access to read categories and
                                                 // products)
@@ -145,13 +146,15 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/suspended-sales/**")
                                                 .hasAnyAuthority("GESTION_VENTAS_PAUSADAS", "ACCESO_TOTAL_ADMIN")
                                                 .requestMatchers("/api/roles/**").hasAuthority("ACCESO_TOTAL_ADMIN")
-                                                .requestMatchers("/api/permissions/**").hasAuthority("ACCESO_TOTAL_ADMIN")
+                                                .requestMatchers("/api/permissions/**")
+                                                .hasAuthority("ACCESO_TOTAL_ADMIN")
                                                 .requestMatchers("/api/sales/range")
                                                 .hasAnyAuthority("VER_VENTAS", "ACCESO_TOTAL_ADMIN")
                                                 .requestMatchers("/api/sales/**")
                                                 .hasAnyAuthority("VER_VENTAS", "ACCESO_TOTAL_ADMIN", "ACCESO_TPV")
                                                 .requestMatchers("/api/workers/**").hasAuthority("ACCESO_TOTAL_ADMIN")
-                                                .requestMatchers("/api/activity-log/**").hasAuthority("ACCESO_TOTAL_ADMIN")
+                                                .requestMatchers("/api/activity-log/**")
+                                                .hasAuthority("ACCESO_TOTAL_ADMIN")
                                                 .requestMatchers("/api/cash-registers/**")
                                                 .hasAnyAuthority("GESTION_CAJA", "CIERRE_CAJA", "ACCESO_TOTAL_ADMIN")
                                                 .requestMatchers("/api/cash-withdrawals/**")
@@ -162,9 +165,11 @@ public class SecurityConfig {
                                                 .hasAnyAuthority("ACCESO_TOTAL_ADMIN", "ACCESO_TPV")
                                                 .requestMatchers("/api/ipc/**").hasAuthority("ACCESO_TOTAL_ADMIN")
                                                 .requestMatchers("/api/customers/**")
-                                                .hasAnyAuthority("GESTION_CLIENTES_CRM", "ACCESO_TOTAL_ADMIN", "ACCESO_TPV")
+                                                .hasAnyAuthority("GESTION_CLIENTES_CRM", "ACCESO_TOTAL_ADMIN",
+                                                                "ACCESO_TPV")
                                                 .requestMatchers("/api/email/**")
-                                                .hasAnyAuthority("GESTION_CLIENTES_CRM", "ACCESO_TOTAL_ADMIN", "ACCESO_TPV")
+                                                .hasAnyAuthority("GESTION_CLIENTES_CRM", "ACCESO_TOTAL_ADMIN",
+                                                                "ACCESO_TPV")
 
                                                 // CATCH-ALL FOR ADMIN AND USER INTERFACES
                                                 .requestMatchers("/tpv/**", "/admin/**", "/api/admin/**")

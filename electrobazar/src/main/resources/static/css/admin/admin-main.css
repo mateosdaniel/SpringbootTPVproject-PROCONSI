@@ -1044,7 +1044,6 @@
 }
 
 .dashboard-card.is-skeleton > i,
-.dashboard-card.is-skeleton > h3,
 .dashboard-card.is-skeleton > p {
     opacity: 0;
     visibility: hidden; /* Hide without removing from layout */
@@ -1052,7 +1051,6 @@
 }
 
 .dashboard-card.is-loaded > i,
-.dashboard-card.is-loaded > h3,
 .dashboard-card.is-loaded > p {
     opacity: 1 !important;
     visibility: visible !important;
