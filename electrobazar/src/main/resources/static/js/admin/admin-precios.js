@@ -161,11 +161,11 @@ function renderBulkProductList(products) {
                 <input class="form-check-input mt-0" type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); handleBulkProductToggle(${p.id})">
             </div>
             <div class="bulk-item-info flex-grow-1">
-                <div class="fw-bold" style="font-size:0.9rem; color: #ffffff !important;">${p.name}</div>
-                <div class="small" style="color: #adb5bd !important;">${p.categoryName || 'Sin categoría'}</div>
+                <div class="fw-bold" style="font-size:0.9rem;">${p.name}</div>
+                <div class="small">${p.categoryName || 'Sin categoría'}</div>
             </div>
             <div class="text-end ps-3">
-                <span class="badge bg-dark fw-500" style="border:1px solid var(--border); color: #ffffff !important; background-color: #343a40 !important;">
+                <span class="badge fw-500">
                     ${formatDecimal(p.price)} €
                 </span>
             </div>

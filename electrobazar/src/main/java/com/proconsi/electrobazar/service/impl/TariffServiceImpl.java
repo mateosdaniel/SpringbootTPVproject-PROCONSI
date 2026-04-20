@@ -138,7 +138,17 @@ public class TariffServiceImpl implements TariffService {
     @Transactional(readOnly = true)
     public Map<Long, Long> getCustomerCountPerTariff() {
         Map<Long, Long> stats = new HashMap<>();
+        // Get counts for explicit assignments
         tariffRepository.countCustomersPerTariff().forEach(row -> stats.put((Long) row[0], (Long) row[1]));
+        
+        // Add customers with NO assigned tariff to the MINORISTA count
+        long noTariffCount = customerRepository.countByTariffIsNullAndActiveTrue();
+        if (noTariffCount > 0) {
+            Tariff def = getDefault();
+            Long currentCount = stats.getOrDefault(def.getId(), 0L);
+            stats.put(def.getId(), currentCount + noTariffCount);
+        }
+        
         return stats;
     }
 

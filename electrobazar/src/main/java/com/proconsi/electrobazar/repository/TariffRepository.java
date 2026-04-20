@@ -29,7 +29,7 @@ public interface TariffRepository extends JpaRepository<Tariff, Long> {
      * Counts the number of active customers assigned to each tariff.
      * Returns a list of [Tariff ID, Customer Count].
      */
-    @Query("SELECT t.id, COUNT(c) FROM Customer c JOIN c.tariff t WHERE c.active = true GROUP BY t.id")
+    @Query("SELECT t.id, COUNT(c) FROM Tariff t LEFT JOIN Customer c ON c.tariff = t AND c.active = true GROUP BY t.id")
     List<Object[]> countCustomersPerTariff();
 }
 

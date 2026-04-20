@@ -41,9 +41,25 @@ public class LocaleConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/js/**", "/css/**", "/images/**", "/webjars/**")
-                .addResourceLocations("classpath:/static/js/", "classpath:/static/css/", "classpath:/static/images/", "classpath:/META-INF/resources/webjars/")
+        // Multi-location handler for standard assets
+        registry.addResourceHandler("/js/**", "/css/**", "/images/**", "/img/**", "/vendor/**", "/icons/**", "/webjars/**")
+                .addResourceLocations(
+                    "classpath:/static/js/", 
+                    "classpath:/static/css/", 
+                    "classpath:/static/images/", 
+                    "classpath:/static/img/",
+                    "classpath:/static/vendor/",
+                    "classpath:/static/icons/",
+                    "classpath:/META-INF/resources/webjars/"
+                )
                 .setCacheControl(org.springframework.http.CacheControl.maxAge(7, java.util.concurrent.TimeUnit.DAYS))
+                .resourceChain(true)
+                .addResolver(new org.springframework.web.servlet.resource.VersionResourceResolver()
+                        .addContentVersionStrategy("/**"));
+        
+        // Catch-all for any other static files at root
+        registry.addResourceHandler("/**")
+                .addResourceLocations("classpath:/static/")
                 .resourceChain(true)
                 .addResolver(new org.springframework.web.servlet.resource.VersionResourceResolver()
                         .addContentVersionStrategy("/**"));

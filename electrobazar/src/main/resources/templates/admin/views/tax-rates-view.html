@@ -190,7 +190,7 @@
                                                         <div
                                                             class="flex-grow-1 d-flex justify-content-between align-items-center pe-1">
                                                             <span class="fw-600" th:text="${p.name}"
-                                                                style="color: #ffffff; font-size: 0.85rem;"></span>
+                                                                style="color: var(--text-main); font-size: 0.85rem;"></span>
                                                             <span
                                                                 class="badge bg-secondary text-muted rounded-pill small px-2"
                                                                 th:text="'IVA: ' + (${p.taxRate != null ? #numbers.formatDecimal(p.taxRate.vatRate * 100, 1, 0) + '%' : '—'})"></span>
@@ -224,7 +224,7 @@
                                                                 th:id="'selCat' + ${c.id}" style="margin-left: 2px;">
                                                             <div class="flex-grow-1">
                                                                 <span class="fw-700 d-block"
-                                                                    style="color: #ffffff; line-height: 1.2;"
+                                                                    style="color: var(--text-main); line-height: 1.2;"
                                                                     th:text="${c.name}"></span>
                                                                 <div class="text-muted small fw-normal mt-1"
                                                                     style="font-size: 0.7rem;"

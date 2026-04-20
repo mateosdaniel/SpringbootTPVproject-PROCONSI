@@ -28,7 +28,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNoResourceFound(NoResourceFoundException ex) {
-        if (!ex.getResourcePath().contains(".well-known")) {
+        String path = ex.getResourcePath();
+        if (path != null && !path.contains(".well-known") && !path.endsWith(".map") && !path.endsWith(".json")) {
             log.error("Resource not found: {}", ex.getMessage());
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorBody(ex.getMessage()));

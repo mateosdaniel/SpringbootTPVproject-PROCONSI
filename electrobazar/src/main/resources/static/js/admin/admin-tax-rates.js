@@ -179,7 +179,7 @@ async function loadTaxRates() {
                         <input class="form-check-input sel-product-cb me-3 mt-0 flex-shrink-0"
                             type="checkbox" value="${p.id}" id="selProd${p.id}" style="margin-left:5px;">
                         <div class="flex-grow-1 d-flex justify-content-between align-items-center pe-1">
-                            <span class="fw-600" style="font-size:0.85rem; color:#ffffff;">${p.name}</span>
+                            <span class="fw-600" style="font-size:0.85rem; color:var(--text-main);">${p.name}</span>
                             <span class="badge bg-secondary text-muted rounded-pill small px-2">
                                 IVA: ${p.taxRate ? (p.taxRate.vatRate * 100).toFixed(0) + '%' : '—'}
                             </span>
@@ -201,7 +201,7 @@ async function loadTaxRates() {
                         <input class="form-check-input sel-category-cb me-3 mt-0 flex-shrink-0"
                             type="checkbox" value="${c.id}" id="selCat${c.id}" style="margin-left: 2px;">
                         <div class="flex-grow-1">
-                            <span class="fw-700 d-block" style="line-height: 1.2; color:#ffffff;">${c.name}</span>
+                            <span class="fw-700 d-block" style="line-height: 1.2; color:var(--text-main);">${c.name}</span>
                             <div class="text-muted small fw-normal mt-1" style="font-size: 0.7rem;">Incluye productos de esta categoría</div>
                         </div>
                     </label>
@@ -260,8 +260,8 @@ function filterSelProducts() {
                                 <input class="form-check-input sel-product-cb me-3 mt-0 flex-shrink-0"
                                     type="checkbox" value="${p.id}" id="selProdDyn${p.id}" style="margin-left:5px;">
                                 <div class="flex-grow-1 d-flex justify-content-between align-items-center pe-1">
-                                    <span class="fw-500 text-body" style="font-size:0.85rem;">${p.nameEs || p.name}</span>
-                                    <span class="badge bg-dark-subtle text-body-secondary rounded-pill small px-2" style="border:1px solid var(--border);">
+                                    <span class="fw-600" style="font-size:0.85rem; color:var(--text-main);">${p.nameEs || p.name}</span>
+                                    <span class="badge bg-secondary text-muted rounded-pill small px-2">
                                         IVA: ${p.taxRate ? Math.round(p.taxRate.vatRate * 100) + '%' : '—'}
                                     </span>
                                 </div>

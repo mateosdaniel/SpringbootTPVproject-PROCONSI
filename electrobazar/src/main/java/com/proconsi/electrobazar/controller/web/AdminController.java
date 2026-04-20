@@ -169,7 +169,7 @@ public class AdminController {
         // Limited top products moved to AJAX to improve LCP
         model.addAttribute("products", List.of());
         model.addAttribute("tariffs", tariffService.findAll());
-        model.addAttribute("tariffCustomerCounts", Map.of());
+        model.addAttribute("tariffCustomerCounts", tariffService.getCustomerCountPerTariff());
 
         model.addAttribute("workers", workerService.findAll());
         model.addAttribute("roles", roleService.findAll());

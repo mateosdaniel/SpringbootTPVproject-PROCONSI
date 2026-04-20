@@ -1099,3 +1099,31 @@
 .dashboard-card.is-loaded > * {
     animation: skeletonFadeIn 0.2s ease-in forwards;
 }
+/* -- Bulk Price Update Items -- */
+.bulk-item {
+    transition: background 0.2s, border-color 0.2s;
+    background: transparent;
+}
+
+.bulk-item:hover {
+    background: var(--surface) !important;
+}
+
+.bulk-item.selected {
+    background: var(--accent-10) !important;
+    border-color: var(--accent) !important;
+}
+
+.bulk-item .fw-bold {
+    color: var(--text-main) !important;
+}
+
+.bulk-item .small {
+    color: var(--text-muted) !important;
+}
+
+.bulk-item .badge {
+    color: var(--text-main) !important;
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+}
