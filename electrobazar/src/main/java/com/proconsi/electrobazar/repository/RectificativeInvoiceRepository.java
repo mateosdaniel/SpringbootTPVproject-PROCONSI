@@ -1,29 +1,29 @@
 package com.proconsi.electrobazar.repository;
 
+import com.proconsi.electrobazar.model.AeatStatus;
 import com.proconsi.electrobazar.model.RectificativeInvoice;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
-/**
- * Repository for {@link RectificativeInvoice} entities.
- * Manages official corrective documents issued to rectify previously generated invoices.
- */
 @Repository
 public interface RectificativeInvoiceRepository extends JpaRepository<RectificativeInvoice, Long> {
 
-    /**
-     * Finds the corrective invoice associated with a specific merchandise return.
-     * @param returnId ID of the SaleReturn.
-     * @return Optional containing the corrective invoice.
-     */
     Optional<RectificativeInvoice> findBySaleReturnId(Long returnId);
 
-    /**
-     * Finds the very last corrective invoice issued, used for Verifactu chaining.
-     */
     Optional<RectificativeInvoice> findFirstByOrderByCreatedAtDesc();
+
+    Optional<RectificativeInvoice> findByHashCurrentInvoice(String hashCurrentInvoice);
+
+    @Query("SELECT r FROM RectificativeInvoice r WHERE r.aeatStatus = :status AND r.aeatRetryCount < :maxRetries")
+    List<RectificativeInvoice> findPendingSend(@Param("maxRetries") int maxRetries,
+                                               @Param("status") AeatStatus status);
+
+    default List<RectificativeInvoice> findPendingSend(int maxRetries) {
+        return findPendingSend(maxRetries, AeatStatus.PENDING_SEND);
+    }
 }
-
-

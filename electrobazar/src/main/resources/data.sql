@@ -76,3 +76,40 @@ ALTER TABLE abonos ADD COLUMN IF NOT EXISTS code VARCHAR(20) UNIQUE;
 -- 9. FIX SALES TABLE SCHEMA
 ALTER TABLE sales ADD COLUMN IF NOT EXISTS abono_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00;
 
+-- 10. FIX INVOICES TABLE SCHEMA (VeriFactu / AEAT)
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS hash_previous_invoice VARCHAR(64);
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS hash_current_invoice VARCHAR(64);
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS aeat_status VARCHAR(30);
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS aeat_submission_date DATETIME;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS aeat_last_error TEXT;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS aeat_retry_count INT DEFAULT 0;
+
+-- Initializing values for existing records to avoid NULL constraints issues
+UPDATE invoices SET hash_previous_invoice = '0000000000000000' WHERE hash_previous_invoice IS NULL;
+UPDATE invoices SET hash_current_invoice = '0000000000000000' WHERE hash_current_invoice IS NULL;
+UPDATE invoices SET aeat_retry_count = 0 WHERE aeat_retry_count IS NULL;
+
+-- 11. FIX TICKETS TABLE SCHEMA (VeriFactu / AEAT)
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS hash_previous_invoice VARCHAR(64);
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS hash_current_invoice VARCHAR(64);
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS aeat_status VARCHAR(30);
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS aeat_submission_date DATETIME;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS aeat_last_error TEXT;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS aeat_retry_count INT DEFAULT 0;
+
+UPDATE tickets SET hash_previous_invoice = '0000000000000000' WHERE hash_previous_invoice IS NULL;
+UPDATE tickets SET hash_current_invoice = '0000000000000000' WHERE hash_current_invoice IS NULL;
+UPDATE tickets SET aeat_retry_count = 0 WHERE aeat_retry_count IS NULL;
+
+-- 12. FIX RECTIFICATIVE_INVOICES TABLE SCHEMA (VeriFactu / AEAT)
+ALTER TABLE rectificative_invoices ADD COLUMN IF NOT EXISTS hash_previous_invoice VARCHAR(64);
+ALTER TABLE rectificative_invoices ADD COLUMN IF NOT EXISTS hash_current_invoice VARCHAR(64);
+ALTER TABLE rectificative_invoices ADD COLUMN IF NOT EXISTS aeat_status VARCHAR(30);
+ALTER TABLE rectificative_invoices ADD COLUMN IF NOT EXISTS aeat_submission_date DATETIME;
+ALTER TABLE rectificative_invoices ADD COLUMN IF NOT EXISTS aeat_last_error TEXT;
+ALTER TABLE rectificative_invoices ADD COLUMN IF NOT EXISTS aeat_retry_count INT DEFAULT 0;
+
+UPDATE rectificative_invoices SET hash_previous_invoice = '0000000000000000' WHERE hash_previous_invoice IS NULL;
+UPDATE rectificative_invoices SET hash_current_invoice = '0000000000000000' WHERE hash_current_invoice IS NULL;
+UPDATE rectificative_invoices SET aeat_retry_count = 0 WHERE aeat_retry_count IS NULL;
+

@@ -63,6 +63,20 @@ public class Ticket {
     @Column(name = "hash_current_invoice", nullable = false, length = 64)
     private String hashCurrentInvoice;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "aeat_status", length = 30)
+    private AeatStatus aeatStatus;
+
+    @Column(name = "aeat_submission_date")
+    private java.time.LocalDateTime aeatSubmissionDate;
+
+    @Column(name = "aeat_last_error", columnDefinition = "TEXT")
+    private String aeatLastError;
+
+    @Column(name = "aeat_retry_count", nullable = false)
+    @Builder.Default
+    private int aeatRetryCount = 0;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();

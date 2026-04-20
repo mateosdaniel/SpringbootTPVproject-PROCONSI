@@ -138,7 +138,7 @@ public class AdminController {
             Model model,
             HttpSession session) {
         long t0 = System.currentTimeMillis();
-        
+
         if (!Boolean.TRUE.equals(session.getAttribute("admin"))) {
             return "redirect:/tpv";
         }
@@ -161,15 +161,16 @@ public class AdminController {
         model.addAttribute("categoriesPageNumber", categoriesPage);
         model.addAttribute("categoriesPageSize", categoriesSize);
 
-        // Pre-populate with essential lightweight data to satisfy initial view rendering
+        // Pre-populate with essential lightweight data to satisfy initial view
+        // rendering
         model.addAttribute("taxRates", taxRateRepository.findAll());
         model.addAttribute("allCategories", categoryService.findAllActive());
-        
+
         // Limited top products moved to AJAX to improve LCP
-        model.addAttribute("products", List.of()); 
+        model.addAttribute("products", List.of());
         model.addAttribute("tariffs", tariffService.findAll());
-        model.addAttribute("tariffCustomerCounts", Map.of()); 
-        
+        model.addAttribute("tariffCustomerCounts", Map.of());
+
         model.addAttribute("workers", workerService.findAll());
         model.addAttribute("roles", roleService.findAll());
         model.addAttribute("measurementUnits", measurementUnitService.findAll());
@@ -413,11 +414,15 @@ public class AdminController {
         if (needsVersionSelection) {
             pricesPage = org.springframework.data.domain.Page.empty();
         } else if (time != null) {
-            // Si el usuario seleccionó una HORA exacta, buscamos la versión que EMPEZÓ en ese momento
-            pricesPage = tariffPriceHistoryService.getPricesForTariffAtExactValidFrom(id, targetDate, selectedTime, pageable);
+            // Si el usuario seleccionó una HORA exacta, buscamos la versión que EMPEZÓ en
+            // ese momento
+            pricesPage = tariffPriceHistoryService.getPricesForTariffAtExactValidFrom(id, targetDate, selectedTime,
+                    pageable);
         } else {
-            // Si solo hay fecha, buscamos lo que estaba activo al final de ese día (o ahora)
-            pricesPage = tariffPriceHistoryService.getPricesForTariffAtExactDateTime(id, targetDate, selectedTime, pageable);
+            // Si solo hay fecha, buscamos lo que estaba activo al final de ese día (o
+            // ahora)
+            pricesPage = tariffPriceHistoryService.getPricesForTariffAtExactDateTime(id, targetDate, selectedTime,
+                    pageable);
         }
 
         boolean isInitializing = false;

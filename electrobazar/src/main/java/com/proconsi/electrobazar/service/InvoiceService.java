@@ -46,6 +46,9 @@ public interface InvoiceService {
      */
     boolean verifyChain(String serie);
 
+    /** Calcula la Huella Verifactu de una factura completa (F1). */
+    String calculateHash(Invoice invoice, String previousHash);
+
     /**
      * Generates the official Verifactu QR code content and image as Base64.
      * The URL points to the AEAT verification portal.

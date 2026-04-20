@@ -1,25 +1,23 @@
 package com.proconsi.electrobazar.service.impl;
 
+import com.proconsi.electrobazar.model.AeatStatus;
 import com.proconsi.electrobazar.model.InvoiceSequence;
 import com.proconsi.electrobazar.model.Sale;
 import com.proconsi.electrobazar.model.Ticket;
 import com.proconsi.electrobazar.repository.InvoiceSequenceRepository;
 import com.proconsi.electrobazar.repository.TicketRepository;
 import com.proconsi.electrobazar.service.TicketService;
-import lombok.RequiredArgsConstructor;
+import com.proconsi.electrobazar.service.VerifactuService;
+import com.proconsi.electrobazar.util.VerifactuHashCalculator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.Optional;
 
-/**
- * Implementation of {@link TicketService}.
- * Responsible for generating simplified sales receipts (Tickets) with sequential numbering.
- */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class TicketServiceImpl implements TicketService {
 
@@ -28,8 +26,21 @@ public class TicketServiceImpl implements TicketService {
     private final TicketRepository ticketRepository;
     private final InvoiceSequenceRepository invoiceSequenceRepository;
     private final com.proconsi.electrobazar.service.InvoiceService invoiceService;
+    private final VerifactuHashCalculator hashCalculator;
+    private final VerifactuService verifactuService;
 
-    private static final String INITIAL_HASH = "0000000000000000";
+    public TicketServiceImpl(
+            TicketRepository ticketRepository,
+            InvoiceSequenceRepository invoiceSequenceRepository,
+            com.proconsi.electrobazar.service.InvoiceService invoiceService,
+            VerifactuHashCalculator hashCalculator,
+            @Lazy VerifactuService verifactuService) {
+        this.ticketRepository = ticketRepository;
+        this.invoiceSequenceRepository = invoiceSequenceRepository;
+        this.invoiceService = invoiceService;
+        this.hashCalculator = hashCalculator;
+        this.verifactuService = verifactuService;
+    }
 
     @Override
     @Transactional
@@ -37,42 +48,37 @@ public class TicketServiceImpl implements TicketService {
         int ticketYear = (sale.getCreatedAt() != null) ? sale.getCreatedAt().getYear() : LocalDate.now().getYear();
         String serie = TICKET_SERIE;
 
-        // Fetch (and lock) the sequence row for serie "T"
         InvoiceSequence sequence = invoiceSequenceRepository.findBySerieAndYearForUpdate(serie, ticketYear)
                 .orElseGet(() -> invoiceSequenceRepository.save(
-                        InvoiceSequence.builder().serie(serie).year(ticketYear).lastNumber(0).build()
-                ));
+                        InvoiceSequence.builder().serie(serie).year(ticketYear).lastNumber(0).build()));
 
         String ticketNumber;
         do {
             int nextNumber = sequence.getLastNumber() + 1;
             sequence.setLastNumber(nextNumber);
             invoiceSequenceRepository.save(sequence);
-
-            // Format example: T-2026-1
             ticketNumber = String.format("%s-%d-%d", serie, ticketYear, nextNumber);
         } while (ticketRepository.findByTicketNumber(ticketNumber).isPresent());
 
-        // Verifactu Chaining: Get previous hash for Ticket series
         String previousHash = ticketRepository.findFirstByOrderByCreatedAtDesc()
                 .map(Ticket::getHashCurrentInvoice)
-                .orElse(INITIAL_HASH);
+                .orElse(VerifactuHashCalculator.INITIAL_HASH);
 
         Ticket ticket = Ticket.builder()
                 .ticketNumber(ticketNumber).serie(serie).year(ticketYear)
                 .sequenceNumber(sequence.getLastNumber()).sale(sale).applyRecargo(applyRecargo)
                 .hashPreviousInvoice(previousHash)
+                .aeatStatus(AeatStatus.PENDING_SEND)
                 .build();
 
-        // Set creation date for hash calculation if necessary
-        if (ticket.getCreatedAt() == null) {
-            ticket.prePersist();
-        }
+        if (ticket.getCreatedAt() == null) ticket.prePersist();
 
         ticket.setHashCurrentInvoice(invoiceService.calculateHash(ticket, previousHash));
 
         Ticket saved = ticketRepository.save(ticket);
-        log.info("Ticket created: {} for Sale #{}", ticketNumber, sale.getId());
+        log.info("Ticket creado: {} para Venta #{}", ticketNumber, sale.getId());
+
+        verifactuService.submitTicketAsync(saved.getId());
         return saved;
     }
 
@@ -88,5 +94,3 @@ public class TicketServiceImpl implements TicketService {
         return ticketRepository.findByTicketNumber(ticketNumber);
     }
 }
-
-
