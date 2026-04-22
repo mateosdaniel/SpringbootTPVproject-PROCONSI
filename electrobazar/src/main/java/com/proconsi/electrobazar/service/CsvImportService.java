@@ -198,20 +198,6 @@ public class CsvImportService {
     }
 
     /**
-     * Determines if a column contains an IVA rate based on its value range.
-     */
-    private boolean isIvaColumn(String raw) {
-        if (raw.isEmpty())
-            return false;
-        try {
-            BigDecimal val = new BigDecimal(raw.replace(",", "."));
-            return val.compareTo(BigDecimal.ONE) <= 0 && val.compareTo(BigDecimal.ZERO) >= 0;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
-    /**
      * Parses a CSV file and imports or updates customer records.
      * Expected columns (first row is header, skipped automatically):
      * name, taxId, email, phone, address, city, postalCode, type

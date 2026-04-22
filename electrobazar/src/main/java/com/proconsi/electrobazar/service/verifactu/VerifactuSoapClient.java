@@ -53,7 +53,7 @@ public class VerifactuSoapClient {
     // ================================================================
 
     private AeatResponse doPost(String soapXml, SSLContext sslContext) throws Exception {
-        URL url = new URL(props.getEndpointUrl());
+        URL url = java.net.URI.create(props.getEndpointUrl()).toURL();
         HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
         conn.setSSLSocketFactory(sslContext.getSocketFactory());
         conn.setRequestMethod("POST");

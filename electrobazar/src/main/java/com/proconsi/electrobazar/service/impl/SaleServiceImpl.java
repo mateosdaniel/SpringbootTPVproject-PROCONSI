@@ -82,11 +82,9 @@ public class SaleServiceImpl implements SaleService {
         long totalCancelledCount;
         BigDecimal totalCancelledAmount;
         long totalReturnsCount;
-        BigDecimal totalReturnsAmount;
         BigDecimal cashTotal;
         BigDecimal cardTotal;
         BigDecimal mixedTotal;
-        BigDecimal totalUnitsSold;
         Map<String, BigDecimal> trend = new TreeMap<>();
         Map<String, BigDecimal> categories = new LinkedHashMap<>();
         Map<Integer, BigDecimal> hourly = new TreeMap<>();
@@ -116,11 +114,9 @@ public class SaleServiceImpl implements SaleService {
             totalCancelledCount = (long) summaryData[2];
             totalCancelledAmount = (BigDecimal) summaryData[3];
             totalReturnsCount = (long) summaryData[4];
-            totalReturnsAmount = (BigDecimal) summaryData[5];
             cashTotal = (BigDecimal) summaryData[6];
             cardTotal = (BigDecimal) summaryData[7];
             mixedTotal = (BigDecimal) summaryData[8];
-            totalUnitsSold = (BigDecimal) summaryData[9];
 
             // ── 2. Tendencia mensual ───────────────────────────────────────────
             String trendSql = """
@@ -197,11 +193,9 @@ public class SaleServiceImpl implements SaleService {
             totalCancelledCount = (long) summaryData[2];
             totalCancelledAmount = (BigDecimal) summaryData[3];
             totalReturnsCount = (long) summaryData[4];
-            totalReturnsAmount = (BigDecimal) summaryData[5];
             cashTotal = (BigDecimal) summaryData[6];
             cardTotal = (BigDecimal) summaryData[7];
             mixedTotal = (BigDecimal) summaryData[8];
-            totalUnitsSold = (BigDecimal) summaryData[9];
 
             topProduct = findTopProductNameBetween(from, to);
 

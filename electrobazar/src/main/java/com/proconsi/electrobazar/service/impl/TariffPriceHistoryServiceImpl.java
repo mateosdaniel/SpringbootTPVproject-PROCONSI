@@ -7,7 +7,6 @@ import com.proconsi.electrobazar.model.TariffPriceHistory;
 import com.proconsi.electrobazar.repository.ProductRepository;
 import com.proconsi.electrobazar.repository.TariffPriceHistoryRepository;
 import com.proconsi.electrobazar.repository.TariffRepository;
-import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.TariffPriceHistoryService;
 import com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator;
 import jakarta.persistence.EntityManager;

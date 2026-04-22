@@ -365,7 +365,7 @@
             background: var(--secondary);
             border-bottom: 2px solid var(--accent);
             padding: 0 1.5rem;
-            height: 70px;
+            height: 58px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -473,8 +473,8 @@
         /* ── LAYOUT ── */
         .tpv-body {
             display: flex;
-            margin-top: 70px;
-            height: calc(100vh - 70px);
+            margin-top: 58px;
+            height: calc(100vh - 58px);
         }
 
         /* ── SIDEBAR CATEGORíAS ── */

@@ -374,8 +374,74 @@
             </button>
         </nav>
 
-        <!-- TICKET (Derecha) - Cargado antes que productos para evitar saltos, forzando order a 3 inline -->
-        <aside class="tpv-ticket" style="order: 3;">
+        <!-- GRID DE PRODUCTOS (Centro) -->
+        <main class="tpv-products" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
+            <div th:if="${successMessage}" class="alert-tpv" id="successAlert">
+                <i class="bi bi-check-circle-fill"></i>
+                <span th:text="${successMessage}"></span>
+            </div>
+            <div th:if="${errorMessage}" class="alert-tpv bg-danger" id="errorAlert">
+                <i class="bi bi-exclamation-octagon-fill"></i>
+                <span th:text="${errorMessage}"></span>
+            </div>
+            <div class="products-grid">
+                <!-- Wildcard Product (Always first) -->
+                <div class="product-card wildcard-card" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''"
+                    onclick="event.stopPropagation(); openWildcardModal()" data-id="wildcard" data-stock="&infin;"
+                    style="border: 2px dashed var(--accent); background: rgba(var(--accent-rgb), 0.05);">
+                    <div class="product-image-container">
+                        <i class="bi bi-plus-circle-dotted product-icon"
+                            style="color: var(--accent); font-size: 2.5rem;"></i>
+                        <span class="stock-badge stock-neutral"
+                            style="background: var(--accent); color: var(--primary);">∞</span>
+                    </div>
+                    <div class="product-info text-center">
+                        <div class="product-name" style="color: var(--accent); font-weight: 800; font-size: 0.95rem;">
+                            PRODUCTO COMODÍN</div>
+                        <div class="product-price" style="color: var(--text-muted); font-size: 0.85rem;">Nombre y precio
+                            manual</div>
+                        <div class="product-category-badge"
+                            style="background: var(--accent); color: var(--primary); font-weight: 700;">GENÉRICO</div>
+                    </div>
+                </div>
+                <div th:if="${#lists.isEmpty(products)}" class="no-products">
+                    <i class="bi bi-box-seam"></i>
+                    <p>No hay productos disponibles</p>
+                </div>
+                <div th:each="product : ${products}" class="product-card"
+                    th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''" style="position: relative;"
+                    th:attr="data-id=${product.id}, 
+                             data-name=${product.name}, 
+                             data-price=${product.price}, 
+                             data-category=${product.category != null ? product.category.name : ''}, 
+                             data-category-id=${product.category != null ? product.category.id : ''}, 
+                             data-stock=${product.stock},
+                             data-sales-rank=${product.salesRank},
+                             data-decimal-places=${product.measurementUnit != null ? product.measurementUnit.decimalPlaces : 0},
+                             data-prompt-on-add=${product.measurementUnit != null ? (product.measurementUnit.promptOnAdd or product.measurementUnit.decimalPlaces > 0) : false},
+                             data-unit-symbol=${product.measurementUnit != null ? product.measurementUnit.symbol : 'uds.'}">
+                    <i class="bi bi-star product-favorite-btn" th:attr="data-product-id=${product.id}"
+                        style="position: absolute; top: 8px; left: 8px; z-index: 10; font-size: 1.25rem; cursor: pointer; text-shadow: 0 0 3px rgba(0,0,0,0.3);"></i>
+                    <div class="product-image-container">
+                        <img th:if="${product.imageUrl}" th:src="${product.imageUrl}" alt="Imagen producto"
+                            class="product-image">
+                        <i th:unless="${product.imageUrl}" class="bi bi-box product-icon"></i>
+                        <span class="stock-badge"
+                            th:classappend="${product.stock <= 0 ? 'stock-danger' : (product.stock < 5 ? 'stock-warning' : 'stock-neutral')}"
+                            th:text="${(product.stock == 0 or product.stock == null) ? '0' : (product.measurementUnit != null ? #numbers.formatDecimal(product.stock, 1, product.measurementUnit.decimalPlaces, 'COMMA') : #numbers.formatDecimal(product.stock, 1, 0, 'COMMA'))}">0</span>
+                    </div>
+                    <div class="product-info">
+                        <div class="product-name" th:text="${product.name}">Nombre producto</div>
+                        <div class="product-price" th:text="${formattedPrices[product.id]} + '€'"></div>
+                        <div class="product-category-badge"
+                            th:text="${product.category != null ? product.category.name : ''}"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- TICKET (Derecha) -->
+        <aside class="tpv-ticket">
             <div class="ticket-header">
                 <span class="ticket-title"><i class="bi bi-receipt me-1"></i> <span
                         th:text="#{tpv.ticket.title}">Ticket</span></span>
@@ -569,72 +635,6 @@
                 </button>
             </div>
         </aside>
-
-        <!-- GRID DE PRODUCTOS (Centro) -->
-        <main class="tpv-products" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''" style="order: 2;">
-            <div th:if="${successMessage}" class="alert-tpv" id="successAlert">
-                <i class="bi bi-check-circle-fill"></i>
-                <span th:text="${successMessage}"></span>
-            </div>
-            <div th:if="${errorMessage}" class="alert-tpv bg-danger" id="errorAlert">
-                <i class="bi bi-exclamation-octagon-fill"></i>
-                <span th:text="${errorMessage}"></span>
-            </div>
-            <div class="products-grid">
-                <!-- Wildcard Product (Always first) -->
-                <div class="product-card wildcard-card" th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''"
-                    onclick="event.stopPropagation(); openWildcardModal()" data-id="wildcard" data-stock="&infin;"
-                    style="border: 2px dashed var(--accent); background: rgba(var(--accent-rgb), 0.05);">
-                    <div class="product-image-container">
-                        <i class="bi bi-plus-circle-dotted product-icon"
-                            style="color: var(--accent); font-size: 2.5rem;"></i>
-                        <span class="stock-badge stock-neutral"
-                            style="background: var(--accent); color: var(--primary);">∞</span>
-                    </div>
-                    <div class="product-info text-center">
-                        <div class="product-name" style="color: var(--accent); font-weight: 800; font-size: 0.95rem;">
-                            PRODUCTO COMODÍN</div>
-                        <div class="product-price" style="color: var(--text-muted); font-size: 0.85rem;">Nombre y precio
-                            manual</div>
-                        <div class="product-category-badge"
-                            style="background: var(--accent); color: var(--primary); font-weight: 700;">GENÉRICO</div>
-                    </div>
-                </div>
-                <div th:if="${#lists.isEmpty(products)}" class="no-products">
-                    <i class="bi bi-box-seam"></i>
-                    <p>No hay productos disponibles</p>
-                </div>
-                <div th:each="product : ${products}" class="product-card"
-                    th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''" style="position: relative;"
-                    th:attr="data-id=${product.id}, 
-                             data-name=${product.name}, 
-                             data-price=${product.price}, 
-                             data-category=${product.category != null ? product.category.name : ''}, 
-                             data-category-id=${product.category != null ? product.category.id : ''}, 
-                             data-stock=${product.stock},
-                             data-sales-rank=${product.salesRank},
-                             data-decimal-places=${product.measurementUnit != null ? product.measurementUnit.decimalPlaces : 0},
-                             data-prompt-on-add=${product.measurementUnit != null ? (product.measurementUnit.promptOnAdd or product.measurementUnit.decimalPlaces > 0) : false},
-                             data-unit-symbol=${product.measurementUnit != null ? product.measurementUnit.symbol : 'uds.'}">
-                    <i class="bi bi-star product-favorite-btn" th:attr="data-product-id=${product.id}"
-                        style="position: absolute; top: 8px; left: 8px; z-index: 10; font-size: 1.25rem; cursor: pointer; text-shadow: 0 0 3px rgba(0,0,0,0.3);"></i>
-                    <div class="product-image-container">
-                        <img th:if="${product.imageUrl}" th:src="${product.imageUrl}" alt="Imagen producto"
-                            class="product-image">
-                        <i th:unless="${product.imageUrl}" class="bi bi-box product-icon"></i>
-                        <span class="stock-badge"
-                            th:classappend="${product.stock <= 0 ? 'stock-danger' : (product.stock < 5 ? 'stock-warning' : 'stock-neutral')}"
-                            th:text="${(product.stock == 0 or product.stock == null) ? '0' : (product.measurementUnit != null ? #numbers.formatDecimal(product.stock, 1, product.measurementUnit.decimalPlaces, 'COMMA') : #numbers.formatDecimal(product.stock, 1, 0, 'COMMA'))}">0</span>
-                    </div>
-                    <div class="product-info">
-                        <div class="product-name" th:text="${product.name}">Nombre producto</div>
-                        <div class="product-price" th:text="${formattedPrices[product.id]} + '€'"></div>
-                        <div class="product-category-badge"
-                            th:text="${product.category != null ? product.category.name : ''}"></div>
-                    </div>
-                </div>
-            </div>
-        </main>
     </div>
 
     <!-- Modal para Introducir Cantidad -->
