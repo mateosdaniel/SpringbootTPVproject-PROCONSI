@@ -13,17 +13,19 @@ import java.time.LocalDate;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class DailyStatsScheduler implements ApplicationListener<ApplicationReadyEvent> {
+public class DailyStatsScheduler {
 
     private final JdbcTemplate jdbcTemplate;
 
-    @Override
+    @org.springframework.context.event.EventListener(ApplicationReadyEvent.class)
+    @org.springframework.core.annotation.Order(10)
     public void onApplicationEvent(ApplicationReadyEvent event) {
         updateDailyStats();
     }
 
     @Scheduled(cron = "0 0 1 * * *")
     public void updateDailyStats() {
+        checkSchema();
         log.info("Iniciando actualización de estadísticas diarias...");
         
         // 1. Determinar el rango de fechas faltantes
@@ -56,7 +58,7 @@ public class DailyStatsScheduler implements ApplicationListener<ApplicationReady
         String sqlSales = """
             INSERT INTO daily_sales_stats 
               (date, total_revenue, cash_total, card_total, mixed_total,
-               sales_count, cancelled_count, cancelled_total, total_units_sold)
+               sales_count, cancelled_count, cancelled_total, returns_count, returns_total, total_units_sold)
             SELECT 
               DATE(s.created_at),
               COALESCE(SUM(CASE WHEN s.status='ACTIVE' THEN s.total_amount END), 0),
@@ -66,6 +68,8 @@ public class DailyStatsScheduler implements ApplicationListener<ApplicationReady
               COUNT(CASE WHEN s.status='ACTIVE' THEN 1 END),
               COUNT(CASE WHEN s.status='CANCELLED' THEN 1 END),
               COALESCE(SUM(CASE WHEN s.status='CANCELLED' THEN s.total_amount END), 0),
+              (SELECT COUNT(*) FROM returns r WHERE DATE(r.created_at) = DATE(s.created_at)),
+              (SELECT COALESCE(SUM(r.total_refunded), 0) FROM returns r WHERE DATE(r.created_at) = DATE(s.created_at)),
               COALESCE((SELECT SUM(sl.quantity) FROM sale_lines sl 
                 JOIN sales s2 ON sl.sale_id = s2.id 
                 WHERE DATE(s2.created_at) = ? 
@@ -81,6 +85,8 @@ public class DailyStatsScheduler implements ApplicationListener<ApplicationReady
               sales_count = VALUES(sales_count),
               cancelled_count = VALUES(cancelled_count),
               cancelled_total = VALUES(cancelled_total),
+              returns_count = VALUES(returns_count),
+              returns_total = VALUES(returns_total),
               total_units_sold = VALUES(total_units_sold)
         """;
         jdbcTemplate.update(sqlSales, targetDate, targetDate);
@@ -127,5 +133,18 @@ public class DailyStatsScheduler implements ApplicationListener<ApplicationReady
               sales_count = VALUES(sales_count)
         """;
         jdbcTemplate.update(sqlHourly, targetDate);
+    }
+
+    private void checkSchema() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE daily_sales_stats ADD COLUMN IF NOT EXISTS returns_count BIGINT DEFAULT 0");
+            jdbcTemplate.execute("ALTER TABLE daily_sales_stats ADD COLUMN IF NOT EXISTS returns_total DECIMAL(15,2) DEFAULT 0.00");
+            
+            // Monthly stats might be a table or a view
+            jdbcTemplate.execute("ALTER TABLE monthly_sales_stats ADD COLUMN IF NOT EXISTS returns_count BIGINT DEFAULT 0");
+            jdbcTemplate.execute("ALTER TABLE monthly_sales_stats ADD COLUMN IF NOT EXISTS returns_total DECIMAL(15,2) DEFAULT 0.00");
+        } catch (Exception e) {
+            log.debug("Stats table schema update skipped (columns may exist or table is a view): {}", e.getMessage());
+        }
     }
 }

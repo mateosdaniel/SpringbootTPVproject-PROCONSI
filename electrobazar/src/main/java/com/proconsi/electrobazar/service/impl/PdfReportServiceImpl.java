@@ -62,7 +62,7 @@ public class PdfReportServiceImpl implements PdfReportService {
             LocalDateTime start = session.getOpeningTime();
             LocalDateTime end = session.getClosedAt() != null ? session.getClosedAt() : LocalDateTime.now();
 
-            List<SaleReturn> returns = saleReturnRepository.findByCreatedAtBetweenOrderByCreatedAtDesc(start, end);
+            List<SaleReturn> returns = saleReturnRepository.findByCreatedAtBetweenWithDetails(start, end);
             context.setVariable("returns", returns);
 
             String htmlContent = templateEngine.process("reports/cash-close-report", context);

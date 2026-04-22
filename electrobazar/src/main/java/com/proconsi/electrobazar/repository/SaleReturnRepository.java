@@ -40,7 +40,21 @@ public interface SaleReturnRepository extends JpaRepository<SaleReturn, Long>, J
             @Param("method") PaymentMethod method);
 
     /**
-     * Lists returns processed within a specific time range.
+     * Counts returns processed within a specific time range.
      */
-    List<SaleReturn> findByCreatedAtBetweenOrderByCreatedAtDesc(LocalDateTime from, LocalDateTime to);
+    long countByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
+
+    /**
+     * Lists returns processed within a specific time range with deep fetch joins for optimization.
+     * Fetches original sale, its linked documents (invoice/ticket), and return lines with product info.
+     */
+    @Query("SELECT DISTINCT r FROM SaleReturn r " +
+           "LEFT JOIN FETCH r.lines rl " +
+           "LEFT JOIN FETCH rl.saleLine sl " +
+           "LEFT JOIN FETCH r.originalSale s " +
+           "LEFT JOIN FETCH s.ticket " +
+           "LEFT JOIN FETCH s.invoice " +
+           "WHERE r.createdAt BETWEEN :from AND :to " +
+           "ORDER BY r.createdAt DESC")
+    List<SaleReturn> findByCreatedAtBetweenWithDetails(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

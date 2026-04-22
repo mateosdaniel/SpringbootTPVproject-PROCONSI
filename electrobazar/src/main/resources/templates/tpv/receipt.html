@@ -66,10 +66,10 @@
                         th:text="${line.productName != null ? line.productName : (line.product != null ? line.product.name : 'Producto')}">Producto</span>
                     <span class="t-item-unit">
                         <!-- If discounted: show strikethrough original + discounted price -->
-                        <span th:if="${line.discountPercentage != null and line.discountPercentage > 0}"
+                        <span th:if="${line.discountPercentage != null and line.discountPercentage.compareTo(T(java.math.BigDecimal).ONE) >= 0 and line.originalUnitPrice != null and line.originalUnitPrice.compareTo(line.unitPrice) > 0}"
                             style="text-decoration:line-through;color:var(--text-muted);font-size:0.75rem;"
                             th:text="${#numbers.formatDecimal(line.originalUnitPrice, 1, (line.originalUnitPrice.stripTrailingZeros().scale() < 2 ? 2 : line.originalUnitPrice.stripTrailingZeros().scale()), 'COMMA')} + ' &euro;'"></span>
-                        <span th:if="${line.discountPercentage != null and line.discountPercentage > 0}"
+                        <span th:if="${line.discountPercentage != null and line.discountPercentage.compareTo(T(java.math.BigDecimal).ONE) >= 0}"
                             style="background:rgba(39,174,96,0.15);color:#27ae60;border-radius:4px;padding:0.05rem 0.25rem;font-size:0.7rem;font-weight:700;margin-left:0.2rem;"
                             th:text="'-' + ${#numbers.formatDecimal(line.discountPercentage, 1, 0)} + '%'"></span>
                         <span
@@ -134,13 +134,13 @@
 
 
 
-            <div th:if="${sale.abonoAmount != null and sale.abonoAmount > 0}" class="t-summary"
+            <div th:if="${sale.abonoAmount != null and sale.abonoAmount.signum() > 0}" class="t-summary"
                 style="display: flex; justify-content: space-between; font-size: 0.88rem; color: #d35400; font-weight: 700; margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(211, 84, 0, 0.05); border-radius: 6px; border: 1px dashed rgba(211, 84, 0, 0.3);">
                 <span>Abono utilizado:</span>
                 <span th:text="'-' + ${#numbers.formatDecimal(sale.abonoAmount, 1, 2)} + ' €'">-0.00 €</span>
             </div>
 
-            <div th:if="${sale.totalDiscount != null and sale.totalDiscount > 0}" class="t-summary"
+            <div th:if="${sale.totalDiscount != null and sale.totalDiscount.signum() > 0}" class="t-summary"
                 style="display: flex; justify-content: space-between; font-size: 0.88rem; color: #27ae60; font-weight: 700; margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(39, 174, 96, 0.05); border-radius: 6px;">
                 <span th:text="${sale.coupon != null ? 'Cupón: ' + sale.coupon.code : 'Descuento total:'}">Dto.</span>
                 <span th:text="'-' + ${#numbers.formatDecimal(sale.totalDiscount, 1, 2)} + ' €'">-0.00 €</span>
@@ -199,7 +199,11 @@
             Vuelva pronto &mdash; conserve este ticket
             <div class="legal-info"
                 style="margin-top:0.8rem; font-size:0.72rem; color:var(--text-muted); text-align:center; line-height: 1.4;">
-                <span th:text="${companySettings.invoiceFooterText}">Devoluciones en un plazo de 14 d&iacute;as con
+                <!-- Dynamic return deadline: uses the value snapshotted on this specific ticket -->
+                <span th:if="${ticket != null and ticket.returnDeadlineDays != null and ticket.returnDeadlineDays > 0}"
+                    th:text="'Plazo de devolución: ' + ${ticket.returnDeadlineDays} + ' días con ticket original.'"></span>
+                <span th:if="${ticket == null or ticket.returnDeadlineDays == null or ticket.returnDeadlineDays == 0}"
+                    th:text="${companySettings.invoiceFooterText}">Devoluciones en un plazo de 14 d&iacute;as con
                     ticket original</span><br>
                 Factura simplificada seg&uacute;n RD 1619/2012
             </div>

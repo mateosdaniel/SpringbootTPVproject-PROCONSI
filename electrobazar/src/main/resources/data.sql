@@ -114,3 +114,6 @@ UPDATE rectificative_invoices SET hash_previous_invoice = '0000000000000000' WHE
 UPDATE rectificative_invoices SET hash_current_invoice = '0000000000000000' WHERE hash_current_invoice IS NULL;
 UPDATE rectificative_invoices SET aeat_retry_count = 0 WHERE aeat_retry_count IS NULL;
 
+-- 13. Return deadline columns (snapshotted per-ticket at sale time)
+ALTER TABLE company_settings ADD COLUMN IF NOT EXISTS return_deadline_days INT DEFAULT 15;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS return_deadline_days INT DEFAULT 15;

@@ -6,6 +6,7 @@ import com.proconsi.electrobazar.model.Sale;
 import com.proconsi.electrobazar.model.Ticket;
 import com.proconsi.electrobazar.repository.InvoiceSequenceRepository;
 import com.proconsi.electrobazar.repository.TicketRepository;
+import com.proconsi.electrobazar.service.CompanySettingsService;
 import com.proconsi.electrobazar.service.TicketService;
 import com.proconsi.electrobazar.service.VerifactuService;
 import com.proconsi.electrobazar.util.VerifactuHashCalculator;
@@ -28,18 +29,21 @@ public class TicketServiceImpl implements TicketService {
     private final com.proconsi.electrobazar.service.InvoiceService invoiceService;
     private final VerifactuHashCalculator hashCalculator;
     private final VerifactuService verifactuService;
+    private final CompanySettingsService companySettingsService;
 
     public TicketServiceImpl(
             TicketRepository ticketRepository,
             InvoiceSequenceRepository invoiceSequenceRepository,
             com.proconsi.electrobazar.service.InvoiceService invoiceService,
             VerifactuHashCalculator hashCalculator,
-            @Lazy VerifactuService verifactuService) {
+            @Lazy VerifactuService verifactuService,
+            CompanySettingsService companySettingsService) {
         this.ticketRepository = ticketRepository;
         this.invoiceSequenceRepository = invoiceSequenceRepository;
         this.invoiceService = invoiceService;
         this.hashCalculator = hashCalculator;
         this.verifactuService = verifactuService;
+        this.companySettingsService = companySettingsService;
     }
 
     @Override
@@ -64,11 +68,16 @@ public class TicketServiceImpl implements TicketService {
                 .map(Ticket::getHashCurrentInvoice)
                 .orElse(VerifactuHashCalculator.INITIAL_HASH);
 
+        // Snapshot the current return deadline so future changes don't affect this ticket.
+        Integer deadlineDays = companySettingsService.getSettings().getReturnDeadlineDays();
+        if (deadlineDays == null || deadlineDays <= 0) deadlineDays = 15;
+
         Ticket ticket = Ticket.builder()
                 .ticketNumber(ticketNumber).serie(serie).year(ticketYear)
                 .sequenceNumber(sequence.getLastNumber()).sale(sale).applyRecargo(applyRecargo)
                 .hashPreviousInvoice(previousHash)
                 .aeatStatus(AeatStatus.PENDING_SEND)
+                .returnDeadlineDays(deadlineDays)
                 .build();
 
         if (ticket.getCreatedAt() == null) ticket.prePersist();

@@ -168,7 +168,7 @@ public class ReturnApiRestController {
 
         LocalDateTime startTime = from != null ? from : LocalDateTime.now().minusYears(1);
         LocalDateTime endTime = to != null ? to : LocalDateTime.now();
-        return ResponseEntity.ok(returnService.findByCreatedAtBetween(startTime, endTime));
+        return ResponseEntity.ok(returnService.findByCreatedAtBetweenWithDetails(startTime, endTime));
     }
 
     /**

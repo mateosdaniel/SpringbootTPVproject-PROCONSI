@@ -18,6 +18,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@org.springframework.core.annotation.Order(1)
 public class DatabaseIndexInitializer {
 
     private final JdbcTemplate jdbcTemplate;
@@ -131,6 +132,35 @@ public class DatabaseIndexInitializer {
                 UNIQUE KEY uk_user_favorite (user_id, product_id)
             )
         """);
+
+        // Ensure returns columns exist for analytics
+        try {
+            jdbcTemplate.execute("ALTER TABLE daily_sales_stats ADD COLUMN IF NOT EXISTS returns_count BIGINT DEFAULT 0");
+            jdbcTemplate.execute("ALTER TABLE daily_sales_stats ADD COLUMN IF NOT EXISTS returns_total DECIMAL(15,2) DEFAULT 0.00");
+            
+            // Try to update monthly stats too if it exists as a table
+            jdbcTemplate.execute("ALTER TABLE monthly_sales_stats ADD COLUMN IF NOT EXISTS returns_count BIGINT DEFAULT 0");
+            jdbcTemplate.execute("ALTER TABLE monthly_sales_stats ADD COLUMN IF NOT EXISTS returns_total DECIMAL(15,2) DEFAULT 0.00");
+        } catch (Exception e) {
+            log.warn("Could not add returns columns to stats tables (might be views): {}", e.getMessage());
+        }
+
+        // Return deadline feature: ensure columns exist (idempotent on every restart)
+        try {
+            jdbcTemplate.execute(
+                "ALTER TABLE company_settings ADD COLUMN IF NOT EXISTS return_deadline_days INT DEFAULT 15");
+            log.info("company_settings.return_deadline_days column ensured.");
+        } catch (Exception e) {
+            log.warn("Could not add return_deadline_days to company_settings: {}", e.getMessage());
+        }
+
+        try {
+            jdbcTemplate.execute(
+                "ALTER TABLE tickets ADD COLUMN IF NOT EXISTS return_deadline_days INT DEFAULT 15");
+            log.info("tickets.return_deadline_days column ensured.");
+        } catch (Exception e) {
+            log.warn("Could not add return_deadline_days to tickets: {}", e.getMessage());
+        }
     }
 
 

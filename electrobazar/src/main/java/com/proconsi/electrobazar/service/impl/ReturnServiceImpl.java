@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -53,6 +54,7 @@ public class ReturnServiceImpl implements ReturnService {
     private final RectificativeInvoiceRepository rectificativeInvoiceRepository;
     private final ActivityLogService activityLogService;
     private final MessageSource messageSource;
+    private final TicketRepository ticketRepository;
 
     private static final String INITIAL_HASH = "";
 
@@ -78,6 +80,22 @@ public class ReturnServiceImpl implements ReturnService {
         cashRegisterService.checkOpenRegisterForToday();
 
         Sale originalSale = saleService.findById(originalSaleId);
+
+        // Return deadline validation: check the deadline snapshotted on THIS ticket at the time of sale.
+        ticketRepository.findBySaleId(originalSaleId).ifPresent(ticket -> {
+            Integer deadlineDays = ticket.getReturnDeadlineDays();
+            if (deadlineDays != null && deadlineDays > 0) {
+                LocalDate saleDate = ticket.getCreatedAt().toLocalDate();
+                LocalDate today = LocalDate.now();
+                long daysSinceSale = ChronoUnit.DAYS.between(saleDate, today);
+                if (daysSinceSale > deadlineDays) {
+                    throw new IllegalArgumentException(
+                        String.format("El plazo de devolución de %d días ha expirado. Han pasado %d días desde la venta.",
+                            deadlineDays, daysSinceSale));
+                }
+            }
+        });
+
         List<ReturnLine> returnLines = new ArrayList<>();
         BigDecimal totalRefunded = BigDecimal.ZERO;
         BigDecimal totalOriginalUnits = BigDecimal.ZERO;
@@ -237,6 +255,12 @@ public class ReturnServiceImpl implements ReturnService {
     @Override
     @Transactional(readOnly = true)
     public List<SaleReturn> findByCreatedAtBetween(LocalDateTime from, LocalDateTime to) {
-        return saleReturnRepository.findByCreatedAtBetweenOrderByCreatedAtDesc(from, to);
+        return saleReturnRepository.findByCreatedAtBetweenWithDetails(from, to);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SaleReturn> findByCreatedAtBetweenWithDetails(LocalDateTime from, LocalDateTime to) {
+        return saleReturnRepository.findByCreatedAtBetweenWithDetails(from, to);
     }
 }

@@ -75,4 +75,9 @@ public interface ReturnService {
      * @return A list of matching returns.
      */
     List<SaleReturn> findByCreatedAtBetween(LocalDateTime from, LocalDateTime to);
+
+    /**
+     * Retrieves returns processed between two timestamps with detailed line information.
+     */
+    List<SaleReturn> findByCreatedAtBetweenWithDetails(LocalDateTime from, LocalDateTime to);
 }

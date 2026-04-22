@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 
 <head>
@@ -668,6 +668,25 @@
                                     <textarea th:field="*{invoiceFooterText}"
                                         class="form-control form-control-sm border-border" rows="2"
                                         th:placeholder="#{admin.settings.invoicefooter.placeholder}"></textarea>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold">
+                                        <i class="bi bi-arrow-counterclockwise me-1"></i>
+                                        Plazo de devolución (días)
+                                    </label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" th:field="*{returnDeadlineDays}"
+                                            class="form-control form-control-sm border-border"
+                                            min="0" max="365" step="1"
+                                            placeholder="15">
+                                        <span class="input-group-text border-border" style="background:var(--surface);color:var(--text-muted);">días</span>
+                                    </div>
+                                    <div class="form-text" style="color:var(--text-muted);font-size:0.75rem;">
+                                        Número de días desde la fecha de compra durante los que se puede solicitar una devolución.
+                                        Este valor queda grabado en cada ticket en el momento de la venta.
+                                        Si se pone 0, no se aplica límite de plazo.
+                                    </div>
                                 </div>
 
                                 <button type="submit" class="btn btn-save w-100 py-2 mt-2">

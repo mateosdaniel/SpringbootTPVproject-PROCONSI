@@ -46,4 +46,12 @@ public class DailySaleSummary {
     @Column(nullable = false, precision = 15, scale = 2)
     @Builder.Default
     private BigDecimal cancelledTotal = BigDecimal.ZERO;
+
+    @Column(name = "returns_count", nullable = false)
+    @Builder.Default
+    private long returnsCount = 0;
+
+    @Column(name = "returns_total", nullable = false, precision = 15, scale = 2)
+    @Builder.Default
+    private BigDecimal returnsTotal = BigDecimal.ZERO;
 }

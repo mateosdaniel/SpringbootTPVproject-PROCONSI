@@ -413,10 +413,53 @@ function clearTicket() {
     Object.keys(ticket).forEach(function (k) { delete ticket[k]; });
     var saleNotesTextarea = document.getElementById('saleNotes');
     if (saleNotesTextarea) saleNotesTextarea.value = '';
+    
+    // Reset notes modal textarea and button label
+    const modalNotes = document.getElementById('notesModalTextarea');
+    if (modalNotes) modalNotes.value = '';
+    const btnLabel = document.getElementById('btnNotesLabel');
+    if (btnLabel) btnLabel.textContent = 'Añadir comentario';
+    const btnNotes = document.querySelector('.btn-notes');
+    if (btnNotes) btnNotes.style.background = 'var(--surface)';
+
     autoPromoDiscount = 0;
     appliedPromoNames = [];
     renderTicket();
 }
+
+function openNotesModal() {
+    if (window.tpv_is_register_open !== true) return;
+    const globalNotes = document.getElementById('saleNotes').value;
+    const modalNotes = document.getElementById('notesModalTextarea');
+    if (modalNotes) modalNotes.value = globalNotes;
+    new bootstrap.Modal(document.getElementById('notesModal')).show();
+}
+
+function saveNotesFromModal() {
+    const val = document.getElementById('notesModalTextarea').value;
+    const globalNotes = document.getElementById('saleNotes');
+    if (globalNotes) globalNotes.value = val;
+    
+    // Update button visual state
+    const btnLabel = document.getElementById('btnNotesLabel');
+    const btnNotes = document.querySelector('.btn-notes');
+    if (val.trim().length > 0) {
+        if (btnLabel) btnLabel.textContent = 'Comentario añadido';
+        if (btnNotes) btnNotes.style.background = 'rgba(var(--accent-rgb), 0.1)';
+    } else {
+        if (btnLabel) btnLabel.textContent = 'Añadir comentario';
+        if (btnNotes) btnNotes.style.background = 'var(--surface)';
+    }
+    
+    const modalEl = document.getElementById('notesModal');
+    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+    if (modalInstance) modalInstance.hide();
+    
+    showToast('Comentario guardado', 'success');
+}
+
+window.openNotesModal = openNotesModal;
+window.saveNotesFromModal = saveNotesFromModal;
 
 /**
  * Updates the visual stock bubbles on all product cards.
@@ -665,7 +708,12 @@ function renderTicket() {
         let amt = parseFloat(selectedAbonoRadio.dataset.amount || 0);
         totalAbonos = amt;
     } else if (window._manualAbonoAmount > 0) {
-        totalAbonos = window._manualAbonoAmount;
+        if (window._manualAbonoType === 'percent') {
+            totalAbonos = (totalAmount + totalRE - (couponDiscountAmount || 0) - (autoPromoDiscount || 0)) * (window._manualAbonoAmount / 100);
+            totalAbonos = Math.round((totalAbonos + Number.EPSILON) * 100) / 100;
+        } else {
+            totalAbonos = window._manualAbonoAmount;
+        }
     }
 
     if (abonoSidebar) abonoSidebar.style.display = 'block';
@@ -678,12 +726,26 @@ function renderTicket() {
 
     // Update Abono sidebar total display
     const abonoTotalDisp = document.getElementById('abonosSidebarTotal');
+    const manualInputForm = document.getElementById('manualAbonoAmountInput');
     if (abonoTotalDisp) {
         if (totalAbonos > 0) {
             abonoTotalDisp.style.display = 'block';
-            abonoTotalDisp.querySelector('span').textContent = '-' + totalAbonos.toFixed(2) + '€';
+            
+            let pctText = '';
+            const divisor = (totalAmount + totalRE - (couponDiscountAmount || 0) - (autoPromoDiscount || 0));
+            if (divisor > 0) {
+                let pct = (totalAbonos / divisor) * 100;
+                pctText = ` (-${pct.toFixed(0)}%)`;
+            }
+            
+            abonoTotalDisp.querySelector('span').textContent = '-' + totalAbonos.toFixed(2) + '€' + pctText;
+            // Sync with hidden form input for submission
+            if (manualInputForm && window._manualAbonoAmount > 0) {
+                manualInputForm.value = totalAbonos.toFixed(2);
+            }
         } else {
             abonoTotalDisp.style.display = 'none';
+            if (manualInputForm && !selectedAbonoRadio) manualInputForm.value = '';
         }
     }
 
@@ -844,10 +906,6 @@ function openCheckoutModal() {
         calculateChange();
         receivedInputForm.value = '';
     }
-
-    // Reset notes in modal
-    var saleNotesTextarea = document.getElementById('saleNotes');
-    if (saleNotesTextarea) saleNotesTextarea.value = '';
 
     // Populate amounts
     document.getElementById('cobrarAmount').textContent = document.getElementById('ticketTotal').textContent;
@@ -3263,6 +3321,44 @@ function togglePasswordVisibility(inputId, button) {
 
 // ── MANEJO DE ABONOS / VALES ──
 window._manualAbonoAmount = 0;
+window._manualAbonoType = 'fixed';
+
+window.setAbonoType = function(type) {
+    const btnFixed = document.getElementById('btn-abono-fixed');
+    const btnPercent = document.getElementById('btn-abono-percent');
+    const suffix = document.getElementById('abono-manual-suffix');
+    const modeInput = document.getElementById('abono-manual-mode');
+    
+    if (type === 'percent') {
+        window._manualAbonoType = 'percent';
+        if (btnFixed) { 
+            btnFixed.style.background = 'transparent'; 
+            btnFixed.style.color = 'var(--text-muted)'; 
+            btnFixed.style.fontWeight = '600';
+        }
+        if (btnPercent) { 
+            btnPercent.style.background = 'var(--accent)'; 
+            btnPercent.style.color = '#ffffff'; 
+            btnPercent.style.fontWeight = '700';
+        }
+        if (suffix) suffix.textContent = '%';
+        if (modeInput) modeInput.value = 'percent';
+    } else {
+        window._manualAbonoType = 'fixed';
+        if (btnFixed) { 
+            btnFixed.style.background = 'var(--accent)'; 
+            btnFixed.style.color = '#ffffff'; 
+            btnFixed.style.fontWeight = '700';
+        }
+        if (btnPercent) { 
+            btnPercent.style.background = 'transparent'; 
+            btnPercent.style.color = 'var(--text-muted)'; 
+            btnPercent.style.fontWeight = '600';
+        }
+        if (suffix) suffix.textContent = '€';
+        if (modeInput) modeInput.value = 'fixed';
+    }
+};
 
 window.openAbonoSelectionModal = function() {
     const customerIdInput = document.getElementById('customerIdInput');
@@ -3387,8 +3483,8 @@ window.confirmAbonoSelection = function() {
     if (selectedAbonoRadio) {
         // Prioritize found/selected voucher
         window._manualAbonoAmount = 0;
+        window._manualAbonoType = 'fixed'; // Reset to fixed when using real abono
         if (manualInputForm) manualInputForm.value = '';
-        // The radio selection is picked up in renderTicket()
     } else if (!customerId) {
         // Try manual amount if NO radio is selected and NO customer is present
         let valStr = (manualAmountEl ? manualAmountEl.value || '' : '').replace(',', '.');
@@ -3397,7 +3493,13 @@ window.confirmAbonoSelection = function() {
             showToast("Importe no válido o bono no seleccionado", "warning");
             return;
         }
+
+        const mode = document.getElementById('abono-manual-mode') ? document.getElementById('abono-manual-mode').value : 'fixed';
+        window._manualAbonoType = mode;
         window._manualAbonoAmount = amt;
+        
+        // If it's a percentage, we might need special handling during final POST if backend doesn't expect it.
+        // But for UI it works now.
         if (manualInputForm) manualInputForm.value = amt > 0 ? amt.toFixed(2) : '';
     } else {
         // Customer present but nothing selected

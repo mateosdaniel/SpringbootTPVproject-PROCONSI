@@ -63,4 +63,13 @@ public class CompanySettings {
     /** Default footer text for invoices and tickets. */
     @Column(columnDefinition = "TEXT")
     private String invoiceFooterText;
+
+    /**
+     * Number of days after the sale date during which a return is allowed.
+     * This value is stamped on each ticket at creation time.
+     * Default: 15 days.
+     */
+    @Column(name = "return_deadline_days")
+    @Builder.Default
+    private Integer returnDeadlineDays = 15;
 }

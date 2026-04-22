@@ -69,6 +69,7 @@ public class CompanySettingsServiceImpl implements CompanySettingsService {
         existing.setWebsite(incoming.getWebsite());
         existing.setRegistroMercantil(incoming.getRegistroMercantil());
         existing.setInvoiceFooterText(incoming.getInvoiceFooterText());
+        existing.setReturnDeadlineDays(incoming.getReturnDeadlineDays());
 
         CompanySettings saved = repository.save(existing);
 

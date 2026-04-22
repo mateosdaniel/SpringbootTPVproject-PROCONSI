@@ -239,8 +239,133 @@ function initDashboardCharts() {
     updateAnalytics();
 }
 
+// Returns Detail Logic
+let currentReturnsData = [];
+
+function showReturnDetailsModal() {
+    const periodSelect = document.getElementById('analyticsPeriod');
+    const period = periodSelect ? periodSelect.value : '7days';
+    const now = new Date();
+    let fromDate = new Date();
+    let toDate = new Date();
+
+    // Consolidation of toLocalISO to ensure consistency with main analytics
+    const formatToISO = (d) => {
+        const off = d.getTimezoneOffset() * 60000;
+        return new Date(d.getTime() - off).toISOString().slice(0, 19);
+    };
+
+    toDate.setHours(23, 59, 59, 999);
+
+    if (period === 'today') { fromDate.setHours(0, 0, 0, 0); }
+    else if (period === '7days') { fromDate.setDate(now.getDate() - 6); fromDate.setHours(0, 0, 0, 0); }
+    else if (period === '1month') { fromDate.setMonth(now.getMonth() - 1); fromDate.setHours(0, 0, 0, 0); }
+    else if (period === '6months') { fromDate.setMonth(now.getMonth() - 6); fromDate.setHours(0, 0, 0, 0); }
+    else if (period === '1year') { fromDate.setFullYear(now.getFullYear() - 1); fromDate.setHours(0, 0, 0, 0); }
+    else if (period === 'all') { fromDate = new Date(0); }
+    else if (period === 'custom') {
+        const dVal = document.getElementById('analyticsDate').value;
+        if (dVal) { 
+            fromDate = new Date(dVal); fromDate.setHours(0, 0, 0, 0); 
+            toDate = new Date(dVal); toDate.setHours(23, 59, 59, 999); 
+        }
+    }
+
+    const url = `/api/returns?from=${formatToISO(fromDate)}&to=${formatToISO(toDate)}`;
+    const tbody = document.getElementById('analyticsReturnsTableBody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5"><div class="spinner-border spinner-border-sm text-warning me-2"></div> Analizando devoluciones...</td></tr>';
+
+    const modalEl = document.getElementById('returnsDetailModal');
+    if (modalEl) {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    }
+
+    fetch(url)
+        .then(r => {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .then(data => {
+            currentReturnsData = data;
+            renderReturnsTable(data);
+        })
+        .catch(err => {
+            console.error('Error fetching returns:', err);
+            if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4"><i class="bi bi-exclamation-octagon me-2"></i> Error: ${err.message}</td></tr>`;
+        });
+}
+
+function renderReturnsTable(returns) {
+    const tbody = document.getElementById('analyticsReturnsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    if (!returns || returns.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-5"><div class="mb-2"><i class="bi bi-inbox fs-2"></i></div> No se encontraron devoluciones en este periodo</td></tr>';
+        return;
+    }
+
+    returns.forEach(ret => {
+        const date = new Date(ret.createdAt).toLocaleString('es-ES', { 
+            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+        });
+        
+        // Document Identification (Invoice, Ticket or #ID)
+        let docLabel = '#' + (ret.originalSale ? ret.originalSale.id : (ret.saleId || '—'));
+        if (ret.originalSale) {
+            if (ret.originalSale.invoice) docLabel = ret.originalSale.invoice.invoiceNumber;
+            else if (ret.originalSale.ticket) docLabel = ret.originalSale.ticket.ticketNumber;
+        }
+        
+        if (ret.lines && ret.lines.length > 0) {
+            ret.lines.forEach(line => {
+                const productName = line.saleLine ? line.saleLine.productName : 'Producto Desconocido';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="small" style="white-space:nowrap; color: var(--text-muted);">${date}</td>
+                    <td><span class="badge bg-secondary bg-opacity-25 text-light fw-normal">${docLabel}</span></td>
+                    <td style="font-weight:500; color:var(--text-main);">${productName}</td>
+                    <td class="text-muted small italic">${ret.reason || '—'}</td>
+                    <td class="text-center fw-600">${line.quantity}</td>
+                    <td class="text-end text-danger fw-bold" style="font-size: 0.95rem;">-${(line.subtotal || 0).toFixed(2)} €</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    });
+}
+
+function filterReturnsTable() {
+    const query = document.getElementById('returnSearchInput').value.toLowerCase().trim();
+    if (!query) {
+        renderReturnsTable(currentReturnsData);
+        return;
+    }
+
+    const filtered = currentReturnsData.filter(ret => {
+        const saleId = ret.originalSale ? ret.originalSale.id.toString() : '';
+        const ticketNum = (ret.originalSale && ret.originalSale.ticket) ? ret.originalSale.ticket.ticketNumber.toLowerCase() : '';
+        const invoiceNum = (ret.originalSale && ret.originalSale.invoice) ? ret.originalSale.invoice.invoiceNumber.toLowerCase() : '';
+        const reason = (ret.reason || '').toLowerCase();
+        
+        const matchMaster = reason.includes(query) || 
+                            saleId.includes(query) || 
+                            ticketNum.includes(query) || 
+                            invoiceNum.includes(query);
+
+        const matchLines = ret.lines && ret.lines.some(l => 
+            l.saleLine && l.saleLine.productName.toLowerCase().includes(query)
+        );
+        return matchMaster || matchLines;
+    });
+    renderReturnsTable(filtered);
+}
+
 // Global Exports
 window.onAnalyticsPeriodChange = onAnalyticsPeriodChange;
 window.updateAnalytics = updateAnalytics;
 window.initCharts = initCharts;
 window.initDashboardCharts = initDashboardCharts;
+window.showReturnDetailsModal = showReturnDetailsModal;
+window.filterReturnsTable = filterReturnsTable;

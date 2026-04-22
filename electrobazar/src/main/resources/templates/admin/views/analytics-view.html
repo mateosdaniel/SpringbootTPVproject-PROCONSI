@@ -79,11 +79,57 @@
                 </div>
             </div>
             <div class="col-md-2">
-                <div class="stats-card">
+                <div class="stats-card" onclick="showReturnDetailsModal()" style="cursor:pointer">
                     <div class="stats-icon"><i class="bi bi-arrow-counterclockwise"></i></div>
                     <div class="stats-data">
                         <div class="stats-value" id="statCancellationRate">0,0%</div>
                         <div class="stats-label">Tasa Devoluciones</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Returns Detail Modal -->
+        <div class="modal fade" id="returnsDetailModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-content" style="background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 15px 40px rgba(0,0,0,0.6); overflow: hidden;">
+                    <div class="modal-header" style="border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02); padding: 1.25rem 1.5rem;">
+                        <h5 class="modal-title d-flex align-items-center" style="color: var(--text-main); font-weight: 600; font-size: 1.1rem;">
+                            <div class="rounded-circle bg-warning bg-opacity-10 p-2 d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                <i class="bi bi-arrow-counterclockwise text-warning"></i>
+                            </div>
+                            Detalle de Devoluciones
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal" style="font-size: 0.8rem;"></button>
+                    </div>
+                    <div class="modal-body" style="padding: 1.5rem; background: var(--surface);">
+                        <div class="mb-4">
+                            <div class="input-group" style="background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; padding: 2px 10px; transition: all 0.3s ease;">
+                                <span class="input-group-text border-0 bg-transparent text-muted"><i class="bi bi-search"></i></span>
+                                <input type="text" id="returnSearchInput" class="form-control border-0 bg-transparent text-light shadow-none py-2" 
+                                    placeholder="Buscar por producto, ticket, motivo..." onkeyup="filterReturnsTable()">
+                            </div>
+                        </div>
+                        <div class="admin-table-wrap" style="max-height: 55vh; overflow-y: auto; border-radius: 8px; border: 1px solid var(--border);">
+                            <table class="admin-table mb-0">
+                                <thead class="sticky-top" style="background: var(--surface); z-index: 10;">
+                                    <tr>
+                                        <th style="background: var(--surface); border-bottom: 2px solid var(--border);">Fecha</th>
+                                        <th style="background: var(--surface); border-bottom: 2px solid var(--border);">Ticket Orig.</th>
+                                        <th style="background: var(--surface); border-bottom: 2px solid var(--border);">Producto</th>
+                                        <th style="background: var(--surface); border-bottom: 2px solid var(--border);">Motivo</th>
+                                        <th class="text-center" style="background: var(--surface); border-bottom: 2px solid var(--border);">Cant.</th>
+                                        <th class="text-end" style="background: var(--surface); border-bottom: 2px solid var(--border);">Reembolso</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="analyticsReturnsTableBody">
+                                    <!-- Rows will be injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="border-top: 1px solid var(--border); background: rgba(255,255,255,0.02); padding: 1rem 1.5rem;">
+                        <button type="button" class="btn btn-outline-secondary px-4 py-2" data-bs-dismiss="modal" style="border-radius: 8px; font-weight: 500;">Cerrar</button>
                     </div>
                 </div>
             </div>

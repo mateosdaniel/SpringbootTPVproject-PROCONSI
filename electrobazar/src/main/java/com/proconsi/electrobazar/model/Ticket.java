@@ -77,6 +77,14 @@ public class Ticket {
     @Builder.Default
     private int aeatRetryCount = 0;
 
+    /**
+     * Return deadline in days, snapshotted from CompanySettings at ticket creation time.
+     * Used to validate returns against THIS specific ticket, not the current setting.
+     */
+    @Column(name = "return_deadline_days")
+    @Builder.Default
+    private Integer returnDeadlineDays = 15;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();

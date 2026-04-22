@@ -81,6 +81,8 @@ public class SaleServiceImpl implements SaleService {
         long totalSalesCount;
         long totalCancelledCount;
         BigDecimal totalCancelledAmount;
+        long totalReturnsCount;
+        BigDecimal totalReturnsAmount;
         BigDecimal cashTotal;
         BigDecimal cardTotal;
         BigDecimal mixedTotal;
@@ -94,9 +96,9 @@ public class SaleServiceImpl implements SaleService {
         if (useMonthly) {
             // ── 1. Totales desde monthly_sales_stats ──────────────────────────
             String summarySql = """
-                        SELECT
                             COALESCE(SUM(total_revenue),0), COALESCE(SUM(sales_count),0),
                             COALESCE(SUM(cancelled_count),0), COALESCE(SUM(cancelled_total),0),
+                            COALESCE(SUM(returns_count),0), COALESCE(SUM(returns_total),0),
                             COALESCE(SUM(cash_total),0), COALESCE(SUM(card_total),0),
                             COALESCE(SUM(mixed_total),0), COALESCE(SUM(total_units_sold),0)
                         FROM monthly_sales_stats
@@ -105,17 +107,20 @@ public class SaleServiceImpl implements SaleService {
                     """;
             Object[] summaryData = jdbcTemplate.queryForObject(summarySql, (rs, rowNum) -> new Object[] {
                     rs.getBigDecimal(1), rs.getLong(2), rs.getLong(3), rs.getBigDecimal(4),
-                    rs.getBigDecimal(5), rs.getBigDecimal(6), rs.getBigDecimal(7), rs.getBigDecimal(8)
+                    rs.getLong(5), rs.getBigDecimal(6), rs.getBigDecimal(7), rs.getBigDecimal(8),
+                    rs.getBigDecimal(9), rs.getBigDecimal(10)
             }, startDate, endDate);
 
             totalRevenue = (BigDecimal) summaryData[0];
             totalSalesCount = (long) summaryData[1];
             totalCancelledCount = (long) summaryData[2];
             totalCancelledAmount = (BigDecimal) summaryData[3];
-            cashTotal = (BigDecimal) summaryData[4];
-            cardTotal = (BigDecimal) summaryData[5];
-            mixedTotal = (BigDecimal) summaryData[6];
-            totalUnitsSold = (BigDecimal) summaryData[7];
+            totalReturnsCount = (long) summaryData[4];
+            totalReturnsAmount = (BigDecimal) summaryData[5];
+            cashTotal = (BigDecimal) summaryData[6];
+            cardTotal = (BigDecimal) summaryData[7];
+            mixedTotal = (BigDecimal) summaryData[8];
+            totalUnitsSold = (BigDecimal) summaryData[9];
 
             // ── 2. Tendencia mensual ───────────────────────────────────────────
             String trendSql = """
@@ -176,23 +181,27 @@ public class SaleServiceImpl implements SaleService {
                         SELECT
                             COALESCE(SUM(total_revenue), 0), COALESCE(SUM(sales_count), 0),
                             COALESCE(SUM(cancelled_count), 0), COALESCE(SUM(cancelled_total), 0),
+                            COALESCE(SUM(returns_count), 0), COALESCE(SUM(returns_total), 0),
                             COALESCE(SUM(cash_total), 0), COALESCE(SUM(card_total), 0),
                             COALESCE(SUM(mixed_total), 0), COALESCE(SUM(total_units_sold), 0)
                         FROM daily_sales_stats WHERE date BETWEEN ? AND ?
                     """;
             Object[] summaryData = jdbcTemplate.queryForObject(summarySql, (rs, rowNum) -> new Object[] {
                     rs.getBigDecimal(1), rs.getLong(2), rs.getLong(3), rs.getBigDecimal(4),
-                    rs.getBigDecimal(5), rs.getBigDecimal(6), rs.getBigDecimal(7), rs.getBigDecimal(8)
+                    rs.getLong(5), rs.getBigDecimal(6), rs.getBigDecimal(7), rs.getBigDecimal(8),
+                    rs.getBigDecimal(9), rs.getBigDecimal(10)
             }, startDate, endDate);
 
             totalRevenue = (BigDecimal) summaryData[0];
             totalSalesCount = (long) summaryData[1];
             totalCancelledCount = (long) summaryData[2];
             totalCancelledAmount = (BigDecimal) summaryData[3];
-            cashTotal = (BigDecimal) summaryData[4];
-            cardTotal = (BigDecimal) summaryData[5];
-            mixedTotal = (BigDecimal) summaryData[6];
-            totalUnitsSold = (BigDecimal) summaryData[7];
+            totalReturnsCount = (long) summaryData[4];
+            totalReturnsAmount = (BigDecimal) summaryData[5];
+            cashTotal = (BigDecimal) summaryData[6];
+            cardTotal = (BigDecimal) summaryData[7];
+            mixedTotal = (BigDecimal) summaryData[8];
+            totalUnitsSold = (BigDecimal) summaryData[9];
 
             topProduct = findTopProductNameBetween(from, to);
 
@@ -247,7 +256,7 @@ public class SaleServiceImpl implements SaleService {
                         ? totalRevenue.divide(BigDecimal.valueOf(totalSalesCount), 2, RoundingMode.HALF_UP)
                         : BigDecimal.ZERO)
                 .cancellationRate(totalSalesCount > 0
-                        ? (double) totalCancelledCount / totalSalesCount * 100
+                        ? (double) (totalCancelledCount + totalReturnsCount) / totalSalesCount * 100
                         : 0.0)
                 .hourlyTrend(hourly)
                 .topProducts(topProds)

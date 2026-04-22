@@ -24,6 +24,12 @@
             cursor: not-allowed !important;
         }
 
+        .btn-notes:hover {
+            border-color: var(--accent) !important;
+            color: var(--accent) !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
         /* Favoritos Hover & Colors */
         .product-favorite-btn {
             color: #FFD700;
@@ -357,10 +363,10 @@
     <div class="tpv-body">
         <!-- SIDEBAR CATEGORÍAS (Izquierda) -->
         <nav class="tpv-sidebar">
-            <div class="sidebar-title">Categorías</div>
+            <div class="sidebar-title" th:text="#{tpv.categories}">Categorías</div>
             <button type="button" class="cat-btn" id="catAll"
                 th:classappend="${selectedCategoryId == null and search == null} ? 'active' : ''">
-                <i class="bi bi-grid-3x3-gap"></i> Todos
+                <i class="bi bi-grid-3x3-gap"></i> <span th:text="#{tpv.all_products}">Todos</span>
             </button>
             <button type="button" th:each="cat : ${categories}" th:attr="data-category-id=${cat.id}" class="cat-btn"
                 th:classappend="${selectedCategoryId == cat.id} ? 'active' : ''" th:text="${cat.name}">
@@ -547,6 +553,11 @@
                         <i class="bi bi-lightning-fill me-1"></i> <span th:text="#{tpv.ticket.checkout}">Cobrar</span>
                     </button>
                 </form>
+                <button type="button" class="btn-notes w-100" onclick="openNotesModal()"
+                    th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''"
+                    style="margin-top:0.6rem; margin-bottom:0.4rem; padding:0.55rem; border-radius:10px; border:1px solid var(--border); background: var(--surface); color: var(--text-main); font-size:0.85rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.4rem; transition: all 0.2s ease;">
+                    <i class="bi bi-chat-left-text"></i> <span id="btnNotesLabel">Añadir comentario</span>
+                </button>
                 <button type="button" class="btn-clear" onclick="clearTicket()"
                     th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''">
                     <i class="bi bi-trash me-1"></i> <span th:text="#{tpv.ticket.clear}">Vaciar ticket</span>
@@ -660,6 +671,25 @@
                         <button type="button" class="btn btn-accent btn-lg fw-bold" id="confirmQuantityBtn"
                             th:text="#{tpv.quantity_modal.add}">Añadir al Ticket</button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Comentarios de la Venta -->
+    <div class="modal fade" id="notesModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="background: var(--secondary); color: var(--text-main); border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-chat-left-text me-2 text-accent"></i>Comentario de la venta</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" style="filter: var(--close-filter, invert(1));"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <textarea id="notesModalTextarea" class="form-control" rows="5" placeholder="Escribe aquí cualquier observación o nota para este ticket..." 
+                        style="background: var(--primary); color: var(--text-main); border-color: var(--border); border-radius: 12px; resize: none; font-size: 0.95rem; padding: 1rem;"></textarea>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="btn btn-accent w-100 py-2 fw-bold" onclick="saveNotesFromModal()" style="border-radius: 10px;">Guardar comentario</button>
                 </div>
             </div>
         </div>
@@ -1408,13 +1438,16 @@
     <!-- Abono Selection Modal -->
     <div class="modal fade" id="abonoSelectionModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content" style="border-radius: 20px; border: none; overflow: hidden;">
-                <div class="modal-header" style="background: var(--accent); color: var(--primary); border: none;">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-ticket-perforated me-2"></i> Seleccionar Abono / Vale</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-content" style="background: var(--primary); color: var(--text-main); border-radius: 20px; border: 1px solid var(--border); overflow: hidden;">
+                <div class="modal-header" style="background: var(--accent); border: none; min-height: 60px; padding: 1rem 1.5rem;">
+                    <h5 class="modal-title fw-bold" style="color: #ffffff !important; margin: 0; display: flex; align-items: center;">
+                        <i class="bi bi-ticket-perforated me-2" style="color: #ffffff !important; font-size: 1.25rem;"></i> 
+                        <span style="color: #ffffff !important;">Seleccionar Abono / Vale</span>
+                    </h5>
+                    <button type="button" class="btn-close" th:style="'filter: brightness(0) invert(1);'" data-bs-dismiss="modal" aria-label="Close" style="opacity: 0.9;"></button>
                 </div>
-                <div class="modal-body p-4">
-                    <p id="abono-modal-instructions" class="text-muted small mb-4">Seleccione el abono que desea aplicar a esta venta (máximo uno por venta).</p>
+                <div class="modal-body p-4" style="background: var(--primary);">
+                    <p id="abono-modal-instructions" class="small mb-4" style="color: var(--text-muted) !important; opacity: 0.9;">Seleccione el abono que desea aplicar a esta venta (máximo uno por venta).</p>
                     
                     <!-- Formulario para cliente con abonos -->
                     <div id="tpv-abono-selection-list" style="display:none;">
@@ -1426,30 +1459,41 @@
                         <div class="mb-4">
                             <label class="form-label fw-bold small text-uppercase" style="color:var(--accent);">Opción 1: Buscar Bono por Código</label>
                             <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
-                                <input type="text" id="abono-search-code" class="form-control border-start-0" placeholder="Ej: AB-24-XXXX">
-                                <button class="btn" type="button" onclick="searchAbonoByCode()" style="border: 1px solid var(--accent); color: var(--accent); background: transparent;">Buscar</button>
+                                <span class="input-group-text border-end-0" style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border);"><i class="bi bi-search"></i></span>
+                                <input type="text" id="abono-search-code" class="form-control border-start-0 shadow-none" 
+                                    style="background: var(--primary); color: var(--text-main); border: 1px solid var(--border);"
+                                    placeholder="Ej: AB-24-XXXX">
+                                <button class="btn" type="button" onclick="searchAbonoByCode()" style="border: none; color: #ffffff !important; background: var(--accent); font-weight: 700; padding: 0 1.5rem;">Buscar</button>
                             </div>
                             <div id="abono-search-result" class="mt-2" style="display:none;">
                                 <!-- Contenedor para el bono encontrado -->
                             </div>
                         </div>
 
-                        <div class="hr-text text-muted mb-4"><span>O</span></div>
+                        <div class="hr-text text-muted mb-4" style="color: var(--text-muted) !important;"><span>O</span></div>
 
                         <div>
-                            <label class="form-label fw-bold small text-uppercase" style="color:var(--accent);">Opción 2: Importe Manual</label>
-                            <div class="input-group input-group-lg">
-                                <input type="number" id="abono-manual-amount" class="form-control" placeholder="0.00" step="0.01" min="0">
-                                <span class="input-group-text">€</span>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-bold small text-uppercase mb-0" style="color:var(--accent);">Opción 2: Importe Manual</label>
+                                <div class="btn-group btn-group-sm" role="group" style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface);">
+                                    <button type="button" id="btn-abono-fixed" class="btn btn-sm" style="font-size: 0.75rem; padding: 4px 12px; background: var(--accent); color: #ffffff !important; border: none; font-weight: 700;" onclick="setAbonoType('fixed')">€</button>
+                                    <button type="button" id="btn-abono-percent" class="btn btn-sm" style="font-size: 0.75rem; padding: 4px 12px; background: transparent; color: var(--text-muted); border: none; font-weight: 600;" onclick="setAbonoType('percent')">%</button>
+                                </div>
                             </div>
-                            <p class="text-muted small mt-1">Use esta opción si no tiene el código pero conoce el saldo a descontar.</p>
+                            <div class="input-group input-group-lg">
+                                <input type="number" id="abono-manual-amount" class="form-control shadow-none" 
+                                    style="background: var(--primary); color: var(--text-main); border: 1px solid var(--border); border-radius: 12px 0 0 12px;"
+                                    placeholder="0.00" step="0.01" min="0">
+                                <span class="input-group-text" id="abono-manual-suffix" style="background: var(--accent); color: #ffffff !important; border: 1px solid var(--accent); border-left: none; font-weight: bold; border-radius: 0 12px 12px 0; min-width: 50px; justify-content: center;">€</span>
+                            </div>
+                            <p class="small mt-2 mb-0" style="color: var(--text-muted) !important; font-size: 0.75rem;">Use esta opción si no tiene el código pero conoce el saldo o porcentaje a descontar.</p>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-0 p-3">
-                    <button type="button" class="btn btn-light" style="border-radius: 10px;" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn" style="background: var(--accent); color: var(--primary); border-radius: 10px; font-weight: 600;" onclick="confirmAbonoSelection()">Aplicar Seleccionado</button>
+                <input type="hidden" id="abono-manual-mode" value="fixed">
+                <div class="modal-footer border-0 p-3" style="background: var(--surface); gap: 10px;">
+                    <button type="button" class="btn px-4" style="background: var(--primary); color: var(--text-main); border-radius: 12px; border: 1px solid var(--border); font-weight: 500;" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn px-4" style="background: var(--accent); color: #ffffff !important; border-radius: 12px; font-weight: 700; box-shadow: 0 4px 12px var(--accent-20);" onclick="confirmAbonoSelection()">Aplicar Seleccionado</button>
                 </div>
             </div>
         </div>
