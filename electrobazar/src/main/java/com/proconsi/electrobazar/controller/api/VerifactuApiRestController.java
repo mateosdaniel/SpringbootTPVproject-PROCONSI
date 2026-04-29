@@ -36,6 +36,46 @@ public class VerifactuApiRestController {
     private final TicketRepository               ticketRepository;
     private final com.proconsi.electrobazar.service.VerifactuService verifactuService;
     private final com.proconsi.electrobazar.config.VerifactuProperties props;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
+    @GetMapping("/{type}/{id}/detail")
+    public ResponseEntity<?> getDetail(@PathVariable String type, @PathVariable Long id, HttpSession session) {
+        if (!Boolean.TRUE.equals(session.getAttribute("admin")))
+            return ResponseEntity.status(401).build();
+        
+        com.proconsi.electrobazar.model.Sale sale = null;
+        if ("invoices".equalsIgnoreCase(type)) {
+            sale = invoiceRepository.findById(id).map(Invoice::getSale).orElse(null);
+        } else if ("tickets".equalsIgnoreCase(type)) {
+            sale = ticketRepository.findById(id).map(Ticket::getSale).orElse(null);
+        } else if ("rectificativas".equalsIgnoreCase(type)) {
+            sale = rectificativeRepository.findById(id).map(r -> r.getSaleReturn() != null ? r.getSaleReturn().getOriginalSale() : null).orElse(null);
+        }
+
+        if (sale == null) return ResponseEntity.notFound().build();
+
+        Map<String, Object> resp = new java.util.HashMap<>();
+        if (sale.getCustomer() != null) {
+            com.proconsi.electrobazar.model.Customer c = sale.getCustomer();
+            resp.put("customerName", c.getName());
+            resp.put("customerTaxId", c.getTaxId());
+            resp.put("customerAddress", c.getAddress());
+            resp.put("customerPostalCode", c.getPostalCode());
+            resp.put("customerCity", c.getCity());
+        } else if (sale.getClientePuntualJson() != null) {
+            try {
+                Map<?, ?> map = objectMapper.readValue(sale.getClientePuntualJson(), Map.class);
+                resp.put("customerName", map.get("nombreRazon"));
+                resp.put("customerTaxId", map.get("nif"));
+                resp.put("customerAddress", map.get("address"));
+                resp.put("customerPostalCode", map.get("postalCode"));
+                resp.put("customerCity", map.get("city"));
+            } catch (Exception e) {
+                // Ignore parse error
+            }
+        }
+        return ResponseEntity.ok(resp);
+    }
 
     /* ── SUMMARY ──────────────────────────────────────────────── */
 
@@ -135,6 +175,7 @@ public class VerifactuApiRestController {
                                         ? r.getSaleReturn().getOriginalSale().getId() : null);
             row.put("amount",         r.getSaleReturn() != null ? r.getSaleReturn().getTotalRefunded().negate() : 0);
             row.put("createdAt",      r.getCreatedAt() != null ? r.getCreatedAt().toString() : null);
+            row.put("returnNumber",   r.getSaleReturn() != null ? r.getSaleReturn().getReturnNumber() : null);
             row.put("aeatStatus",     r.getAeatStatus() != null ? r.getAeatStatus().name() : "NOT_SENT");
             row.put("submissionDate", r.getAeatSubmissionDate() != null ? r.getAeatSubmissionDate().toString() : null);
             row.put("retryCount",     r.getAeatRetryCount());
@@ -273,6 +314,18 @@ public class VerifactuApiRestController {
             else if ("tickets".equalsIgnoreCase(type)) verifactuService.submitTicketAsync(id);
             else if ("rectificativas".equalsIgnoreCase(type)) verifactuService.submitRectificativeAsync(id);
             else return ResponseEntity.badRequest().body("Unknown type");
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/edit/{type}/{id}")
+    public ResponseEntity<?> editSubsanacion(@PathVariable String type, @PathVariable Long id, @RequestBody com.proconsi.electrobazar.dto.SubsanarRequest data, HttpSession session) {
+        if (!Boolean.TRUE.equals(session.getAttribute("admin")))
+            return ResponseEntity.status(401).build();
+        try {
+            verifactuService.prepararSubsanacion(id, type, data);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             return ResponseEntity.status(500).body(e.getMessage());

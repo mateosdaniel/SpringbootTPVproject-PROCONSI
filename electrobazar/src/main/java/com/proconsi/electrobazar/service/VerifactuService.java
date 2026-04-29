@@ -27,4 +27,7 @@ public interface VerifactuService {
 
     /** Actualiza los datos del cliente y envía una subsanación. */
     void submitSubsanacionWithCorrection(Long id, String type, com.proconsi.electrobazar.dto.SubsanarRequest data);
+
+    /** Prepara el registro para subsanación, actualizando datos y marcando flags AEAT. */
+    void prepararSubsanacion(Long id, String type, com.proconsi.electrobazar.dto.SubsanarRequest data);
 }

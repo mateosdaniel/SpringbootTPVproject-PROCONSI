@@ -46,7 +46,7 @@ public class VerifactuXmlBuilder {
              String softwareVersion, String softwareInstalacion) {
         String nif = company.getCif();
         return soapEnvelopeOpen() + regFactuOpen(nif, company.getName()) + registroFacturaOpen() +
-               buildAltaInvoiceBody(invoice, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion, false) +
+               buildAltaInvoiceBody(invoice, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion) +
                registroFacturaClose() + regFactuClose() + soapEnvelopeClose();
     }
 
@@ -55,7 +55,7 @@ public class VerifactuXmlBuilder {
                                           String softwareVersion, String softwareInstalacion) {
         String nif = company.getCif();
         return soapEnvelopeOpen() + regFactuOpen(nif, company.getName()) + registroFacturaOpen() +
-               buildAltaInvoiceBody(invoice, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion, true) +
+               buildAltaInvoiceBody(invoice, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion) +
                registroFacturaClose() + regFactuClose() + soapEnvelopeClose();
     }
 
@@ -64,7 +64,7 @@ public class VerifactuXmlBuilder {
             String softwareVersion, String softwareInstalacion) {
         String nif = company.getCif();
         return soapEnvelopeOpen() + regFactuOpen(nif, company.getName()) + registroFacturaOpen() +
-               buildAltaTicketBody(ticket, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion, false) +
+               buildAltaTicketBody(ticket, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion) +
                registroFacturaClose() + regFactuClose() + soapEnvelopeClose();
     }
 
@@ -73,7 +73,7 @@ public class VerifactuXmlBuilder {
                                          String softwareVersion, String softwareInstalacion) {
         String nif = company.getCif();
         return soapEnvelopeOpen() + regFactuOpen(nif, company.getName()) + registroFacturaOpen() +
-               buildAltaTicketBody(ticket, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion, true) +
+               buildAltaTicketBody(ticket, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion) +
                registroFacturaClose() + regFactuClose() + soapEnvelopeClose();
     }
 
@@ -92,23 +92,19 @@ public class VerifactuXmlBuilder {
         for (Object record : records) {
             sb.append(registroFacturaOpen());
             if (record instanceof Invoice i) {
-                // Determine if it's an annulment based on status or some other flag?
-                // For now, assume it's Alta if we are in this flow, or check if we need to support annulment batching.
-                // The request says: "Each can contain either RegistroAlta or RegistroAnulacion."
-                // I'll check a custom property or status.
                 if (i.getAeatStatus() == AeatStatus.REJECTED && i.getAeatLastError() != null && i.getAeatLastError().contains("anulación")) {
                      sb.append(buildAnulacionInvoiceBody(i, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion));
                 } else {
-                     sb.append(buildAltaInvoiceBody(i, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion, false));
+                     sb.append(buildAltaInvoiceBody(i, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion));
                 }
             } else if (record instanceof Ticket t) {
                 if (t.getAeatStatus() == AeatStatus.REJECTED && t.getAeatLastError() != null && t.getAeatLastError().contains("anulación")) {
                     sb.append(buildAnulacionTicketBody(t, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion));
                 } else {
-                    sb.append(buildAltaTicketBody(t, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion, false));
+                    sb.append(buildAltaTicketBody(t, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion));
                 }
             } else if (record instanceof RectificativeInvoice r) {
-                sb.append(buildAltaRectificativeBody(r, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion, false));
+                sb.append(buildAltaRectificativeBody(r, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion));
             }
             sb.append(registroFacturaClose());
         }
@@ -120,8 +116,7 @@ public class VerifactuXmlBuilder {
 
     private String buildAltaInvoiceBody(Invoice invoice, CompanySettings company,
                                         String softwareNombre, String softwareId,
-                                        String softwareVersion, String softwareInstalacion,
-                                        boolean isSubsanacion) {
+                                        String softwareVersion, String softwareInstalacion) {
         Sale sale = invoice.getSale();
         String nif = company.getCif();
         String fechaExp = hashCalculator.getFechaExpedicion(invoice.getCreatedAt());
@@ -130,9 +125,15 @@ public class VerifactuXmlBuilder {
         sb.append("          <sf:IDVersion>1.0</sf:IDVersion>\n");
         sb.append(idFactura(nif, invoice.getInvoiceNumber(), fechaExp));
         sb.append(tag("sf:NombreRazonEmisor", esc(company.getName())));
-        if (isSubsanacion) {
+
+        // Subsanacion Flags (v1.0.3)
+        if ("S".equals(invoice.getAeatSubsanacion())) {
             sb.append("          <sf:Subsanacion>S</sf:Subsanacion>\n");
         }
+        if (invoice.getAeatRechazoPrevio() != null && !invoice.getAeatRechazoPrevio().isBlank()) {
+            sb.append(tag("sf:RechazoPrevio", invoice.getAeatRechazoPrevio()));
+        }
+
         sb.append(tag("sf:TipoFactura", "F1"));
         sb.append(tag("sf:DescripcionOperacion", "Venta TPV " + invoice.getInvoiceNumber()));
 
@@ -179,8 +180,7 @@ public class VerifactuXmlBuilder {
 
     private String buildAltaTicketBody(Ticket ticket, CompanySettings company,
                                        String softwareNombre, String softwareId,
-                                       String softwareVersion, String softwareInstalacion,
-                                       boolean isSubsanacion) {
+                                       String softwareVersion, String softwareInstalacion) {
         Sale sale = ticket.getSale();
         String nif = company.getCif();
         String fechaExp = hashCalculator.getFechaExpedicion(ticket.getCreatedAt());
@@ -189,9 +189,15 @@ public class VerifactuXmlBuilder {
         sb.append("          <sf:IDVersion>1.0</sf:IDVersion>\n");
         sb.append(idFactura(nif, ticket.getTicketNumber(), fechaExp));
         sb.append(tag("sf:NombreRazonEmisor", esc(company.getName())));
-        if (isSubsanacion) {
+
+        // Subsanacion Flags (v1.0.3)
+        if ("S".equals(ticket.getAeatSubsanacion())) {
             sb.append("          <sf:Subsanacion>S</sf:Subsanacion>\n");
         }
+        if (ticket.getAeatRechazoPrevio() != null && !ticket.getAeatRechazoPrevio().isBlank()) {
+            sb.append(tag("sf:RechazoPrevio", ticket.getAeatRechazoPrevio()));
+        }
+
         sb.append(tag("sf:TipoFactura", "F2"));
         sb.append(tag("sf:DescripcionOperacion", "Venta TPV " + ticket.getTicketNumber()));
         sb.append(desglose(sale));
@@ -213,8 +219,7 @@ public class VerifactuXmlBuilder {
 
     private String buildAltaRectificativeBody(RectificativeInvoice rect, CompanySettings company,
                                               String softwareNombre, String softwareId,
-                                              String softwareVersion, String softwareInstalacion,
-                                              boolean isSubsanacion) {
+                                              String softwareVersion, String softwareInstalacion) {
         SaleReturn saleReturn = rect.getSaleReturn();
         Sale originalSale = saleReturn.getOriginalSale();
         String nif = company.getCif();
@@ -227,9 +232,15 @@ public class VerifactuXmlBuilder {
         sb.append("          <sf:IDVersion>1.0</sf:IDVersion>\n");
         sb.append(idFactura(nif, rect.getRectificativeNumber(), fechaExp));
         sb.append(tag("sf:NombreRazonEmisor", esc(company.getName())));
-        if (isSubsanacion) {
+
+        // Subsanacion Flags (v1.0.3)
+        if ("S".equals(rect.getAeatSubsanacion())) {
             sb.append("          <sf:Subsanacion>S</sf:Subsanacion>\n");
         }
+        if (rect.getAeatRechazoPrevio() != null && !rect.getAeatRechazoPrevio().isBlank()) {
+            sb.append(tag("sf:RechazoPrevio", rect.getAeatRechazoPrevio()));
+        }
+
         boolean isOriginalTicket = rect.getOriginalTicket() != null;
         String tipoFactura = isOriginalTicket ? "R5" : "R4";
         String originalNum = isOriginalTicket ? rect.getOriginalTicket().getTicketNumber() : rect.getOriginalInvoice().getInvoiceNumber();
@@ -342,7 +353,7 @@ public class VerifactuXmlBuilder {
             String softwareVersion, String softwareInstalacion) {
         String nif = company.getCif();
         return soapEnvelopeOpen() + regFactuOpen(nif, company.getName()) + registroFacturaOpen() +
-               buildAltaRectificativeBody(rect, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion, false) +
+               buildAltaRectificativeBody(rect, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion) +
                registroFacturaClose() + regFactuClose() + soapEnvelopeClose();
     }
 
@@ -351,7 +362,7 @@ public class VerifactuXmlBuilder {
                                                 String softwareVersion, String softwareInstalacion) {
         String nif = company.getCif();
         return soapEnvelopeOpen() + regFactuOpen(nif, company.getName()) + registroFacturaOpen() +
-               buildAltaRectificativeBody(rect, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion, true) +
+               buildAltaRectificativeBody(rect, company, softwareNombre, softwareId, softwareVersion, softwareInstalacion) +
                registroFacturaClose() + regFactuClose() + soapEnvelopeClose();
     }
 

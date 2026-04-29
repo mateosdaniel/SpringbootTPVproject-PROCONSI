@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import org.springframework.context.ApplicationEventPublisher;
 import com.proconsi.electrobazar.util.VerifactuHashCalculator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -126,42 +125,103 @@ public class VerifactuServiceImpl implements VerifactuService {
     @Override
     @Transactional
     public void submitSubsanacionWithCorrection(Long id, String type, SubsanarRequest data) {
-        if (!props.isEnabled()) return;
+        prepararSubsanacion(id, type, data);
+        submitSubsanacionAsync(id, type);
+    }
 
-        Sale sale = null;
+    @Override
+    @Transactional
+    public void prepararSubsanacion(Long id, String type, SubsanarRequest data) {
         if ("invoices".equalsIgnoreCase(type)) {
-            Invoice inv = invoiceRepository.findById(id).orElse(null);
-            if (inv != null) sale = inv.getSale();
+            invoiceRepository.findById(id).ifPresent(inv -> {
+                updateEntityForSubsanacion(inv, inv.getSale(), data);
+                invoiceRepository.save(inv);
+            });
         } else if ("tickets".equalsIgnoreCase(type)) {
-            Ticket t = ticketRepository.findById(id).orElse(null);
-            if (t != null) sale = t.getSale();
+            ticketRepository.findById(id).ifPresent(t -> {
+                updateEntityForSubsanacion(t, t.getSale(), data);
+                ticketRepository.save(t);
+            });
         } else if ("rectificativas".equalsIgnoreCase(type)) {
-            RectificativeInvoice r = rectRepository.findById(id).orElse(null);
-            if (r != null && r.getSaleReturn() != null) sale = r.getSaleReturn().getOriginalSale();
+            rectRepository.findById(id).ifPresent(r -> {
+                Sale sale = (r.getSaleReturn() != null) ? r.getSaleReturn().getOriginalSale() : null;
+                updateEntityForSubsanacion(r, sale, data);
+                rectRepository.save(r);
+            });
         }
+    }
 
-        if (sale == null) return;
-
-        if (sale.getCustomer() != null) {
-            Customer c = sale.getCustomer();
-            c.setName(data.getNombreRazon());
-            c.setTaxId(data.getNif());
-            c.setAddress(data.getAddress());
-            c.setPostalCode(data.getPostalCode());
-            c.setCity(data.getCity());
-            customerRepository.save(c);
-        } else {
-            try {
-                String json = objectMapper.writeValueAsString(data);
-                sale.setClientePuntualJson(json);
-                saleRepository.save(sale);
-            } catch (Exception e) {
-                log.error("Error updating puntual customer JSON: {}", e.getMessage());
+    private void updateEntityForSubsanacion(Object entity, Sale sale, SubsanarRequest data) {
+        // 1. Update customer data
+        if (sale != null) {
+            if (sale.getCustomer() != null) {
+                Customer c = sale.getCustomer();
+                c.setName(data.getNombreRazon());
+                c.setTaxId(data.getNif());
+                c.setAddress(data.getAddress());
+                c.setPostalCode(data.getPostalCode());
+                c.setCity(data.getCity());
+                customerRepository.save(c);
+            } else {
+                try {
+                    sale.setClientePuntualJson(objectMapper.writeValueAsString(data));
+                    saleRepository.save(sale);
+                } catch (Exception e) {
+                    log.error("Error updating puntual customer JSON: {}", e.getMessage());
+                }
             }
         }
 
-        // Now trigger subsanacion
-        submitSubsanacionAsync(id, type);
+        // 2. Set AEAT Subsanacion flags
+        AeatStatus prevStatus = getAeatStatus(entity);
+        setAeatSubsanacion(entity, "S");
+        if (prevStatus == AeatStatus.REJECTED) {
+            setAeatRechazoPrevio(entity, "X");
+        } else if (prevStatus == AeatStatus.ACCEPTED_WITH_ERRORS) {
+            setAeatRechazoPrevio(entity, "N");
+        }
+        
+        // 3. Reset for retry
+        setAeatStatus(entity, AeatStatus.PENDING_SEND);
+        setAeatRetryCount(entity, 0);
+        setAeatRejectionReason(entity, null);
+    }
+
+    private AeatStatus getAeatStatus(Object entity) {
+        if (entity instanceof Invoice i) return i.getAeatStatus();
+        if (entity instanceof Ticket t) return t.getAeatStatus();
+        if (entity instanceof RectificativeInvoice r) return r.getAeatStatus();
+        return null;
+    }
+
+    private void setAeatSubsanacion(Object entity, String val) {
+        if (entity instanceof Invoice i) i.setAeatSubsanacion(val);
+        else if (entity instanceof Ticket t) t.setAeatSubsanacion(val);
+        else if (entity instanceof RectificativeInvoice r) r.setAeatSubsanacion(val);
+    }
+
+    private void setAeatRechazoPrevio(Object entity, String val) {
+        if (entity instanceof Invoice i) i.setAeatRechazoPrevio(val);
+        else if (entity instanceof Ticket t) t.setAeatRechazoPrevio(val);
+        else if (entity instanceof RectificativeInvoice r) r.setAeatRechazoPrevio(val);
+    }
+
+    private void setAeatStatus(Object entity, AeatStatus status) {
+        if (entity instanceof Invoice i) i.setAeatStatus(status);
+        else if (entity instanceof Ticket t) t.setAeatStatus(status);
+        else if (entity instanceof RectificativeInvoice r) r.setAeatStatus(status);
+    }
+
+    private void setAeatRetryCount(Object entity, int count) {
+        if (entity instanceof Invoice i) i.setAeatRetryCount(count);
+        else if (entity instanceof Ticket t) t.setAeatRetryCount(count);
+        else if (entity instanceof RectificativeInvoice r) r.setAeatRetryCount(count);
+    }
+
+    private void setAeatRejectionReason(Object entity, AeatRejectionReason reason) {
+        if (entity instanceof Invoice i) i.setAeatRejectionReason(reason);
+        else if (entity instanceof Ticket t) t.setAeatRejectionReason(reason);
+        else if (entity instanceof RectificativeInvoice r) r.setAeatRejectionReason(reason);
     }
 
     // ================================================================

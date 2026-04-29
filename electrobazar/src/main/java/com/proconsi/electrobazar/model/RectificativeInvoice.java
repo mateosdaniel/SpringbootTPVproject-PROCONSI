@@ -83,6 +83,12 @@ public class RectificativeInvoice {
     @Column(name = "aeat_csv", length = 20)
     private String aeatCsv;
 
+    @Column(name = "aeat_subsanacion", length = 1)
+    private String aeatSubsanacion;
+
+    @Column(name = "aeat_rechazo_previo", length = 1)
+    private String aeatRechazoPrevio;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();

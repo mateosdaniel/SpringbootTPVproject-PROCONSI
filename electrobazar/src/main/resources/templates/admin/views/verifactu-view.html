@@ -125,7 +125,7 @@
     <div class="nav-tabs mb-0 border-0 bg-transparent">
         <button class="nav-link active" id="vf-tab-invoices"       onclick="vfSwitchTab('invoices')"><i class="bi bi-file-earmark-text"></i>Facturas</button>
         <button class="nav-link"        id="vf-tab-tickets"        onclick="vfSwitchTab('tickets')"><i class="bi bi-receipt"></i>Tickets</button>
-        <button class="nav-link"        id="vf-tab-rectificativas" onclick="vfSwitchTab('rectificativas')"><i class="bi bi-file-earmark-medical"></i>Rectificativas</button>
+        <button class="nav-link"        id="vf-tab-rectificativas" onclick="vfSwitchTab('rectificativas')"><i class="bi bi-file-earmark-medical"></i>Rectificativas / Devoluciones</button>
         <button class="nav-link"        id="vf-tab-pending"        onclick="vfSwitchTab('pending')"><i class="bi bi-hourglass-split"></i>Próximos Envíos</button>
         <button class="nav-link ms-auto" id="vf-tab-settings"       onclick="vfSwitchTab('settings')"><i class="bi bi-gear-fill"></i></button>
     </div>
@@ -140,6 +140,7 @@
                     <th>Fecha</th>
                     <th class="text-end">Importe</th>
                     <th>Estado AEAT</th>
+                    <th>Error</th>
                     <th>Envío</th>
                     <th class="text-center">Int.</th>
                     <th>Espera</th>
@@ -161,6 +162,7 @@
                     <th>Fecha</th>
                     <th class="text-end">Importe</th>
                     <th>Estado AEAT</th>
+                    <th>Error</th>
                     <th>Envío</th>
                     <th class="text-center">Int.</th>
                     <th>Espera</th>
@@ -182,6 +184,7 @@
                     <th>Fecha</th>
                     <th class="text-end">Importe</th>
                     <th>Estado AEAT</th>
+                    <th>Error</th>
                     <th>Envío</th>
                     <th class="text-center">Int.</th>
                     <th>Espera</th>
@@ -236,6 +239,53 @@
                         <i class="bi bi-info-circle me-1"></i>
                         Al activar la simulación, se usará una URL inválida (localhost:9999) para forzar errores <code>NETWORK_ERROR</code> y probar la estrategia de reintentos.
                     </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ── MODAL: EDIT SUBSANACIÓN ── -->
+    <div class="modal fade" id="vfModalEdit" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-secondary border-border shadow-lg">
+                <div class="modal-header border-bottom border-border">
+                    <h5 class="modal-title"><i class="bi bi-pencil-square me-2 text-accent"></i>Corregir Datos Factura</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="vf-edit-form">
+                        <input type="hidden" id="vf-edit-id">
+                        <input type="hidden" id="vf-edit-type">
+                        
+                        <div class="mb-3">
+                            <label class="form-label small text-muted font-weight-bold">Nombre / Razón Social</label>
+                            <input type="text" id="vf-edit-nombre" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted font-weight-bold">NIF / CIF</label>
+                            <input type="text" id="vf-edit-nif" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted font-weight-bold">Dirección</label>
+                            <input type="text" id="vf-edit-address" class="form-control">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label small text-muted font-weight-bold">Código Postal</label>
+                                <input type="text" id="vf-edit-cp" class="form-control">
+                            </div>
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label small text-muted font-weight-bold">Ciudad</label>
+                                <input type="text" id="vf-edit-city" class="form-control">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-top border-border">
+                    <button type="button" class="btn btn-outline-light btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-accent btn-sm px-4" onclick="vfSaveEdit()">
+                        <i class="bi bi-save me-1"></i>Guardar y Reencolar
+                    </button>
                 </div>
             </div>
         </div>
@@ -327,7 +377,7 @@
         const start  = document.getElementById('vf-filter-start').value;
         const end    = document.getElementById('vf-filter-end').value;
 
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Cargando registros...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Cargando registros...</td></tr>`;
 
         let url = `/api/admin/verifactu/${type}?page=${page}&size=${PAGE_SIZE}`;
         if (status !== 'ALL') url += `&status=${status}`;
@@ -344,7 +394,7 @@
     function renderRows(type, rows) {
         const tbody = document.getElementById('vf-tbody-' + type);
         if (!rows.length) {
-            tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-muted"><i class="bi bi-inbox me-2"></i>Sin registros con estos filtros.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="10" class="text-center py-5 text-muted"><i class="bi bi-inbox me-2"></i>Sin registros con estos filtros.</td></tr>`;
             return;
         }
         tbody.innerHTML = rows.map(r => renderRow(type, r)).join('');
@@ -352,27 +402,31 @@
     }
 
     function renderRow(type, r) {
-        const searchable = [r.number, r.aeatStatus, r.rejectionReason, r.lastError].filter(Boolean).join(' ');
-        const isErrorReqManual = r.rejectionReason === 'VALIDATION_ERROR';
+        const searchable = [r.number, r.aeatStatus, r.rejectionReason, r.lastError, r.returnNumber].filter(Boolean).join(' ');
         const timerId = `tmr-${type}-${r.id}`;
+        
+        const errorText = r.lastError || '';
+        const truncatedError = errorText.length > 80 ? errorText.substring(0, 77) + '...' : errorText;
+
+        const subLabel = type === 'rectificativas' 
+            ? `Devolución: ${esc(r.returnNumber || '—')}` 
+            : `ID Venta: ${r.saleId || '—'}`;
 
         return `<tr data-s="${esc(searchable)}" class="align-middle">
-            <td><div class="fw-bold text-main">${esc(r.number)}</div><div class="small text-muted" style="font-size:0.65rem">ID Venta: ${r.saleId || '—'}</div></td>
+            <td><div class="fw-bold text-main">${esc(r.number)}</div><div class="small text-muted" style="font-size:0.65rem">${subLabel}</div></td>
             <td><span class="badge bg-secondary border border-border text-muted">${esc(r.type)}</span></td>
             <td><div class="small">${fmtDt(r.createdAt)}</div></td>
             <td class="text-end fw-bold">${fmtCur(r.amount)}</td>
-            <td>
-                ${aeatBadge(r.aeatStatus)}
-                ${r.rejectionReason ? `<span class="badge-reason badge ${isErrorReqManual?'bg-danger':'bg-info'} bg-opacity-10 ${isErrorReqManual?'text-danger':'text-info'}">${esc(r.rejectionReason.replace(/_/g,' '))}</span>` : ''}
-            </td>
+            <td>${aeatBadge(r.aeatStatus)}</td>
+            <td><div class="small text-muted text-truncate" style="max-width: 250px;" title="${esc(errorText)}">${esc(truncatedError)}</div></td>
             <td><div class="small">${fmtDt(r.submissionDate)}</div></td>
             <td class="text-center small">${r.retryCount || 0}</td>
             <td><div class="wait-timer" id="${timerId}" data-time="${r.submissionDate||''}" data-wait="${r.waitTime||0}" data-next="${r.nextRetry||''}"></div></td>
             <td>
                 <div class="d-flex gap-1">
                     <button class="btn-icon" onclick="viewSale(${r.saleId})"><i class="bi bi-eye"></i></button>
-                    ${isErrorReqManual ? `<button class="btn btn-outline-danger btn-retry btn-sm" onclick="vfRetry('${type}', ${r.id}, this)" title="Reintentar manual"><i class="bi bi-arrow-repeat"></i></button>` : ''}
-                    ${r.aeatStatus === 'ACCEPTED_WITH_ERRORS' ? `<button class="btn btn-outline-warning btn-retry btn-sm" onclick="vfSubsanar('${type}', ${r.id}, this)" title="Corregir errores (Subsanar)"><i class="bi bi-tools"></i></button>` : ''}
+                    ${(r.aeatStatus === 'REJECTED' || r.aeatStatus === 'ACCEPTED_WITH_ERRORS') ? `<button class="btn btn-outline-info btn-retry btn-sm" onclick="vfEditSubsanar('${type}', ${r.id})" title="Editar y Subsanar"><i class="bi bi-pencil-square"></i></button>` : ''}
+                    ${r.aeatStatus === 'ACCEPTED_WITH_ERRORS' ? `<button class="btn btn-outline-warning btn-retry btn-sm" onclick="vfSubsanar('${type}', ${r.id}, this)" title="Subsanación rápida (Sin editar)"><i class="bi bi-tools"></i></button>` : ''}
                 </div>
             </td>
         </tr>`;
@@ -520,6 +574,50 @@
                     icon.classList.remove('bi-spin');
                 }
             });
+    };
+
+    window.vfEditSubsanar = function (type, id) {
+        // Load record data to fill modal
+        fetch(`/api/admin/verifactu/${type}/${id}/detail`)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('vf-edit-id').value = id;
+                document.getElementById('vf-edit-type').value = type;
+                document.getElementById('vf-edit-nombre').value = data.customerName || '';
+                document.getElementById('vf-edit-nif').value = data.customerTaxId || '';
+                document.getElementById('vf-edit-address').value = data.customerAddress || '';
+                document.getElementById('vf-edit-cp').value = data.customerPostalCode || '';
+                document.getElementById('vf-edit-city').value = data.customerCity || '';
+                
+                const modal = new bootstrap.Modal(document.getElementById('vfModalEdit'));
+                modal.show();
+            });
+    };
+
+    window.vfSaveEdit = function () {
+        const id = document.getElementById('vf-edit-id').value;
+        const type = document.getElementById('vf-edit-type').value;
+        const data = {
+            nombreRazon: document.getElementById('vf-edit-nombre').value,
+            nif: document.getElementById('vf-edit-nif').value,
+            address: document.getElementById('vf-edit-address').value,
+            postalCode: document.getElementById('vf-edit-cp').value,
+            city: document.getElementById('vf-edit-city').value
+        };
+
+        fetch(`/api/admin/verifactu/edit/${type}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).then(r => {
+            if (r.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('vfModalEdit')).hide();
+                showToast("Datos actualizados. El registro se enviará en el próximo ciclo.", "success");
+                setTimeout(vfLoad, 1000);
+            } else {
+                showToast("Error al actualizar datos", "error");
+            }
+        });
     };
 
     window.viewSale = id => id && window.open('/admin/sale/' + id, '_blank');
