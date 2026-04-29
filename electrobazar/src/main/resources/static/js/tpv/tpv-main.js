@@ -408,6 +408,7 @@ function finishAddingToTicket(id, name, price, quantity, stock, categoryId, card
             if (ticket[id]) {
                 ticket[id].price = parseFloat(priceData.price);
                 ticket[id].priceWithRe = parseFloat(priceData.priceWithRe);
+                if (priceData.vatRate != null) ticket[id].vatRate = parseFloat(priceData.vatRate);
                 // Keep originalPrice as the catalogue (non-discounted) price
                 if (ticket[id].originalPrice == null) {
                     ticket[id].originalPrice = ticket[id].price;
@@ -631,7 +632,13 @@ function renderTicket() {
     var formHTML = ''; ids.forEach(function (id) {
         var item = ticket[id];
         var unitPrice = item.price;
-        var subtotal = Math.round((unitPrice * item.quantity + Number.EPSILON) * 100) / 100;
+        // Replicar el redondeo fiscal del backend: base+IVA redondeados por separado
+        // para que el total del frontend coincida exactamente con el cálculo del servidor.
+        var vatRate = item.vatRate != null ? item.vatRate : 0.21;
+        var netUnit = unitPrice / (1 + vatRate);
+        var baseAmount = Math.round((netUnit * item.quantity + Number.EPSILON) * 100) / 100;
+        var vatAmount = Math.round((baseAmount * vatRate + Number.EPSILON) * 100) / 100;
+        var subtotal = baseAmount + vatAmount;
         totalItems += item.quantity;
         totalAmount += subtotal;
 
@@ -1974,6 +1981,7 @@ function updateTicketPricesForTariff(tariffId, tariffName, discountPct) {
                     }
                     ticket[id].price = parseFloat(priceData.price);
                     ticket[id].priceWithRe = parseFloat(priceData.priceWithRe);
+                    if (priceData.vatRate != null) ticket[id].vatRate = parseFloat(priceData.vatRate);
                 }
             });
     });
@@ -2049,6 +2057,7 @@ function resetTicketPrices() {
                 if (ticket[id]) {
                     ticket[id].price = parseFloat(priceData.price);
                     ticket[id].priceWithRe = parseFloat(priceData.priceWithRe);
+                    if (priceData.vatRate != null) ticket[id].vatRate = parseFloat(priceData.vatRate);
                     // Back to catalogue price — reset originalPrice so no discount badge shows
                     ticket[id].originalPrice = ticket[id].price;
                 }

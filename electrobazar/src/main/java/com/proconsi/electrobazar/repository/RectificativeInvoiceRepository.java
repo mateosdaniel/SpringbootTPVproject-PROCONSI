@@ -25,11 +25,13 @@ public interface RectificativeInvoiceRepository extends JpaRepository<Rectificat
 
     Optional<RectificativeInvoice> findByHashCurrentInvoice(String hashCurrentInvoice);
 
-    @Query("SELECT r FROM RectificativeInvoice r WHERE r.aeatStatus = :status AND r.aeatRetryCount < :maxRetries")
-    List<RectificativeInvoice> findPendingSend(@Param("maxRetries") int maxRetries,
-                                               @Param("status") AeatStatus status);
+    @EntityGraph(attributePaths = { "saleReturn" })
+    @Query("SELECT r FROM RectificativeInvoice r WHERE r.aeatStatus = :pending " +
+           "OR (r.aeatStatus = :rejected AND r.aeatRejectionReason = com.proconsi.electrobazar.model.AeatRejectionReason.NETWORK_ERROR)")
+    List<RectificativeInvoice> findPendingAndRejected(@Param("pending") AeatStatus pending,
+                                                       @Param("rejected") AeatStatus rejected);
 
-    default List<RectificativeInvoice> findPendingSend(int maxRetries) {
-        return findPendingSend(maxRetries, AeatStatus.PENDING_SEND);
+    default List<RectificativeInvoice> findPendingSend() {
+        return findPendingAndRejected(AeatStatus.PENDING_SEND, AeatStatus.REJECTED);
     }
 }

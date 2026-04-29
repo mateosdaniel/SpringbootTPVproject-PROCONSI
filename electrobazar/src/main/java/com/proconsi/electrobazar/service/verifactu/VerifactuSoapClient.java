@@ -9,6 +9,7 @@ import org.w3c.dom.NodeList;
 
 import javax.net.ssl.*;
 import javax.xml.parsers.DocumentBuilderFactory;
+import java.util.List;
 import java.io.*;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -26,17 +27,20 @@ public class VerifactuSoapClient {
 
     private final VerifactuProperties props;
 
-    /** Resultado de un envío a la AEAT. */
-    public record AeatResponse(boolean success, String estado, String descripcion) {}
+    /** Resultado de una línea en un envío batch. */
+    public record AeatLineResponse(String numSerie, String fechaExp, String estadoRegistro, String codError, String descError, String idDuplicado, String estadoDuplicado) {}
+
+    /** Resultado global de un envío a la AEAT. */
+    public record AeatBatchResponse(boolean success, String estadoEnvio, String csv, List<AeatLineResponse> lines, String rawResponse, Integer waitTime) {}
 
     /**
      * Envía un XML SOAP a la AEAT y devuelve el resultado.
      * Si el certificado no está configurado, devuelve éxito simulado para no bloquear.
      */
-    public AeatResponse send(String soapXml) {
+    public AeatBatchResponse send(String soapXml) {
         if (!props.isCertificateConfigured()) {
             log.warn("Verifactu: certificado no configurado. Envío simulado (modo prueba sin cert).");
-            return new AeatResponse(true, "SimuladoSinCert", "Certificado no configurado todavía");
+            return new AeatBatchResponse(true, "SimuladoSinCert", null, java.util.Collections.emptyList(), null, null);
         }
 
         try {
@@ -44,7 +48,7 @@ public class VerifactuSoapClient {
             return doPost(soapXml, sslContext);
         } catch (Exception e) {
             log.error("Verifactu: error enviando a AEAT: {}", e.getMessage(), e);
-            return new AeatResponse(false, "ErrorConexion", e.getMessage());
+            return new AeatBatchResponse(false, "ErrorConexion", null, java.util.Collections.emptyList(), null, null);
         }
     }
 
@@ -52,7 +56,7 @@ public class VerifactuSoapClient {
     //  HTTP POST
     // ================================================================
 
-    private AeatResponse doPost(String soapXml, SSLContext sslContext) throws Exception {
+    private AeatBatchResponse doPost(String soapXml, SSLContext sslContext) throws Exception {
         URL url = java.net.URI.create(props.getEndpointUrl()).toURL();
         HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
         conn.setSSLSocketFactory(sslContext.getSocketFactory());
@@ -81,7 +85,7 @@ public class VerifactuSoapClient {
         if (httpStatus == 200) {
             return parseResponse(responseBody);
         }
-        return new AeatResponse(false, "HTTP_" + httpStatus, responseBody);
+        return new AeatBatchResponse(false, "HTTP_" + httpStatus, null, java.util.Collections.emptyList(), responseBody, null);
     }
 
     // ================================================================
@@ -109,9 +113,9 @@ public class VerifactuSoapClient {
     //  Parseo de respuesta AEAT
     // ================================================================
 
-    private AeatResponse parseResponse(String xml) {
+    private AeatBatchResponse parseResponse(String xml) {
         try {
-            log.info("Verifactu parsing response: {}", xml);
+            log.info("Verifactu parsing batch response: {}", xml);
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             dbf.setNamespaceAware(true);
             Document doc = dbf.newDocumentBuilder()
@@ -121,32 +125,63 @@ public class VerifactuSoapClient {
             String fault = firstText(doc, "faultstring");
             if (fault != null) {
                 log.warn("Verifactu AEAT SOAP Fault: {}", fault);
-                return new AeatResponse(false, "Fault", fault);
+                return new AeatBatchResponse(false, "Fault", null, java.util.Collections.emptyList(), xml, null);
             }
+
+            // CSV (Feature 4)
+            String csv = firstText(doc, "CSV");
 
             // EstadoEnvio global
             String estadoEnvio = firstText(doc, "EstadoEnvio");
             if (estadoEnvio == null) estadoEnvio = firstText(doc, "ResultadoEnvio");
 
-            // EstadoRegistro del primer registro (solo enviamos uno a la vez)
-            String estadoReg = firstText(doc, "EstadoRegistro");
-            String codError = firstText(doc, "CodigoErrorRegistro");
-            String descError = firstText(doc, "DescripcionErrorRegistro");
+            // Parsear cada línea (RespuestaLinea)
+            java.util.List<AeatLineResponse> lines = new java.util.ArrayList<>();
+            NodeList lineNodes = doc.getElementsByTagNameNS("*", "RespuestaLinea");
+            if (lineNodes.getLength() == 0) lineNodes = doc.getElementsByTagName("RespuestaLinea");
 
-            log.info("EstadoEnvio={}, EstadoRegistro={}, codError={}, descError={}", estadoEnvio, estadoReg, codError, descError);
+            for (int i = 0; i < lineNodes.getLength(); i++) {
+                org.w3c.dom.Element el = (org.w3c.dom.Element) lineNodes.item(i);
+                
+                String numSerie = getText(el, "NumSerieFactura");
+                String fecha = getText(el, "FechaExpedicionFactura");
+                String estadoReg = getText(el, "EstadoRegistro");
+                String codError = getText(el, "CodigoErrorRegistro");
+                String descError = getText(el, "DescripcionErrorRegistro");
+                
+                // Duplicados
+                String idDuplicado = getText(el, "IdPeticionRegistroDuplicado");
+                String estadoDuplicado = getText(el, "EstadoRegistroDuplicado");
 
-            boolean ok = "Correcto".equalsIgnoreCase(estadoEnvio)
-                    || "Correcto".equalsIgnoreCase(estadoReg)
-                    || "AceptadaConErrores".equalsIgnoreCase(estadoReg);
+                lines.add(new AeatLineResponse(numSerie, fecha, estadoReg, codError, descError, idDuplicado, estadoDuplicado));
+            }
 
-            String estado = estadoReg != null ? estadoReg : estadoEnvio;
-            String desc = descError != null ? descError : (codError != null ? "Código: " + codError : "OK");
-            return new AeatResponse(ok, estado, desc);
+            // TiempoEsperaEnvio o TiempoEspera (específico de VeriFactu)
+            String tiempoEsperaStr = firstText(doc, "TiempoEsperaEnvio");
+            if (tiempoEsperaStr == null) tiempoEsperaStr = firstText(doc, "TiempoEspera");
 
+            Integer waitTime = null;
+            if (tiempoEsperaStr != null) {
+                try {
+                    waitTime = Integer.parseInt(tiempoEsperaStr);
+                } catch (NumberFormatException e) {
+                    log.warn("Verifactu: no se pudo parsear TiempoEspera: {}", tiempoEsperaStr);
+                }
+            }
+
+            boolean ok = "Correcto".equalsIgnoreCase(estadoEnvio) || "ParcialmenteCorrecto".equalsIgnoreCase(estadoEnvio);
+            return new AeatBatchResponse(ok, estadoEnvio, csv, lines, xml, waitTime);
         } catch (Exception e) {
             log.warn("Verifactu: no se pudo parsear la respuesta AEAT: {}", e.getMessage());
-            return new AeatResponse(false, "ParseError", e.getMessage());
+            return new AeatBatchResponse(false, "ParseError", null, java.util.Collections.emptyList(), xml, null);
         }
+    }
+
+    private String getText(org.w3c.dom.Element parent, String localName) {
+        NodeList nodes = parent.getElementsByTagNameNS("*", localName);
+        if (nodes.getLength() == 0) nodes = parent.getElementsByTagName(localName);
+        if (nodes.getLength() > 0) return nodes.item(0).getTextContent();
+        return null;
     }
 
     private String firstText(Document doc, String localName) {

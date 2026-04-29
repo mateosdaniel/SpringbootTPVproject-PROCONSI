@@ -13,11 +13,11 @@
     <style>
         /* ── Diseño de Factura Real A4 para Pantalla ── */
         :root {
-            --invoice-bg: #fff;
-            --invoice-text: #222;
-            --invoice-muted: #666;
-            --invoice-border: #ddd;
-            --invoice-accent: #111;
+            --invoice-bg: var(--secondary);
+            --invoice-text: var(--text-main);
+            --invoice-muted: var(--text-muted);
+            --invoice-border: var(--border);
+            --invoice-accent: var(--text-main);
         }
 
         * {
@@ -56,7 +56,7 @@
         /* ── Header ── */
         .header-bar {
             width: 100%;
-            border-bottom: 3px solid #1a1a1a;
+            border-bottom: 3px solid var(--invoice-accent);
             padding-bottom: 20px;
             margin-bottom: 30px;
         }
@@ -125,7 +125,7 @@
             vertical-align: top;
             padding: 15px 20px;
             border: 1px solid var(--invoice-border);
-            background: #fcfcfc;
+            background: var(--surface);
             border-radius: 4px;
         }
 
@@ -134,7 +134,7 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            color: #aaa;
+            color: var(--invoice-muted);
             margin-bottom: 8px;
         }
 
@@ -147,7 +147,7 @@
 
         .party-detail {
             font-size: 11.5px;
-            color: #555;
+            color: var(--invoice-muted);
             line-height: 1.6;
         }
 
@@ -160,7 +160,7 @@
 
         .items-table th {
             background: var(--invoice-accent);
-            color: #fff;
+            color: var(--invoice-bg);
             font-size: 10px;
             font-weight: 700;
             text-transform: uppercase;
@@ -176,7 +176,7 @@
         .items-table td {
             padding: 12px 15px;
             color: var(--invoice-text);
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--invoice-border);
             font-size: 13px;
         }
 
@@ -189,7 +189,8 @@
         }
 
         .items-table tbody tr:nth-child(even) td {
-            background: #fafafa;
+            background: var(--surface);
+            opacity: 0.9;
         }
 
         /* ── Totals ── */
@@ -235,7 +236,7 @@
             color: var(--invoice-muted);
             margin-bottom: 40px;
             padding: 10px 15px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--invoice-border);
             display: inline-block;
             border-radius: 4px;
         }
@@ -248,7 +249,7 @@
             border-top: 1px solid var(--invoice-border);
             padding-top: 20px;
             font-size: 10px;
-            color: #999;
+            color: var(--invoice-muted);
             line-height: 1.8;
             text-align: center;
         }
@@ -293,16 +294,22 @@
 
         /* Estilos de Impresión */
         @media print {
+            :root {
+                --invoice-bg: #fff !important;
+                --invoice-text: #000 !important;
+                --invoice-muted: #666 !important;
+                --invoice-border: #ddd !important;
+                --invoice-accent: #000 !important;
+            }
+
             body {
-                background: #fff;
+                background: #fff !important;
                 padding: 0;
             }
 
-            .action-bar {
-                display: none;
-            }
-
             .invoice-paper {
+                background: #fff !important;
+                color: #000 !important;
                 box-shadow: none;
                 margin: 0;
                 width: 100%;
@@ -310,8 +317,17 @@
                 padding: 0;
             }
 
+            .action-bar {
+                display: none;
+            }
+
             .modal, .modal-backdrop, .toast-container {
                 display: none !important;
+            }
+            
+            .items-table th {
+                background: #000 !important;
+                color: #fff !important;
             }
         }
     </style>
@@ -365,28 +381,46 @@
             <tr>
                 <td>
                     <div class="party-label">Emisor</div>
-                    <div class="party-name" th:text="${companySettings.name}">ElectroBazar S.L.</div>
+                    <div class="party-name" style="font-size: 16px; margin-bottom: 8px;">
+                        <i class="bi bi-building me-1" style="color: var(--accent);"></i>
+                        <span th:text="${companySettings.name}">ElectroBazar S.L.</span>
+                    </div>
                     <div class="party-detail">
-                        CIF: <span th:text="${companySettings.cif}">B12345678</span><br />
-                        <span th:text="${companySettings.address + ', ' + companySettings.postalCode + ' ' + companySettings.city}">C/ Exemple, 12, 28001 Madrid</span><br />
-                        <div style="margin-top: 8px;">
-                            Le atendió: <strong
-                                th:text="${sale.worker != null ? sale.worker.username : 'Sistema'}">Admin</strong>
+                        <div style="margin-bottom: 4px;">
+                            <i class="bi bi-tag me-1"></i> CIF: <strong th:text="${companySettings.cif}">B12345678</strong>
+                        </div>
+                        <div style="margin-bottom: 4px; display: flex; align-items: flex-start; gap: 5px;">
+                            <i class="bi bi-geo-alt" style="margin-top: 3px;"></i> 
+                            <span th:text="${companySettings.address + ', ' + companySettings.postalCode + ' ' + companySettings.city}">C/ Exemple, 12, 28001 Madrid</span>
+                        </div>
+                        <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--invoice-border); opacity: 0.85;">
+                            <i class="bi bi-person-check me-1"></i> Le atendió: <strong th:text="${sale.worker != null ? sale.worker.username : 'Sistema'}">Admin</strong>
                         </div>
                     </div>
                 </td>
                 <td th:if="${datosCliente != null}">
                     <div class="party-label">Cliente</div>
-                    <div class="party-name" th:text="${datosCliente.nombre}">Cliente</div>
+                    <div class="party-name" style="font-size: 16px; margin-bottom: 8px;">
+                        <i class="bi bi-person me-1" style="color: var(--accent);"></i>
+                        <span th:text="${datosCliente.nombre}">Cliente</span>
+                    </div>
                     <div class="party-detail">
-                        <span th:text="${datosCliente.nifLabel + ': ' + datosCliente.nif}">NIF: —</span><br />
-                        <span th:if="${datosCliente.direccion != null and !datosCliente.direccion.trim().isEmpty()}"
-                              th:text="${datosCliente.direccion}"></span><br />
+                        <div style="margin-bottom: 4px;">
+                            <i class="bi bi-card-text me-1"></i> <span th:text="${datosCliente.nifLabel + ': ' + datosCliente.nif}">NIF: —</span>
+                        </div>
+                        <div th:if="${datosCliente.direccion != null and !datosCliente.direccion.trim().isEmpty()}" 
+                             style="margin-bottom: 4px; display: flex; align-items: flex-start; gap: 5px;">
+                            <i class="bi bi-geo-alt" style="margin-top: 3px;"></i> 
+                            <span th:text="${datosCliente.direccion}">Calle Cliente, 1, Ciudad</span>
+                        </div>
                         <th:block th:if="${sale.customer != null}">
-                            <div class="customer-contact">
-                                <span th:if="${sale.customer.email != null && !sale.customer.email.trim().isEmpty()}" th:text="${sale.customer.email}"></span>
-                                <span th:if="${sale.customer.email == null || sale.customer.email.trim().isEmpty()}"><i>Sin correo asignado</i></span>
-                                <span th:if="${sale.customer.phone != null && !sale.customer.phone.isEmpty()}" th:text="' · ' + ${sale.customer.phone}"></span>
+                            <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--invoice-border); display: flex; flex-direction: column; gap: 3px; font-size: 11px; opacity: 0.85;">
+                                <div th:if="${sale.customer.email != null && !sale.customer.email.trim().isEmpty()}">
+                                    <i class="bi bi-envelope me-1"></i> <span th:text="${sale.customer.email}"></span>
+                                </div>
+                                <div th:if="${sale.customer.phone != null && !sale.customer.phone.isEmpty()}">
+                                    <i class="bi bi-telephone me-1"></i> <span th:text="${sale.customer.phone}"></span>
+                                </div>
                             </div>
                         </th:block>
                     </div>
@@ -429,45 +463,45 @@
         <!-- TAX SUMMARY TABLE -->
         <div style="margin-bottom: 30px;">
             <p
-                style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #aaa; margin-bottom: 10px; letter-spacing: 1px;">
+                style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--invoice-muted); margin-bottom: 10px; letter-spacing: 1px;">
                 Desglose de Impuestos</p>
-            <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid #eee;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; border: 1px solid var(--invoice-border);">
                 <thead>
-                    <tr style="background: #f9f9f9;">
-                        <th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee;">Concepto</th>
-                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">P. Unit.</th>
-                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">Cant.</th>
-                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">Base Imp.</th>
-                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">% IVA</th>
-                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">Cuota IVA</th>
+                    <tr style="background: var(--surface);">
+                        <th style="padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--invoice-border);">Concepto</th>
+                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--invoice-border);">P. Unit.</th>
+                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--invoice-border);">Cant.</th>
+                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--invoice-border);">Base Imp.</th>
+                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--invoice-border);">% IVA</th>
+                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--invoice-border);">Cuota IVA</th>
                         <th th:if="${applyRecargo}"
-                            style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">% RE</th>
+                            style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--invoice-border);">% RE</th>
                         <th th:if="${applyRecargo}"
-                            style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">Cuota RE</th>
-                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;">Importe</th>
+                            style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--invoice-border);">Cuota RE</th>
+                        <th style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--invoice-border);">Importe</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr th:each="bd : ${taxBreakdowns}">
-                        <td style="padding: 8px 12px; border-bottom: 1px solid #eee;" th:text="${bd.productName}">
+                        <td style="padding: 8px 12px; border-bottom: 1px solid var(--invoice-border);" th:text="${bd.productName}">
                             Producto</td>
-                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;"
+                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--invoice-border);"
                             th:text="${#numbers.formatDecimal(bd.unitPrice, 1, 2)} + ' &euro;'">0.00 &euro;</td>
-                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;"
+                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--invoice-border);"
                             th:text="${bd.quantity}">1</td>
-                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;"
+                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--invoice-border);"
                             th:text="${#numbers.formatDecimal(bd.baseAmount, 1, 2)} + ' &euro;'">0.00 &euro;</td>
-                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;"
+                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--invoice-border);"
                             th:text="${#numbers.formatDecimal(bd.vatRate * 100, 1, 0)} + '%'">21%</td>
-                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;"
+                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--invoice-border);"
                             th:text="${#numbers.formatDecimal(bd.vatAmount, 1, 2)} + ' &euro;'">0.00 &euro;</td>
                         <td th:if="${applyRecargo}"
-                            style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;"
+                            style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--invoice-border);"
                             th:text="${#numbers.formatDecimal(bd.recargoRate * 100, 1, 1)} + '%'">5.2%</td>
                         <td th:if="${applyRecargo}"
-                            style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;"
+                            style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--invoice-border);"
                             th:text="${#numbers.formatDecimal(bd.recargoAmount, 1, 2)} + ' &euro;'">0.00 &euro;</td>
-                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee; font-weight: 600;"
+                        <td style="padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--invoice-border); font-weight: 600;"
                             th:text="${#numbers.formatDecimal(bd.totalAmount, 1, 2)} + ' &euro;'">0.00 &euro;</td>
                     </tr>
                 </tbody>
@@ -513,7 +547,7 @@
                     <td class="amt" th:text="${#numbers.formatDecimal(totalRecargo, 1, 2)} + ' &euro;'">0.00 &euro;</td>
                 </tr>
 
-                <tr style="border-top: 1px solid #eee;">
+                <tr style="border-top: 1px solid var(--invoice-border);">
                     <td class="lbl" style="font-weight: 700;">Total Venta:</td>
                     <td class="amt" style="font-weight: 700;" 
                         th:text="${#numbers.formatDecimal(totalBase + totalVat + (totalRecargo != null ? totalRecargo : 0), 1, 2)} + ' &euro;'">0.00 &euro;</td>
@@ -538,8 +572,8 @@
 
         <!-- Comentario -->
         <div th:if="${sale.notes != null and !sale.notes.empty}" 
-            style="margin: 20px 0; padding: 15px; border-left: 4px solid var(--invoice-accent); background: #f9f9f9; font-size: 13px;">
-            <div style="font-weight: 700; font-size: 10px; color: #999; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px;">Observaciones</div>
+            style="margin: 20px 0; padding: 15px; border-left: 4px solid var(--invoice-accent); background: var(--surface); font-size: 13px;">
+            <div style="font-weight: 700; font-size: 10px; color: var(--invoice-muted); text-transform: uppercase; margin-bottom: 5px; letter-spacing: 1px;">Observaciones</div>
             <div th:text="${sale.notes}">Nota de la factura</div>
         </div>
 
@@ -570,7 +604,7 @@
         <div class="footer">
             <div style="display: flex; align-items: center; justify-content: center; gap: 40px; margin-bottom: 20px;">
                 <div style="text-align: center;">
-                    <p style="font-weight: 800; color: #444; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Factura generada en un sistema de emisión de facturas verificables</p>
+                    <p style="font-weight: 800; color: var(--invoice-text); opacity: 0.8; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px;">Factura generada en un sistema de emisión de facturas verificables</p>
                     <p style="font-size: 9px; line-height: 1.4;">Este documento incorpora un código estructural según el REGLAMENTO VERIFACTU (Real Decreto 1007/2023) garantizando la inalterabilidad y trazabilidad de los registros de facturación.</p>
                 </div>
             </div>

@@ -21,4 +21,7 @@ public interface VerifactuService {
 
     /** Reintenta todos los registros en estado PENDING_SEND con reintentos < maxAttempts. */
     void retryPendingSend();
+
+    /** Envía una subsanación de un registro previamente aceptado con errores. */
+    void submitSubsanacionAsync(Long id, String type);
 }

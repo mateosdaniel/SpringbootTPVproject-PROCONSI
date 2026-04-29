@@ -154,7 +154,6 @@ public class Sale {
      * Returns the customer data map to use when rendering invoice documents.
      * Delegates to BD customer, JSON snapshot, or null (ticket sin cliente).
      */
-    @SuppressWarnings("unchecked")
     public java.util.Map<String, String> getDatosClienteParaFactura() {
         if (customer != null && tipoDocumento == TipoDocumento.FACTURA_COMPLETA) {
             java.util.Map<String, String> m = new java.util.LinkedHashMap<>();

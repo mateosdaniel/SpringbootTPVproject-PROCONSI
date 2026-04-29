@@ -943,6 +943,7 @@ public class TpvController {
         Map<String, BigDecimal> response = new HashMap<>();
         response.put("price", finalPrice);
         response.put("priceWithRe", priceWithRe);
+        response.put("vatRate", vatRate);
         return response;
     }
 

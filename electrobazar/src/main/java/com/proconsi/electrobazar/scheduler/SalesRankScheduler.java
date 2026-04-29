@@ -47,7 +47,7 @@ public class SalesRankScheduler implements ApplicationListener<ApplicationReadyE
         for (int i = 0; i < topSelling.size(); i++) {
             jdbcTemplate.update(
                 "UPDATE products SET sales_rank = ? WHERE id = ?",
-                100 - i, topSelling.get(i).getId()
+                i + 1, topSelling.get(i).getId()
             );
         }
 

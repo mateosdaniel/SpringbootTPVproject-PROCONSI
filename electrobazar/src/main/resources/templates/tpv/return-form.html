@@ -199,14 +199,19 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <input type="hidden" name="saleLineIds" th:value="${line.id}" disabled class="line-id-input">
-                                    <strong th:text="${line.productName != null ? line.productName : (line.product != null ? line.product.name : 'Producto')}">Producto</strong>
-                                </td>
-                                <td class="muted-text" th:text="${#numbers.formatDecimal(line.unitPrice, 1, 2)} + ' €'">
-                                    0.00 €</td>
-                                <td th:text="${#numbers.formatDecimal(line.quantity, 1, line.product.measurementUnit != null ? line.product.measurementUnit.decimalPlaces : 2)} + ' ' + ${line.product.measurementUnit != null ? line.product.measurementUnit.symbol : 'uds.'}">1 ud.</td>
-                                <td th:text="${#numbers.formatDecimal(returned, 1, line.product.measurementUnit != null ? line.product.measurementUnit.decimalPlaces : 2)} + ' ' + ${line.product.measurementUnit != null ? line.product.measurementUnit.symbol : 'uds.'}">0 ud.</td>
-                                <td><strong th:text="${#numbers.formatDecimal(available, 1, line.product.measurementUnit != null ? line.product.measurementUnit.decimalPlaces : 2)} + ' ' + ${line.product.measurementUnit != null ? line.product.measurementUnit.symbol : 'uds.'}">1 ud.</strong></td>
+                                    +
+                                    --
+
+
+
+
+
+                                <td
+                                    th:text="${#numbers.formatDecimal(returned, 1, line.product.measurementUnit != null ? line.product.measurementUnit.decimalPlaces : 2)} + ' ' + ${line.product.measurementUnit != null ? line.product.measurementUnit.symbol : 'uds.'}">
+                                    0 ud.</td>
+                                <td><strong
+                                        th:text="${#numbers.formatDecimal(available, 1, line.product.measurementUnit != null ? line.product.measurementUnit.decimalPlaces : 2)} + ' ' + ${line.product.measurementUnit != null ? line.product.measurementUnit.symbol : 'uds.'}">1
+                                        ud.</strong></td>
                                 <td>
                                     <input type="number" name="quantities" class="qty-input" th:id="'qty-' + ${line.id}"
                                         th:value="0" min="0" th:max="${available}" step="0.001" disabled

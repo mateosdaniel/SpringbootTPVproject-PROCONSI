@@ -67,7 +67,7 @@
             text-align: center;
             padding-bottom: 1rem;
             margin-bottom: 1rem;
-            border-bottom: 1px dashed #aaa;
+            border-bottom: 1px dashed var(--border);
         }
 
         .t-brand {
@@ -75,11 +75,11 @@
             font-weight: 700;
             letter-spacing: 2px;
             text-transform: uppercase;
-            color: #111;
+            color: var(--text-main);
         }
 
         .t-brand span {
-            color: #555;
+            color: var(--text-muted);
             font-weight: 400;
         }
 
@@ -87,20 +87,20 @@
             font-size: 0.72rem;
             text-transform: uppercase;
             letter-spacing: 1.5px;
-            color: #888;
+            color: var(--text-muted);
             margin-top: 0.2rem;
         }
 
         .t-meta {
             font-size: 0.78rem;
-            color: #666;
+            color: var(--text-muted);
             margin-top: 0.5rem;
         }
 
         /* ── Customer block ── */
         .t-customer {
-            background: #f7f7f7;
-            border: 1px solid #e0e0e0;
+            background: var(--surface);
+            border: 1px solid var(--border);
             border-radius: 4px;
             padding: 0.6rem 0.75rem;
             margin-bottom: 1rem;
@@ -111,18 +111,18 @@
             font-size: 0.68rem;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #999;
+            color: var(--text-muted);
             margin-bottom: 0.15rem;
         }
 
         .t-customer-name {
             font-weight: 600;
-            color: #222;
+            color: var(--text-main);
         }
 
         .t-customer-type {
             font-size: 0.75rem;
-            color: #666;
+            color: var(--text-muted);
         }
 
         /* ── Items ── */
@@ -131,12 +131,10 @@
         }
 
         .t-item {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            gap: 0.5rem;
+            display: table;
+            width: 100%;
             padding: 0.4rem 0;
-            border-bottom: 1px dotted #ddd;
+            border-bottom: 1px dotted var(--border);
             font-size: 0.85rem;
         }
 
@@ -145,53 +143,76 @@
         }
 
         .t-item-name {
-            flex: 1;
-            color: #222;
+            display: table-cell;
+            color: var(--text-main);
+            vertical-align: baseline;
         }
 
         .t-item-unit {
+            display: table-cell;
             font-size: 0.75rem;
-            color: #888;
+            color: var(--text-muted);
             white-space: nowrap;
+            text-align: right;
+            padding: 0 0.5rem;
+            vertical-align: baseline;
         }
 
         .t-item-qty {
+            display: table-cell;
             font-size: 0.75rem;
-            color: #888;
+            color: var(--text-muted);
             white-space: nowrap;
+            text-align: right;
+            padding: 0 0.5rem;
+            vertical-align: baseline;
         }
 
         .t-item-price {
+            display: table-cell;
             font-weight: 600;
-            color: #222;
+            color: var(--text-main);
             white-space: nowrap;
             min-width: 60px;
             text-align: right;
+            vertical-align: baseline;
         }
 
         /* ── Divider ── */
         .t-divider {
             border: none;
-            border-top: 1px dashed #bbb;
+            border-top: 1px dashed var(--border);
             margin: 0.75rem 0;
         }
 
         /* ── Totals ── */
         .t-summary {
+            display: table;
+            width: 100%;
             font-size: 0.82rem;
-            color: #666;
-            display: flex;
-            justify-content: space-between;
+            color: var(--text-muted);
             margin-bottom: 0.3rem;
         }
 
+        .t-summary span {
+            display: table-cell;
+        }
+
+        .t-summary span:last-child {
+            text-align: right;
+        }
+
         .t-total {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
+            display: table;
+            width: 100%;
             margin-top: 0.6rem;
             padding-top: 0.6rem;
-            border-top: 2px solid #222;
+            border-top: 2px solid var(--text-main);
+        }
+
+        .t-total-label, .t-total-amount {
+            display: table-cell;
+            vertical-align: baseline;
         }
 
         .t-total-label {
@@ -199,13 +220,13 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #111;
+            color: var(--text-main);
         }
 
         .t-total-amount {
             font-size: 1.75rem;
             font-weight: 700;
-            color: #111;
+            color: var(--text-main);
             letter-spacing: -0.5px;
         }
 
@@ -214,7 +235,7 @@
             text-align: center;
             margin: 1rem 0;
             padding: 0.5rem;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border);
             border-radius: 4px;
             font-size: 0.78rem;
         }
@@ -227,7 +248,7 @@
         }
 
         .t-payment-detail {
-            color: #777;
+            color: var(--text-muted);
             margin-top: 0.15rem;
         }
 
@@ -236,14 +257,14 @@
             text-align: center;
             padding-top: 0.75rem;
             margin-top: 0.75rem;
-            border-top: 1px dashed #aaa;
+            border-top: 1px dashed var(--border);
             font-size: 0.75rem;
-            color: #999;
+            color: var(--text-muted);
             line-height: 1.6;
         }
 
         .t-footer strong {
-            color: #555;
+            color: var(--text-main);
             font-size: 0.8rem;
         }
 
@@ -319,13 +340,15 @@
         @media print {
             body {
                 background: #fff !important;
-                padding: 0;
+                padding: 0 !important;
                 color: #000 !important;
-                width: 80mm;
-                margin: 0;
+                width: 100% !important;
+                margin: 0 !important;
+                text-align: center !important;
             }
 
             @page {
+                size: 80mm auto;
                 margin: 0;
             }
 
@@ -334,17 +357,20 @@
             }
 
             .ticket-wrap {
-                max-width: 80mm;
-                width: 100%;
-                margin: 0;
+                width: 80mm !important;
+                max-width: 80mm !important;
+                margin: 0 auto !important;
+                display: inline-block !important;
+                text-align: left !important;
             }
 
             .ticket {
                 background: #fff !important;
                 color: #000 !important;
-                padding: 0;
+                padding: 10px 5mm !important;
                 border: none !important;
                 box-shadow: none !important;
+                font-size: 0.8rem !important;
             }
 
             .ticket-wrap::before,

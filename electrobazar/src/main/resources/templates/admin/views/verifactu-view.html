@@ -1,365 +1,551 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<!--/* VeriFactu / AEAT Submission Status View */-->
+<!--/* Redesigned VeriFactu Admin Dashboard */-->
 <th:block th:fragment="view">
-<div id="verifactuView" style="display:none;">
+<div id="verifactuView" style="display:none; animation: fadeIn 0.3s ease-out;">
+
+    <!-- ── WARNING BANNER ── -->
+    <div id="vf-fake-warning" class="alert alert-warning mb-3 d-none shadow-sm border-warning" style="border-left: 5px solid #f39c12 !important;">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+            <div>
+                <strong class="d-block">MODO PRUEBA - Envíos bloqueados</strong>
+                <span class="small">Se está utilizando una URL de destino ficticia para simular errores de red.</span>
+            </div>
+            <button class="btn btn-sm btn-outline-dark ms-auto" onclick="vfRestoreUrl()">Restaurar Real</button>
+        </div>
+    </div>
 
     <div class="panel-header mb-4">
         <span class="panel-title">
-            <button class="btn-icon me-2" onclick="backToPreviousView()" title="Volver al panel">
-                <i class="bi bi-arrow-left"></i>
+            <button class="btn-icon me-2 shadow-sm" onclick="backToPreviousView()" title="Volver al panel">
+                <i class="bi bi-chevron-left"></i>
             </button>
-            <i class="bi bi-shield-check me-2"></i>VeriFactu — Estado de Envíos AEAT
+            <i class="bi bi-shield-check-fill text-accent me-2"></i>VeriFactu — Gestión Fiscal AEAT
         </span>
-        <button class="btn btn-outline-secondary btn-sm" onclick="vfLoad()">
-            <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
+        <button class="btn btn-accent btn-sm shadow-sm px-3" onclick="vfLoad()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Sincronizar ahora
         </button>
     </div>
 
-    <!-- ── KPI CARDS ─────────────────────────────────────────── -->
+    <!-- ── KPI DASHBOARD ─────────────────────────────────────── -->
     <div class="row g-3 mb-4">
-
-        <div class="col-12"><div class="section-badge mb-1"><i class="bi bi-file-earmark-text me-1"></i>Facturas</div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer" onclick="vfFilter('invoices','ALL')"><div class="kpi-value" id="ki-inv-total">—</div><div class="kpi-label">Total</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer;border-color:#27ae60" onclick="vfFilter('invoices','ACCEPTED')"><div class="kpi-value" id="ki-inv-acc" style="color:#27ae60">—</div><div class="kpi-label">Aceptadas</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer;border-color:#f39c12" onclick="vfFilter('invoices','ACCEPTED_WITH_ERRORS')"><div class="kpi-value" id="ki-inv-awe" style="color:#f39c12">—</div><div class="kpi-label">Acept. con errores</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer;border-color:#e74c3c" onclick="vfFilter('invoices','REJECTED')"><div class="kpi-value" id="ki-inv-rej" style="color:#e74c3c">—</div><div class="kpi-label">Rechazadas</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer;border-color:#3498db" onclick="vfFilter('invoices','PENDING_SEND')"><div class="kpi-value" id="ki-inv-pend" style="color:#3498db">—</div><div class="kpi-label">Pend. envío</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer;border-color:#2c3e50" onclick="vfFilter('invoices','ANNULLED')"><div class="kpi-value" id="ki-inv-ann" style="color:#2c3e50">—</div><div class="kpi-label">Anuladas</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer" onclick="vfFilter('invoices','NOT_SENT')"><div class="kpi-value" id="ki-inv-ns" style="color:var(--text-muted)">—</div><div class="kpi-label">No enviadas</div></div></div>
-
-        <div class="col-12 mt-1"><div class="section-badge mb-1"><i class="bi bi-file-earmark-medical me-1"></i>Rectificativas</div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer" onclick="vfFilter('rectificativas','ALL')"><div class="kpi-value" id="ki-rec-total">—</div><div class="kpi-label">Total</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer;border-color:#27ae60" onclick="vfFilter('rectificativas','ACCEPTED')"><div class="kpi-value" id="ki-rec-acc" style="color:#27ae60">—</div><div class="kpi-label">Aceptadas</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer;border-color:#f39c12" onclick="vfFilter('rectificativas','ACCEPTED_WITH_ERRORS')"><div class="kpi-value" id="ki-rec-awe" style="color:#f39c12">—</div><div class="kpi-label">Acept. con errores</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer;border-color:#e74c3c" onclick="vfFilter('rectificativas','REJECTED')"><div class="kpi-value" id="ki-rec-rej" style="color:#e74c3c">—</div><div class="kpi-label">Rechazadas</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer;border-color:#3498db" onclick="vfFilter('rectificativas','PENDING_SEND')"><div class="kpi-value" id="ki-rec-pend" style="color:#3498db">—</div><div class="kpi-label">Pend. envío</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer;border-color:#2c3e50" onclick="vfFilter('rectificativas','ANNULLED')"><div class="kpi-value" id="ki-rec-ann" style="color:#2c3e50">—</div><div class="kpi-label">Anuladas</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer" onclick="vfFilter('rectificativas','NOT_SENT')"><div class="kpi-value" id="ki-rec-ns" style="color:var(--text-muted)">—</div><div class="kpi-label">No enviadas</div></div></div>
-
-        <div class="col-12 mt-1"><div class="section-badge mb-1"><i class="bi bi-receipt me-1"></i>Tickets simplificados</div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer" onclick="vfFilter('tickets','ALL')"><div class="kpi-value" id="ki-tck-total">—</div><div class="kpi-label">Total</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer;border-color:#27ae60" onclick="vfFilter('tickets','ACCEPTED')"><div class="kpi-value" id="ki-tck-acc" style="color:#27ae60">—</div><div class="kpi-label">Aceptados</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer;border-color:#f39c12" onclick="vfFilter('tickets','ACCEPTED_WITH_ERRORS')"><div class="kpi-value" id="ki-tck-awe" style="color:#f39c12">—</div><div class="kpi-label">Acept. con errores</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer;border-color:#e74c3c" onclick="vfFilter('tickets','REJECTED')"><div class="kpi-value" id="ki-tck-rej" style="color:#e74c3c">—</div><div class="kpi-label">Rechazados</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer;border-color:#3498db" onclick="vfFilter('tickets','PENDING_SEND')"><div class="kpi-value" id="ki-tck-pend" style="color:#3498db">—</div><div class="kpi-label">Pend. envío</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer;border-color:#2c3e50" onclick="vfFilter('tickets','ANNULLED')"><div class="kpi-value" id="ki-tck-ann" style="color:#2c3e50">—</div><div class="kpi-label">Anulados</div></div></div>
-        <div class="col-6 col-md-2"><div class="kpi-card text-center" style="cursor:pointer" onclick="vfFilter('tickets','NOT_SENT')"><div class="kpi-value" id="ki-tck-ns" style="color:var(--text-muted)">—</div><div class="kpi-label">No enviados</div></div></div>
-    </div>
-
-    <!-- ── TABS + FILTERS ─────────────────────────────────────── -->
-    <div class="d-flex gap-2 align-items-center mb-3 flex-wrap">
-        <button class="btn btn-sm btn-outline-secondary active" id="vf-tab-invoices"       onclick="vfSwitchTab('invoices')"><i class="bi bi-file-earmark-text me-1"></i>Facturas</button>
-        <button class="btn btn-sm btn-outline-secondary"        id="vf-tab-rectificativas" onclick="vfSwitchTab('rectificativas')"><i class="bi bi-file-earmark-medical me-1"></i>Rectificativas</button>
-        <button class="btn btn-sm btn-outline-secondary"        id="vf-tab-tickets"        onclick="vfSwitchTab('tickets')"><i class="bi bi-receipt me-1"></i>Tickets</button>
-        <div class="ms-auto d-flex gap-2 align-items-center">
-            <select id="vf-status-filter" class="form-select form-select-sm border-border" style="width:auto" onchange="vfApplyFilter()">
-                <option value="ALL">Todos los estados</option>
-                <option value="ACCEPTED">Aceptado</option>
-                <option value="ACCEPTED_WITH_ERRORS">Aceptado con errores</option>
-                <option value="REJECTED">Rechazado</option>
-                <option value="ANNULLED">Anulado</option>
-                <option value="PENDING_SEND">Pendiente envío</option>
-                <option value="NOT_SENT">No enviado</option>
-            </select>
-            <input type="text" id="vf-search" class="form-control form-control-sm border-border"
-                   placeholder="Buscar número, hash..." style="width:210px" oninput="vfSearchTable()">
+        <!-- SUCCESS -->
+        <div class="col-12 col-md">
+            <div class="kpi-card shadow-sm border-0 bg-secondary" style="border-left: 4px solid var(--success) !important;">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-label">Aceptados OK</div>
+                        <div class="kpi-value text-success" id="vf-kpi-success">0</div>
+                    </div>
+                    <div class="kpi-icon bg-success bg-opacity-10 text-success"><i class="bi bi-check-circle"></i></div>
+                </div>
+            </div>
+        </div>
+        <!-- PENDING -->
+        <div class="col-12 col-md">
+            <div class="kpi-card shadow-sm border-0 bg-secondary" style="border-left: 4px solid #3498db !important;">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-label">Pendientes</div>
+                        <div class="kpi-value" style="color:#3498db" id="vf-kpi-pending">0</div>
+                    </div>
+                    <div class="kpi-icon bg-primary bg-opacity-10" style="color:#3498db"><i class="bi bi-clock-history"></i></div>
+                </div>
+            </div>
+        </div>
+        <!-- NETWORK ERROR -->
+        <div class="col-12 col-md">
+            <div class="kpi-card shadow-sm border-0 bg-secondary" style="border-left: 4px solid #f39c12 !important;">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-label">Error Red (Auto)</div>
+                        <div class="kpi-value" style="color:#f39c12" id="vf-kpi-network">0</div>
+                    </div>
+                    <div class="kpi-icon bg-warning bg-opacity-10 text-warning"><i class="bi bi-wifi-off"></i></div>
+                </div>
+            </div>
+        </div>
+        <!-- VALIDATION ERROR -->
+        <div class="col-12 col-md">
+            <div class="kpi-card shadow-sm border-0 bg-secondary" style="border-left: 4px solid var(--danger) !important;">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="kpi-label">Err. Validación</div>
+                        <div class="kpi-value text-danger" id="vf-kpi-validation">0</div>
+                    </div>
+                    <div class="kpi-icon bg-danger bg-opacity-10 text-danger"><i class="bi bi-exclamation-triangle"></i></div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- ── INVOICES TABLE ─────────────────────────────────────── -->
-    <div id="vf-table-invoices">
-        <div class="table-responsive">
-            <table class="table table-hover table-sm mb-0" style="font-size:0.82rem">
-                <thead><tr>
-                    <th>Nº Factura</th><th>Estado factura</th><th>ID Venta</th>
-                    <th>Fecha</th><th>Estado AEAT</th><th>Fecha envío</th>
-                    <th class="text-center">Reintentos</th><th>Último error</th><th>Hash</th><th></th>
-                </tr></thead>
-                <tbody id="vf-tbody-invoices"><tr><td colspan="10" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm me-2"></div>Cargando...</td></tr></tbody>
-            </table>
+    <!-- ── FILTERS BAR ────────────────────────────────────────── -->
+    <div class="card shadow-sm border-border bg-secondary mb-4">
+        <div class="card-body p-3">
+            <div class="row g-2 align-items-end">
+                <div class="col-6 col-md-2">
+                    <label class="form-label mb-1 small text-muted font-weight-bold">Estado AEAT</label>
+                    <select id="vf-filter-status" class="form-select form-select-sm" onchange="vfApplyFilter()">
+                        <option value="ALL">Todos</option>
+                        <option value="ACCEPTED">Aceptado</option>
+                        <option value="REJECTED">Rechazado</option>
+                        <option value="PENDING_SEND">Pendiente</option>
+                        <option value="ANNULLED">Anulado</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label mb-1 small text-muted font-weight-bold">Motivo Rechazo</label>
+                    <select id="vf-filter-reason" class="form-select form-select-sm" onchange="vfApplyFilter()">
+                        <option value="ALL">Todos</option>
+                        <option value="NETWORK_ERROR">Error Red</option>
+                        <option value="VALIDATION_ERROR">Error Datos</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label mb-1 small text-muted font-weight-bold">Desde</label>
+                    <input type="date" id="vf-filter-start" class="form-control form-control-sm" onchange="vfApplyFilter()">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label mb-1 small text-muted font-weight-bold">Hasta</label>
+                    <input type="date" id="vf-filter-end" class="form-control form-control-sm" onchange="vfApplyFilter()">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label mb-1 small text-muted font-weight-bold">Buscar por Número / Hash</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-primary border-border text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" id="vf-search" class="form-control" placeholder="F-2026-..." oninput="vfSearchTable()">
+                    </div>
+                </div>
+            </div>
         </div>
-        <div id="vf-pag-invoices" class="d-flex gap-2 justify-content-end align-items-center mt-2 mb-3"></div>
     </div>
 
-    <!-- ── RECTIFICATIVAS TABLE ───────────────────────────────── -->
-    <div id="vf-table-rectificativas" style="display:none">
-        <div class="table-responsive">
-            <table class="table table-hover table-sm mb-0" style="font-size:0.82rem">
-                <thead><tr>
-                    <th>Nº Rectificativa</th><th>Factura orig.</th><th>Motivo</th>
-                    <th>ID Venta</th><th>Fecha</th><th>Estado AEAT</th>
-                    <th>Fecha envío</th><th class="text-center">Reintentos</th>
-                    <th>Último error</th><th>Hash</th><th></th>
-                </tr></thead>
-                <tbody id="vf-tbody-rectificativas"><tr><td colspan="11" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm me-2"></div>Cargando...</td></tr></tbody>
-            </table>
-        </div>
-        <div id="vf-pag-rectificativas" class="d-flex gap-2 justify-content-end align-items-center mt-2 mb-3"></div>
+    <!-- ── TABLES ─────────────────────────────────────────────── -->
+    <div class="nav-tabs mb-0 border-0 bg-transparent">
+        <button class="nav-link active" id="vf-tab-invoices"       onclick="vfSwitchTab('invoices')"><i class="bi bi-file-earmark-text"></i>Facturas</button>
+        <button class="nav-link"        id="vf-tab-tickets"        onclick="vfSwitchTab('tickets')"><i class="bi bi-receipt"></i>Tickets</button>
+        <button class="nav-link"        id="vf-tab-rectificativas" onclick="vfSwitchTab('rectificativas')"><i class="bi bi-file-earmark-medical"></i>Rectificativas</button>
+        <button class="nav-link"        id="vf-tab-pending"        onclick="vfSwitchTab('pending')"><i class="bi bi-hourglass-split"></i>Próximos Envíos</button>
+        <button class="nav-link ms-auto" id="vf-tab-settings"       onclick="vfSwitchTab('settings')"><i class="bi bi-gear-fill"></i></button>
     </div>
 
-    <!-- ── TICKETS TABLE ──────────────────────────────────────── -->
-    <div id="vf-table-tickets" style="display:none">
-        <div class="table-responsive">
-            <table class="table table-hover table-sm mb-0" style="font-size:0.82rem">
-                <thead><tr>
-                    <th>Nº Ticket</th><th>ID Venta</th><th>Fecha</th>
-                    <th>Estado AEAT</th><th>Fecha envío</th>
-                    <th class="text-center">Reintentos</th><th>Último error</th><th>Hash</th><th></th>
-                </tr></thead>
-                <tbody id="vf-tbody-tickets"><tr><td colspan="9" class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm me-2"></div>Cargando...</td></tr></tbody>
-            </table>
+    <!-- INVOICES -->
+    <div id="vf-table-invoices" class="admin-table-wrap mb-4">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Nº Documento</th>
+                    <th>Tipo</th>
+                    <th>Fecha</th>
+                    <th class="text-end">Importe</th>
+                    <th>Estado AEAT</th>
+                    <th>Envío</th>
+                    <th class="text-center">Int.</th>
+                    <th>Espera</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="vf-tbody-invoices"></tbody>
+        </table>
+        <div id="vf-pag-invoices" class="p-2 border-top border-border bg-primary d-flex justify-content-end gap-2"></div>
+    </div>
+
+    <!-- TICKETS -->
+    <div id="vf-table-tickets" class="admin-table-wrap mb-4" style="display:none">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Nº Documento</th>
+                    <th>Tipo</th>
+                    <th>Fecha</th>
+                    <th class="text-end">Importe</th>
+                    <th>Estado AEAT</th>
+                    <th>Envío</th>
+                    <th class="text-center">Int.</th>
+                    <th>Espera</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="vf-tbody-tickets"></tbody>
+        </table>
+        <div id="vf-pag-tickets" class="p-2 border-top border-border bg-primary d-flex justify-content-end gap-2"></div>
+    </div>
+
+    <!-- RECTIFICATIVAS -->
+    <div id="vf-table-rectificativas" class="admin-table-wrap mb-4" style="display:none">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Nº Documento</th>
+                    <th>Tipo</th>
+                    <th>Fecha</th>
+                    <th class="text-end">Importe</th>
+                    <th>Estado AEAT</th>
+                    <th>Envío</th>
+                    <th class="text-center">Int.</th>
+                    <th>Espera</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="vf-tbody-rectificativas"></tbody>
+        </table>
+        <div id="vf-pag-rectificativas" class="p-2 border-top border-border bg-primary d-flex justify-content-end gap-2"></div>
+    </div>
+
+    <!-- PENDING (FEATURE 1) -->
+    <div id="vf-table-pending" class="admin-table-wrap mb-4" style="display:none">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Nº Documento</th>
+                    <th>Tipo</th>
+                    <th>Estado Actual</th>
+                    <th class="text-end">Importe</th>
+                    <th class="text-center">Intentos</th>
+                    <th>Último Envío</th>
+                    <th>Próximo Reintento</th>
+                    <th>Espera Restante</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="vf-tbody-pending"></tbody>
+        </table>
+    </div>
+
+    <!-- SETTINGS (FEATURE 2) -->
+    <div id="vf-section-settings" class="card shadow-sm border-border bg-secondary mb-4" style="display:none">
+        <div class="card-header bg-transparent border-bottom border-border py-3">
+            <h6 class="mb-0"><i class="bi bi-gear-fill me-2 text-accent"></i>Configuración de Pruebas</h6>
         </div>
-        <div id="vf-pag-tickets" class="d-flex gap-2 justify-content-end align-items-center mt-2 mb-3"></div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <label class="form-label small text-muted">AEAT Endpoint URL (Actual)</label>
+                    <div class="input-group mb-3">
+                        <input type="text" id="vf-endpoint-input" class="form-control" readonly>
+                        <button class="btn btn-primary" type="button" onclick="vfToggleFake(this)" id="vf-fake-toggle">
+                            Simular Fallo Red
+                        </button>
+                    </div>
+                    <p class="small text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Al activar la simulación, se usará una URL inválida (localhost:9999) para forzar errores <code>NETWORK_ERROR</code> y probar la estrategia de reintentos.
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>
 
+<style>
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.kpi-card { border-radius: 12px; padding: 1.25rem; transition: transform 0.2s; }
+.kpi-card:hover { transform: scale(1.02); }
+.kpi-label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem; }
+.kpi-value { font-size: 1.5rem; font-weight: 800; font-family: 'Barlow', sans-serif; }
+.kpi-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+.badge-reason { font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 4px; display: block; margin-top: 0.2rem; }
+.wait-timer { font-size: 0.7rem; font-weight: 700; color: var(--accent); }
+.btn-retry { border-radius: 6px; font-size: 0.75rem; padding: 0.1rem 0.4rem; }
+</style>
+
 <script>
 (function () {
     'use strict';
+    var vfTab     = 'invoices';
+    var PAGE_SIZE = 50;
+    var timers    = {};
 
-    /* ── State ─────────────────────────────────────────── */
-    var vfCurrentTab  = 'invoices';
-    var vfStatus      = 'ALL';
-    var vfPages       = { invoices: 0, rectificativas: 0, tickets: 0 };
-    var PAGE_SIZE     = 50;
-    var vfLoaded      = false;
-
-    /* ── Public entry points ────────────────────────────── */
     window.vfLoad = function () {
-        loadSummary();
-        loadTable(vfCurrentTab, 0);
+        loadKPIs();
+        loadSettings();
+        if (vfTab === 'pending') loadPending();
+        else loadTable(vfTab, 0);
     };
 
     window.vfSwitchTab = function (tab) {
-        vfCurrentTab = tab;
-        ['invoices','rectificativas','tickets'].forEach(function (t) {
-            document.getElementById('vf-table-' + t).style.display = t === tab ? '' : 'none';
-            document.getElementById('vf-tab-'   + t).classList.toggle('active', t === tab);
+        vfTab = tab;
+        ['invoices','tickets','rectificativas','pending'].forEach(t => {
+            const table = document.getElementById('vf-table-' + t);
+            if (table) table.style.display = t === tab ? '' : 'none';
+            const nav = document.getElementById('vf-tab-' + t);
+            if (nav) nav.classList.toggle('active', t === tab);
         });
-        /* Load the tab only if not already loaded at current filter */
-        loadTable(tab, vfPages[tab]);
-    };
+        
+        // Handle settings section visibility
+        const settingsSection = document.getElementById('vf-section-settings');
+        const settingsTab = document.getElementById('vf-tab-settings');
+        if (settingsSection) settingsSection.style.display = tab === 'settings' ? '' : 'none';
+        if (settingsTab) settingsTab.classList.toggle('active', tab === 'settings');
 
-    window.vfFilter = function (tab, status) {
-        document.getElementById('vf-status-filter').value = status;
-        vfStatus = status;
-        vfPages  = { invoices: 0, rectificativas: 0, tickets: 0 };
-        vfSwitchTab(tab);
+        if (tab === 'pending') loadPending();
+        else if (tab !== 'settings') loadTable(tab, 0);
     };
 
     window.vfApplyFilter = function () {
-        vfStatus = document.getElementById('vf-status-filter').value;
-        vfPages  = { invoices: 0, rectificativas: 0, tickets: 0 };
-        loadTable(vfCurrentTab, 0);
+        loadTable(vfTab, 0);
     };
 
     window.vfSearchTable = function () {
         var q = (document.getElementById('vf-search').value || '').toLowerCase();
-        var tbody = document.getElementById('vf-tbody-' + vfCurrentTab);
-        if (!tbody) return;
-        Array.from(tbody.querySelectorAll('tr[data-s]')).forEach(function (tr) {
+        var tbody = document.getElementById('vf-tbody-' + vfTab);
+        Array.from(tbody.querySelectorAll('tr[data-s]')).forEach(tr => {
             tr.style.display = q ? (tr.dataset.s.toLowerCase().includes(q) ? '' : 'none') : '';
         });
     };
 
-    /* ── Auto-load on first visibility (MutationObserver) ── */
-    function attachObserver() {
-        var el = document.getElementById('verifactuView');
-        if (!el) { setTimeout(attachObserver, 200); return; }
-        new MutationObserver(function () {
-            if (el.style.display !== 'none' && !vfLoaded) {
-                vfLoaded = true;
-                window.vfLoad();
-            }
-        }).observe(el, { attributes: true, attributeFilter: ['style'] });
-    }
-    attachObserver();
-
-    /* ── Summary KPIs ───────────────────────────────────── */
-    function loadSummary() {
+    function loadKPIs() {
         fetch('/api/admin/verifactu/summary')
-            .then(function (r) { return r.json(); })
-            .then(function (d) {
-                setKpi(d.invoices,       'inv');
-                setKpi(d.rectificativas, 'rec');
-                setKpi(d.tickets,        'tck');
-            }).catch(function () {});
-    }
-
-    function setKpi(g, prefix) {
-        if (!g) return;
-        set(prefix + '-total', g.total);
-        set(prefix + '-acc',   g.accepted);
-        set(prefix + '-awe',   g.acceptedWithError);
-        set(prefix + '-rej',   g.rejected);
-        set(prefix + '-ann',   g.annulled);
-        set(prefix + '-pend',  g.pending);
-        set(prefix + '-ns',    g.notSent);
-    }
-
-    function set(id, val) {
-        var el = document.getElementById('ki-' + id);
-        if (el) el.textContent = (val !== undefined && val !== null) ? val : '—';
-    }
-
-    /* ── Table loader ───────────────────────────────────── */
-    function loadTable(type, page) {
-        var tbody  = document.getElementById('vf-tbody-' + type);
-        var pagDiv = document.getElementById('vf-pag-'   + type);
-        var cols   = colCount(type);
-
-        tbody.innerHTML = '<tr><td colspan="' + cols + '" class="text-center text-muted py-4">'
-            + '<div class="spinner-border spinner-border-sm me-2"></div>Cargando...</td></tr>';
-
-        var statusParam = (vfStatus === 'ALL') ? '' : vfStatus;
-        var url = '/api/admin/verifactu/' + type
-                + '?page=' + page + '&size=' + PAGE_SIZE
-                + (statusParam ? '&status=' + encodeURIComponent(statusParam) : '');
-
-        fetch(url)
-            .then(function (r) {
-                if (!r.ok) throw new Error('HTTP ' + r.status);
-                return r.json();
-            })
-            .then(function (data) {
-                vfPages[type] = page;
-                renderRows(type, data.content || [], tbody);
-                renderPag(pagDiv, page, data.totalPages || 0, function (p) { loadTable(type, p); });
-            })
-            .catch(function (e) {
-                tbody.innerHTML = '<tr><td colspan="' + cols
-                    + '" class="text-center text-danger py-4">'
-                    + '<i class="bi bi-exclamation-circle me-1"></i>Error al cargar: ' + e.message + '</td></tr>';
-                if (pagDiv) pagDiv.innerHTML = '';
+            .then(r => r.json())
+            .then(d => {
+                let s = 0, p = 0, n = 0, v = 0, m = 0;
+                ['invoices','tickets','rectificativas'].forEach(k => {
+                    if (d[k]) {
+                        s += d[k].accepted || 0;
+                        p += d[k].pending || 0;
+                        n += d[k].networkError || 0;
+                        v += d[k].validationError || 0;
+                    }
+                });
+                document.getElementById('vf-kpi-success').textContent = s;
+                document.getElementById('vf-kpi-pending').textContent = p;
+                document.getElementById('vf-kpi-network').textContent = n;
+                document.getElementById('vf-kpi-validation').textContent = v;
             });
     }
 
-    function colCount(type) {
-        return type === 'rectificativas' ? 11 : (type === 'invoices' ? 10 : 9);
+    function loadTable(type, page) {
+        const tbody = document.getElementById('vf-tbody-' + type);
+        const status = document.getElementById('vf-filter-status').value;
+        const reason = document.getElementById('vf-filter-reason').value;
+        const start  = document.getElementById('vf-filter-start').value;
+        const end    = document.getElementById('vf-filter-end').value;
+
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Cargando registros...</td></tr>`;
+
+        let url = `/api/admin/verifactu/${type}?page=${page}&size=${PAGE_SIZE}`;
+        if (status !== 'ALL') url += `&status=${status}`;
+        if (reason !== 'ALL') url += `&reason=${reason}`;
+        if (start) url += `&start=${start}`;
+        if (end) url += `&end=${end}`;
+
+        fetch(url).then(r => r.json()).then(data => {
+            renderRows(type, data.content || []);
+            renderPag(document.getElementById('vf-pag-' + type), page, data.totalPages, p => loadTable(type, p));
+        });
     }
 
-    /* ── Row renderers ──────────────────────────────────── */
-    function renderRows(type, rows, tbody) {
+    function renderRows(type, rows) {
+        const tbody = document.getElementById('vf-tbody-' + type);
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="' + colCount(type)
-                + '" class="text-center text-muted py-4">Sin registros para este filtro.</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-muted"><i class="bi bi-inbox me-2"></i>Sin registros con estos filtros.</td></tr>`;
             return;
         }
-        tbody.innerHTML = rows.map(function (r) {
-            return type === 'invoices'       ? rowInvoice(r)
-                 : type === 'rectificativas' ? rowRectif(r)
-                 :                            rowTicket(r);
-        }).join('');
+        tbody.innerHTML = rows.map(r => renderRow(type, r)).join('');
+        startTimers(tbody);
     }
 
-    function rowInvoice(r) {
-        var searchable = [r.number, r.hash, r.lastError, r.aeatStatus].filter(Boolean).join(' ');
-        var invStatusBadge = r.invoiceStatus === 'RECTIFIED'
-            ? '<span class="badge bg-secondary">Rectificada</span>'
-            : '<span class="badge bg-success bg-opacity-25 text-success">Activa</span>';
-        return '<tr data-s="' + esc(searchable) + '">'
-            + '<td><strong>' + esc(r.number) + '</strong></td>'
-            + '<td>' + invStatusBadge + '</td>'
-            + '<td>' + saleLink(r.saleId) + '</td>'
-            + '<td style="white-space:nowrap">' + fmtDt(r.createdAt) + '</td>'
-            + '<td>' + aeatBadge(r.aeatStatus) + '</td>'
-            + '<td style="white-space:nowrap">' + fmtDt(r.submissionDate) + '</td>'
-            + '<td class="text-center">' + (r.retryCount || 0) + '</td>'
-            + '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(r.lastError||'') + '">' + esc(r.lastError||'—') + '</td>'
-            + '<td style="font-family:monospace;font-size:0.7rem" title="' + esc(r.hash||'') + '">' + hashShort(r.hash) + '</td>'
-            + '<td>' + viewBtn(r.saleId) + '</td>'
-            + '</tr>';
+    function renderRow(type, r) {
+        const searchable = [r.number, r.aeatStatus, r.rejectionReason, r.lastError].filter(Boolean).join(' ');
+        const isErrorReqManual = r.rejectionReason === 'VALIDATION_ERROR';
+        const timerId = `tmr-${type}-${r.id}`;
+
+        return `<tr data-s="${esc(searchable)}" class="align-middle">
+            <td><div class="fw-bold text-main">${esc(r.number)}</div><div class="small text-muted" style="font-size:0.65rem">ID Venta: ${r.saleId || '—'}</div></td>
+            <td><span class="badge bg-secondary border border-border text-muted">${esc(r.type)}</span></td>
+            <td><div class="small">${fmtDt(r.createdAt)}</div></td>
+            <td class="text-end fw-bold">${fmtCur(r.amount)}</td>
+            <td>
+                ${aeatBadge(r.aeatStatus)}
+                ${r.rejectionReason ? `<span class="badge-reason badge ${isErrorReqManual?'bg-danger':'bg-info'} bg-opacity-10 ${isErrorReqManual?'text-danger':'text-info'}">${esc(r.rejectionReason.replace(/_/g,' '))}</span>` : ''}
+            </td>
+            <td><div class="small">${fmtDt(r.submissionDate)}</div></td>
+            <td class="text-center small">${r.retryCount || 0}</td>
+            <td><div class="wait-timer" id="${timerId}" data-time="${r.submissionDate||''}" data-wait="${r.waitTime||0}" data-next="${r.nextRetry||''}"></div></td>
+            <td>
+                <div class="d-flex gap-1">
+                    <button class="btn-icon" onclick="viewSale(${r.saleId})"><i class="bi bi-eye"></i></button>
+                    ${isErrorReqManual ? `<button class="btn btn-outline-danger btn-retry btn-sm" onclick="vfRetry('${type}', ${r.id}, this)" title="Reintentar manual"><i class="bi bi-arrow-repeat"></i></button>` : ''}
+                    ${r.aeatStatus === 'ACCEPTED_WITH_ERRORS' ? `<button class="btn btn-outline-warning btn-retry btn-sm" onclick="vfSubsanar('${type}', ${r.id}, this)" title="Corregir errores (Subsanar)"><i class="bi bi-tools"></i></button>` : ''}
+                </div>
+            </td>
+        </tr>`;
     }
 
-    function rowRectif(r) {
-        var searchable = [r.number, r.originalNumber, r.reason, r.hash, r.lastError, r.aeatStatus].filter(Boolean).join(' ');
-        return '<tr data-s="' + esc(searchable) + '">'
-            + '<td><strong>' + esc(r.number) + '</strong></td>'
-            + '<td>' + (r.originalNumber ? '<span class="badge bg-secondary">' + esc(r.originalNumber) + '</span>' : '—') + '</td>'
-            + '<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(r.reason||'') + '">' + esc(r.reason||'—') + '</td>'
-            + '<td>' + saleLink(r.saleId) + '</td>'
-            + '<td style="white-space:nowrap">' + fmtDt(r.createdAt) + '</td>'
-            + '<td>' + aeatBadge(r.aeatStatus) + '</td>'
-            + '<td style="white-space:nowrap">' + fmtDt(r.submissionDate) + '</td>'
-            + '<td class="text-center">' + (r.retryCount || 0) + '</td>'
-            + '<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(r.lastError||'') + '">' + esc(r.lastError||'—') + '</td>'
-            + '<td style="font-family:monospace;font-size:0.7rem" title="' + esc(r.hash||'') + '">' + hashShort(r.hash) + '</td>'
-            + '<td>' + viewBtn(r.saleId) + '</td>'
-            + '</tr>';
+    function loadPending() {
+        const tbody = document.getElementById('vf-tbody-pending');
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Cargando cola de reintentos...</td></tr>`;
+        
+        fetch('/api/admin/verifactu/pending').then(r => r.json()).then(rows => {
+            if (!rows.length) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-muted"><i class="bi bi-check-circle me-2 text-success"></i>No hay registros pendientes de envío.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = rows.map(r => `
+                <tr class="align-middle">
+                    <td><div class="fw-bold text-main">${esc(r.number)}</div></td>
+                    <td><span class="badge bg-secondary border border-border text-muted">${esc(r.type)}</span></td>
+                    <td>${aeatBadge(r.status)}</td>
+                    <td class="text-end fw-bold">${fmtCur(r.amount)}</td>
+                    <td class="text-center">${r.retryCount}</td>
+                    <td><div class="small text-muted">${fmtDt(r.lastSend)}</div></td>
+                    <td><div class="small fw-bold text-accent">${fmtDt(r.nextRetry)}</div></td>
+                    <td><div class="wait-timer fw-bold text-accent" data-time="${r.lastSend||''}" data-next="${r.nextRetry}"></div></td>
+                    <td>
+                        <button class="btn-icon" onclick="viewSale(${r.saleId})"><i class="bi bi-eye"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+            startTimers(tbody);
+        });
     }
 
-    function rowTicket(r) {
-        var searchable = [r.number, r.hash, r.lastError, r.aeatStatus].filter(Boolean).join(' ');
-        return '<tr data-s="' + esc(searchable) + '">'
-            + '<td><strong>' + esc(r.number) + '</strong></td>'
-            + '<td>' + saleLink(r.saleId) + '</td>'
-            + '<td style="white-space:nowrap">' + fmtDt(r.createdAt) + '</td>'
-            + '<td>' + aeatBadge(r.aeatStatus) + '</td>'
-            + '<td style="white-space:nowrap">' + fmtDt(r.submissionDate) + '</td>'
-            + '<td class="text-center">' + (r.retryCount || 0) + '</td>'
-            + '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(r.lastError||'') + '">' + esc(r.lastError||'—') + '</td>'
-            + '<td style="font-family:monospace;font-size:0.7rem" title="' + esc(r.hash||'') + '">' + hashShort(r.hash) + '</td>'
-            + '<td>' + viewBtn(r.saleId) + '</td>'
-            + '</tr>';
+    function loadSettings() {
+        fetch('/api/admin/verifactu/settings').then(r => r.json()).then(s => {
+            const input = document.getElementById('vf-endpoint-input');
+            const btn = document.getElementById('vf-fake-toggle');
+            const banner = document.getElementById('vf-fake-warning');
+            
+            if (s.isFakeActive) {
+                input.value = s.testEndpointUrl;
+                input.classList.add('is-invalid');
+                btn.textContent = 'Desactivar Simulación';
+                btn.classList.replace('btn-primary', 'btn-danger');
+                banner.classList.remove('d-none');
+            } else {
+                input.value = s.realEndpoint;
+                input.classList.remove('is-invalid');
+                btn.textContent = 'Simular Fallo Red';
+                btn.classList.replace('btn-danger', 'btn-primary');
+                banner.classList.add('d-none');
+            }
+        });
     }
 
-    /* ── Pagination ─────────────────────────────────────── */
+    window.vfToggleFake = function (btn) {
+        const isActivating = btn.classList.contains('btn-primary');
+        const url = isActivating ? 'http://localhost:9999/fake-aeat-endpoint' : null;
+        
+        fetch('/api/admin/verifactu/settings/endpoint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: url })
+        }).then(r => {
+            if (r.ok) {
+                showToast(isActivating ? "Modo simulación activado" : "URL real restaurada", "info");
+                loadSettings();
+            }
+        });
+    };
+
+    window.vfRestoreUrl = function () {
+        vfToggleFake(document.getElementById('vf-fake-toggle'));
+    };
+
+    function startTimers(tbody) {
+        clearInterval(window.vfTimerInterval);
+        function update() {
+            tbody.querySelectorAll('.wait-timer').forEach(el => {
+                const subDate = el.dataset.time;
+                const nextRetry = el.dataset.next;
+                const waitSec = parseInt(el.dataset.wait);
+                
+                const now = new Date().getTime();
+
+                // If we have a nextRetry date (Feature 1), use it
+                if (nextRetry) {
+                    const target = new Date(nextRetry).getTime();
+                    const remaining = Math.max(0, Math.floor((target - now) / 1000));
+                    if (remaining > 0) {
+                        el.textContent = Math.floor(remaining/60) + 'm ' + (remaining%60) + 's';
+                        el.classList.add('text-accent');
+                    } else {
+                        el.textContent = 'En cola...';
+                        el.classList.remove('text-accent');
+                    }
+                    return;
+                }
+
+                // Old logic for AEAT waitTime (if still used)
+                if (!subDate || !waitSec) { el.textContent = '—'; return; }
+                const start = new Date(subDate).getTime();
+                const elapsed = Math.floor((now - start) / 1000);
+                const remaining = Math.max(0, waitSec - elapsed);
+                if (remaining > 0) {
+                    el.textContent = Math.floor(remaining/60) + 'm ' + (remaining%60) + 's';
+                } else {
+                    el.textContent = '✓';
+                }
+            });
+        }
+        update();
+        window.vfTimerInterval = setInterval(update, 1000);
+    }
+
+    window.vfRetry = function (type, id, btn) {
+        const icon = btn.querySelector('i');
+        icon.classList.add('bi-spin');
+        btn.disabled = true;
+        fetch(`/api/admin/verifactu/${type}/${id}/retry`, { method: 'POST' })
+            .then(r => {
+                if (r.ok) {
+                    showToast("Reintento solicitado con éxito", "success");
+                    setTimeout(vfLoad, 1000);
+                } else {
+                    showToast("Error al solicitar reintento", "error");
+                    btn.disabled = false;
+                    icon.classList.remove('bi-spin');
+                }
+            });
+    };
+
+    window.vfSubsanar = function (type, id, btn) {
+        const icon = btn.querySelector('i');
+        icon.classList.add('bi-spin');
+        btn.disabled = true;
+        fetch(`/api/admin/verifactu/subsanar/${type}/${id}`, { method: 'POST' })
+            .then(r => {
+                if (r.ok) {
+                    showToast("Subsanación enviada", "success");
+                    setTimeout(vfLoad, 1000);
+                } else {
+                    showToast("Error al enviar subsanación", "error");
+                    btn.disabled = false;
+                    icon.classList.remove('bi-spin');
+                }
+            });
+    };
+
+    window.viewSale = id => id && window.open('/admin/sale/' + id, '_blank');
+
+    function aeatBadge(s) {
+        const MAP = { 'ACCEPTED':['success','Aceptado'], 'ACCEPTED_WITH_ERRORS':['warning','Parcial'], 'REJECTED':['danger','Rechazado'], 'PENDING_SEND':['primary','Pendiente'], 'ANNULLED':['dark','Anulado'] };
+        const e = MAP[s] || ['secondary', s || 'Pendiente'];
+        return `<span class="badge bg-${e[0]} bg-opacity-25 text-${e[0]}" style="border: 1px solid rgba(var(--${e[0]}-rgb), 0.3)">${e[1]}</span>`;
+    }
+
+    function fmtCur(v) { return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(v || 0); }
+    function fmtDt(s) { if (!s) return '—'; const d = new Date(s); return d.toLocaleDateString('es-ES') + ' ' + d.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' }); }
+    function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
     function renderPag(container, page, total, cb) {
         if (!container) return;
         if (total <= 1) { container.innerHTML = ''; return; }
-        var html = '';
-        if (page > 0)
-            html += '<button class="btn btn-outline-secondary btn-sm" onclick="(' + cb + ')(' + (page-1) + ')">&laquo; Anterior</button>';
-        html += '<span class="small text-muted px-1">Pág. ' + (page+1) + ' / ' + total + '</span>';
-        if (page < total - 1)
-            html += '<button class="btn btn-outline-secondary btn-sm" onclick="(' + cb + ')(' + (page+1) + ')">Siguiente &raquo;</button>';
-        container.innerHTML = html;
+        container.innerHTML = `
+            ${page > 0 ? `<button class="btn btn-icon" onclick="(${cb})(${page-1})"><i class="bi bi-chevron-left"></i></button>` : ''}
+            <span class="small text-muted fw-bold px-2">Pág. ${page+1} / ${total}</span>
+            ${page < total - 1 ? `<button class="btn btn-icon" onclick="(${cb})(${page+1})"><i class="bi bi-chevron-right"></i></button>` : ''}`;
     }
 
-    /* ── Micro helpers ──────────────────────────────────── */
-    var AEAT_MAP = {
-        'ACCEPTED':             ['success',   'Aceptado'],
-        'ACCEPTED_WITH_ERRORS': ['warning',   'Acept. con errores'],
-        'REJECTED':             ['danger',    'Rechazado'],
-        'ANNULLED':             ['dark',      'Anulado'],
-        'PENDING_SEND':         ['primary',   'Pendiente envío'],
-        'NOT_SENT':             ['secondary', 'No enviado']
-    };
-
-    function aeatBadge(s) {
-        var entry = AEAT_MAP[s] || ['secondary', s || 'No enviado'];
-        return '<span class="badge bg-' + entry[0] + '">' + entry[1] + '</span>';
+    // First load observer
+    const el = document.getElementById('verifactuView');
+    if (el) {
+        new MutationObserver(() => { if (el.style.display !== 'none' && !el.dataset.loaded) { el.dataset.loaded = 'true'; vfLoad(); } })
+            .observe(el, { attributes: true, attributeFilter: ['style'] });
     }
-
-    function saleLink(id) {
-        return id ? '<a href="/admin/sale/' + id + '" target="_blank">#' + id + '</a>' : '—';
-    }
-
-    function viewBtn(saleId) {
-        return saleId
-            ? '<a href="/admin/sale/' + saleId + '" target="_blank" class="btn btn-outline-secondary btn-sm py-0 px-1"><i class="bi bi-eye"></i></a>'
-            : '';
-    }
-
-    function hashShort(h) { return h ? esc(h.substring(0, 12)) + '…' : '—'; }
-
-    function fmtDt(s) {
-        if (!s) return '—';
-        try {
-            var d = new Date(s);
-            return d.toLocaleDateString('es-ES') + ' '
-                 + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-        } catch (e) { return s; }
-    }
-
-    function esc(s) {
-        return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
 })();
 </script>
-
 </th:block>
 </html>

@@ -89,6 +89,16 @@ public class Invoice {
     @Builder.Default
     private int aeatRetryCount = 0;
 
+    @Column(name = "aeat_raw_response", columnDefinition = "TEXT")
+    private String aeatRawResponse;
+
+    @Column(name = "aeat_wait_time")
+    private Integer aeatWaitTime;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "aeat_rejection_reason", length = 30)
+    private AeatRejectionReason aeatRejectionReason;
+
     /**
      * Possible statuses for an invoice.
      */
@@ -96,6 +106,9 @@ public class Invoice {
         ACTIVE,
         RECTIFIED
     }
+
+    @Column(name = "aeat_csv", length = 20)
+    private String aeatCsv;
 
     @PrePersist
     public void prePersist() {

@@ -77,6 +77,16 @@ public class Ticket {
     @Builder.Default
     private int aeatRetryCount = 0;
 
+    @Column(name = "aeat_raw_response", columnDefinition = "TEXT")
+    private String aeatRawResponse;
+
+    @Column(name = "aeat_wait_time")
+    private Integer aeatWaitTime;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "aeat_rejection_reason", length = 30)
+    private AeatRejectionReason aeatRejectionReason;
+
     /**
      * Return deadline in days, snapshotted from CompanySettings at ticket creation time.
      * Used to validate returns against THIS specific ticket, not the current setting.
@@ -84,6 +94,9 @@ public class Ticket {
     @Column(name = "return_deadline_days")
     @Builder.Default
     private Integer returnDeadlineDays = 15;
+
+    @Column(name = "aeat_csv", length = 20)
+    private String aeatCsv;
 
     @PrePersist
     public void prePersist() {

@@ -28,11 +28,13 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     Optional<Invoice> findByHashCurrentInvoice(String hashCurrentInvoice);
 
     /** Registros pendientes de envío para el scheduler de reintentos. */
-    @Query("SELECT i FROM Invoice i WHERE i.aeatStatus = :status AND i.aeatRetryCount < :maxRetries")
-    List<Invoice> findPendingSend(@Param("maxRetries") int maxRetries,
-                                  @Param("status") AeatStatus status);
+    @EntityGraph(attributePaths = { "sale" })
+    @Query("SELECT i FROM Invoice i WHERE i.aeatStatus = :pending " +
+           "OR (i.aeatStatus = :rejected AND i.aeatRejectionReason = com.proconsi.electrobazar.model.AeatRejectionReason.NETWORK_ERROR)")
+    List<Invoice> findPendingAndRejected(@Param("pending") AeatStatus pending,
+                                         @Param("rejected") AeatStatus rejected);
 
-    default List<Invoice> findPendingSend(int maxRetries) {
-        return findPendingSend(maxRetries, AeatStatus.PENDING_SEND);
+    default List<Invoice> findPendingSend() {
+        return findPendingAndRejected(AeatStatus.PENDING_SEND, AeatStatus.REJECTED);
     }
 }

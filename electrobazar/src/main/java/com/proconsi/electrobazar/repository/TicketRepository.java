@@ -2,6 +2,7 @@ package com.proconsi.electrobazar.repository;
 
 import com.proconsi.electrobazar.model.AeatStatus;
 import com.proconsi.electrobazar.model.Ticket;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,12 +22,14 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     Optional<Ticket> findFirstByOrderByCreatedAtDesc();
 
     Optional<Ticket> findByHashCurrentInvoice(String hashCurrentInvoice);
+    
+    @EntityGraph(attributePaths = { "sale" })
+    @Query("SELECT t FROM Ticket t WHERE t.aeatStatus = :pending " +
+           "OR (t.aeatStatus = :rejected AND t.aeatRejectionReason = com.proconsi.electrobazar.model.AeatRejectionReason.NETWORK_ERROR)")
+    List<Ticket> findPendingAndRejected(@Param("pending") AeatStatus pending,
+                                         @Param("rejected") AeatStatus rejected);
 
-    @Query("SELECT t FROM Ticket t WHERE t.aeatStatus = :status AND t.aeatRetryCount < :maxRetries")
-    List<Ticket> findPendingSend(@Param("maxRetries") int maxRetries,
-                                 @Param("status") AeatStatus status);
-
-    default List<Ticket> findPendingSend(int maxRetries) {
-        return findPendingSend(maxRetries, AeatStatus.PENDING_SEND);
+    default List<Ticket> findPendingSend() {
+        return findPendingAndRejected(AeatStatus.PENDING_SEND, AeatStatus.REJECTED);
     }
 }

@@ -47,13 +47,17 @@ public class VerifactuProperties {
     @Getter
     @Setter
     public static class Retry {
-        /** Máximo de reintentos por registro rechazado/no enviado. */
-        private int maxAttempts = 5;
         /** Milisegundos entre reintentos del scheduler (defecto 10 min = 600000 ms). */
         private long delayMs = 60_000;
     }
 
+    /** URL de pruebas inyectada manualmente para simular fallos. No se persiste. */
+    private String testEndpointUrl;
+
     public String getEndpointUrl() {
+        if (testEndpointUrl != null && !testEndpointUrl.isBlank()) {
+            return testEndpointUrl;
+        }
         return "pruebas".equalsIgnoreCase(environment)
                 ? "https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP"
                 : "https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP";

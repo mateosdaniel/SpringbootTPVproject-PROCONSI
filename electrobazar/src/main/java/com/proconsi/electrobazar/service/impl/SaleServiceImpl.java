@@ -14,7 +14,6 @@ import com.proconsi.electrobazar.repository.SaleRepository;
 import com.proconsi.electrobazar.repository.TariffRepository;
 import com.proconsi.electrobazar.service.ActivityLogService;
 import com.proconsi.electrobazar.service.CashRegisterService;
-import com.proconsi.electrobazar.service.InvoiceService;
 import com.proconsi.electrobazar.service.ProductService;
 import com.proconsi.electrobazar.service.PromotionService;
 import com.proconsi.electrobazar.service.SaleService;
@@ -60,7 +59,6 @@ public class SaleServiceImpl implements SaleService {
     private final ActivityLogService activityLogService;
     private final RecargoEquivalenciaCalculator recargoCalculator;
     private final TariffRepository tariffRepository;
-    private final InvoiceService invoiceService;
     private final CouponRepository couponRepository;
     private final CashRegisterService cashRegisterService;
     private final MessageSource messageSource;
@@ -76,7 +74,6 @@ public class SaleServiceImpl implements SaleService {
             ActivityLogService activityLogService,
             RecargoEquivalenciaCalculator recargoCalculator,
             TariffRepository tariffRepository,
-            InvoiceService invoiceService,
             CouponRepository couponRepository,
             CashRegisterService cashRegisterService,
             MessageSource messageSource,
@@ -90,7 +87,6 @@ public class SaleServiceImpl implements SaleService {
         this.activityLogService = activityLogService;
         this.recargoCalculator = recargoCalculator;
         this.tariffRepository = tariffRepository;
-        this.invoiceService = invoiceService;
         this.couponRepository = couponRepository;
         this.cashRegisterService = cashRegisterService;
         this.messageSource = messageSource;
