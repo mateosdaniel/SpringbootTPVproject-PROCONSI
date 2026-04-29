@@ -24,4 +24,7 @@ public interface VerifactuService {
 
     /** Envía una subsanación de un registro previamente aceptado con errores. */
     void submitSubsanacionAsync(Long id, String type);
+
+    /** Actualiza los datos del cliente y envía una subsanación. */
+    void submitSubsanacionWithCorrection(Long id, String type, com.proconsi.electrobazar.dto.SubsanarRequest data);
 }

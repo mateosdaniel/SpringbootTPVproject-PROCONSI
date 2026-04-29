@@ -195,6 +195,10 @@
 
     <!-- PENDING (FEATURE 1) -->
     <div id="vf-table-pending" class="admin-table-wrap mb-4" style="display:none">
+        <div class="alert alert-info py-2 px-3 mb-2 d-flex align-items-center shadow-sm border-0 bg-secondary" style="border-left: 4px solid #3498db !important;">
+            <i class="bi bi-info-circle-fill me-2" style="color:#3498db"></i>
+            <span id="vf-cooldown-text" class="small fw-bold">Verificando estado de cola AEAT...</span>
+        </div>
         <table class="admin-table">
             <thead>
                 <tr>
@@ -539,10 +543,34 @@
             ${page < total - 1 ? `<button class="btn btn-icon" onclick="(${cb})(${page+1})"><i class="bi bi-chevron-right"></i></button>` : ''}`;
     }
 
+    function updateCooldown() {
+        if (document.getElementById('verifactuView').style.display === 'none') return;
+        fetch('/api/admin/verifactu/cooldown')
+            .then(r => r.json())
+            .then(data => {
+                const text = document.getElementById('vf-cooldown-text');
+                if (!text) return;
+                const icon = text.previousElementSibling;
+                const parent = text.parentElement;
+                
+                if (data.readyToSend) {
+                    text.textContent = "AEAT Lista: Sin restricciones de envío";
+                    parent.style.setProperty('border-left', '4px solid var(--success)', 'important');
+                    icon.className = 'bi bi-check-circle-fill me-2 text-success';
+                } else {
+                    text.textContent = `Próximo envío disponible en: ${data.remainingSeconds}s (Cooldown AEAT)`;
+                    parent.style.setProperty('border-left', '4px solid #3498db', 'important');
+                    icon.className = 'bi bi-info-circle-fill me-2';
+                    icon.style.color = '#3498db';
+                }
+            });
+    }
+    setInterval(updateCooldown, 1000);
+
     // First load observer
     const el = document.getElementById('verifactuView');
     if (el) {
-        new MutationObserver(() => { if (el.style.display !== 'none' && !el.dataset.loaded) { el.dataset.loaded = 'true'; vfLoad(); } })
+        new MutationObserver(() => { if (el.style.display !== 'none' && !el.dataset.loaded) { el.dataset.loaded = 'true'; vfLoad(); updateCooldown(); } })
             .observe(el, { attributes: true, attributeFilter: ['style'] });
     }
 })();

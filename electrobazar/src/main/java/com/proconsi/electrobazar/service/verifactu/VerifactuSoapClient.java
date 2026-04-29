@@ -67,7 +67,7 @@ public class VerifactuSoapClient {
         conn.setReadTimeout(30_000);
         conn.setDoOutput(true);
 
-        log.debug("Verifactu XML enviado:\n{}", soapXml);
+        log.trace("Verifactu XML enviado:\n{}", soapXml);
         byte[] body = soapXml.getBytes(StandardCharsets.UTF_8);
         conn.setRequestProperty("Content-Length", String.valueOf(body.length));
 
@@ -79,8 +79,8 @@ public class VerifactuSoapClient {
         InputStream is = httpStatus >= 400 ? conn.getErrorStream() : conn.getInputStream();
         String responseBody = is == null ? "" : new String(is.readAllBytes(), StandardCharsets.UTF_8);
 
-        log.debug("Verifactu HTTP {}: {}", httpStatus, responseBody);
-        log.info("Verifactu AEAT raw response: {}", responseBody);
+        log.trace("Verifactu HTTP {}: {}", httpStatus, responseBody);
+        log.trace("Verifactu AEAT raw response: {}", responseBody);
 
         if (httpStatus == 200) {
             return parseResponse(responseBody);
@@ -115,7 +115,7 @@ public class VerifactuSoapClient {
 
     private AeatBatchResponse parseResponse(String xml) {
         try {
-            log.info("Verifactu parsing batch response: {}", xml);
+            log.trace("Verifactu parsing batch response: {}", xml);
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             dbf.setNamespaceAware(true);
             Document doc = dbf.newDocumentBuilder()

@@ -2,6 +2,7 @@ package com.proconsi.electrobazar.scheduler;
 
 import com.proconsi.electrobazar.config.VerifactuProperties;
 import com.proconsi.electrobazar.service.VerifactuService;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,11 +20,20 @@ public class VerifactuRetryScheduler {
     private final VerifactuService verifactuService;
     private final VerifactuProperties props;
 
-    /** Cada minuto por defecto (configurable vía verifactu.retry.delay-ms, por defecto 60000 ms). */
-    @Scheduled(fixedDelayString = "${verifactu.retry.delay-ms:60000}", initialDelayString = "60000")
+    /** Confirma que el bean ha sido instanciado por Spring correctamente. */
+    @PostConstruct
+    public void onInit() {
+        log.info("Verifactu scheduler bean created. enabled={}, delay-ms configured.", props.isEnabled());
+    }
+
+    /** Cada 10 segundos para evaluar rápidamente las condiciones A y B de VeriFactu. */
+    @Scheduled(fixedDelayString = "${verifactu.retry.delay-ms:10000}", initialDelayString = "10000")
     public void retryPending() {
+        if (!props.isEnabled()) {
+            log.debug("Verifactu: scheduler tick — verifactu.enabled=false, skipping.");
+            return;
+        }
         log.info("Verifactu: Scheduler de reintentos INICIADO.");
-        if (!props.isEnabled()) return;
         try {
             verifactuService.retryPendingSend();
         } catch (Exception e) {

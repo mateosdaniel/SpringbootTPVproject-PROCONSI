@@ -50,7 +50,6 @@ public class VerifactuHashCalculator {
                 importeTotal.setScale(2, RoundingMode.HALF_UP).toPlainString(),
                 huellaAnterior, fechaHoraHuso);
 
-        System.out.println("HASH_INPUT: " + input);
         return sha256Hex(input);
     }
 
@@ -69,7 +68,6 @@ public class VerifactuHashCalculator {
                 importeTotal.setScale(2, RoundingMode.HALF_UP).toPlainString(),
                 huellaAnterior, fechaHoraHusoOverride);
 
-        System.out.println("HASH_INPUT: " + input);
         return sha256Hex(input);
     }
 
@@ -106,7 +104,6 @@ public class VerifactuHashCalculator {
                         "Huella=%s&FechaHoraHusoGenRegistro=%s",
                 nif, numSerie, fecha, huellaAnterior, fechaHoraHusoGen);
 
-        System.out.println("HASH_ANULACION_INPUT: " + input);
         return sha256Hex(input);
     }
 

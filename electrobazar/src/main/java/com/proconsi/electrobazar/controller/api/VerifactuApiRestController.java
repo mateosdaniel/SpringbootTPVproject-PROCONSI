@@ -28,6 +28,9 @@ import java.util.Map;
 @RequestMapping("/api/admin/verifactu")
 public class VerifactuApiRestController {
 
+    private final com.proconsi.electrobazar.service.verifactu.VerifactuState verifactuState;
+    private final com.proconsi.electrobazar.scheduler.VerifactuRetryScheduler retryScheduler;
+
     private final InvoiceRepository              invoiceRepository;
     private final RectificativeInvoiceRepository rectificativeRepository;
     private final TicketRepository               ticketRepository;
@@ -277,11 +280,19 @@ public class VerifactuApiRestController {
     }
 
     @PostMapping("/subsanar/{type}/{id}")
-    public ResponseEntity<?> subsanar(@PathVariable String type, @PathVariable Long id, HttpSession session) {
+    public ResponseEntity<?> subsanar(
+            @PathVariable String type, 
+            @PathVariable Long id, 
+            @RequestBody(required = false) com.proconsi.electrobazar.dto.SubsanarRequest data,
+            HttpSession session) {
         if (!Boolean.TRUE.equals(session.getAttribute("admin")))
             return ResponseEntity.status(401).build();
         try {
-            verifactuService.submitSubsanacionAsync(id, type);
+            if (data != null) {
+                verifactuService.submitSubsanacionWithCorrection(id, type, data);
+            } else {
+                verifactuService.submitSubsanacionAsync(id, type);
+            }
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             return ResponseEntity.status(500).body(e.getMessage());
@@ -350,5 +361,44 @@ public class VerifactuApiRestController {
         m.put("page",          page);
         m.put("size",          size);
         return m;
+    }
+
+    @GetMapping("/cooldown")
+    public ResponseEntity<?> getCooldown() {
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("lastSendTime", verifactuState.getLastSendTime());
+        resp.put("waitSeconds", verifactuState.getCurrentWaitSeconds());
+        resp.put("remainingSeconds", verifactuState.getRemainingSeconds());
+        resp.put("readyToSend", !verifactuState.isCooldownActive());
+        return ResponseEntity.ok(resp);
+    }
+
+    /**
+     * Endpoint de diagnóstico: confirma que el bean del scheduler está vivo
+     * y fuerza manualmente un tick del worker sin esperar al @Scheduled.
+     * GET  /api/admin/verifactu/scheduler-status  → estado del bean
+     * POST /api/admin/verifactu/scheduler-status  → fuerza un tick inmediato
+     */
+    @GetMapping("/scheduler-status")
+    public ResponseEntity<?> schedulerStatus() {
+        Map<String, Object> resp = new LinkedHashMap<>();
+        resp.put("schedulerBeanAlive", true); // Si este endpoint responde, el bean existe
+        resp.put("verifactuEnabled", props.isEnabled());
+        resp.put("cooldownActive", verifactuState.isCooldownActive());
+        resp.put("remainingSeconds", verifactuState.getRemainingSeconds());
+        resp.put("lastSendTime", verifactuState.getLastSendTime());
+        return ResponseEntity.ok(resp);
+    }
+
+    @PostMapping("/scheduler-status/force-tick")
+    public ResponseEntity<?> forceTick(HttpSession session) {
+        if (!Boolean.TRUE.equals(session.getAttribute("admin")))
+            return ResponseEntity.status(401).build();
+        try {
+            retryScheduler.retryPending();
+            return ResponseEntity.ok(Map.of("triggered", true, "message", "Tick forzado correctamente"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
     }
 }

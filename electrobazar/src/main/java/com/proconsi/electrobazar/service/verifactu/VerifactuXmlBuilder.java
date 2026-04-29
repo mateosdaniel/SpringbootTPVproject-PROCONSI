@@ -7,7 +7,10 @@ import com.proconsi.electrobazar.repository.TicketRepository;
 import com.proconsi.electrobazar.util.VerifactuHashCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proconsi.electrobazar.dto.SubsanarRequest;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -30,6 +33,9 @@ public class VerifactuXmlBuilder {
     private final InvoiceRepository invoiceRepository;
     private final TicketRepository ticketRepository;
     private final RectificativeInvoiceRepository rectRepository;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
 
     // ================================================================
     // Factura completa (F1)
@@ -130,21 +136,26 @@ public class VerifactuXmlBuilder {
         sb.append(tag("sf:TipoFactura", "F1"));
         sb.append(tag("sf:DescripcionOperacion", "Venta TPV " + invoice.getInvoiceNumber()));
 
-        if (sale.getCustomer() == null || sale.getCustomer().getTaxId() == null || sale.getCustomer().getTaxId().isBlank()) {
+        SubsanarRequest puntual = getPuntualData(sale);
+        if (sale.getCustomer() == null && puntual == null) {
             sb.append(tag("sf:FacturaSinIdentifDestinatarioArt61d", "S"));
             sb.append("          <sf:Destinatarios>\n");
             sb.append("            <sf:IDDestinatario>\n");
-            String nombre = (sale.getCustomer() != null && !sale.getCustomer().getName().isBlank()) 
-                            ? sale.getCustomer().getName() : "CLIENTE FINAL";
-            sb.append(tag("sf:NombreRazon", esc(nombre)));
+            sb.append(tag("sf:NombreRazon", "CLIENTE FINAL"));
             sb.append(tag("sf:NIF", "000000000"));
             sb.append("            </sf:IDDestinatario>\n");
             sb.append("          </sf:Destinatarios>\n");
         } else {
             sb.append("          <sf:Destinatarios>\n");
             sb.append("            <sf:IDDestinatario>\n");
-            sb.append(tag("sf:NombreRazon", esc(sale.getCustomer().getName())));
-            sb.append(tag("sf:NIF", sale.getCustomer().getTaxId().trim()));
+            if (sale.getCustomer() != null) {
+                sb.append(tag("sf:NombreRazon", esc(sale.getCustomer().getName())));
+                String taxId = sale.getCustomer().getTaxId();
+                sb.append(tag("sf:NIF", taxId != null ? taxId.trim() : "000000000"));
+            } else {
+                sb.append(tag("sf:NombreRazon", esc(puntual.getNombreRazon())));
+                sb.append(tag("sf:NIF", puntual.getNif() != null ? puntual.getNif().trim() : "000000000"));
+            }
             sb.append("            </sf:IDDestinatario>\n");
             sb.append("          </sf:Destinatarios>\n");
         }
@@ -234,21 +245,26 @@ public class VerifactuXmlBuilder {
         sb.append("          </sf:FacturasRectificadas>\n");
         sb.append(tag("sf:DescripcionOperacion", "Rectificación " + originalNum + ". " + esc(rect.getReason())));
         if (!isOriginalTicket) {
-             if (originalSale.getCustomer() == null || originalSale.getCustomer().getTaxId() == null || originalSale.getCustomer().getTaxId().isBlank()) {
+            SubsanarRequest puntual = getPuntualData(originalSale);
+            if (originalSale.getCustomer() == null && puntual == null) {
                 sb.append(tag("sf:FacturaSinIdentifDestinatarioArt61d", "S"));
                 sb.append("          <sf:Destinatarios>\n");
                 sb.append("            <sf:IDDestinatario>\n");
-                String nombre = (originalSale.getCustomer() != null && !originalSale.getCustomer().getName().isBlank()) 
-                                ? originalSale.getCustomer().getName() : "CLIENTE FINAL";
-                sb.append(tag("sf:NombreRazon", esc(nombre)));
+                sb.append(tag("sf:NombreRazon", "CLIENTE FINAL"));
                 sb.append(tag("sf:NIF", "000000000"));
                 sb.append("            </sf:IDDestinatario>\n");
                 sb.append("          </sf:Destinatarios>\n");
             } else {
                 sb.append("          <sf:Destinatarios>\n");
                 sb.append("            <sf:IDDestinatario>\n");
-                sb.append(tag("sf:NombreRazon", esc(originalSale.getCustomer().getName())));
-                sb.append(tag("sf:NIF", originalSale.getCustomer().getTaxId().trim()));
+                if (originalSale.getCustomer() != null) {
+                    sb.append(tag("sf:NombreRazon", esc(originalSale.getCustomer().getName())));
+                    String taxId = originalSale.getCustomer().getTaxId();
+                    sb.append(tag("sf:NIF", taxId != null ? taxId.trim() : "000000000"));
+                } else {
+                    sb.append(tag("sf:NombreRazon", esc(puntual.getNombreRazon())));
+                    sb.append(tag("sf:NIF", puntual.getNif() != null ? puntual.getNif().trim() : "000000000"));
+                }
                 sb.append("            </sf:IDDestinatario>\n");
                 sb.append("          </sf:Destinatarios>\n");
             }
@@ -744,5 +760,14 @@ public class VerifactuXmlBuilder {
         if (s == null)
             return "";
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
+    private SubsanarRequest getPuntualData(Sale sale) {
+        if (sale == null || sale.getClientePuntualJson() == null || sale.getClientePuntualJson().isBlank()) return null;
+        try {
+            return objectMapper.readValue(sale.getClientePuntualJson(), SubsanarRequest.class);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

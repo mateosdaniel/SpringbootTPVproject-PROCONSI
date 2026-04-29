@@ -14,12 +14,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.context.ApplicationEventPublisher;
 import com.proconsi.electrobazar.util.VerifactuHashCalculator;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proconsi.electrobazar.dto.SubsanarRequest;
+import com.proconsi.electrobazar.repository.CustomerRepository;
+import com.proconsi.electrobazar.repository.SaleRepository;
+
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * Implementación de VeriFactu.
@@ -34,15 +39,19 @@ public class VerifactuServiceImpl implements VerifactuService {
     private final VerifactuProperties props;
     private final VerifactuXmlBuilder xmlBuilder;
     private final VerifactuSoapClient soapClient;
-    private final ApplicationEventPublisher eventPublisher;
     private final VerifactuHashCalculator hashCalculator;
 
-    private java.time.LocalDateTime lastSendTime = java.time.LocalDateTime.now().minusDays(1);
     private final InvoiceRepository invoiceRepository;
     private final TicketRepository ticketRepository;
     private final RectificativeInvoiceRepository rectRepository;
     private final CompanySettingsRepository companySettingsRepository;
     private final com.proconsi.electrobazar.service.verifactu.VerifactuValidator validator;
+    private final CustomerRepository customerRepository;
+    private final SaleRepository saleRepository;
+    private final com.proconsi.electrobazar.service.verifactu.VerifactuState verifactuState;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
 
     // ================================================================
     //  Submit async methods
@@ -53,6 +62,10 @@ public class VerifactuServiceImpl implements VerifactuService {
     @Transactional
     public void submitInvoiceAsync(Long invoiceId) {
         if (!props.isEnabled()) return;
+        if (verifactuState.isCooldownActive()) {
+            log.debug("Verifactu: cooldown active, deferring invoice {} to scheduler", invoiceId);
+            return;
+        }
         invoiceRepository.findById(invoiceId).ifPresent(this::submitInvoice);
     }
 
@@ -61,6 +74,10 @@ public class VerifactuServiceImpl implements VerifactuService {
     @Transactional
     public void submitTicketAsync(Long ticketId) {
         if (!props.isEnabled()) return;
+        if (verifactuState.isCooldownActive()) {
+            log.debug("Verifactu: cooldown active, deferring ticket {} to scheduler", ticketId);
+            return;
+        }
         ticketRepository.findById(ticketId).ifPresent(this::submitTicket);
     }
 
@@ -69,6 +86,10 @@ public class VerifactuServiceImpl implements VerifactuService {
     @Transactional
     public void submitRectificativeAsync(Long rectId) {
         if (!props.isEnabled()) return;
+        if (verifactuState.isCooldownActive()) {
+            log.debug("Verifactu: cooldown active, deferring rectificative {} to scheduler", rectId);
+            return;
+        }
         rectRepository.findById(rectId).ifPresent(this::submitRectificative);
     }
 
@@ -76,8 +97,11 @@ public class VerifactuServiceImpl implements VerifactuService {
     @Async
     @Transactional
     public void submitAnulacionAsync(Long invoiceId, boolean isTicket) {
-        System.out.println("ANULACION_DEBUG: submitAnulacionAsync id=" + invoiceId + " isTicket=" + isTicket);
         if (!props.isEnabled()) return;
+        if (verifactuState.isCooldownActive()) {
+            log.debug("Verifactu: cooldown active, deferring anulacion to scheduler");
+            return;
+        }
         if (isTicket) {
             ticketRepository.findById(invoiceId).ifPresent(this::submitAnulacionTicket);
         } else {
@@ -90,9 +114,54 @@ public class VerifactuServiceImpl implements VerifactuService {
     @Transactional
     public void submitSubsanacionAsync(Long id, String type) {
         if (!props.isEnabled()) return;
+        if (verifactuState.isCooldownActive()) {
+            log.debug("Verifactu: cooldown active, deferring subsanacion to scheduler");
+            return;
+        }
         if ("invoices".equalsIgnoreCase(type)) invoiceRepository.findById(id).ifPresent(this::submitSubsanacionInvoice);
         else if ("tickets".equalsIgnoreCase(type)) ticketRepository.findById(id).ifPresent(this::submitSubsanacionTicket);
         else if ("rectificativas".equalsIgnoreCase(type)) rectRepository.findById(id).ifPresent(this::submitSubsanacionRectificative);
+    }
+
+    @Override
+    @Transactional
+    public void submitSubsanacionWithCorrection(Long id, String type, SubsanarRequest data) {
+        if (!props.isEnabled()) return;
+
+        Sale sale = null;
+        if ("invoices".equalsIgnoreCase(type)) {
+            Invoice inv = invoiceRepository.findById(id).orElse(null);
+            if (inv != null) sale = inv.getSale();
+        } else if ("tickets".equalsIgnoreCase(type)) {
+            Ticket t = ticketRepository.findById(id).orElse(null);
+            if (t != null) sale = t.getSale();
+        } else if ("rectificativas".equalsIgnoreCase(type)) {
+            RectificativeInvoice r = rectRepository.findById(id).orElse(null);
+            if (r != null && r.getSaleReturn() != null) sale = r.getSaleReturn().getOriginalSale();
+        }
+
+        if (sale == null) return;
+
+        if (sale.getCustomer() != null) {
+            Customer c = sale.getCustomer();
+            c.setName(data.getNombreRazon());
+            c.setTaxId(data.getNif());
+            c.setAddress(data.getAddress());
+            c.setPostalCode(data.getPostalCode());
+            c.setCity(data.getCity());
+            customerRepository.save(c);
+        } else {
+            try {
+                String json = objectMapper.writeValueAsString(data);
+                sale.setClientePuntualJson(json);
+                saleRepository.save(sale);
+            } catch (Exception e) {
+                log.error("Error updating puntual customer JSON: {}", e.getMessage());
+            }
+        }
+
+        // Now trigger subsanacion
+        submitSubsanacionAsync(id, type);
     }
 
     // ================================================================
@@ -104,7 +173,7 @@ public class VerifactuServiceImpl implements VerifactuService {
     public void retryPendingSend() {
         if (!props.isEnabled()) return;
 
-        // Collect all eligible records
+        // 1. Recolectar registros pendientes (Facturas, Tickets, Rectificativas)
         java.util.List<Object> allPending = new java.util.ArrayList<>();
         
         invoiceRepository.findPendingSend().stream()
@@ -119,35 +188,28 @@ public class VerifactuServiceImpl implements VerifactuService {
                 .filter(this::isEligibleForAutoRetryRect)
                 .forEach(allPending::add);
 
-        log.info("Verifactu: se han encontrado {} registros listos para reintento automático.", allPending.size());
         if (allPending.isEmpty()) return;
 
-        // Batch trigger logic (Feature 2)
-        // Send if 1000 records OR enough time passed
-        // For simplicity in a scheduler context, we send if there's anything pending
-        // and we are past the global wait time returned by AEAT.
-        
-        long secondsSinceLast = java.time.Duration.between(lastSendTime, LocalDateTime.now()).toSeconds();
-        // Assuming default wait of 60s if not specified by AEAT
-        int minWait = 60; 
+        int count = allPending.size();
 
-        if (allPending.size() < 1000 && secondsSinceLast < minWait) {
-            log.debug("Verifactu: skipping batch, only {} records and {}s since last send", allPending.size(), secondsSinceLast);
+        // REGLAS VERI*FACTU DE ENVÍO POR LOTES:
+        
+        // CONDICIÓN A: Hay 1.000 o más registros. Se envían 1.000 inmediatamente ignorando el tiempo de espera.
+        if (count >= 1000) {
+            log.info("Verifactu: Condición A cumplida ({} registros). Enviando lote de 1.000 INMEDIATAMENTE.", count);
+            sendBatch(allPending.subList(0, 1000));
             return;
         }
 
-        // Group into batches of 1000
-        int batchSize = 1000;
-        for (int i = 0; i < allPending.size(); i += batchSize) {
-            java.util.List<Object> batch = allPending.subList(i, Math.min(i + batchSize, allPending.size()));
-            sendBatch(batch);
-            
-            // If we have more batches, we should ideally wait, but since this is a scheduler,
-            // we can just exit and let the next tick handle it, or sleep.
-            // Requirement says "Wait TiempoEsperaEnvio seconds between batches".
-            // I'll break after one batch to respect the "one batch per wait period" logic.
-            break; 
+        // CONDICIÓN B: Menos de 1.000 registros, pero ha transcurrido el tiempo de espera estipulado.
+        if (verifactuState.isCooldownActive()) {
+            log.debug("Verifactu: Condición B no cumplida. Cooldown activo (faltan {}s).", 
+                verifactuState.getRemainingSeconds());
+            return;
         }
+
+        log.info("Verifactu: Condición B cumplida ({} registros, tiempo de espera agotado). Enviando lote parcial.", count);
+        sendBatch(allPending);
     }
 
     private void sendBatch(java.util.List<Object> records) {
@@ -161,7 +223,10 @@ public class VerifactuServiceImpl implements VerifactuService {
             VerifactuSoapClient.AeatBatchResponse resp = soapClient.send(xml);
             
             processBatchResponse(records, resp);
-            lastSendTime = java.time.LocalDateTime.now();
+            verifactuState.setLastSendTime(java.time.LocalDateTime.now());
+            if (resp.waitTime() > 0) {
+                verifactuState.setCurrentWaitSeconds(resp.waitTime());
+            }
         } catch (Exception e) {
             log.error("Verifactu: error en envío batch: {}", e.getMessage(), e);
             // Mark all as network error for retry
@@ -174,22 +239,24 @@ public class VerifactuServiceImpl implements VerifactuService {
     }
 
     private void processBatchResponse(java.util.List<Object> records, VerifactuSoapClient.AeatBatchResponse resp) {
-        String csv = resp.csv();
+        String csv = resp.csv(); // CSV Global del envío
+        log.info("Verifactu: procesando respuesta batch. Estado global: {}. CSV: {}", resp.estadoEnvio(), csv);
+
         for (Object rec : records) {
-            // Find the corresponding line in the response
             String numSerie = getRecordNumSerie(rec);
             String fechaExp = getRecordFechaExp(rec);
 
+            // Iterar OBLIGATORIAMENTE sobre la lista de nodos RespuestaLinea
             VerifactuSoapClient.AeatLineResponse lineResp = resp.lines().stream()
                     .filter(l -> l.numSerie().equals(numSerie) && l.fechaExp().equals(fechaExp))
                     .findFirst()
                     .orElse(null);
 
             if (lineResp != null) {
+                // Actualizar estado individual de cada factura usando su EstadoRegistro
                 updateRecordStatus(rec, lineResp, csv, resp.rawResponse(), resp.waitTime());
             } else {
-                // If not found in lines but batch success, maybe it was already processed or there's an issue
-                log.warn("Verifactu: registro {} no encontrado en respuesta batch", numSerie);
+                log.warn("Verifactu: registro {} no encontrado en respuesta batch de AEAT", numSerie);
             }
         }
     }
@@ -220,6 +287,12 @@ public class VerifactuServiceImpl implements VerifactuService {
             r.setAeatCsv(csv);
             updateRectStatusFromLine(r, line, raw, wait);
         }
+
+        // Global cooldown update (Feature 6)
+        verifactuState.setLastSendTime(LocalDateTime.now());
+        if (wait != null && wait > 0) {
+            verifactuState.setCurrentWaitSeconds(wait);
+        }
     }
 
     private void updateInvoiceStatusFromLine(Invoice invoice, VerifactuSoapClient.AeatLineResponse line, String raw, Integer wait) {
@@ -229,9 +302,15 @@ public class VerifactuServiceImpl implements VerifactuService {
         
         boolean ok = "Correcto".equalsIgnoreCase(line.estadoRegistro()) || "AceptadaConErrores".equalsIgnoreCase(line.estadoRegistro());
         // Handle Duplicate (Feature 5)
-        if (!ok && "Correcto".equalsIgnoreCase(line.estadoDuplicado())) {
-            ok = true;
-            log.info("Verifactu: factura {} detectada como duplicada aceptada en AEAT", invoice.getInvoiceNumber());
+        if (!ok) {
+            boolean isDup = "Correcto".equalsIgnoreCase(line.estadoDuplicado()) || 
+                           "3000".equals(line.codError()) || 
+                           (line.descError() != null && line.descError().toLowerCase().contains("duplicado"));
+            if (isDup) {
+                ok = true;
+                invoice.setAeatLastError("Registro ya existente en AEAT");
+                log.info("Verifactu: factura {} detectada como duplicada aceptada en AEAT", invoice.getInvoiceNumber());
+            }
         }
 
         if (ok) {
@@ -253,8 +332,14 @@ public class VerifactuServiceImpl implements VerifactuService {
         ticket.setAeatWaitTime(wait);
 
         boolean ok = "Correcto".equalsIgnoreCase(line.estadoRegistro()) || "AceptadaConErrores".equalsIgnoreCase(line.estadoRegistro());
-        if (!ok && "Correcto".equalsIgnoreCase(line.estadoDuplicado())) {
-            ok = true;
+        if (!ok) {
+            boolean isDup = "Correcto".equalsIgnoreCase(line.estadoDuplicado()) || 
+                           "3000".equals(line.codError()) || 
+                           (line.descError() != null && line.descError().toLowerCase().contains("duplicado"));
+            if (isDup) {
+                ok = true;
+                ticket.setAeatLastError("Registro ya existente en AEAT");
+            }
         }
 
         if (ok) {
@@ -276,8 +361,14 @@ public class VerifactuServiceImpl implements VerifactuService {
         rect.setAeatWaitTime(wait);
 
         boolean ok = "Correcto".equalsIgnoreCase(line.estadoRegistro()) || "AceptadaConErrores".equalsIgnoreCase(line.estadoRegistro());
-        if (!ok && "Correcto".equalsIgnoreCase(line.estadoDuplicado())) {
-            ok = true;
+        if (!ok) {
+            boolean isDup = "Correcto".equalsIgnoreCase(line.estadoDuplicado()) || 
+                           "3000".equals(line.codError()) || 
+                           (line.descError() != null && line.descError().toLowerCase().contains("duplicado"));
+            if (isDup) {
+                ok = true;
+                rect.setAeatLastError("Registro ya existente en AEAT");
+            }
         }
 
         if (ok) {
@@ -457,7 +548,7 @@ public class VerifactuServiceImpl implements VerifactuService {
                     buildSoftwareNombre(company), props.getSoftware().getIdSistema(),
                     props.getSoftware().getVersion(), props.getSoftware().getNumeroInstalacion());
             log.info("Verifactu: enviando SUBSANACIÓN de factura {} a AEAT", invoice.getInvoiceNumber());
-            log.info("Subsanacion XML: \n{}", xml);
+            log.debug("Subsanacion XML: \n{}", xml);
             VerifactuSoapClient.AeatBatchResponse resp = soapClient.send(xml);
             if (resp.lines().size() > 0) {
                 updateRecordStatus(invoice, resp.lines().get(0), resp.csv(), resp.rawResponse(), resp.waitTime());
@@ -479,7 +570,7 @@ public class VerifactuServiceImpl implements VerifactuService {
                     buildSoftwareNombre(company), props.getSoftware().getIdSistema(),
                     props.getSoftware().getVersion(), props.getSoftware().getNumeroInstalacion());
             log.info("Verifactu: enviando SUBSANACIÓN de ticket {} a AEAT", ticket.getTicketNumber());
-            log.info("Subsanacion XML: \n{}", xml);
+            log.debug("Subsanacion XML: \n{}", xml);
             VerifactuSoapClient.AeatBatchResponse resp = soapClient.send(xml);
             if (resp.lines().size() > 0) {
                 updateRecordStatus(ticket, resp.lines().get(0), resp.csv(), resp.rawResponse(), resp.waitTime());
@@ -500,7 +591,7 @@ public class VerifactuServiceImpl implements VerifactuService {
                     buildSoftwareNombre(company), props.getSoftware().getIdSistema(),
                     props.getSoftware().getVersion(), props.getSoftware().getNumeroInstalacion());
             log.info("Verifactu: enviando SUBSANACIÓN de rectificativa {} a AEAT", rect.getRectificativeNumber());
-            log.info("Subsanacion XML: \n{}", xml);
+            log.debug("Subsanacion XML: \n{}", xml);
             VerifactuSoapClient.AeatBatchResponse resp = soapClient.send(xml);
             if (resp.lines().size() > 0) {
                 updateRecordStatus(rect, resp.lines().get(0), resp.csv(), resp.rawResponse(), resp.waitTime());
