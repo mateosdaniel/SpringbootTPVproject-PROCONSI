@@ -62,6 +62,7 @@
 
         <div class="tab-content" id="mgmtTabsContent">
 
+
             <!-- 1. PRODUCTOS -->
             <div class="tab-pane fade show active" id="products-pane">
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -227,7 +228,7 @@
                 <div class="filter-bar filter-bar-container mb-3 p-3 rounded">
                     <div class="row g-2">
                         <div class="col-md-10">
-                            <label class="form-label small text-muted mb-1"
+                            <label class="form-label small mb-1"
                                 th:text="#{admin.inventory.categories.search}">Buscar categoria</label>
                             <input type="text" id="categoryFilterSearch" class="form-control form-control-sm"
                                 th:placeholder="#{admin.inventory.categories.search.placeholder}"
@@ -318,6 +319,26 @@
             </div>
 
         </div>
+        <script>
+            (function() {
+                try {
+                    const lastTabId = sessionStorage.getItem('mgmtActiveTab');
+                    if (lastTabId && lastTabId !== 'products-tab') {
+                        const tabBtn = document.getElementById(lastTabId);
+                        if (tabBtn) {
+                            document.querySelectorAll('#mgmtTabs .nav-link').forEach(el => el.classList.remove('active'));
+                            tabBtn.classList.add('active');
+                            const targetSelector = tabBtn.getAttribute('data-bs-target');
+                            if (targetSelector) {
+                                document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('show', 'active'));
+                                const targetPane = document.querySelector(targetSelector);
+                                if (targetPane) targetPane.classList.add('show', 'active');
+                            }
+                        }
+                    }
+                } catch(e) { console.warn('Tab persistence error:', e); }
+            })();
+        </script>
     </div>
 
     <!-- modal PRODUCTO -->

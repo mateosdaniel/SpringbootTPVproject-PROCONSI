@@ -2,6 +2,14 @@
     box-sizing: border-box;
 }
 
+body {
+    background: var(--primary);
+    color: var(--text-main);
+    min-height: 100vh;
+    margin: 0;
+    font-family: var(--main-font-family, 'Barlow', sans-serif);
+}
+
 .pagination-wrap {
     display: flex;
     align-items: center;
@@ -285,7 +293,8 @@
     font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
-    color: var(--text-muted);
+    color: var(--text-main);
+    opacity: 0.85;
     margin-bottom: 0.4rem;
 }
 

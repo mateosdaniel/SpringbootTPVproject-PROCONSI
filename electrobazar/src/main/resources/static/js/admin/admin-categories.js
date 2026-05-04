@@ -35,8 +35,8 @@ function saveCategory() {
         active: document.getElementById('categoryActive').checked
     };
 
-    fetch('/admin/categories/save', {
-        method: 'POST',
+    fetch('/api/categories' + (id ? '/' + id : ''), {
+        method: id ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(category)
     }).then(function (res) {
@@ -58,7 +58,7 @@ function saveCategory() {
 
 function deleteCategory(id) {
     if (!confirm(getAdminI18n('confirmDelete'))) return;
-    fetch('/admin/categories/delete/' + id, { method: 'DELETE' })
+    fetch('/api/categories/' + id, { method: 'DELETE' })
         .then(function (res) {
             if (res.ok) {
                 showToast(getAdminI18n('successDelete'));

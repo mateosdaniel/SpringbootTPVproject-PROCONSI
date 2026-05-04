@@ -58,6 +58,11 @@ document.addEventListener('DOMContentLoaded', function () {
     function handleHashNavigation() {
         const hash = window.location.hash.substring(1);
         if (!hash || hash === 'dashboard') {
+            const lastView = sessionStorage.getItem('adminLastView');
+            if (lastView && lastView !== 'dashboardView' && document.getElementById(lastView)) {
+                switchView(lastView, null, true);
+                return;
+            }
             switchView('dashboardView', null, true);
             return;
         }
@@ -128,6 +133,16 @@ document.addEventListener('DOMContentLoaded', function () {
             document.addEventListener('DOMContentLoaded', setPanelReady);
         }
     }
+
+    // --- Sub-tab Persistence ---
+    // Automatically save active Bootstrap tabs within a View container
+    document.addEventListener('shown.bs.tab', function (event) {
+        const tabId = event.target.id;
+        const viewContainer = event.target.closest('[id$="View"]');
+        if (viewContainer && tabId) {
+            sessionStorage.setItem('activeSubTab_' + viewContainer.id, tabId);
+        }
+    });
 });
 
 // Navigation History
@@ -143,7 +158,7 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
-let viewHistory = [];
+let viewHistory = JSON.parse(sessionStorage.getItem('adminViewHistory') || '[]');
 
 function switchView(viewId, btn, isBack = false) {
     // 0. History tracking: don't track if navigating back or if it's the same view
@@ -154,6 +169,7 @@ function switchView(viewId, btn, isBack = false) {
         // Only push if not already at the top of history to avoid simple loops
         if (viewHistory.length === 0 || viewHistory[viewHistory.length - 1] !== currentActiveView.id) {
             viewHistory.push(currentActiveView.id);
+            sessionStorage.setItem('adminViewHistory', JSON.stringify(viewHistory));
         }
     }
 
@@ -165,6 +181,7 @@ function switchView(viewId, btn, isBack = false) {
     const target = document.getElementById(viewId);
     if (target) {
         target.style.display = 'block';
+        sessionStorage.setItem('adminLastView', viewId);
         // Update URL hash for better browser behavior
         const viewShortName = viewId.replace('View', '');
         if (viewShortName !== 'dashboard') {
@@ -199,6 +216,16 @@ function switchView(viewId, btn, isBack = false) {
     if (viewId === 'activityView' && typeof loadActivityLog === 'function') loadActivityLog();
     if (viewId === 'rolesView' && typeof loadRoles === 'function') loadRoles();
     if (viewId === 'productsView') {
+        // Restore active sub-tab if any
+        const savedTabId = sessionStorage.getItem('activeSubTab_productsView');
+        if (savedTabId) {
+            const tabEl = document.getElementById(savedTabId);
+            if (tabEl && !tabEl.classList.contains('active')) {
+                const tab = new bootstrap.Tab(tabEl);
+                tab.show();
+            }
+        }
+
         const activeTab = document.querySelector('#mgmtTabs .nav-link.active');
         if (activeTab && activeTab.id === 'categories-tab') {
             if (typeof runSharedBackendCategoryFilter === 'function') runSharedBackendCategoryFilter();
@@ -231,6 +258,7 @@ function switchView(viewId, btn, isBack = false) {
 function backToPreviousView() {
     if (viewHistory.length > 0) {
         const lastView = viewHistory.pop();
+        sessionStorage.setItem('adminViewHistory', JSON.stringify(viewHistory));
         switchView(lastView, null, true);
     } else {
         // Fallback if history empty

@@ -24,6 +24,27 @@
             cursor: not-allowed !important;
         }
 
+        .out-of-stock {
+            filter: grayscale(1) !important;
+            opacity: 0.7 !important;
+            pointer-events: none !important;
+            cursor: not-allowed !important;
+            position: relative;
+        }
+
+        .out-of-stock::before {
+            content: "\F190"; /* bi-slash-circle */
+            font-family: "bootstrap-icons" !important;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5rem;
+            color: rgba(231, 76, 60, 0.35);
+            z-index: 100;
+            pointer-events: none;
+        }
+
         .btn-notes:hover {
             border-color: var(--accent) !important;
             color: var(--accent) !important;
@@ -406,10 +427,10 @@
                 </div>
                 <div th:if="${#lists.isEmpty(products)}" class="no-products">
                     <i class="bi bi-box-seam"></i>
-                    <p>No hay productos disponibles</p>
+                    <p th:text="#{tpv.no_products}">No hay productos disponibles</p>
                 </div>
                 <div th:each="product : ${products}" class="product-card"
-                    th:classappend="${!isRegisterOpen} ? 'disabled-tpv' : ''" style="position: relative;"
+                    th:classappend="${(!isRegisterOpen) ? 'disabled-tpv' : (product.stock <= 0 ? 'out-of-stock' : '')}" style="position: relative;"
                     th:attr="data-id=${product.id}, 
                              data-name=${product.name}, 
                              data-price=${product.price}, 
@@ -1427,6 +1448,8 @@
     </script>
     <!-- Hidden Translations for JS -->
     <div id="tpv-js-translations" style="display:none;" th:attr="data-ticket-empty=#{tpv.ticket.empty},
+                  data-no-products=#{tpv.no_products},
+                  data-search-no-results=#{tpv.search.no_results},
                   data-customer-not-found=#{tpv.customer.not_found},
                   data-checkout-missing=#{tpv.checkout.missing},
                   data-checkout-exact=#{tpv.checkout.exact},

@@ -31,6 +31,26 @@ function jumpToCategoriesPage(page) {
 
 // Event Listeners for Modals and UI specific to this view
 document.addEventListener('DOMContentLoaded', function() {
+    // --- Tab Persistence ---
+    const mgmtTabs = document.getElementById('mgmtTabs');
+    if (mgmtTabs) {
+        // Restore tab from sessionStorage
+        const lastTabId = sessionStorage.getItem('mgmtActiveTab');
+        if (lastTabId) {
+            const tabBtn = document.getElementById(lastTabId);
+            if (tabBtn) {
+                // Initialize Bootstrap tab if not already done and show it
+                const tab = bootstrap.Tab.getOrCreateInstance(tabBtn);
+                tab.show();
+            }
+        }
+
+        // Save tab on change
+        mgmtTabs.addEventListener('shown.bs.tab', function(e) {
+            sessionStorage.setItem('mgmtActiveTab', e.target.id);
+        });
+    }
+
     const productImageUrlInput = document.getElementById('productImageUrl');
     const imagePreview = document.getElementById('imagePreview');
     if (productImageUrlInput && imagePreview) {

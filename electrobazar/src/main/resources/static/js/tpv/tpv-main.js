@@ -1467,10 +1467,18 @@ function renderProducts(data, append = false) {
 
     if (!append && (!products || products.length === 0)) {
         const transTable = document.getElementById('tpv-js-translations');
-        const noProductsMsg = transTable ? transTable.dataset.noProducts : 'No hay productos disponibles';
+        const isSearch = searchInput && searchInput.value.trim().length > 0;
+        
+        let noProductsMsg = 'No hay productos disponibles';
+        if (transTable) {
+            noProductsMsg = isSearch ? 
+                (transTable.dataset.searchNoResults || 'No se han encontrado coincidencias') : 
+                (transTable.dataset.noProducts || 'No hay productos disponibles');
+        }
+
         productGrid.innerHTML = wildcardHtml + `
                 <div class="no-products" style="grid-column: 1/-1; text-align: center;">
-                    <i class="bi bi-box-seam"></i>
+                    <i class="bi bi-search" style="font-size: 3rem; display: block; margin-bottom: 1rem; color: var(--text-muted);"></i>
                     <p>${noProductsMsg}</p>
                 </div>`;
         return;
@@ -1496,11 +1504,12 @@ function renderProducts(data, append = false) {
 
         var dispDecimals = Math.min(3, decimalPlaces);
         var disabledClass = window.tpv_is_register_open ? '' : ' disabled-tpv';
+        var outOfStockClass = (available <= 0 && window.tpv_is_register_open) ? ' out-of-stock' : '';
 
         var isFav = (window.tpv_user_favorites || []).includes(String(product.id));
         var starClass = isFav ? 'bi-star-fill' : 'bi-star';
 
-        return `<div class="product-card${disabledClass}" 
+        return `<div class="product-card${disabledClass}${outOfStockClass}" 
                      style="position: relative; animation: fadeIn 0.3s ease;"
                      data-id="${product.id}" 
                      data-name="${escapeHtml(product.name)}" 
