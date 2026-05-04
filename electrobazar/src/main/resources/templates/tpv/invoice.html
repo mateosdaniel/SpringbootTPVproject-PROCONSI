@@ -2,14 +2,13 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title th:text="'Factura ' + ${invoice.invoiceNumber} + ' — ' + ${companySettings.appName}">Factura — ElectroBazar</title>
-    <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
-    <link href="/vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/vendor/fonts/inter/inter.css">
+    <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+    <link href="/vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/vendor/fonts/inter/inter.css" />
     <th:block th:if="${pdfMode == null}" th:replace="~{fragments/theme :: themeScript}" />
-    <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
     <style>
         /* ── Diseño de Factura Real A4 para Pantalla ── */
         :root {
@@ -360,8 +359,7 @@
         /*[/th:if]*/
     </style>
 </head>
-
-
+<body>
     <div class="invoice-paper">
         <!-- QR Tributario (Legal requirement: must be at the beginning) -->
         <div th:if="${qrCodeBase64 != null}" style="text-align: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px dashed var(--invoice-border);">

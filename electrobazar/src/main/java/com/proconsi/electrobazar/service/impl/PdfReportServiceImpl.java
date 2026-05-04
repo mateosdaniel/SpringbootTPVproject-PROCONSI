@@ -240,7 +240,7 @@ public class PdfReportServiceImpl implements PdfReportService {
     private String cleanHtmlForPdf(String html) {
         if (html == null)
             return "";
-        return html.replaceAll("<(meta|br|hr|img|input|link)([^>]*?)(?<!/)>", "<$1$2 />")
+        return html.replaceAll("<(meta|br|hr|img|input|link|col)([^>]*?)(?<!/)>", "<$1$2 />")
                 .replace("&copy;", "&#169;")
                 .replace("&reg;", "&#174;")
                 .replace("&trade;", "&#8482;")
@@ -259,6 +259,14 @@ public class PdfReportServiceImpl implements PdfReportService {
                 .replace("&oacute;", "&#243;")
                 .replace("&uacute;", "&#250;")
                 .replace("&ntilde;", "&#241;")
+                .replace("&Aacute;", "&#193;")
+                .replace("&Eacute;", "&#201;")
+                .replace("&Iacute;", "&#205;")
+                .replace("&Oacute;", "&#211;")
+                .replace("&Uacute;", "&#218;")
+                .replace("&Ntilde;", "&#209;")
+                .replace("&Uuml;", "&#220;")
+                .replace("&uuml;", "&#252;")
                 // Robustly escape any leftover unescaped ampersands to satisfy SAX XML parser
                 .replaceAll("&(?!(?:[a-zA-Z0-9]+|#[0-9]+|#x[0-9a-fA-F]+);)", "&amp;");
     }

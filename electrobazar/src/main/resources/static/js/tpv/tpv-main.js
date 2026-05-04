@@ -39,6 +39,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
     setTimeout(updateStockBubbles, 50); // Small delay to ensure all elements are rendered
 
+    // -- Idle Timeout Logic --
+    // Listeners for user activity
+    ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'].forEach(evt => {
+        document.addEventListener(evt, () => {
+            if (typeof window.resetIdleTimer === 'function') window.resetIdleTimer();
+        }, true);
+    });
+
+    // Start initial timer
+    if (typeof window.resetIdleTimer === 'function') window.resetIdleTimer();
+
     // -- Physical Keyboard Listener for PIN Overlay --
     document.addEventListener('keydown', function (e) {
         const overlay = document.getElementById('pinOverlay');
@@ -50,12 +61,27 @@ document.addEventListener('DOMContentLoaded', function () {
         } else if (e.key === 'Backspace') {
             clearPinToSell();
         } else if (e.key === 'Enter') {
-            if (currentPin.length === 4) {
+            if (typeof window.currentPin !== 'undefined' && window.currentPin.length === 4) {
                 submitPinToSell();
             }
         }
     });
 });
+
+// -- Idle Timer Global Control --
+let idleTimer;
+const IDLE_TIMEOUT = 600000; // 10 minutes (600,000ms)
+
+window.resetIdleTimer = function() {
+    clearTimeout(idleTimer);
+    const overlay = document.getElementById('pinOverlay');
+    if (!overlay || overlay.style.display === 'none') {
+        idleTimer = setTimeout(() => {
+            if (typeof window.lockTPV === 'function') window.lockTPV();
+        }, IDLE_TIMEOUT);
+    }
+};
+
 var ticket = {}; // { productId: { name, price, quantity, stock } }
 
 // ── Estado tipo documento ──────────────────────────────────────────────────
@@ -829,12 +855,31 @@ function renderTicket() {
             
             abonoTotalDisp.querySelector('span').textContent = '-' + totalAbonos.toFixed(2) + '€' + pctText;
             // Sync with hidden form input for submission
-            if (manualInputForm && window._manualAbonoAmount > 0) {
-                manualInputForm.value = totalAbonos.toFixed(2);
+            if (manualInputForm) {
+                if (window._manualAbonoAmount > 0) {
+                    manualInputForm.value = totalAbonos.toFixed(2);
+                } else if (selectedAbonoRadio) {
+                    // Si viene de un bono real, el importe manual debe estar vacío
+                    // para que el backend use los IDs de abonoIds
+                    manualInputForm.value = '';
+                }
             }
         } else {
             abonoTotalDisp.style.display = 'none';
-            if (manualInputForm && !selectedAbonoRadio) manualInputForm.value = '';
+            if (manualInputForm) manualInputForm.value = '';
+        }
+    }
+
+    // Sync selected abono ID to form for submission
+    const formAbonos = document.getElementById('formAbonoIds');
+    if (formAbonos) {
+        formAbonos.innerHTML = '';
+        if (selectedAbonoRadio) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'abonoIds';
+            input.value = selectedAbonoRadio.value;
+            formAbonos.appendChild(input);
         }
     }
 
@@ -1347,9 +1392,9 @@ function processSaleWithInvoiceValidation() {
     // customerIdInput already set by selectCustomer() in sidebar — just submit
     
     // ── COLECTAR ABONOS SELECCIONADOS ──
+    // ── COLECTAR ABONOS SELECCIONADOS (Doble comprobación) ──
     const formAbonos = document.getElementById('formAbonoIds');
-    if (formAbonos) {
-        formAbonos.innerHTML = '';
+    if (formAbonos && formAbonos.children.length === 0) {
         const selectedAbono = document.querySelector('.abono-modal-radio:checked');
         if (selectedAbono) {
             const input = document.createElement('input');
@@ -3382,76 +3427,85 @@ function addWildcardToTicket(name, price, vat) {
 }
 
 // ── TPV LOCK SYSTEM ──
-var currentPin = "";
-function lockTPV() {
-    currentPin = "";
-    updatePinDots();
-    document.getElementById('pinErrorMsg').style.display = 'none';
-    document.getElementById('pinOverlay').style.display = 'flex';
-}
+window.currentPin = "";
+window.lockTPV = function() {
+    window.currentPin = "";
+    if (typeof window.updatePinDots === 'function') window.updatePinDots();
+    const err = document.getElementById('pinErrorMsg');
+    if (err) err.style.display = 'none';
+    const overlay = document.getElementById('pinOverlay');
+    if (overlay) overlay.style.display = 'flex';
+};
 
-function appendPinToSell(val) {
-    if (currentPin.length < 4) {
-        currentPin += val;
-        updatePinDots();
+window.appendPinToSell = function(val) {
+    if (window.currentPin.length < 4) {
+        window.currentPin += val;
+        if (typeof window.updatePinDots === 'function') window.updatePinDots();
     }
-    if (currentPin.length === 4) {
-        document.getElementById('btnPinSubmit').disabled = false;
+    if (window.currentPin.length === 4) {
+        const btn = document.getElementById('btnPinSubmit');
+        if (btn) btn.disabled = false;
     }
-}
+};
 
-function clearPinToSell() {
-    if (currentPin.length > 0) {
-        currentPin = currentPin.slice(0, -1);
-        updatePinDots();
-        document.getElementById('btnPinSubmit').disabled = true;
-        document.getElementById('pinErrorMsg').style.display = 'none';
+window.clearPinToSell = function() {
+    if (window.currentPin.length > 0) {
+        window.currentPin = window.currentPin.slice(0, -1);
+        if (typeof window.updatePinDots === 'function') window.updatePinDots();
+        const btn = document.getElementById('btnPinSubmit');
+        if (btn) btn.disabled = true;
+        const err = document.getElementById('pinErrorMsg');
+        if (err) err.style.display = 'none';
     }
-}
+};
 
-function updatePinDots() {
+window.updatePinDots = function() {
     const dots = document.querySelectorAll('.pin-dot');
     dots.forEach((dot, i) => {
-        if (i < currentPin.length) dot.classList.add('filled');
+        if (i < window.currentPin.length) dot.classList.add('filled');
         else dot.classList.remove('filled');
     });
-}
+};
 
-function submitPinToSell() {
-    if (currentPin.length !== 4) return;
+window.submitPinToSell = function() {
+    if (window.currentPin.length !== 4) return;
 
     const btn = document.getElementById('btnPinSubmit');
-    btn.disabled = true;
+    if (btn) btn.disabled = true;
 
-    fetch('/api/workers/verify-pin?pin=' + currentPin)
+    fetch('/api/workers/verify-pin?pin=' + window.currentPin)
         .then(r => {
             if (r.ok) {
-                document.getElementById('pinOverlay').style.display = 'none';
-                currentPin = "";
+                const overlay = document.getElementById('pinOverlay');
+                if (overlay) overlay.style.display = 'none';
+                window.currentPin = "";
+                // Restart idle timer when unlocking
+                if (typeof window.resetIdleTimer === 'function') window.resetIdleTimer();
             } else {
-                document.getElementById('pinErrorMsg').style.display = 'block';
-                currentPin = "";
-                updatePinDots();
-                btn.disabled = true;
+                const err = document.getElementById('pinErrorMsg');
+                if (err) err.style.display = 'block';
+                window.currentPin = "";
+                if (typeof window.updatePinDots === 'function') window.updatePinDots();
+                if (btn) btn.disabled = true;
             }
         })
         .catch(err => {
             console.error('Error verifying PIN', err);
-            btn.disabled = false;
+            if (btn) btn.disabled = false;
         });
-}
+};
 
-function togglePasswordVisibility(inputId, button) {
+window.togglePasswordVisibility = function(inputId, button) {
     const input = document.getElementById(inputId);
     const icon = button.querySelector('i');
     if (input.type === 'password') {
         input.type = 'text';
-        icon.classList.replace('bi-eye', 'bi-eye-slash');
+        if (icon) icon.classList.replace('bi-eye', 'bi-eye-slash');
     } else {
         input.type = 'password';
-        icon.classList.replace('bi-eye-slash', 'bi-eye');
+        if (icon) icon.classList.replace('bi-eye-slash', 'bi-eye');
     }
-}
+};
 
 // ── MANEJO DE ABONOS / VALES ──
 window._manualAbonoAmount = 0;
@@ -3509,8 +3563,11 @@ window.openAbonoSelectionModal = function() {
         searchRes.innerHTML = '';
         searchRes.style.display = 'none';
     }
-    const searchInput = document.getElementById('abono-search-code');
+    const searchInput = document.getElementById('abonoCodeInput'); // Fix ID mismatch
     if (searchInput) searchInput.value = '';
+    
+    const manAmtInput = document.getElementById('manualAbonoAmount'); // Fix ID mismatch
+    if (manAmtInput) manAmtInput.value = '';
 
     if (customerId) {
         instructions.innerHTML = '<span class="spinner-border spinner-border-sm me-2" style="color: var(--accent);"></span> Cargando bonos del cliente...';
@@ -3523,10 +3580,11 @@ window.openAbonoSelectionModal = function() {
         fetch(`/api/customers/${customerId}/abonos`)
             .then(r => r.json())
             .then(abonos => {
-                if (abonos && abonos.length > 0) {
-                    instructions.innerHTML = '<i class="bi bi-person-check-fill me-1" style="color: var(--accent);"></i> ' + abonos.length + ' bonos disponibles para este cliente.';
+                const pendingAbonos = abonos.filter(a => a.estado === 'PENDIENTE');
+                if (pendingAbonos && pendingAbonos.length > 0) {
+                    instructions.innerHTML = '<i class="bi bi-person-check-fill me-1" style="color: var(--accent);"></i> ' + pendingAbonos.length + ' bonos disponibles para este cliente.';
                     let html = '';
-                    abonos.forEach(a => {
+                    pendingAbonos.forEach(a => {
                         html += `
                             <div class="d-flex align-items-center p-3 mb-2 rounded border abono-item-card" 
                                  style="background: var(--surface); border-color: var(--border) !important; cursor: pointer;" 
@@ -3584,7 +3642,7 @@ window.openAbonoSelectionModal = function() {
 }
 
 window.searchAbonoByCode = function() {
-    const codeInput = document.getElementById('abono-search-code');
+    const codeInput = document.getElementById('abonoCodeInput'); // Fix ID mismatch (was abono-search-code)
     const resultDiv = document.getElementById('abono-search-result');
     if (!codeInput || !resultDiv) return;
     
@@ -3623,7 +3681,7 @@ window.searchAbonoByCode = function() {
                     </label>
                 </div>`;
             // Al encontrar uno, borramos el importe manual para evitar confusiones
-            const manAmtInput = document.getElementById('abono-manual-amount');
+            const manAmtInput = document.getElementById('manualAbonoAmount'); // Fix ID mismatch (was abono-manual-amount)
             if (manAmtInput) manAmtInput.value = '';
         })
         .catch(err => {
