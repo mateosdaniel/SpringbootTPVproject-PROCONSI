@@ -24,19 +24,28 @@
                             <div class="col-12">
                                 <label class="form-label" id="workerPasswordLabel"
                                     th:text="#{admin.common.password_required}">Contraseña *</label>
-                                <input type="text" class="form-control" id="workerPassword" required
-                                    placeholder="">
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="workerPassword" required
+                                        placeholder="">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('workerPassword', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
                                 <small style="color: var(--text-muted);" th:text="#{admin.worker.password_info}">Se
-                                    muestra en texto plano para gestión del
-                                    dueño.</small>
+                                    encriptará al guardar.</small>
                             </div>
                             <div class="col-12">
                                 <label class="form-label" id="workerPinLabel" th:text="#{admin.worker.pin_required}">PIN de acceso *</label>
-                                <input type="text" class="form-control" id="workerPin" required
-                                    pattern="\d{4}" minlength="4" maxlength="4"
-                                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 4);"
-                                    title="Debe contener exactamente 4 números."
-                                    placeholder="Ej: 1234">
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="workerPin" required
+                                        pattern="\d{4}" minlength="4" maxlength="4"
+                                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 4);"
+                                        title="Debe contener exactamente 4 números."
+                                        placeholder="Ej: 1234">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('workerPin', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
                                 <small style="color: var(--text-muted);" th:text="#{admin.worker.pin_info}">El PIN numérico que se usa para operaciones rápidas en el TPV.</small>
                             </div>
                             <div class="col-12">

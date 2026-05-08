@@ -8,6 +8,10 @@ function openWorkerModal(id, username, active, permissions, roleId) {
     document.getElementById('workerId').value = id || '';
     document.getElementById('workerUsername').value = username || '';
     document.getElementById('workerActive').checked = active !== false;
+    
+    // Reset password visibility
+    resetPasswordVisibility('workerPassword');
+    resetPasswordVisibility('workerPin');
 
     // Password label adjustment based on edit or create
     var pwdLabel = document.getElementById('workerPasswordLabel');
@@ -203,6 +207,33 @@ function onWorkerRoleChange() {
     // No longer auto-checking individual permissions as they are removed
 }
 
+function togglePasswordVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
+}
+
+function resetPasswordVisibility(inputId) {
+    const input = document.getElementById(inputId);
+    input.type = 'password';
+    const btn = input.parentElement.querySelector('button');
+    if (btn) {
+        const icon = btn.querySelector('i');
+        if (icon) {
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        }
+    }
+}
+
 // Global Exports
 window.openWorkerModal = openWorkerModal;
 window.saveWorker = saveWorker;
@@ -211,3 +242,5 @@ window.filterWorkers = filterWorkers;
 window.renderWorkersTable = renderWorkersTable;
 window.resetWorkerFilters = resetWorkerFilters;
 window.onWorkerRoleChange = onWorkerRoleChange;
+window.togglePasswordVisibility = togglePasswordVisibility;
+window.resetPasswordVisibility = resetPasswordVisibility;
