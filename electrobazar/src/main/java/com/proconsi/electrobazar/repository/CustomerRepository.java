@@ -1,8 +1,10 @@
 package com.proconsi.electrobazar.repository;
 
 import com.proconsi.electrobazar.model.Customer;
+import com.proconsi.electrobazar.dto.AdminCustomerProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -16,6 +18,15 @@ import java.util.Optional;
 
 @Repository
 public interface CustomerRepository extends JpaRepository<Customer, Long>, JpaSpecificationExecutor<Customer> {
+
+    @Query("SELECT c.id as id, c.name as name, c.taxId as taxId, c.email as email, c.phone as phone, " +
+           "c.city as city, c.type as type, c.hasRecargoEquivalencia as hasRecargoEquivalencia, " +
+           "t.id as tariffId, t.name as tariffName, t.color as tariffColor, " +
+           "c.idDocumentType as idDocumentType, c.idDocumentNumber as idDocumentNumber, " +
+           "c.active as active " +
+           "FROM Customer c LEFT JOIN c.tariff t")
+    org.springframework.data.domain.Slice<AdminCustomerProjection> findAdminListing(org.springframework.data.jpa.domain.Specification<Customer> spec, org.springframework.data.domain.Pageable pageable);
+
 
     /**
      * Slice-based search for customers to avoid COUNT(*).

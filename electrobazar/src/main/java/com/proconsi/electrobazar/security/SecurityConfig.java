@@ -95,15 +95,26 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
                 http
-                                // 1. Enabling selective CSRF protection (Security Requirement)
-                                // Enabling it for browser sessions (/admin, /tpv, /login)
-                                // While ignoring it for API calls that use Bearer tokens
+                                // 1. CSRF Protection: Disabled ONLY for stateless API endpoints (Bearer token auth)
+                                // and AJAX-only admin endpoints (@ResponseBody + session auth via JS fetch).
+                                // All HTML form-based endpoints (login, forgot-password, reset-password, /tpv/**)
+                                // remain CSRF-protected.
                                 .csrf(csrf -> csrf
-                                                .ignoringRequestMatchers("/api/**", "/admin/api/**", "/admin/login",
-                                                                "/admin/products/**", "/admin/upload-csv",
+                                                .ignoringRequestMatchers(
+                                                                // REST API endpoints (Bearer token, no cookies)
+                                                                "/api/**", "/admin/api/**",
+                                                                // Admin AJAX endpoints (@ResponseBody + JSON, not form-based)
+                                                                "/admin/login",
+                                                                "/admin/products/**",
+                                                                "/admin/upload-csv",
                                                                 "/admin/upload-customers-csv",
                                                                 "/admin/workers/**",
-                                                                "/admin/settings/pin", "/forgot-password",
+                                                                "/admin/settings/pin",
+                                                                "/admin/backup/**",
+                                                                "/admin/sales/**",
+                                                                "/admin/tax-rates/**",
+                                                                // Public AJAX endpoints (JSON @ResponseBody, not HTML forms)
+                                                                "/forgot-password",
                                                                 "/reset-password"))
 
                                 // 2. Authorization Rules by Path and Method
@@ -119,8 +130,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/login", "/register", "/error", "/logout",
                                                                 "/forgot-password", "/reset-password")
                                                 .permitAll()
-                                                .requestMatchers("/api/workers/login", "/api/workers/verify-pin",
-                                                                "/api/debug/**")
+                                                .requestMatchers("/api/workers/login", "/api/workers/verify-pin")
                                                 .permitAll()
 
                                                 // TPV PUBLIC CATALOG (Allow public access to read categories and
@@ -166,6 +176,8 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/tariffs/**")
                                                 .hasAnyAuthority("ACCESO_TOTAL_ADMIN", "ACCESO_TPV")
                                                 .requestMatchers("/api/ipc/**").hasAuthority("ACCESO_TOTAL_ADMIN")
+                                                // DEBUG/STRESS TEST (Admin-only, never public)
+                                                .requestMatchers("/api/debug/**").hasAuthority("ACCESO_TOTAL_ADMIN")
                                                 .requestMatchers("/api/customers/**")
                                                 .hasAnyAuthority("GESTION_CLIENTES_CRM", "ACCESO_TOTAL_ADMIN",
                                                                 "ACCESO_TPV")

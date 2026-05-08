@@ -134,6 +134,13 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    public org.springframework.data.domain.Slice<com.proconsi.electrobazar.dto.AdminProductProjection> findAdminListing(String search, String category, String stock, Boolean active, Long measurementUnitId, Pageable pageable) {
+        Specification<Product> spec = ProductSpecification.filterProducts(search, category, stock, active, measurementUnitId);
+        return productRepository.findAdminListing(spec, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Product findById(Long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con id: " + id));

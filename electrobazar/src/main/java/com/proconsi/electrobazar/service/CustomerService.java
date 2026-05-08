@@ -1,6 +1,7 @@
 package com.proconsi.electrobazar.service;
 
 import com.proconsi.electrobazar.model.Customer;
+import com.proconsi.electrobazar.dto.AdminCustomerProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.List;
@@ -67,4 +68,6 @@ public interface CustomerService {
      * Searches for customers by name, tax ID, or email.
      */
     List<Customer> searchCustomers(String query);
+
+    org.springframework.data.domain.Slice<AdminCustomerProjection> findAdminListing(String search, Customer.CustomerType type, Boolean hasRecargo, Pageable pageable);
 }

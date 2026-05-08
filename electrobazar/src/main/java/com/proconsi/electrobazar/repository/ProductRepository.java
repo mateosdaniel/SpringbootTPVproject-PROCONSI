@@ -2,6 +2,7 @@ package com.proconsi.electrobazar.repository;
 
 import com.proconsi.electrobazar.model.Product;
 import com.proconsi.electrobazar.model.TaxRate;
+import com.proconsi.electrobazar.dto.AdminProductProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -23,6 +24,13 @@ import java.util.List;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
+
+    @Query("SELECT p.id as id, p.nameEs as nameEs, p.descriptionEs as descriptionEs, p.price as price, " +
+           "p.stock as stock, c.nameEs as categoryName, p.measurementUnit as measurementUnit, " +
+           "tr.vatRate as taxVatRate, p.imageUrl as imageUrl, p.active as active, p.salesRank as salesRank " +
+           "FROM Product p LEFT JOIN p.category c LEFT JOIN p.taxRate tr")
+    org.springframework.data.domain.Slice<AdminProductProjection> findAdminListing(org.springframework.data.jpa.domain.Specification<Product> spec, org.springframework.data.domain.Pageable pageable);
+
 
     /**
      * Slice-based search for products to avoid COUNT(*).

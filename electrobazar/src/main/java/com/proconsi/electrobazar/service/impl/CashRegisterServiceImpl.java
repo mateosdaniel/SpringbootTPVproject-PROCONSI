@@ -70,6 +70,13 @@ public class CashRegisterServiceImpl implements CashRegisterService {
 
     @Override
     @Transactional(readOnly = true)
+    public org.springframework.data.domain.Slice<com.proconsi.electrobazar.dto.AdminCashRegisterProjection> findAdminListing(String worker, String date, Pageable pageable) {
+        Specification<CashRegister> spec = CashRegisterSpecification.filterRegisters(worker, date);
+        return cashRegisterRepository.findAdminListing(spec, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public CashRegister findTodayIfClosed() {
         return cashRegisterRepository.findByRegisterDateAndClosedTrue(LocalDate.now())
                 .orElseThrow(() -> new ResourceNotFoundException("No cash register closure found for today."));

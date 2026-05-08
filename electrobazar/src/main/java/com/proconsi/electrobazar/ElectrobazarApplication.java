@@ -7,6 +7,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.context.annotation.Bean;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import com.proconsi.electrobazar.service.WorkerService;
 import com.proconsi.electrobazar.repository.RoleRepository;
 import com.proconsi.electrobazar.model.Role;
@@ -36,6 +37,12 @@ import java.util.TimeZone;
 @EnableScheduling
 @EnableAsync
 public class ElectrobazarApplication {
+
+    @Value("${app.admin.default-email:admin@electrobazar.com}")
+    private String defaultAdminEmail;
+
+    @Value("${app.admin.default-password:#{T(java.util.UUID).randomUUID().toString().substring(0,8)}}")
+    private String defaultAdminPassword;
 
     /**
      * Standardizes the application timezone to Madrid (GMT+1/GMT+2).
@@ -106,18 +113,19 @@ public class ElectrobazarApplication {
                         w.setActive(true);
                         if (w.getEmail() == null || w.getEmail().isEmpty()
                                 || w.getEmail().equals("admin@electrobazar.com")) {
-                            w.setEmail("danielmateos684@gmail.com");
+                            w.setEmail(defaultAdminEmail);
                         }
                         workerService.save(w);
                     }, () -> {
-                        System.out.println("[BOOTSTRAP] Creating new 'root' user with password 'r00t' and ADMIN role.");
+                        System.out.println("[BOOTSTRAP] Creating new 'root' user with default credentials from config.");
                         Worker defaultWorker = new Worker();
                         defaultWorker.setUsername("root");
-                        defaultWorker.setPassword("r00t");
-                        defaultWorker.setEmail("danielmateos684@gmail.com");
+                        defaultWorker.setPassword(defaultAdminPassword);
+                        defaultWorker.setEmail(defaultAdminEmail);
                         defaultWorker.setActive(true);
                         defaultWorker.setRole(finalAdminRole);
                         workerService.save(defaultWorker);
+                        System.out.println("[BOOTSTRAP] ⚠️  Default admin created. Change password immediately!");
                     });
         };
     }

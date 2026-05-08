@@ -4,6 +4,7 @@ import com.proconsi.electrobazar.dto.ReturnLineRequest;
 import com.proconsi.electrobazar.model.PaymentMethod;
 import com.proconsi.electrobazar.model.SaleReturn;
 import com.proconsi.electrobazar.model.Worker;
+import com.proconsi.electrobazar.dto.AdminReturnProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
@@ -80,4 +81,6 @@ public interface ReturnService {
      * Retrieves returns processed between two timestamps with detailed line information.
      */
     List<SaleReturn> findByCreatedAtBetweenWithDetails(LocalDateTime from, LocalDateTime to);
+
+    org.springframework.data.domain.Slice<AdminReturnProjection> findAdminListing(String search, String method, String date, Pageable pageable);
 }

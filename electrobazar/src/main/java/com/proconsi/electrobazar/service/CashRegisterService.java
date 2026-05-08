@@ -4,6 +4,7 @@ import com.proconsi.electrobazar.dto.CashRegisterOpenSuggestion;
 import com.proconsi.electrobazar.dto.DashboardStatsDTO;
 import com.proconsi.electrobazar.model.CashRegister;
 import com.proconsi.electrobazar.model.Worker;
+import com.proconsi.electrobazar.dto.AdminCashRegisterProjection;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -102,6 +103,8 @@ public interface CashRegisterService {
      * @return A DTO with aggregated statistics.
      */
     DashboardStatsDTO getDashboardStats(String period);
+
+    org.springframework.data.domain.Slice<AdminCashRegisterProjection> findAdminListing(String worker, String date, org.springframework.data.domain.Pageable pageable);
 }
 
 

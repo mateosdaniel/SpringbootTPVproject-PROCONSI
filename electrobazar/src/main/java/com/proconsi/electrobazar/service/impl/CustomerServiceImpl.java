@@ -2,6 +2,7 @@ package com.proconsi.electrobazar.service.impl;
 
 import com.proconsi.electrobazar.exception.ResourceNotFoundException;
 import com.proconsi.electrobazar.model.Customer;
+import com.proconsi.electrobazar.dto.AdminCustomerProjection;
 import com.proconsi.electrobazar.model.Tariff;
 import com.proconsi.electrobazar.repository.CustomerRepository;
 import com.proconsi.electrobazar.repository.TariffRepository;
@@ -42,6 +43,13 @@ public class CustomerServiceImpl implements CustomerService {
     public org.springframework.data.domain.Slice<Customer> getFilteredCustomers(String search, Customer.CustomerType type, Boolean hasRecargo, Pageable pageable) {
         Specification<Customer> spec = CustomerSpecification.filterCustomers(search, type, hasRecargo);
         return customerRepository.findAll(spec, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Slice<AdminCustomerProjection> findAdminListing(String search, Customer.CustomerType type, Boolean hasRecargo, Pageable pageable) {
+        Specification<Customer> spec = CustomerSpecification.filterCustomers(search, type, hasRecargo);
+        return customerRepository.findAdminListing(spec, pageable);
     }
 
     @Override

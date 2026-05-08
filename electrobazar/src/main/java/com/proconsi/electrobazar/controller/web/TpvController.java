@@ -2,11 +2,8 @@ package com.proconsi.electrobazar.controller.web;
 
 import com.proconsi.electrobazar.dto.TaxBreakdown;
 import com.proconsi.electrobazar.model.*;
-import com.proconsi.electrobazar.repository.TariffPriceHistoryRepository;
 import com.proconsi.electrobazar.service.*;
 import com.proconsi.electrobazar.util.RecargoEquivalenciaCalculator;
-import com.proconsi.electrobazar.exception.InsufficientCashException;
-import com.proconsi.electrobazar.dto.ReturnLineRequest;
 import com.proconsi.electrobazar.dto.SaleSummaryResponse;
 import com.proconsi.electrobazar.dto.CashRegisterOpenSuggestion;
 import lombok.RequiredArgsConstructor;
@@ -16,19 +13,15 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
-import org.springframework.context.MessageSource;
-import org.springframework.context.i18n.LocaleContextHolder;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
 
 /**
- * Controller for the Point of Sale (TPV) interface.
- * Manages sales processing, cash register operations, returns, and receipt
- * generation.
+ * Main UI Controller for the Point of Sale (TPV) interface.
+ * Handles the main catalog view, sale processing, and receipt display.
  */
 @Slf4j
 @Controller
@@ -43,17 +36,10 @@ public class TpvController {
     private final ProductPriceService productPriceService;
     private final RecargoEquivalenciaCalculator recargoCalculator;
     private final InvoiceService invoiceService;
-    private final ReturnService returnService;
     private final TicketService ticketService;
-    private final CashWithdrawalService cashWithdrawalService;
     private final TariffService tariffService;
-    private final TariffPriceHistoryRepository tariffPriceHistoryRepository;
     private final CompanySettingsService companySettingsService;
-    private final AdminPinService adminPinService;
-    private final ActivityLogService activityLogService;
-
     private final CashRegisterService cashRegisterService;
-    private final MessageSource messageSource;
 
     @GetMapping
     public String index(
@@ -75,11 +61,10 @@ public class TpvController {
         } else if (categoryId != null) {
             products = productService.findByCategory(categoryId);
         } else {
-            // Limit to 100 on initial view to avoid massive HTML payloads
             products = productService.getTopProductsByRank(100);
         }
 
-        java.util.Optional<CashRegister> activeRegisterOpt = cashRegisterService.getOpenRegister();
+        Optional<CashRegister> activeRegisterOpt = cashRegisterService.getOpenRegister();
         boolean isRegisterOpen = activeRegisterOpt.isPresent();
         model.addAttribute("isRegisterOpen", isRegisterOpen);
 
@@ -99,15 +84,13 @@ public class TpvController {
             model.addAttribute("suggestedOpeningBalance", suggestion.getSuggestedBalance());
         }
 
-        Map<Long, String> formattedPrices = new java.util.LinkedHashMap<>();
+        Map<Long, String> formattedPrices = new LinkedHashMap<>();
         for (Product p : products) {
             BigDecimal price = p.getPrice();
             if (price != null) {
-                // Elimina ceros finales pero mantiene mínimo 2 decimales
                 BigDecimal stripped = price.stripTrailingZeros();
                 int decimals = Math.max(2, stripped.scale());
-                formattedPrices.put(p.getId(), price.setScale(decimals, java.math.RoundingMode.HALF_UP)
-                        .toPlainString());
+                formattedPrices.put(p.getId(), price.setScale(decimals, RoundingMode.HALF_UP).toPlainString());
             }
         }
         model.addAttribute("formattedPrices", formattedPrices);
@@ -147,7 +130,6 @@ public class TpvController {
             return "redirect:/login";
         }
 
-        // Process customer
         Customer customer = null;
         if (customerId != null) {
             customer = customerService.findById(customerId);
@@ -161,30 +143,23 @@ public class TpvController {
                     .build());
         }
 
-        // Resolve tariff override (cashier manual selection)
         Tariff tariffOverride = null;
         if (tariffId != null) {
             tariffOverride = tariffService.findById(tariffId).orElse(null);
         }
 
-        // Determine if Equivalency Surcharge applies
         boolean applyRecargo = customer != null && Boolean.TRUE.equals(customer.getHasRecargoEquivalencia());
 
-        // Build sale lines using the unit prices sent by the frontend ticket.
-        // These are already the final prices (tariff-adjusted by the sidebar) — do NOT
-        // recalculate.
         List<SaleLine> lines = new ArrayList<>();
 
-        // 1. Bulk fetch all products in one query to avoid N+1 lookups
         List<Long> distinctIds = productIds.stream()
                 .filter(id -> id != null && id > 0)
                 .distinct()
                 .collect(java.util.stream.Collectors.toList());
 
-        java.util.Map<Long, Product> productMap = productService.findAllByIds(distinctIds).stream()
+        Map<Long, Product> productMap = productService.findAllByIds(distinctIds).stream()
                 .collect(java.util.stream.Collectors.toMap(Product::getId, p -> p));
 
-        // 2. Build SaleLine objects
         for (int i = 0; i < productIds.size(); i++) {
             Long pid = productIds.get(i);
             Product product = (pid != null && pid > 0) ? productMap.get(pid) : null;
@@ -218,13 +193,13 @@ public class TpvController {
                 }
             }
 
-            // Resolve original (catalogue) unit price for discount traceability on invoice
-            BigDecimal origUnitPrice = unitPrice; // default: same as selling price
+            BigDecimal origUnitPrice = unitPrice;
             if (originalUnitPrices != null && i < originalUnitPrices.size()
                     && originalUnitPrices.get(i) != null && !originalUnitPrices.get(i).isBlank()) {
                 try {
                     origUnitPrice = new BigDecimal(originalUnitPrices.get(i).replace(",", "."));
-                } catch (NumberFormatException ignored) {}
+                } catch (NumberFormatException ignored) {
+                }
             } else if (product != null) {
                 origUnitPrice = product.getPrice();
             }
@@ -234,7 +209,6 @@ public class TpvController {
                             ? productNames.get(i)
                             : (product != null ? product.getName() : "Producto Comodín");
 
-            // Calc per-line discount % from original vs. selling price
             BigDecimal discountPercentage = BigDecimal.ZERO;
             if (origUnitPrice.compareTo(BigDecimal.ZERO) > 0
                     && unitPrice.compareTo(origUnitPrice) < 0) {
@@ -255,14 +229,11 @@ public class TpvController {
                     .build());
         }
 
-        // If no explicit tariffId from frontend but lines have tariff info, determine
-        // the effective tariff name for the Sale header from the first non-MINORISTA line
         if (tariffId == null && tariffOverride == null && lineTariffNames != null) {
             String firstNonMinorista = lineTariffNames.stream()
                     .filter(t -> t != null && !t.isBlank() && !"MINORISTA".equalsIgnoreCase(t))
                     .findFirst().orElse(null);
             if (firstNonMinorista != null) {
-                // Find the matching tariff to set as override for appliedTariff name persistence
                 tariffOverride = tariffService.findByName(firstNonMinorista).orElse(null);
             }
         }
@@ -307,7 +278,6 @@ public class TpvController {
             return "redirect:/tpv";
         }
 
-        // Determine document type
         TipoDocumento tipoDocumento;
         String puntualJson = null;
         boolean hasPuntual = clientePuntualJson != null && !clientePuntualJson.isBlank();
@@ -329,7 +299,6 @@ public class TpvController {
             log.warn("Could not persist tipoDocumento for sale {}: {}", sale.getId(), e.getMessage());
         }
 
-        // Generate and Store PDF in DB
         try {
             Invoice invoice = null;
             if (tipoDocumento == TipoDocumento.FACTURA_COMPLETA) {
@@ -352,9 +321,6 @@ public class TpvController {
         return "redirect:/tpv/receipt/" + sale.getId() + "?autoPrint=true";
     }
 
-    /**
-     * Displays the receipt for a completed sale.
-     */
     @GetMapping("/receipt/{saleId}")
     public String showReceipt(
             @PathVariable Long saleId,
@@ -369,13 +335,11 @@ public class TpvController {
         model.addAttribute("autoPrint", autoPrint);
         model.addAttribute("companySettings", companySettingsService.getSettings());
 
-        // Resolve invoice (from flash or DB)
         if (!model.containsAttribute("invoice")) {
             invoiceService.findBySaleId(saleId)
                     .ifPresent(inv -> model.addAttribute("invoice", inv));
         }
 
-        // Resolve ticket (only if not an invoice)
         if (!model.containsAttribute("invoice") && !model.containsAttribute("ticket")) {
             ticketService.findBySaleId(saleId)
                     .ifPresent(t -> {
@@ -399,9 +363,7 @@ public class TpvController {
             }
             model.addAttribute("lineBreakdowns", breakdowns);
 
-            // Group taxBreakdowns by VAT rate for the summary section
-            java.util.TreeMap<BigDecimal, TaxBreakdown> groupedTax =
-                    new java.util.TreeMap<>(BigDecimal::compareTo);
+            TreeMap<BigDecimal, TaxBreakdown> groupedTax = new TreeMap<>(BigDecimal::compareTo);
             for (TaxBreakdown tb : breakdowns) {
                 groupedTax.merge(tb.getVatRate(), TaxBreakdown.builder()
                         .vatRate(tb.getVatRate())
@@ -412,15 +374,15 @@ public class TpvController {
                         .totalAmount(tb.getTotalAmount())
                         .recargoApplied(tb.isRecargoApplied())
                         .build(),
-                    (existing, newTb) -> {
-                        existing.setBaseAmount(existing.getBaseAmount().add(newTb.getBaseAmount()));
-                        existing.setVatAmount(existing.getVatAmount().add(newTb.getVatAmount()));
-                        existing.setRecargoAmount(existing.getRecargoAmount().add(newTb.getRecargoAmount()));
-                        existing.setTotalAmount(existing.getTotalAmount().add(newTb.getTotalAmount()));
-                        return existing;
-                    });
+                        (existing, newTb) -> {
+                            existing.setBaseAmount(existing.getBaseAmount().add(newTb.getBaseAmount()));
+                            existing.setVatAmount(existing.getVatAmount().add(newTb.getVatAmount()));
+                            existing.setRecargoAmount(existing.getRecargoAmount().add(newTb.getRecargoAmount()));
+                            existing.setTotalAmount(existing.getTotalAmount().add(newTb.getTotalAmount()));
+                            return existing;
+                        });
             }
-            model.addAttribute("taxBreakdowns", new java.util.ArrayList<>(groupedTax.values()));
+            model.addAttribute("taxBreakdowns", new ArrayList<>(groupedTax.values()));
             model.addAttribute("applyRecargo", applyRecargo);
             BigDecimal totalBase = breakdowns.stream().map(TaxBreakdown::getBaseAmount)
                     .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP);
@@ -432,35 +394,35 @@ public class TpvController {
             model.addAttribute("totalVat", totalVat);
             model.addAttribute("totalRecargo", totalRecargo);
 
-            // Calculate breakdowns for Subtotal Bruto, Tariff Discount, and Header Discounts
             BigDecimal totalOriginalBase = BigDecimal.ZERO;
             BigDecimal totalTariffDiscountNet = BigDecimal.ZERO;
-            BigDecimal tariffPct = (sale.getAppliedDiscountPercentage() != null) 
+            BigDecimal tariffPct = (sale.getAppliedDiscountPercentage() != null)
                     ? sale.getAppliedDiscountPercentage().divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP)
                     : BigDecimal.ZERO;
 
             for (SaleLine line : sale.getLines()) {
                 BigDecimal vatRate = line.getVatRate() != null ? line.getVatRate() : new BigDecimal("0.21");
                 BigDecimal divisor = BigDecimal.ONE.add(vatRate);
-                
-                // Catalog Net
-                BigDecimal catalogNet = (line.getOriginalUnitPrice() != null && line.getOriginalUnitPrice().compareTo(BigDecimal.ZERO) > 0)
-                        ? line.getOriginalUnitPrice().divide(divisor, 10, RoundingMode.HALF_UP)
-                        : line.getUnitPrice().divide(divisor, 10, RoundingMode.HALF_UP);
-                
+
+                BigDecimal catalogNet = (line.getOriginalUnitPrice() != null
+                        && line.getOriginalUnitPrice().compareTo(BigDecimal.ZERO) > 0)
+                                ? line.getOriginalUnitPrice().divide(divisor, 10, RoundingMode.HALF_UP)
+                                : line.getUnitPrice().divide(divisor, 10, RoundingMode.HALF_UP);
+
                 totalOriginalBase = totalOriginalBase.add(catalogNet.multiply(line.getQuantity()));
-                
-                // Tariff saving on this line (Net)
+
                 BigDecimal lineTariffSavingNet = catalogNet.multiply(tariffPct).multiply(line.getQuantity());
                 totalTariffDiscountNet = totalTariffDiscountNet.add(lineTariffSavingNet);
             }
-            
+
             BigDecimal aggregateDiscountNet = totalOriginalBase.subtract(totalBase);
             BigDecimal couponDiscountNet = aggregateDiscountNet.subtract(totalTariffDiscountNet);
 
             model.addAttribute("totalOriginalBase", totalOriginalBase.setScale(2, RoundingMode.HALF_UP));
             model.addAttribute("totalTariffDiscountNet", totalTariffDiscountNet.setScale(2, RoundingMode.HALF_UP));
-            model.addAttribute("totalCouponDiscountNet", (couponDiscountNet.compareTo(BigDecimal.ZERO) > 0 ? couponDiscountNet : BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP));
+            model.addAttribute("totalCouponDiscountNet",
+                    (couponDiscountNet.compareTo(BigDecimal.ZERO) > 0 ? couponDiscountNet : BigDecimal.ZERO).setScale(2,
+                            RoundingMode.HALF_UP));
         }
 
         if (model.containsAttribute("invoice")) {
@@ -472,593 +434,11 @@ public class TpvController {
         return "tpv/receipt";
     }
 
-    /**
-     * Displays the cash register closing form.
-     */
-    @GetMapping("/cash-close")
-    public String cashCloseForm(HttpSession session, Model model) {
-        Worker worker = (Worker) session.getAttribute("worker");
-        if (worker == null)
-            return "redirect:/login";
-
-        if (!worker.getEffectivePermissions().contains("CASH_CLOSE")) {
-            return "redirect:/tpv";
-        }
-
-        Optional<CashRegister> activeRegisterOpt = cashRegisterService.getOpenRegister();
-        if (activeRegisterOpt.isEmpty()) {
-            return "redirect:/tpv/open-register";
-        }
-
-        CashRegister activeRegister = activeRegisterOpt.get();
-        LocalDateTime startOfShift = activeRegister.getOpeningTime();
-
-        // 1. Fetch Summary (Combined query for Efficiency)
-        SaleSummaryResponse summary = saleService.getSummaryToday();
-
-        // 2. Fetch Payments & Movements
-        BigDecimal cashRefundsToday = returnService.sumTotalRefundedTodayByPaymentMethod(PaymentMethod.CASH);
-        BigDecimal cardRefundsToday = returnService.sumTotalRefundedTodayByPaymentMethod(PaymentMethod.CARD);
-
-        List<CashWithdrawal> movements = cashWithdrawalService.findByRegisterId(activeRegister.getId());
-        BigDecimal totalWithdrawals = movements.stream()
-                .filter(m -> m.getType() == null || m.getType() == CashWithdrawal.MovementType.WITHDRAWAL)
-                .map(m -> m.getAmount() != null ? m.getAmount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalEntries = movements.stream()
-                .filter(m -> m.getType() == CashWithdrawal.MovementType.ENTRY)
-                .map(m -> m.getAmount() != null ? m.getAmount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // 3. Expected Cash Logic (Calculated sum of movements)
-        BigDecimal expectedCashInDrawer = activeRegister.getOpeningBalance()
-                .add(summary.getTotalCashAmount())
-                .subtract(cashRefundsToday)
-                .add(totalEntries)
-                .subtract(totalWithdrawals);
-
-        // 4. Model Population
-        model.addAttribute("returnsToday", returnService.findByCreatedAtBetween(startOfShift, LocalDateTime.now()));
-        model.addAttribute("cancelledCount", summary.getTotalCancelledCount());
-        model.addAttribute("cancelledTotal", summary.getTotalCancelledAmount());
-        model.addAttribute("totalToday", summary.getTotalSalesAmount());
-        model.addAttribute("countToday", summary.getTotalSalesCount());
-
-        model.addAttribute("activeRegister", activeRegister);
-        model.addAttribute("cashSalesToday", summary.getTotalCashAmount());
-        model.addAttribute("cashRefundsToday", cashRefundsToday);
-        model.addAttribute("cardSalesToday", summary.getTotalCardAmount());
-        model.addAttribute("cardRefundsToday", cardRefundsToday);
-        model.addAttribute("totalWithdrawals", totalWithdrawals);
-        model.addAttribute("totalEntries", totalEntries);
-        model.addAttribute("expectedCashInDrawer", expectedCashInDrawer);
-        model.addAttribute("workerStats", saleService.getWorkerStatsBetween(startOfShift, LocalDateTime.now()));
-        model.addAttribute("shiftStartTime", startOfShift.toString());
-        model.addAttribute("todayRegister", activeRegister);
-
-        model.addAttribute("categories", categoryService.findAllActive());
-        model.addAttribute("companySettings", companySettingsService.getSettings());
-
-        return "tpv/cash-close";
-    }
-
-    @PostMapping("/withdrawal")
-    public String processWithdrawal(
-            @RequestParam String amount,
-            @RequestParam(required = false) String reason,
-            @RequestParam(required = false, defaultValue = "WITHDRAWAL") String type,
-            HttpSession session,
-            RedirectAttributes redirectAttributes) {
-
-        Worker worker = (Worker) session.getAttribute("worker");
-        if (worker == null)
-            return "redirect:/login";
-
-        if (!worker.getEffectivePermissions().contains("CASH_CLOSE")) {
-            redirectAttributes.addFlashAttribute("errorMessage",
-                    "You do not have permission to perform cash movements.");
-            return "redirect:/tpv";
-        }
-
-        try {
-            java.util.Optional<com.proconsi.electrobazar.model.CashRegister> activeRegisterOpt = cashRegisterService.getOpenRegister();
-            if (activeRegisterOpt.isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "There is no active cash register.");
-                return "redirect:/tpv";
-            }
-            com.proconsi.electrobazar.model.CashRegister activeRegister = activeRegisterOpt.get();
-            java.math.BigDecimal amountDecimal = new java.math.BigDecimal(amount.replace(",", "."));
-            com.proconsi.electrobazar.model.CashWithdrawal.MovementType movementType = com.proconsi.electrobazar.model.CashWithdrawal.MovementType
-                    .valueOf(type.toUpperCase());
-
-            cashWithdrawalService.processMovement(activeRegister.getId(), amountDecimal, reason, movementType,
-                    worker);
-
-            String msg = (movementType == CashWithdrawal.MovementType.ENTRY ? "Entry" : "Withdrawal")
-                    + " of " + amountDecimal.setScale(2, RoundingMode.HALF_UP) + " € performed successfully.";
-            redirectAttributes.addFlashAttribute("successMessage", msg);
-        } catch (Exception e) {
-            String localizedMsg = messageSource.getMessage("tpv.error.movement",
-                    new Object[] { e.getMessage() }, LocaleContextHolder.getLocale());
-            redirectAttributes.addFlashAttribute("errorMessage", localizedMsg);
-        }
-
-        return "redirect:/tpv";
-    }
-
     @GetMapping("/preferences")
     public String preferences(HttpSession session) {
         if (session.getAttribute("worker") == null) {
             return "redirect:/login";
         }
         return "tpv/preferences";
-    }
-
-    @GetMapping("/open-register")
-    public String openRegisterForm(HttpSession session, Model model) {
-        if (session.getAttribute("worker") == null)
-            return "redirect:/login";
-        if (cashRegisterService.getOpenRegister().isPresent()) {
-            return "redirect:/tpv";
-        }
-        CashRegisterOpenSuggestion suggestion = cashRegisterService.getOpenSuggestion();
-        model.addAttribute("hasSuggestion", suggestion.isHasSuggestion());
-        model.addAttribute("suggestedOpeningBalance", suggestion.getSuggestedBalance());
-        return "tpv/open-register";
-    }
-
-    @PostMapping("/open-register")
-    public String processOpenRegister(
-            @RequestParam String openingBalance,
-            HttpSession session) {
-        Worker worker = (Worker) session.getAttribute("worker");
-        if (worker == null)
-            return "redirect:/login";
-
-        String normalizedBalance = openingBalance.replace(",", ".");
-        BigDecimal openingBalanceDecimal;
-        try {
-            openingBalanceDecimal = new BigDecimal(normalizedBalance);
-        } catch (NumberFormatException e) {
-            openingBalanceDecimal = BigDecimal.ZERO;
-        }
-
-        cashRegisterService.openCashRegister(openingBalanceDecimal, worker);
-        return "redirect:/tpv";
-    }
-
-    @PostMapping("/cash-close")
-    public String processCashClose(
-            @RequestParam String closingBalance,
-            HttpSession session,
-            RedirectAttributes redirectAttributes) {
-
-        Worker worker = (Worker) session.getAttribute("worker");
-        if (worker == null)
-            return "redirect:/login";
-
-        if (!worker.getEffectivePermissions().contains("CASH_CLOSE")) {
-            return "redirect:/tpv";
-        }
-
-        String normalizedBalance = closingBalance.replace(",", ".");
-        BigDecimal actualCash = new BigDecimal(normalizedBalance);
-
-        CashRegister registerClosed = cashRegisterService.closeCashRegister(actualCash, null, worker, null);
-
-        BigDecimal actual = registerClosed.getActualCash() != null
-                ? registerClosed.getActualCash()
-                : BigDecimal.ZERO;
-
-        BigDecimal expected = registerClosed.getClosingBalance() != null
-                ? registerClosed.getClosingBalance()
-                : BigDecimal.ZERO;
-
-        redirectAttributes.addFlashAttribute("successMessage",
-                "Sesión cerrada correctamente. Diferencia: "
-                        + actual.subtract(expected) + " €");
-
-        return "redirect:/tpv";
-    }
-
-    @GetMapping("/return/check")
-    @ResponseBody
-    public ResponseEntity<?> checkTicketForReturn(@RequestParam String query) {
-        try {
-            Long saleId = null;
-            if (query.matches("\\d+")) {
-                Long id = Long.parseLong(query);
-                Sale sale = saleService.findById(id);
-                if (sale != null) {
-                    saleId = id;
-                }
-            }
-
-            if (saleId == null) {
-                saleId = ticketService.findByTicketNumber(query)
-                        .map(t -> t.getSale().getId())
-                        .orElse(null);
-            }
-
-            if (saleId == null) {
-                saleId = invoiceService.findByInvoiceNumber(query)
-                        .map(i -> i.getSale().getId())
-                        .orElse(null);
-            }
-
-            if (saleId != null) {
-                return ResponseEntity
-                        .ok(Collections.singletonMap("redirectUrl", "/tpv/return/" + saleId));
-            } else {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Collections.singletonMap("errorMessage", getMessage("tpv.error.ticket_not_found", query)));
-            }
-        } catch (Exception e) {
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Collections.singletonMap("errorMessage", getMessage("tpv.error.ticket_search", e.getMessage())));
-        }
-    }
-
-    @GetMapping("/return/search")
-    public String searchTicketForReturn(@RequestParam String query, RedirectAttributes redirectAttributes) {
-        try {
-            if (query.matches("\\d+")) {
-                Long id = Long.parseLong(query);
-                if (saleService.findById(id) != null) {
-                    return "redirect:/tpv/return/" + id;
-                }
-            }
-
-            Optional<Ticket> ticketOpt = ticketService.findByTicketNumber(query);
-            if (ticketOpt.isPresent()) {
-                return "redirect:/tpv/return/" + ticketOpt.get().getSale().getId();
-            }
-
-            Optional<Invoice> invoiceOpt = invoiceService.findByInvoiceNumber(query);
-            if (invoiceOpt.isPresent()) {
-                return "redirect:/tpv/return/" + invoiceOpt.get().getSale().getId();
-            }
-
-            redirectAttributes.addFlashAttribute("errorMessage", getMessage("tpv.error.ticket_invoice_not_found", query));
-            return "redirect:/tpv";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", getMessage("tpv.error.ticket_search", e.getMessage()));
-            return "redirect:/tpv";
-        }
-    }
-
-    @GetMapping("/return/{saleId}")
-    public String showReturnForm(@PathVariable Long saleId, HttpSession session, Model model) {
-        if (session.getAttribute("worker") == null) {
-            return "redirect:/login";
-        }
-        Sale sale = saleService.findById(saleId);
-        model.addAttribute("sale", sale);
-        model.addAttribute("paymentMethods", PaymentMethod.values());
-
-        Map<Long, BigDecimal> alreadyReturned = new HashMap<>();
-        List<SaleReturn> existingReturns = returnService.findByOriginalSaleId(saleId);
-
-        for (SaleLine line : sale.getLines()) {
-            BigDecimal returned = existingReturns.stream()
-                    .flatMap(r -> r.getLines().stream())
-                    .filter(rl -> rl.getSaleLine().getId().equals(line.getId()))
-                    .map(ReturnLine::getQuantity)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            alreadyReturned.put(line.getId(), returned);
-        }
-        model.addAttribute("alreadyReturned", alreadyReturned);
-        return "tpv/return-form";
-    }
-
-    @PostMapping("/return")
-    public String processReturn(
-            @RequestParam Long saleId,
-            @RequestParam List<Long> saleLineIds,
-            @RequestParam List<BigDecimal> quantities,
-            @RequestParam(required = false) String reason,
-            @RequestParam PaymentMethod paymentMethod,
-            HttpSession session,
-            RedirectAttributes redirectAttributes) {
-
-        Worker worker = (Worker) session.getAttribute("worker");
-        if (worker == null) {
-            return "redirect:/login";
-        }
-
-        if (saleLineIds == null || quantities == null || saleLineIds.size() != quantities.size()
-                || saleLineIds.isEmpty()) {
-            String localizedMsg = messageSource.getMessage("tpv.error.return_items",
-                    null, LocaleContextHolder.getLocale());
-            redirectAttributes.addFlashAttribute("errorMessage", localizedMsg);
-            return "redirect:/tpv/return/" + saleId;
-        }
-
-        List<ReturnLineRequest> lineRequests = new ArrayList<>();
-        for (int i = 0; i < saleLineIds.size(); i++) {
-            lineRequests.add(new ReturnLineRequest(
-                    saleLineIds.get(i), quantities.get(i)));
-        }
-
-        try {
-            SaleReturn saleReturn = returnService.processReturn(
-                    saleId, lineRequests, reason, paymentMethod, worker);
-            redirectAttributes.addFlashAttribute("saleReturn", saleReturn);
-            return "redirect:/tpv/return-receipt/" + saleReturn.getId();
-        } catch (IllegalArgumentException | InsufficientCashException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-            return "redirect:/tpv/return/" + saleId;
-        }
-    }
-
-    @GetMapping("/return-receipt/{returnId}")
-    public String showReturnReceipt(
-            @PathVariable Long returnId,
-            @RequestParam(required = false, defaultValue = "false") Boolean autoPrint,
-            HttpSession session,
-            Model model) {
-        if (session.getAttribute("worker") == null) {
-            return "redirect:/login";
-        }
-        SaleReturn saleReturn = (SaleReturn) model.getAttribute("saleReturn");
-        if (saleReturn == null) {
-            saleReturn = returnService.findById(returnId)
-                    .orElseThrow(() -> new IllegalArgumentException("Return not found: " + returnId));
-            model.addAttribute("saleReturn", saleReturn);
-        }
-        model.addAttribute("autoPrint", autoPrint);
-        model.addAttribute("companySettings", companySettingsService.getSettings());
-
-        Sale originalSale = saleReturn.getOriginalSale();
-        boolean applyRecargo = originalSale.isApplyRecargo();
-        List<TaxBreakdown> standardBreakdowns = new ArrayList<>();
-
-        for (ReturnLine line : saleReturn.getLines()) {
-            if (line.getSaleLine() == null || line.getSaleLine().getProduct() == null)
-                continue;
-
-            BigDecimal vatRate = line.getVatRate() != null ? line.getVatRate() : new BigDecimal("0.21");
-            TaxBreakdown bd = recargoCalculator.calculateLineBreakdown(
-                    line.getSaleLine().getProduct().getId(), line.getSaleLine().getProduct().getName(),
-                    line.getUnitPrice(), line.getQuantity(), vatRate, applyRecargo);
-            standardBreakdowns.add(bd);
-        }
-
-        model.addAttribute("applyRecargo", applyRecargo);
-        model.addAttribute("totalBase", standardBreakdowns.stream().map(TaxBreakdown::getBaseAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
-        model.addAttribute("totalVat", standardBreakdowns.stream().map(TaxBreakdown::getVatAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
-        model.addAttribute("totalRecargo", standardBreakdowns.stream().map(TaxBreakdown::getRecargoAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
-
-        if (saleReturn.getRectificativeInvoice() != null) {
-            List<TaxBreakdown> negativeBreakdowns = new ArrayList<>();
-            for (TaxBreakdown bd : standardBreakdowns) {
-                negativeBreakdowns.add(TaxBreakdown.builder()
-                        .productId(bd.getProductId())
-                        .productName(bd.getProductName())
-                        .unitPrice(bd.getUnitPrice())
-                        .quantity(bd.getQuantity().negate())
-                        .baseAmount(bd.getBaseAmount().negate())
-                        .vatRate(bd.getVatRate())
-                        .vatAmount(bd.getVatAmount().negate())
-                        .recargoRate(bd.getRecargoRate())
-                        .recargoAmount(bd.getRecargoAmount().negate())
-                        .totalAmount(bd.getTotalAmount().negate())
-                        .recargoApplied(applyRecargo)
-                        .build());
-            }
-            model.addAttribute("taxBreakdowns", negativeBreakdowns);
-            model.addAttribute("totalBase", negativeBreakdowns.stream().map(TaxBreakdown::getBaseAmount)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
-            model.addAttribute("totalVat", negativeBreakdowns.stream().map(TaxBreakdown::getVatAmount)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
-            model.addAttribute("totalRecargo", negativeBreakdowns.stream().map(TaxBreakdown::getRecargoAmount)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add).setScale(2, RoundingMode.HALF_UP));
-
-            List<Map<String, Object>> negativeLines = new ArrayList<>();
-            for (ReturnLine line : saleReturn.getLines()) {
-                if (line.getSaleLine() == null || line.getSaleLine().getProduct() == null)
-                    continue;
-                Map<String, Object> map = new HashMap<>();
-                map.put("name", line.getSaleLine().getProduct().getName());
-                map.put("unitPrice", line.getUnitPrice());
-                map.put("quantity", line.getQuantity().negate());
-                map.put("subtotal", line.getSubtotal().negate());
-                map.put("vatRate", line.getVatRate());
-                map.put("recargoRate", line.getSaleLine().getRecargoRate());
-                negativeLines.add(map);
-            }
-            model.addAttribute("negativeLines", negativeLines);
-            model.addAttribute("totalAmount", saleReturn.getTotalRefunded().negate());
-            model.addAttribute("qrCodeBase64",
-                    invoiceService.generateQrCodeBase64(saleReturn.getRectificativeInvoice()));
-
-            return "tpv/rectificative-invoice";
-        }
-
-        model.addAttribute("taxBreakdowns", standardBreakdowns);
-        
-        // Add QR code for simplified ticket returns if available
-        if (originalSale.getTicket() != null) {
-            model.addAttribute("qrCodeBase64", invoiceService.generateQrCodeBase64(originalSale.getTicket()));
-        }
-        
-        return "tpv/return-receipt";
-    }
-
-    /**
-     * Returns the effective unit price for a product, optionally discounted by a
-     * tariff.
-     */
-    @GetMapping("/api/products/{productId}/price")
-    @ResponseBody
-    public Map<String, BigDecimal> getProductEffectivePrice(
-            @PathVariable String productId,
-            @RequestParam(required = false) Long tariffId) {
-
-        log.debug("[TPV] getProductEffectivePrice: productId string={}, tariffId={}", productId, tariffId);
-        Long id;
-        try {
-            id = Long.parseLong(productId);
-        } catch (NumberFormatException e) {
-            log.error("[TPV] Invalid productId format: {}", productId);
-            return Collections.emptyMap();
-        }
-
-        Product product = productService.findById(id);
-        if (product == null) {
-            return Collections.emptyMap();
-        }
-
-        Long effectiveTariffId = tariffId;
-        if (effectiveTariffId == null) {
-            effectiveTariffId = tariffService.findByName(Tariff.MINORISTA)
-                    .map(Tariff::getId)
-                    .orElse(null);
-        }
-
-        ProductPrice activePrice = productPriceService.getCurrentPrice(id, LocalDateTime.now());
-        BigDecimal basePrice = (activePrice != null) ? activePrice.getPrice() : product.getPrice();
-        BigDecimal vatRate = (activePrice != null) ? activePrice.getVatRate()
-                : (product.getTaxRate() != null && product.getTaxRate().getVatRate() != null
-                        ? product.getTaxRate().getVatRate()
-                        : new BigDecimal("0.21"));
-
-        BigDecimal finalPrice = null;
-        BigDecimal priceWithRe = null;
-
-        if (effectiveTariffId != null) {
-            var historyEntry = tariffPriceHistoryRepository.findCurrentByProductAndTariff(id, effectiveTariffId);
-            if (historyEntry.isPresent()) {
-                finalPrice = historyEntry.get().getPriceWithVat();
-                priceWithRe = historyEntry.get().getPriceWithRe();
-            }
-        }
-
-        if (finalPrice == null) {
-            if (effectiveTariffId != null) {
-                finalPrice = tariffService.findById(effectiveTariffId)
-                        .map(tariff -> {
-                            BigDecimal discount = tariff.getDiscountPercentage();
-                            if (discount == null || discount.compareTo(BigDecimal.ZERO) == 0) {
-                                return basePrice;
-                            }
-                            BigDecimal factor = BigDecimal.ONE.subtract(
-                                    discount.divide(new BigDecimal("100"), 10, RoundingMode.HALF_UP));
-                            return basePrice.multiply(factor);
-                        })
-                        .orElse(basePrice);
-            } else {
-                finalPrice = basePrice;
-            }
-
-            finalPrice = finalPrice.setScale(2, RoundingMode.HALF_UP);
-            BigDecimal reRate = recargoCalculator.getRecargoRate(vatRate);
-            BigDecimal netPrice = finalPrice.divide(BigDecimal.ONE.add(vatRate), 10, RoundingMode.HALF_UP);
-            priceWithRe = netPrice.multiply(BigDecimal.ONE.add(vatRate).add(reRate)).setScale(2, RoundingMode.HALF_UP);
-        }
-
-        Map<String, BigDecimal> response = new HashMap<>();
-        response.put("price", finalPrice);
-        response.put("priceWithRe", priceWithRe);
-        response.put("vatRate", vatRate);
-        return response;
-    }
-
-    /**
-     * Updates the price of a cart item, either for the current session only
-     * or permanently in the database (requires admin PIN).
-     *
-     * <p>
-     * Both modes generate a mandatory fiscal audit log entry.
-     * </p>
-     */
-    @PostMapping("/cart/update-price")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> updateCartItemPrice(
-            @RequestParam Long productId,
-            @RequestParam String newPrice,
-            @RequestParam(defaultValue = "SESSION") String saveMode,
-            @RequestParam(required = false) String adminPin,
-            HttpSession session) {
-
-        Worker worker = (Worker) session.getAttribute("worker");
-        if (worker == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Collections.singletonMap("error", "No hay sesión activa."));
-        }
-
-        BigDecimal newPriceDecimal;
-        try {
-            newPriceDecimal = new BigDecimal(newPrice.replace(",", ".")).setScale(4, RoundingMode.HALF_UP);
-        } catch (NumberFormatException e) {
-            return ResponseEntity.badRequest()
-                    .body(Collections.singletonMap("error", "Precio inválido."));
-        }
-
-        if (newPriceDecimal.compareTo(BigDecimal.ZERO) < 0) {
-            return ResponseEntity.badRequest()
-                    .body(Collections.singletonMap("error", "El precio no puede ser negativo."));
-        }
-
-        Product product = productService.findById(productId);
-        if (product == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Collections.singletonMap("error", "Producto no encontrado."));
-        }
-
-        String username = worker.getUsername();
-        BigDecimal oldPrice = product.getPrice().setScale(2, RoundingMode.HALF_UP);
-        BigDecimal displayNewPrice = newPriceDecimal.setScale(2, RoundingMode.HALF_UP);
-
-        Map<String, Object> result = new HashMap<>();
-
-        if ("DATABASE".equalsIgnoreCase(saveMode)) {
-            // --- Opción B: validar PIN y guardar en DB ---
-            if (!adminPinService.verifyPin(adminPin)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Collections.singletonMap("error", "PIN de administrador incorrecto."));
-            }
-
-            product.setPrice(newPriceDecimal);
-            productService.save(product);
-            log.info("[PRICE] DB price change: product={} ({}), oldPrice={}, newPrice={}, by={}",
-                    productId, product.getName(), oldPrice, displayNewPrice, username);
-
-            activityLogService.logFiscalEvent("CAMBIO_PRECIO",
-                    String.format(
-                            "PRECIO_DB | Producto: '%s' (ID: %d) | Precio anterior: %.2f€ | Nuevo precio: %.2f€ | Cajero: %s",
-                            product.getName(), productId, oldPrice, displayNewPrice, username),
-                    username);
-
-            result.put("savedToDb", true);
-            result.put("message",
-                    String.format("Precio de '%s' actualizado en BD: %.2f€", product.getName(), displayNewPrice));
-        } else {
-            // --- Opción A: solo sesión actual ---
-            log.info("[PRICE] Session price override: product={} ({}), oldPrice={}, newPrice={}, by={}",
-                    productId, product.getName(), oldPrice, displayNewPrice, username);
-
-            activityLogService.logFiscalEvent("CAMBIO_PRECIO",
-                    String.format(
-                            "PRECIO_SESION | Producto: '%s' (ID: %d) | Precio anterior: %.2f€ | Nuevo precio: %.2f€ | Cajero: %s",
-                            product.getName(), productId, oldPrice, displayNewPrice, username),
-                    username);
-
-            result.put("savedToDb", false);
-            result.put("message", String.format("Precio de '%s' modificado para esta venta: %.2f€", product.getName(),
-                    displayNewPrice));
-        }
-
-        result.put("newPrice", displayNewPrice);
-        result.put("productId", productId);
-        return ResponseEntity.ok(result);
-    }
-    private String getMessage(String key, Object... args) {
-        return messageSource.getMessage(key, args, LocaleContextHolder.getLocale());
     }
 }

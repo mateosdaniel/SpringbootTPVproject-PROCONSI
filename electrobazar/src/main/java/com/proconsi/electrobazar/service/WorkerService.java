@@ -39,6 +39,12 @@ public class WorkerService {
         return workerRepository.findAll(spec, pageable);
     }
 
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Slice<com.proconsi.electrobazar.dto.AdminWorkerProjection> findAdminListing(String search, Long roleId, Boolean active, Pageable pageable) {
+        Specification<Worker> spec = WorkerSpecification.filterWorkers(search, roleId, active);
+        return workerRepository.findAdminListing(spec, pageable);
+    }
+
     /**
      * Retrieves all workers in the system.
      * @return List of all workers.

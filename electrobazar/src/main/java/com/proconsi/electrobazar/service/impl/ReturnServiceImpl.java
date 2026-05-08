@@ -75,6 +75,13 @@ public class ReturnServiceImpl implements ReturnService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Slice<com.proconsi.electrobazar.dto.AdminReturnProjection> findAdminListing(String search, String method, String date, Pageable pageable) {
+        Specification<SaleReturn> spec = ReturnSpecification.filterReturns(search, method, date);
+        return saleReturnRepository.findAdminListing(spec, pageable);
+    }
+
+    @Override
     @Transactional
     public SaleReturn processReturn(Long originalSaleId, List<ReturnLineRequest> lineRequests,
             String reason, PaymentMethod paymentMethod, Worker worker) {

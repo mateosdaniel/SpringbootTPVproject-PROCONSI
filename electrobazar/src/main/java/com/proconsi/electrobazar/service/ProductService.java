@@ -3,6 +3,7 @@ package com.proconsi.electrobazar.service;
 import com.proconsi.electrobazar.model.Product;
 import com.proconsi.electrobazar.model.TaxRate;
 import com.proconsi.electrobazar.dto.ProductRequest;
+import com.proconsi.electrobazar.dto.AdminProductProjection;
 import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.util.List;
@@ -207,5 +208,7 @@ public interface ProductService {
      * @return Count of updated products.
      */
     int applySelectiveTaxRate(List<Long> productIds, TaxRate taxRate, String taskId);
+
+    org.springframework.data.domain.Slice<AdminProductProjection> findAdminListing(String search, String category, String stock, Boolean active, Long measurementUnitId, Pageable pageable);
 }
 

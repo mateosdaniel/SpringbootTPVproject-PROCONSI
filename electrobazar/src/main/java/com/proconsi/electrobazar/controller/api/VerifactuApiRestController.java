@@ -601,62 +601,6 @@ public class VerifactuApiRestController {
         return row;
     }
 
-    private List<Map<String, Object>> filterRows(List<Map<String, Object>> list, String status, String reason, String start, String end) {
-        java.util.stream.Stream<Map<String, Object>> stream = list.stream();
-        if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
-            stream = stream.filter(m -> status.equalsIgnoreCase((String) m.get("aeatStatus")));
-        }
-        if (reason != null && !reason.isBlank() && !"ALL".equalsIgnoreCase(reason)) {
-            stream = stream.filter(m -> reason.equalsIgnoreCase((String) m.get("rejectionReason")));
-        }
-        if (start != null && !start.isBlank()) {
-            java.time.LocalDateTime s = java.time.LocalDateTime.parse(start + "T00:00:00");
-            stream = stream.filter(m -> m.get("createdAt") != null && !java.time.LocalDateTime.parse((String) m.get("createdAt")).isBefore(s));
-        }
-        if (end != null && !end.isBlank()) {
-            java.time.LocalDateTime e = java.time.LocalDateTime.parse(end + "T23:59:59");
-            stream = stream.filter(m -> m.get("createdAt") != null && !java.time.LocalDateTime.parse((String) m.get("createdAt")).isAfter(e));
-        }
-        return stream.collect(java.util.stream.Collectors.toList());
-    }
-
-    @FunctionalInterface
-    private interface StatusExtractor<T> { AeatStatus get(T item); }
-    @FunctionalInterface
-    private interface ReasonExtractor<T> { com.proconsi.electrobazar.model.AeatRejectionReason get(T item); }
-    @FunctionalInterface
-    private interface DateExtractor<T> { java.time.LocalDateTime get(T item); }
-
-    private <T> List<T> filterRecords(List<T> list, StatusExtractor<T> statusFn, ReasonExtractor<T> reasonFn, DateExtractor<T> dateFn,
-                                     String status, String reason, String start, String end) {
-        java.util.stream.Stream<T> stream = list.stream();
-        if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
-            if ("NOT_SENT".equalsIgnoreCase(status)) stream = stream.filter(i -> statusFn.get(i) == null);
-            else {
-                AeatStatus s = AeatStatus.valueOf(status);
-                stream = stream.filter(i -> s.equals(statusFn.get(i)));
-            }
-        }
-        if (reason != null && !reason.isBlank() && !"ALL".equalsIgnoreCase(reason)) {
-            com.proconsi.electrobazar.model.AeatRejectionReason r = com.proconsi.electrobazar.model.AeatRejectionReason.valueOf(reason);
-            stream = stream.filter(i -> r.equals(reasonFn.get(i)));
-        }
-        if (start != null && !start.isBlank()) {
-            java.time.LocalDateTime s = java.time.LocalDateTime.parse(start + "T00:00:00");
-            stream = stream.filter(i -> dateFn.get(i) != null && !dateFn.get(i).isBefore(s));
-        }
-        if (end != null && !end.isBlank()) {
-            java.time.LocalDateTime e = java.time.LocalDateTime.parse(end + "T23:59:59");
-            stream = stream.filter(i -> dateFn.get(i) != null && !dateFn.get(i).isAfter(e));
-        }
-        return stream.toList();
-    }
-
-    private <T> List<T> paginate(List<T> list, int page, int size) {
-        int start = Math.min(page * size, list.size());
-        int end   = Math.min(start + size, list.size());
-        return list.subList(start, end);
-    }
 
     private Map<String, Object> pageResponse(List<Map<String, Object>> rows, int total, int page, int size) {
         Map<String, Object> m = new LinkedHashMap<>();
@@ -667,4 +611,15 @@ public class VerifactuApiRestController {
         m.put("size",          size);
         return m;
     }
+
+    @FunctionalInterface
+    private interface StatusExtractor<T> {
+        AeatStatus get(T item);
+    }
+
+    @FunctionalInterface
+    private interface ReasonExtractor<T> {
+        AeatRejectionReason get(T item);
+    }
 }
+
