@@ -805,9 +805,9 @@
                                     <!-- Factura / Ticket toggle -->
                                     <div class="btn-group btn-group-sm" role="group">
                                         <input type="radio" class="btn-check" name="docTypeToggle" id="docTypeFactura" autocomplete="off" checked onchange="onDocTypeToggle('FACTURA_COMPLETA')">
-                                        <label class="btn btn-outline-success" for="docTypeFactura"><i class="bi bi-file-earmark-text me-1"></i>Factura</label>
+                                        <label class="btn btn-outline-success" for="docTypeFactura"><i class="bi bi-file-earmark-text me-1"></i><span th:text="#{tpv.checkout.invoice}">Factura</span></label>
                                         <input type="radio" class="btn-check" name="docTypeToggle" id="docTypeTicket" autocomplete="off" onchange="onDocTypeToggle('FACTURA_SIMPLIFICADA')">
-                                        <label class="btn btn-outline-secondary" for="docTypeTicket"><i class="bi bi-ticket-perforated me-1"></i>Ticket</label>
+                                        <label class="btn btn-outline-secondary" for="docTypeTicket"><i class="bi bi-ticket-perforated me-1"></i><span th:text="#{tpv.checkout.ticket}">Ticket</span></label>
                                     </div>
                                 </div>
                                 <!-- Indicador tipo documento -->
@@ -822,7 +822,7 @@
                                 <small th:text="#{tpv.checkout.no_customer}">Sin cliente asignado</small>
                                 <div class="mt-2">
                                     <button type="button" class="btn btn-sm btn-outline-primary" onclick="openFacturaPuntualModal()">
-                                        <i class="bi bi-file-earmark-plus me-1"></i>¿Necesita factura?
+                                        <i class="bi bi-file-earmark-plus me-1"></i><span th:text="#{tpv.checkout.need_invoice}">¿Necesita factura?</span>
                                     </button>
                                 </div>
                             </div>
@@ -830,7 +830,7 @@
                             <div id="summaryPuntualActive" style="display:none;">
                                 <div class="d-flex align-items-center justify-content-between">
                                     <div>
-                                        <span class="fw-bold" style="color: var(--accent);"><i class="bi bi-file-earmark-check me-1"></i>Factura puntual</span><br>
+                                        <span class="fw-bold" style="color: var(--accent);"><i class="bi bi-file-earmark-check me-1"></i><span th:text="#{tpv.checkout.puntual_invoice}">Factura puntual</span></span><br>
                                         <small id="summaryPuntualNombre" style="color: var(--text-main);"></small>
                                         <small id="summaryPuntualNif" style="color: var(--text-muted);"></small>
                                     </div>
@@ -903,7 +903,7 @@
                                 <small style="display: block; color: var(--text-muted); font-size: 0.8rem;"
                                     th:text="#{tpv.checkout.mixed.remaining}">Restante /
                                     Cambio</small>
-                                <span id="mixedRemainingAmount" class="fw-bold fs-5 text-danger">0.00€ faltan</span>
+                                <span id="mixedRemainingAmount" class="fw-bold fs-5 text-danger">0.00€</span>
                             </div>
                             <!-- Botones rápidos para rellenar lo que falta -->
                             <div class="d-flex gap-2">
@@ -922,13 +922,13 @@
                     <!-- Abonos del Cliente -->
                     <div id="abonosSelectionSection" class="mb-4" style="display: none;">
                         <label class="form-label fw-bold small text-muted"><i class="bi bi-wallet2 me-1"></i>
-                            Abonos disponibles para este cliente</label>
+                            <span th:text="#{tpv.checkout.abonos_available}">Abonos disponibles para este cliente</span></label>
                         <div id="abonosListContainer" class="d-flex flex-column gap-2 p-2 rounded" 
                              style="background: var(--surface); border: 1px solid var(--border); max-height: 150px; overflow-y: auto;">
                             <!-- Abonos se cargarán aquí dinámicamente -->
                         </div>
                         <div class="mt-2 text-end" id="totalAbonoSelectedDisplay" style="display: none; font-size: 0.85rem; color: var(--accent); font-weight: 700;">
-                            Abono total a aplicar: <span>0.00€</span>
+                            <span th:text="#{tpv.checkout.abonos_total}">Abono total a aplicar</span>: <span>0.00€</span>
                         </div>
                     </div>
 
@@ -965,57 +965,57 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content" style="background: var(--secondary); color: var(--text-main); border-color: var(--border);">
                 <div class="modal-header border-0 pb-0" style="border-color: var(--border);">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-plus me-2 text-accent"></i>Datos para Factura Puntual</h5>
+                    <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-plus me-2 text-accent"></i><span th:text="#{tpv.checkout.factura_puntual.title}">Datos para Factura Puntual</span></h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="small text-muted mb-4">Introduce los datos del cliente para emitir una factura completa. Estos datos no se guardarán permanentemente.</p>
+                    <p class="small text-muted mb-4" th:text="#{tpv.checkout.factura_puntual.help}">Introduce los datos del cliente para emitir una factura completa. Estos datos no se guardarán permanentemente.</p>
                     <div id="facturaPuntualAlert" class="alert alert-danger" style="display:none;"></div>
                     
                     <form id="facturaPuntualForm" novalidate>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold small text-muted">Nombre / Razón Social <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold small text-muted"><span th:text="#{tpv.checkout.factura_puntual.name}">Nombre / Razón Social</span> <span class="text-danger">*</span></label>
                                 <input type="text" id="fp_nombre" class="form-control" placeholder="Empresa S.L. o Nombre Apellidos"
                                        style="background: var(--primary); color: var(--text-main); border-color: var(--border);" required oninput="validateField(this)">
-                                <div class="invalid-feedback">El nombre es obligatorio.</div>
+                                <div class="invalid-feedback" th:text="#{tpv.checkout.validation.name_required}">El nombre es obligatorio.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold small text-muted">NIF / CIF <span class="text-danger">*</span></label>
                                 <input type="text" id="fp_nif" class="form-control" placeholder="B12345678 o 12345678A" maxlength="20"
                                        style="background: var(--primary); color: var(--text-main); border-color: var(--border);" 
                                        oninput="validateFpNif(this)">
-                                <div id="fp_nif_feedback" class="invalid-feedback">Formato de NIF/CIF no válido.</div>
+                                <div id="fp_nif_feedback" class="invalid-feedback" th:text="#{tpv.checkout.validation.nif_invalid}">Formato de NIF/CIF no válido.</div>
                             </div>
                             <div class="col-12">
-                                <label class="form-label fw-bold small text-muted">Dirección <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold small text-muted"><span th:text="#{tpv.checkout.factura_puntual.address}">Dirección</span> <span class="text-danger">*</span></label>
                                 <input type="text" id="fp_direccion" class="form-control" placeholder="Calle Ejemplo, 12"
                                        style="background: var(--primary); color: var(--text-main); border-color: var(--border);" required oninput="validateField(this)">
-                                <div class="invalid-feedback">La dirección es obligatoria.</div>
+                                <div class="invalid-feedback" th:text="#{tpv.checkout.validation.address_required}">La dirección es obligatoria.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold small text-muted">C.P. <span class="text-danger">*</span></label>
                                 <input type="text" id="fp_cp" class="form-control" placeholder="28001" maxlength="10"
                                        style="background: var(--primary); color: var(--text-main); border-color: var(--border);" required oninput="onPostalCodeInput(this, 'fp_ciudad')">
-                                <div class="invalid-feedback">C.P. obligatorio.</div>
+                                <div class="invalid-feedback" th:text="#{tpv.checkout.validation.cp_required}">C.P. obligatorio.</div>
                             </div>
                             <div class="col-md-8">
-                                <label class="form-label fw-bold small text-muted">Ciudad <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold small text-muted"><span th:text="#{tpv.checkout.factura_puntual.city}">Ciudad</span> <span class="text-danger">*</span></label>
                                 <input type="text" id="fp_ciudad" class="form-control" placeholder="Madrid"
                                        style="background: var(--primary); color: var(--text-main); border-color: var(--border);" required oninput="validateField(this)">
-                                <div class="invalid-feedback">La ciudad es obligatoria.</div>
+                                <div class="invalid-feedback" th:text="#{tpv.checkout.validation.city_required}">La ciudad es obligatoria.</div>
                             </div>
                              <div class="col-md-6">
                                 <label class="form-label fw-bold small text-muted">Email</label>
                                 <input type="email" id="fp_email" class="form-control" placeholder="ejemplo@correo.com"
                                        style="background: var(--primary); color: var(--text-main); border-color: var(--border);" oninput="validateEmailField(this)">
-                                <div class="invalid-feedback">Email no válido.</div>
+                                <div class="invalid-feedback" th:text="#{tpv.checkout.validation.email_invalid}">Email no válido.</div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold small text-muted">Teléfono</label>
                                 <input type="text" id="fp_phone" class="form-control" placeholder="+34 600 000 000"
                                        style="background: var(--primary); color: var(--text-main); border-color: var(--border);" oninput="validatePhoneField(this)">
-                                <div class="invalid-feedback">Teléfono no válido.</div>
+                                <div class="invalid-feedback" th:text="#{tpv.checkout.validation.phone_invalid}">Teléfono no válido.</div>
                             </div>
                         </div>
                     </form>
@@ -1024,7 +1024,7 @@
                     <button type="button" class="btn btn-cancel" data-bs-dismiss="modal" onclick="cancelarFacturaPuntual()"
                         style="background: var(--primary); border-color: var(--border); color: var(--text-main);">Cancelar</button>
                     <button type="button" class="btn btn-accent fw-bold" onclick="aplicarFacturaPuntual()">
-                        <i class="bi bi-check-lg me-1"></i>Aplicar Datos
+                        <i class="bi bi-check-lg me-1"></i><span th:text="#{tpv.checkout.factura_puntual.apply}">Aplicar Datos</span>
                     </button>
                 </div>
             </div>
@@ -1515,7 +1515,9 @@
                   data-on-hold-no-label=#{tpv.on_hold.no_label},
                   data-error-connection=#{common.error.connection},
                   data-error-network=#{common.error.network},
-                  data-search-confirm=#{tpv.return.search.confirm}">
+                  data-search-confirm=#{tpv.return.search.confirm},
+                  data-doc-indicator-factura=#{tpv.checkout.doc_indicator_factura},
+                  data-doc-indicator-ticket=#{tpv.checkout.doc_indicator_ticket}">
     </div>
 
     <script th:src="@{/js/util/product-autocomplete.js}"></script>
@@ -1529,8 +1531,8 @@
                 style="width: 70px; height: 70px; background: var(--accent); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2rem; box-shadow: 0 0 20px rgba(243, 156, 18, 0.3);">
                 <i class="bi bi-shield-lock"></i>
             </div>
-            <h3 style="color: var(--text-main); margin-bottom: 0.5rem; font-weight: 700;">TPV BLOQUEADO</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem;">Introduce tu PIN para continuar
+            <h3 style="color: var(--text-main); margin-bottom: 0.5rem; font-weight: 700;" th:text="#{tpv.lock.title}">TPV BLOQUEADO</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem;" th:text="#{tpv.lock.instruction}">Introduce tu PIN para continuar
             </p>
 
             <!-- PIN Circles -->
@@ -1545,7 +1547,7 @@
                     style="width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 50%;"></div>
             </div>
 
-            <div id="pinErrorMsg" class="text-danger mb-3" style="display: none; font-size: 0.85rem; font-weight: 600;">
+            <div id="pinErrorMsg" class="text-danger mb-3" style="display: none; font-size: 0.85rem; font-weight: 600;" th:text="#{tpv.lock.error}">
                 PIN Incorrecto</div>
 
             <!-- PIN Keyboard -->
@@ -1598,12 +1600,12 @@
                 <div class="modal-header" style="background: var(--accent); border: none; min-height: 60px; padding: 1rem 1.5rem;">
                     <h5 class="modal-title fw-bold" style="color: #ffffff !important; margin: 0; display: flex; align-items: center;">
                         <i class="bi bi-ticket-perforated me-2" style="color: #ffffff !important; font-size: 1.25rem;"></i> 
-                        <span style="color: #ffffff !important;">Seleccionar Abono / Vale</span>
+                        <span style="color: #ffffff !important;" th:text="#{tpv.abono.modal.title}">Seleccionar Abono / Vale</span>
                     </h5>
                     <button type="button" class="btn-close" th:style="'filter: brightness(0) invert(1);'" data-bs-dismiss="modal" aria-label="Close" style="opacity: 0.9;"></button>
                 </div>
                 <div class="modal-body p-4" style="background: var(--primary);">
-                    <p id="abono-modal-instructions" class="small mb-4" style="color: var(--text-main) !important; opacity: 0.85; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">Seleccione el abono que desea aplicar a esta venta (máximo uno por venta).</p>
+                    <p id="abono-modal-instructions" class="small mb-4" style="color: var(--text-main) !important; opacity: 0.85; border-bottom: 1px solid var(--border); padding-bottom: 1rem;" th:text="#{tpv.abono.modal.instructions}">Seleccione el abono que desea aplicar a esta venta (máximo uno por venta).</p>
                     
                     <!-- Formulario para cliente con abonos -->
                     <div id="tpv-abono-selection-list" style="display:none;">
@@ -1613,13 +1615,13 @@
                     <!-- Formulario para cuando NO hay cliente (importe manual o búsqueda por código) -->
                     <div id="tpv-abono-manual-input" style="display:none;">
                         <div class="mb-4">
-                            <label class="form-label fw-bold small text-uppercase" style="color:var(--accent);">Opción 1: Buscar Bono por Código</label>
+                            <label class="form-label fw-bold small text-uppercase" style="color:var(--accent);" th:text="#{tpv.abono.modal.option1}">Opción 1: Buscar Bono por Código</label>
                             <div class="input-group">
                                 <span class="input-group-text border-end-0" style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border);"><i class="bi bi-search"></i></span>
                                 <input type="text" id="abono-search-code" class="form-control border-start-0 shadow-none" 
                                     style="background: var(--primary); color: var(--text-main); border: 1px solid var(--border);"
-                                    placeholder="Ej: AB-24-XXXX">
-                                <button class="btn" type="button" onclick="searchAbonoByCode()" style="border: none; color: #ffffff !important; background: var(--accent); font-weight: 700; padding: 0 1.5rem;">Buscar</button>
+                                    th:placeholder="#{tpv.abono.modal.search_placeholder}" placeholder="Ej: AB-24-XXXX">
+                                <button class="btn" type="button" onclick="searchAbonoByCode()" style="border: none; color: #ffffff !important; background: var(--accent); font-weight: 700; padding: 0 1.5rem;" th:text="#{common.search}">Buscar</button>
                             </div>
                             <div id="abono-search-result" class="mt-2" style="display:none;">
                                 <!-- Contenedor para el bono encontrado -->
@@ -1630,7 +1632,7 @@
 
                         <div>
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label class="form-label fw-bold small text-uppercase mb-0" style="color:var(--accent);">Opción 2: Importe Manual</label>
+                                <label class="form-label fw-bold small text-uppercase mb-0" style="color:var(--accent);" th:text="#{tpv.abono.modal.option2}">Opción 2: Importe Manual</label>
                                 <div class="btn-group btn-group-sm" role="group" style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface);">
                                     <button type="button" id="btn-abono-fixed" class="btn btn-sm" style="font-size: 0.75rem; padding: 4px 12px; background: var(--accent); color: #ffffff !important; border: none; font-weight: 700;" onclick="setAbonoType('fixed')">€</button>
                                     <button type="button" id="btn-abono-percent" class="btn btn-sm" style="font-size: 0.75rem; padding: 4px 12px; background: transparent; color: var(--text-muted); border: none; font-weight: 600;" onclick="setAbonoType('percent')">%</button>
@@ -1642,14 +1644,14 @@
                                     placeholder="0.00" step="0.01" min="0">
                                 <span class="input-group-text" id="abono-manual-suffix" style="background: var(--accent); color: #ffffff !important; border: 1px solid var(--accent); border-left: none; font-weight: bold; border-radius: 0 12px 12px 0; min-width: 50px; justify-content: center;">€</span>
                             </div>
-                            <p class="small mt-2 mb-0" style="color: var(--text-muted) !important; font-size: 0.75rem;">Use esta opción si no tiene el código pero conoce el saldo o porcentaje a descontar.</p>
+                            <p class="small mt-2 mb-0" style="color: var(--text-muted) !important; font-size: 0.75rem;" th:text="#{tpv.abono.modal.help}">Use esta opción si no tiene el código pero conoce el saldo o porcentaje a descontar.</p>
                         </div>
                     </div>
                 </div>
                 <input type="hidden" id="abono-manual-mode" value="fixed">
                 <div class="modal-footer border-0 p-3" style="background: var(--surface); gap: 10px;">
-                    <button type="button" class="btn px-4" style="background: var(--primary); color: var(--text-main); border-radius: 12px; border: 1px solid var(--border); font-weight: 500;" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn px-4" style="background: var(--accent); color: #ffffff !important; border-radius: 12px; font-weight: 700; box-shadow: 0 4px 12px var(--accent-20);" onclick="confirmAbonoSelection()">Aplicar Seleccionado</button>
+                    <button type="button" class="btn px-4" style="background: var(--primary); color: var(--text-main); border-radius: 12px; border: 1px solid var(--border); font-weight: 500;" data-bs-dismiss="modal" th:text="#{common.cancel}">Cancelar</button>
+                    <button type="button" class="btn px-4" style="background: var(--accent); color: #ffffff !important; border-radius: 12px; font-weight: 700; box-shadow: 0 4px 12px var(--accent-20);" onclick="confirmAbonoSelection()" th:text="#{tpv.abono.modal.apply}">Aplicar Seleccionado</button>
                 </div>
             </div>
         </div>

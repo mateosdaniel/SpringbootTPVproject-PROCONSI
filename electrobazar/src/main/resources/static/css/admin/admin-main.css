@@ -728,7 +728,7 @@
         /* ── Accent Button ── */
         .btn-accent {
             background: var(--accent) !important;
-            color: var(--primary) !important;
+            color: var(--accent-text, #ffffff) !important;
             /* White text on orange accent */
             font-weight: 700;
             border: none;
@@ -737,9 +737,9 @@
 
         .btn-accent:hover {
             background: var(--accent-hover) !important;
-            color: var(--primary) !important;
+            color: var(--accent-text, #ffffff) !important; /* Ensure white text on accent hover */
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(245, 166, 35, 0.2);
+            box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.3);
         }
 
         .btn-accent i,
@@ -849,7 +849,7 @@
         .btn-save {
             background: var(--accent);
             border: none;
-            color: var(--primary);
+            color: var(--accent-text, #ffffff) !important;
             font-family: inherit;
             font-weight: 700;
             padding: 0.5rem 1.25rem;
@@ -861,6 +861,29 @@
 
         .btn-save:hover {
             background: var(--accent-hover);
+            color: var(--accent-text, #ffffff) !important; /* Ensure text is visible on hover */
+            box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn-save i,
+        .btn-save span,
+        .btn-save:hover i,
+        .btn-save:hover span {
+            color: inherit !important;
+        }
+
+        .btn-outline-warning:hover {
+            background-color: #f5a623 !important;
+            border-color: #f5a623 !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(245, 166, 35, 0.2);
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: var(--text-muted) !important;
+            border-color: var(--text-muted) !important;
+            color: var(--primary) !important;
         }
 
         .btn-cancel {

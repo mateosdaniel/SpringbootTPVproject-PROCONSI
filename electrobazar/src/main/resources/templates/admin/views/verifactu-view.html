@@ -154,7 +154,7 @@
     </div>
 
     <!-- INVOICES -->
-    <div id="vf-table-invoices" class="admin-table-wrap mb-4">
+    <div id="vf-table-invoices" class="admin-table-wrap mb-4" style="display:none">
         <table class="admin-table">
             <thead>
                 <tr>
@@ -334,7 +334,7 @@
 (function () {
     'use strict';
     var vfTab     = 'all';
-    var PAGE_SIZE = 50;
+    var PAGE_SIZE = 20;
     var timers    = {};
 
     window.vfLoad = function () {
@@ -454,7 +454,7 @@
                 <div class="d-flex gap-2 justify-content-end">
                     <button class="btn-icon btn-view" onclick="${viewFn}" title="Ver Detalle"><i class="bi bi-eye"></i></button>
                     ${printBtn}
-                    <button class="btn-icon btn-view" style="color: #2ecc71" onclick='vfViewQr(${JSON.stringify({number:r.number, qrBase64:r.qrBase64, qrUrl:r.qrUrl})})' title="Ver Código QR Fiscal"><i class="bi bi-qr-code"></i></button>
+                    <button class="btn-icon btn-view" style="color: #2ecc71" onclick='vfViewQr(${r.id}, "${retryType}", "${esc(r.number)}", "${esc(r.qrUrl)}")' title="Ver Código QR Fiscal"><i class="bi bi-qr-code"></i></button>
                     <button class="btn-icon btn-edit" onclick="vfViewAudit('${retryType}', ${r.id})" title="Auditoría Técnica (XML)"><i class="bi bi-shield-lock"></i></button>
                     ${(r.aeatStatus === 'REJECTED' || r.aeatStatus === 'ACCEPTED_WITH_ERRORS') ? `<button class="btn-icon btn-edit" onclick="vfEditSubsanar('${retryType}', ${r.id})" title="Editar y Subsanar"><i class="bi bi-pencil-square"></i></button>` : ''}
                     ${r.aeatStatus === 'ACCEPTED_WITH_ERRORS' ? `<button class="btn-icon btn-edit" onclick="vfSubsanar('${retryType}', ${r.id}, this)" title="Subsanación rápida (Sin editar)"><i class="bi bi-tools"></i></button>` : ''}
@@ -776,11 +776,19 @@
         return formatted;
     }
 
-    window.vfViewQr = function(data) {
-        document.getElementById('vf-qr-img').src = 'data:image/png;base64,' + data.qrBase64;
-        document.getElementById('vf-qr-link').href = data.qrUrl;
-        document.getElementById('vf-qr-url-text').innerText = data.qrUrl;
-        document.getElementById('vf-qr-number').innerText = data.number;
+    window.vfViewQr = function(id, type, number, qrUrl) {
+        document.getElementById('vf-qr-number').innerText = number;
+        document.getElementById('vf-qr-img').src = ''; // Clear previous
+        document.getElementById('vf-qr-img').parentElement.classList.add('placeholder-glow');
+        
+        fetch(`/api/admin/verifactu/${type}/${id}/qr`)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('vf-qr-img').src = 'data:image/png;base64,' + data.qrBase64;
+                document.getElementById('vf-qr-img').parentElement.classList.remove('placeholder-glow');
+                document.getElementById('vf-qr-link').href = data.qrUrl || qrUrl;
+                document.getElementById('vf-qr-url-text').innerText = data.qrUrl || qrUrl;
+            });
         
         const modal = new bootstrap.Modal(document.getElementById('vfQrModal'));
         modal.show();
@@ -800,9 +808,9 @@
     <div class="modal fade" id="vfResponseModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content bg-secondary shadow-lg border-border">
-                <div class="modal-header border-border bg-primary">
+                <div class="modal-header border-border bg-secondary">
                     <h5 class="modal-title"><i class="bi bi-file-earmark-code me-2"></i>Respuesta Oficial AEAT</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-0">
                     <div class="bg-dark p-3 border-bottom border-border d-flex justify-content-between align-items-center">
@@ -836,9 +844,9 @@
     <div class="modal fade" id="vfAuditModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered">
             <div class="modal-content bg-secondary shadow-lg border-border">
-                <div class="modal-header border-border bg-dark">
-                    <h5 class="modal-title text-accent"><i class="bi bi-shield-lock me-2"></i>Auditoría Técnica Veri*Factu</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header border-border bg-secondary">
+                    <h5 class="modal-title"><span class="text-accent"><i class="bi bi-shield-lock me-2"></i>Auditoría Técnica Veri*Factu</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-0">
                     <div class="row g-0">
@@ -896,9 +904,9 @@
     <div class="modal fade" id="vfQrModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-secondary shadow-lg border-border">
-                <div class="modal-header border-border bg-dark">
-                    <h5 class="modal-title text-accent"><i class="bi bi-qr-code me-2"></i>Código QR Fiscal AEAT</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header border-border bg-secondary">
+                    <h5 class="modal-title"><span class="text-accent"><i class="bi bi-qr-code me-2"></i>Código QR Fiscal AEAT</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body text-center p-4">
                     <div class="mb-3">

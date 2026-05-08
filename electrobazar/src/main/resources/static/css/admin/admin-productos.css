@@ -318,7 +318,7 @@ body {
 .btn-save {
     background: var(--accent);
     border: none;
-    color: var(--primary);
+    color: var(--accent-text, #ffffff) !important;
     font-weight: 700;
     padding: 0.7rem 2rem;
     border-radius: 10px;

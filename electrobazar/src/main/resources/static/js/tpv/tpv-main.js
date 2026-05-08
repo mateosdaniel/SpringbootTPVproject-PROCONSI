@@ -277,9 +277,9 @@ function onDocTypeToggle(tipo) {
     var ind = document.getElementById('docTypeIndicatorWithCustomer');
     if (!ind) return;
     if (tipo === 'FACTURA_COMPLETA') {
-        ind.textContent = '📄 Se generará Factura Completa';
+        ind.textContent = getTpvI18n('docIndicatorFactura');
     } else {
-        ind.textContent = '🎫 Se generará Ticket (venta asociada al cliente)';
+        ind.textContent = getTpvI18n('docIndicatorTicket');
     }
 }
 
@@ -811,8 +811,13 @@ function renderTicket() {
         if (lineTariffLabel && item.originalPrice && item.originalPrice > 0 && item.price < item.originalPrice) {
             lineDiscountPct = Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100);
         }
+        var displayLabel = lineTariffLabel;
+        if (displayLabel && lineDiscountPct > 0) {
+            // Remove any existing " -15%" or "-15%" pattern at the end to avoid "MAYORISTA -15% -15%"
+            displayLabel = displayLabel.replace(/\s?-?\d+%\s?$/, '').trim();
+        }
         var tariffBadgeHtml = lineTariffLabel
-            ? `<span style="font-size:0.68rem; font-weight:700; letter-spacing:0.5px; background:rgba(39,174,96,0.15); color:#27ae60; border:1px solid rgba(39,174,96,0.3); border-radius:4px; padding:1px 5px; margin-left:4px;" title="Tarifa ${escapeHtml(lineTariffLabel)} aplicada"><i class="bi bi-tags-fill" style="margin-right:2px;"></i>${escapeHtml(lineTariffLabel)}${lineDiscountPct > 0 ? ' -' + lineDiscountPct + '%' : ''}</span>`
+            ? `<span style="font-size:0.68rem; font-weight:700; letter-spacing:0.5px; background:rgba(39,174,96,0.15); color:#27ae60; border:1px solid rgba(39,174,96,0.3); border-radius:4px; padding:1px 5px; margin-left:4px;" title="Tarifa ${escapeHtml(lineTariffLabel)} aplicada"><i class="bi bi-tags-fill" style="margin-right:2px;"></i>${escapeHtml(displayLabel)}${lineDiscountPct > 0 ? ' -' + lineDiscountPct + '%' : ''}</span>`
             : '';
 
         linesHTML += `
@@ -2102,7 +2107,9 @@ function selectCustomer(c) {
         window.currentTariffColor = c.tariff.color;
 
         if (badge) {
-            badge.textContent = c.tariff.name + ' (-' + (c.tariff.discountPercentage || 0) + '%)';
+            var cleanName = (c.tariff.name || '').replace(/\s?-?\d+%\s?$/, '').trim();
+            var pct = c.tariff.discountPercentage || 0;
+            badge.textContent = cleanName + (pct > 0 ? ' -' + pct + '%' : '');
             badge.style.display = 'inline-block';
             if (c.tariff.color) badge.style.backgroundColor = c.tariff.color;
         }
@@ -2178,9 +2185,9 @@ function updateTicketPricesForTariff(tariffId, tariffName, discountPct) {
         syncPromotions();
         // discountPct=0: prices are already final, renderTicket must not re-discount
         applyTariffById(tariffId, 0, tariffName);
-        var badge = document.getElementById('sidebarTariffBadge');
         if (badge) {
-            badge.textContent = tariffName + (discountPct > 0 ? ' -' + discountPct + '%' : '');
+            var cleanName = (tariffName || '').replace(/\s?-?\d+%\s?$/, '').trim();
+            badge.textContent = cleanName + (discountPct > 0 ? ' -' + discountPct + '%' : '');
             badge.style.display = 'inline-block';
 
             // Apply subtle colors

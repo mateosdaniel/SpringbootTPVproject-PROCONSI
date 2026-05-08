@@ -9,17 +9,22 @@ import com.proconsi.electrobazar.repository.RectificativeInvoiceRepository;
 import com.proconsi.electrobazar.repository.TicketRepository;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.proconsi.electrobazar.model.Customer;
 import com.proconsi.electrobazar.model.Sale;
+import com.proconsi.electrobazar.model.AeatRejectionReason;
 import java.time.LocalDateTime;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * REST API for VeriFactu / AEAT submission status dashboard.
@@ -115,7 +120,7 @@ public class VerifactuApiRestController {
     @GetMapping("/all")
     public ResponseEntity<?> all(
             @RequestParam(defaultValue = "0")  int page,
-            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false)    String status,
             @RequestParam(required = false)    String reason,
             @RequestParam(required = false)    String start,
@@ -125,14 +130,20 @@ public class VerifactuApiRestController {
         if (!Boolean.TRUE.equals(session.getAttribute("admin")))
             return ResponseEntity.status(401).build();
 
-        List<Map<String, Object>> rows = new ArrayList<>();
-        
-        invoiceRepository.findAll().forEach(i -> rows.add(mapInvoice(i)));
-        ticketRepository.findAll().forEach(t -> rows.add(mapTicket(t)));
-        rectificativeRepository.findAll().forEach(r -> rows.add(mapRectificative(r)));
+        AeatStatus sEnum = (status != null && !"ALL".equalsIgnoreCase(status)) ? AeatStatus.valueOf(status) : null;
+        AeatRejectionReason rEnum = (reason != null && !"ALL".equalsIgnoreCase(reason)) ? AeatRejectionReason.valueOf(reason) : null;
+        LocalDateTime startDt = (start != null && !start.isBlank()) ? LocalDateTime.parse(start + "T00:00:00") : null;
+        LocalDateTime endDt = (end != null && !end.isBlank()) ? LocalDateTime.parse(end + "T23:59:59") : null;
 
-        List<Map<String, Object>> filtered = filterRows(rows, status, reason, start, end);
-        filtered.sort((a, b) -> {
+        // Optimization: Fetch top 20 of each instead of thousands
+        PageRequest pr = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"));
+        
+        List<Map<String, Object>> rows = new ArrayList<>();
+        invoiceRepository.findByFilters(sEnum, rEnum, startDt, endDt, pr).getContent().forEach(i -> rows.add(mapInvoice(i)));
+        ticketRepository.findByFilters(sEnum, rEnum, startDt, endDt, pr).getContent().forEach(t -> rows.add(mapTicket(t)));
+        rectificativeRepository.findByFilters(sEnum, rEnum, startDt, endDt, pr).getContent().forEach(r -> rows.add(mapRectificative(r)));
+
+        rows.sort((a, b) -> {
             String ca = (String) a.get("createdAt");
             String cb = (String) b.get("createdAt");
             if (ca == null) return (cb == null) ? 0 : 1;
@@ -140,7 +151,9 @@ public class VerifactuApiRestController {
             return cb.compareTo(ca);
         });
 
-        return ResponseEntity.ok(pageResponse(paginate(filtered, page, size), filtered.size(), page, size));
+        // Limit to 20 for 'All' view
+        List<Map<String, Object>> result = rows.stream().limit(20).collect(Collectors.toList());
+        return ResponseEntity.ok(pageResponse(result, result.size(), 0, 20));
     }
 
     /* ── INVOICES ─────────────────────────────────────────────── */
@@ -148,7 +161,7 @@ public class VerifactuApiRestController {
     @GetMapping("/invoices")
     public ResponseEntity<?> invoices(
             @RequestParam(defaultValue = "0")  int page,
-            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false)    String status,
             @RequestParam(required = false)    String reason,
             @RequestParam(required = false)    String start,
@@ -158,11 +171,16 @@ public class VerifactuApiRestController {
         if (!Boolean.TRUE.equals(session.getAttribute("admin")))
             return ResponseEntity.status(401).build();
 
-        List<Invoice> all = invoiceRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
-        List<Invoice> filtered = filterRecords(all, Invoice::getAeatStatus, Invoice::getAeatRejectionReason, Invoice::getCreatedAt, status, reason, start, end);
+        AeatStatus sEnum = (status != null && !"ALL".equalsIgnoreCase(status)) ? AeatStatus.valueOf(status) : null;
+        AeatRejectionReason rEnum = (reason != null && !"ALL".equalsIgnoreCase(reason)) ? AeatRejectionReason.valueOf(reason) : null;
+        LocalDateTime startDt = (start != null && !start.isBlank()) ? LocalDateTime.parse(start + "T00:00:00") : null;
+        LocalDateTime endDt = (end != null && !end.isBlank()) ? LocalDateTime.parse(end + "T23:59:59") : null;
 
-        List<Map<String, Object>> rows = filtered.stream().map(this::mapInvoice).toList();
-        return ResponseEntity.ok(pageResponse(rows, filtered.size(), page, size));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Invoice> p = invoiceRepository.findByFilters(sEnum, rEnum, startDt, endDt, pageable);
+
+        List<Map<String, Object>> rows = p.getContent().stream().map(this::mapInvoice).toList();
+        return ResponseEntity.ok(pageResponse(rows, (int) p.getTotalElements(), page, size));
     }
 
     /* ── RECTIFICATIVAS ───────────────────────────────────────── */
@@ -170,7 +188,7 @@ public class VerifactuApiRestController {
     @GetMapping("/rectificativas")
     public ResponseEntity<?> rectificativas(
             @RequestParam(defaultValue = "0")  int page,
-            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false)    String status,
             @RequestParam(required = false)    String reason,
             @RequestParam(required = false)    String start,
@@ -180,11 +198,16 @@ public class VerifactuApiRestController {
         if (!Boolean.TRUE.equals(session.getAttribute("admin")))
             return ResponseEntity.status(401).build();
 
-        List<RectificativeInvoice> all = rectificativeRepository.findAllWithDetails(Sort.by(Sort.Direction.DESC, "createdAt"));
-        List<RectificativeInvoice> filtered = filterRecords(all, RectificativeInvoice::getAeatStatus, RectificativeInvoice::getAeatRejectionReason, RectificativeInvoice::getCreatedAt, status, reason, start, end);
+        AeatStatus sEnum = (status != null && !"ALL".equalsIgnoreCase(status)) ? AeatStatus.valueOf(status) : null;
+        AeatRejectionReason rEnum = (reason != null && !"ALL".equalsIgnoreCase(reason)) ? AeatRejectionReason.valueOf(reason) : null;
+        LocalDateTime startDt = (start != null && !start.isBlank()) ? LocalDateTime.parse(start + "T00:00:00") : null;
+        LocalDateTime endDt = (end != null && !end.isBlank()) ? LocalDateTime.parse(end + "T23:59:59") : null;
 
-        List<Map<String, Object>> rows = filtered.stream().map(this::mapRectificative).toList();
-        return ResponseEntity.ok(pageResponse(rows, filtered.size(), page, size));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<RectificativeInvoice> p = rectificativeRepository.findByFilters(sEnum, rEnum, startDt, endDt, pageable);
+
+        List<Map<String, Object>> rows = p.getContent().stream().map(this::mapRectificative).toList();
+        return ResponseEntity.ok(pageResponse(rows, (int) p.getTotalElements(), page, size));
     }
 
     /* ── TICKETS ──────────────────────────────────────────────── */
@@ -192,7 +215,7 @@ public class VerifactuApiRestController {
     @GetMapping("/tickets")
     public ResponseEntity<?> tickets(
             @RequestParam(defaultValue = "0")  int page,
-            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false)    String status,
             @RequestParam(required = false)    String reason,
             @RequestParam(required = false)    String start,
@@ -202,11 +225,16 @@ public class VerifactuApiRestController {
         if (!Boolean.TRUE.equals(session.getAttribute("admin")))
             return ResponseEntity.status(401).build();
 
-        List<Ticket> all = ticketRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
-        List<Ticket> filtered = filterRecords(all, Ticket::getAeatStatus, Ticket::getAeatRejectionReason, Ticket::getCreatedAt, status, reason, start, end);
+        AeatStatus sEnum = (status != null && !"ALL".equalsIgnoreCase(status)) ? AeatStatus.valueOf(status) : null;
+        AeatRejectionReason rEnum = (reason != null && !"ALL".equalsIgnoreCase(reason)) ? AeatRejectionReason.valueOf(reason) : null;
+        LocalDateTime startDt = (start != null && !start.isBlank()) ? LocalDateTime.parse(start + "T00:00:00") : null;
+        LocalDateTime endDt = (end != null && !end.isBlank()) ? LocalDateTime.parse(end + "T23:59:59") : null;
 
-        List<Map<String, Object>> rows = filtered.stream().map(this::mapTicket).toList();
-        return ResponseEntity.ok(pageResponse(rows, filtered.size(), page, size));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Ticket> p = ticketRepository.findByFilters(sEnum, rEnum, startDt, endDt, pageable);
+
+        List<Map<String, Object>> rows = p.getContent().stream().map(this::mapTicket).toList();
+        return ResponseEntity.ok(pageResponse(rows, (int) p.getTotalElements(), page, size));
     }
 
     /* ── PENDING ──────────────────────────────────────────────── */
@@ -367,6 +395,39 @@ public class VerifactuApiRestController {
         }
     }
 
+    @GetMapping("/{type}/{id}/qr")
+    public ResponseEntity<?> getQr(@PathVariable String type, @PathVariable Long id, HttpSession session) {
+        if (!Boolean.TRUE.equals(session.getAttribute("admin")))
+            return ResponseEntity.status(401).build();
+
+        String qrBase64 = null;
+        String qrUrl = null;
+
+        if ("invoices".equalsIgnoreCase(type)) {
+            Invoice inv = invoiceRepository.findById(id).orElse(null);
+            if (inv != null) {
+                qrBase64 = invoiceService.generateQrCodeBase64(inv);
+                qrUrl = invoiceService.generateQrUrl(inv);
+            }
+        } else if ("tickets".equalsIgnoreCase(type)) {
+            Ticket tick = ticketRepository.findById(id).orElse(null);
+            if (tick != null) {
+                qrBase64 = invoiceService.generateQrCodeBase64(tick);
+                qrUrl = invoiceService.generateQrUrl(tick);
+            }
+        } else if ("rectificativas".equalsIgnoreCase(type) || "devoluciones".equalsIgnoreCase(type)) {
+            RectificativeInvoice rect = rectificativeRepository.findById(id).orElse(null);
+            if (rect != null) {
+                qrBase64 = invoiceService.generateQrCodeBase64(rect);
+                qrUrl = invoiceService.generateQrUrl(rect);
+            }
+        }
+
+        if (qrBase64 == null) return ResponseEntity.notFound().build();
+
+        return ResponseEntity.ok(Map.of("qrBase64", qrBase64, "qrUrl", qrUrl));
+    }
+
     @GetMapping("/response/{type}/{id}")
     public ResponseEntity<?> getResponse(@PathVariable String type, @PathVariable Long id, HttpSession session) {
         if (!Boolean.TRUE.equals(session.getAttribute("admin")))
@@ -489,7 +550,7 @@ public class VerifactuApiRestController {
         row.put("rejectionReason",inv.getAeatRejectionReason() != null ? inv.getAeatRejectionReason().name() : null);
         row.put("waitTime",       inv.getAeatWaitTime());
         row.put("hash",           inv.getHashCurrentInvoice());
-        row.put("qrBase64",       invoiceService.generateQrCodeBase64(inv));
+        // QR generation removed for list view performance
         row.put("qrUrl",          invoiceService.generateQrUrl(inv));
         return row;
     }
@@ -510,7 +571,7 @@ public class VerifactuApiRestController {
         row.put("rejectionReason",t.getAeatRejectionReason() != null ? t.getAeatRejectionReason().name() : null);
         row.put("waitTime",       t.getAeatWaitTime());
         row.put("hash",           t.getHashCurrentInvoice());
-        row.put("qrBase64",       invoiceService.generateQrCodeBase64(t));
+        // QR generation removed for list view performance
         row.put("qrUrl",          invoiceService.generateQrUrl(t));
         return row;
     }
@@ -535,7 +596,7 @@ public class VerifactuApiRestController {
         row.put("waitTime",       r.getAeatWaitTime());
         row.put("returnId",       r.getSaleReturn() != null ? r.getSaleReturn().getId() : null);
         row.put("hash",           r.getHashCurrentInvoice());
-        row.put("qrBase64",       invoiceService.generateQrCodeBase64(r));
+        // QR generation removed for list view performance
         row.put("qrUrl",          invoiceService.generateQrUrl(r));
         return row;
     }

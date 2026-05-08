@@ -491,6 +491,32 @@ function selectAllBulkProducts(select) {
     renderBulkProductList(bulkProductsData);
 }
 
+function selectAllAbsoluteBulk() {
+    bulkSelectAllAbsolute = true;
+    bulkSelectedProducts.clear();
+    renderBulkProductList(bulkProductsData);
+    updateBulkSelectedCount();
+    showToast('Seleccionados todos los productos del sistema');
+}
+
+function selectBulkByCategory() {
+    const category = document.getElementById('bulkCategoryFilter').value;
+    if (!category) {
+        showToast('Selecciona una categoría primero', 'warning');
+        return;
+    }
+    bulkSelectAllAbsolute = false;
+    let count = 0;
+    bulkProductsData.forEach(p => {
+        if (p.categoryName === category) {
+            bulkSelectedProducts.add(p.id);
+            count++;
+        }
+    });
+    renderBulkProductList(bulkProductsData);
+    showToast(`${count} productos de ${category} marcados`);
+}
+
 function toggleBulkPriceFields() {
     const type = document.getElementById('bulkPriceType').value;
     const label = document.getElementById('bulkPriceValueLabel');
@@ -617,6 +643,8 @@ window.renderBulkProductList = renderBulkProductList;
 window.handleBulkProductToggle = handleBulkProductToggle;
 window.updateBulkSelectedCount = updateBulkSelectedCount;
 window.selectAllBulkProducts = selectAllBulkProducts;
+window.selectAllAbsoluteBulk = selectAllAbsoluteBulk;
+window.selectBulkByCategory = selectBulkByCategory;
 window.toggleBulkPriceFields = toggleBulkPriceFields;
 window.applyBulkPriceUpdate = applyBulkPriceUpdate;
 window.filterBulkProductList = filterBulkProductList;

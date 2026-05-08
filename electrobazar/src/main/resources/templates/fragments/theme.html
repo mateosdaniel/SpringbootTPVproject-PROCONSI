@@ -139,6 +139,11 @@
                 rs.setProperty('--accent-10', `rgba(${rgb}, 0.1)`);
                 rs.setProperty('--accent-20', `rgba(${rgb}, 0.2)`);
                 rs.setProperty('--accent-50', `rgba(${rgb}, 0.5)`);
+                
+                // Calculate contrast text for accent buttons
+                let accentText = '#ffffff';
+                if (currentAccentIdx === 0 && isDark) accentText = p.primary; // Dark text on white button
+                rs.setProperty('--accent-text', accentText);
 
                 // ── Logo / favicon swap ─────────────────────────────────────
                 let logoFile = isDark ? '/icons/favicon.svg' : '/icons/favicon-light.svg';
@@ -221,6 +226,10 @@
                     rs2.setProperty('--accent-10', `rgba(${rgb2}, 0.1)`);
                     rs2.setProperty('--accent-20', `rgba(${rgb2}, 0.2)`);
                     rs2.setProperty('--accent-50', `rgba(${rgb2}, 0.5)`);
+                    
+                    let accentText2 = '#ffffff';
+                    if (accentIdx2 === 0 && isDark2) accentText2 = pal2.primary;
+                    rs2.setProperty('--accent-text', accentText2);
                     const logoFile2 = isDark2 ? '/icons/favicon.svg' : '/icons/favicon-light.svg';
                     document.querySelectorAll('img[alt="Logo"], img[alt="Logo ' + appName + '"]')
                         .forEach(function (img) { img.src = logoFile2; });

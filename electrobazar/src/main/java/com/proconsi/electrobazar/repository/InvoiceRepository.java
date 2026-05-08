@@ -8,11 +8,31 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
+
+    @EntityGraph(attributePaths = { "sale", "sale.customer" })
+    @Query("SELECT i FROM Invoice i WHERE " +
+           "(:status IS NULL OR i.aeatStatus = :status) AND " +
+           "(:reason IS NULL OR i.aeatRejectionReason = :reason) AND " +
+           "(:start IS NULL OR i.createdAt >= :start) AND " +
+           "(:end IS NULL OR i.createdAt <= :end)")
+    Page<Invoice> findByFilters(
+            @Param("status") AeatStatus status,
+            @Param("reason") com.proconsi.electrobazar.model.AeatRejectionReason reason,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = { "sale", "sale.customer" })
+    @Query("SELECT i FROM Invoice i")
+    Page<Invoice> findAllPaginated(Pageable pageable);
 
     @EntityGraph(attributePaths = { "sale", "sale.lines", "sale.lines.product", "sale.customer" })
     @Query("SELECT i FROM Invoice i WHERE i.sale.id = :saleId")
