@@ -351,58 +351,33 @@ window.onCartTariffChange = function (selectEl) {
     var clearBtn = document.getElementById('cartTariffClearBtn');
     if (clearBtn) clearBtn.style.display = newTariffId ? 'inline' : 'none';
 
-    var productIds = Object.keys(ticket);
-    if (productIds.length === 0) { renderTicket(); return; }
+    // If clearing cart tariff, revert to customer tariff info or default Minorista
+    var tId = newTariffId;
+    var tName = 'MINORISTA';
+    var tDisc = 0;
 
-    var promises = productIds.map(function (id) {
-        if (ticket[id] && ticket[id].lineTariffId) return Promise.resolve();
-        var effectiveTariffId = getEffectiveTariffId(id);
-        var url = '/tpv/api/products/' + id + '/price';
-        if (effectiveTariffId &&
-            effectiveTariffId !== 'undefined' &&
-            effectiveTariffId !== 'null' &&
-            !isNaN(effectiveTariffId)) {
-            url += '?tariffId=' + effectiveTariffId;
-        }
+    if (newTariffId) {
+        var selOption = selectEl.options[selectEl.selectedIndex];
+        tName = selOption ? selOption.text : 'MINORISTA';
+        tDisc = selOption ? parseFloat(selOption.dataset.discount || 0) : 0;
+    } else if (window.currentCustomer && window.currentCustomer.tariff) {
+        tId = window.currentCustomer.tariff.id;
+        tName = window.currentCustomer.tariff.name;
+        tDisc = parseFloat(window.currentCustomer.tariff.discountPercentage || 0);
+    }
 
-        console.log('[TPV] Fetching price for product:', id, 'Tariff:', effectiveTariffId, 'URL:', url);
-
-        return fetch(url)
-            .then(function (r) {
-                if (!r.ok) {
-                    console.error('[TPV] Price fetch failed status:', r.status, 'for ID:', id);
-                }
-                return r.json();
-            })
-            .then(function (priceData) {
-                if (ticket[id]) {
-                    ticket[id].price = parseFloat(priceData.price);
-                    ticket[id].priceWithRe = parseFloat(priceData.priceWithRe);
-                }
-            });
-    });
-
-    Promise.all(promises).then(function () {
-        syncPromotions();
-        // Sync tariffIdInput and badge when cart tariff changes
-        var sel = document.getElementById('cartTariffSelect');
-        var selOption = sel ? sel.options[sel.selectedIndex] : null;
-        var selLabel = selOption ? selOption.text : 'MINORISTA';
-        var selDiscount = selOption ? parseFloat(selOption.dataset.discount || 0) : 0;
-        applyTariffById(newTariffId, selDiscount, selLabel);
-    }).catch(function (err) {
-        console.error('[CartTariff] Error refreshing prices', err);
-        renderTicket();
-    });
+    updateTicketPricesForTariff(tId, tName, tDisc);
 };
 
 window.clearCartTariff = function () {
-    window.cartTariffId = null;
     var sel = document.getElementById('cartTariffSelect');
-    if (sel) sel.value = '';
-    var clearBtn = document.getElementById('cartTariffClearBtn');
-    if (clearBtn) clearBtn.style.display = 'none';
-    onCartTariffChange({ value: '' });
+    if (sel) {
+        sel.value = '';
+        onCartTariffChange(sel);
+    } else {
+        window.cartTariffId = null;
+        updateTicketPricesForTariff(null, 'MINORISTA', 0);
+    }
 };
 
 window.onLineTariffChange = function () {
@@ -416,7 +391,8 @@ window.onLineTariffChange = function () {
 
     var url;
     if (!selectedTariffId) {
-        var eff = getEffectiveTariffId(productId);
+        // PREVIEW INHERITANCE: Ignore the current line override to see what cart/customer would provide
+        var eff = window.cartTariffId || window.currentTariffId || null;
         url = '/tpv/api/products/' + productId + '/price';
         if (eff &&
             eff !== 'undefined' &&
@@ -2152,9 +2128,15 @@ function clearSelectedCustomer() {
  */
 function updateTicketPricesForTariff(tariffId, tariffName, discountPct) {
     var productIds = Object.keys(ticket);
+    
+    // Priority: Cart-level tariff overrides the one being passed (usually from customer selection)
+    var effectiveDefaultTariffId = window.cartTariffId || tariffId;
+    var cartSel = document.getElementById('cartTariffSelect');
+    var effectiveDefaultName = window.cartTariffId && cartSel && cartSel.value ? cartSel.options[cartSel.selectedIndex].text : tariffName;
+
     if (productIds.length === 0) {
         // Pass discountPct=0 so renderTicket never re-applies a discount
-        applyTariffById(tariffId, 0, tariffName);
+        applyTariffById(effectiveDefaultTariffId, 0, effectiveDefaultName);
         return;
     }
 
@@ -2162,8 +2144,13 @@ function updateTicketPricesForTariff(tariffId, tariffName, discountPct) {
         // Lines with their own tariff override are NOT updated here — they keep their own price
         if (ticket[id] && ticket[id].lineTariffId) return Promise.resolve();
 
+        // Use effectiveDefaultTariffId (already computed from up-to-date globals at function entry)
+        // instead of getEffectiveTariffId() which may read stale window.currentTariffId
+        var lineEffectiveId = effectiveDefaultTariffId;
         var url = '/tpv/api/products/' + id + '/price';
-        if (tariffId) url += '?tariffId=' + tariffId;
+        if (lineEffectiveId && lineEffectiveId !== 'undefined' && lineEffectiveId !== 'null' && !isNaN(lineEffectiveId)) {
+            url += '?tariffId=' + lineEffectiveId;
+        }
 
         return fetch(url)
             .then(function (r) { return r.json(); })
@@ -2183,8 +2170,11 @@ function updateTicketPricesForTariff(tariffId, tariffName, discountPct) {
     Promise.all(promises).then(function () {
         // Recalculate promotions now that prices have changed
         syncPromotions();
+        
         // discountPct=0: prices are already final, renderTicket must not re-discount
-        applyTariffById(tariffId, 0, tariffName);
+        applyTariffById(effectiveDefaultTariffId, 0, effectiveDefaultName);
+        
+        var badge = document.getElementById('sidebarTariffBadge');
         if (badge) {
             var cleanName = (tariffName || '').replace(/\s?-?\d+%\s?$/, '').trim();
             badge.textContent = cleanName + (discountPct > 0 ? ' -' + discountPct + '%' : '');
@@ -2194,8 +2184,6 @@ function updateTicketPricesForTariff(tariffId, tariffName, discountPct) {
             badge.className = 'badge-tariff-small'; // Reset to base classes
 
             // If the tariff object has a custom color, use it!
-            // We need to pass the color to this function or get it from global scope
-            // For now, let's assume we can find it in the current customer if we are here
             if (window.currentTariffColor) {
                 badge.style.backgroundColor = window.currentTariffColor + '15';
                 badge.style.color = window.currentTariffColor;
@@ -2206,7 +2194,7 @@ function updateTicketPricesForTariff(tariffId, tariffName, discountPct) {
                 badge.style.backgroundColor = '';
                 badge.style.color = '';
                 badge.style.borderColor = '';
-                var lowerName = tariffName.toLowerCase();
+                var lowerName = (tariffName || '').toLowerCase();
                 if (lowerName.includes('minorista')) {
                     badge.classList.add('badge-tariff-minorista');
                 } else if (lowerName.includes('mayorista')) {
@@ -2220,7 +2208,7 @@ function updateTicketPricesForTariff(tariffId, tariffName, discountPct) {
         }
     }).catch(function (err) {
         console.error('Error updating ticket prices', err);
-        applyTariffById(tariffId, 0, tariffName);
+        applyTariffById(effectiveDefaultTariffId, 0, effectiveDefaultName);
     });
 }
 
@@ -3438,6 +3426,14 @@ function confirmEditPrice() {
                 ticket[productId].price = adjustedPrice;
                 // Clear any RE cached price to force recalc from base
                 ticket[productId].priceWithRe = null;
+
+                // ✅ Update line-level tariff only on success
+                var tariffSel = document.getElementById('editPrice_lineTariff');
+                if (tariffSel) {
+                    var chosenId = tariffSel.value || null;
+                    ticket[productId].lineTariffId = chosenId;
+                    ticket[productId].lineTariffLabel = chosenId ? tariffSel.options[tariffSel.selectedIndex].text : null;
+                }
             }
 
             // Show success briefly, then close
@@ -3477,25 +3473,13 @@ function confirmEditPrice() {
     };
 })();
 
-// When the edit-price modal closes: persist the chosen lineTariffId on the ticket item.
+// When the edit-price modal closes: ensure we clear the temporary product reference
 document.addEventListener('DOMContentLoaded', function () {
     var modalEl = document.getElementById('editPriceModal');
     if (!modalEl) return;
     modalEl.addEventListener('hidden.bs.modal', function () {
-        var productId = _editPriceProductId;
-        if (!productId || !ticket[productId]) return;
-
-        var tariffSel = document.getElementById('editPrice_lineTariff');
-        if (!tariffSel) return;
-
-        var chosenId = tariffSel.value || null;
-        var chosenLabel = chosenId
-            ? tariffSel.options[tariffSel.selectedIndex].text
-            : null;
-
-        ticket[productId].lineTariffId = chosenId;
-        ticket[productId].lineTariffLabel = chosenLabel;
-        renderTicket();
+        // No longer auto-updating ticket state here to avoid applying unconfirmed selections
+        _editPriceProductId = null;
     });
 });
 
