@@ -134,9 +134,9 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Slice<com.proconsi.electrobazar.dto.AdminProductProjection> findAdminListing(String search, String category, String stock, Boolean active, Long measurementUnitId, Pageable pageable) {
+    public org.springframework.data.domain.Slice<Product> findAdminListing(String search, String category, String stock, Boolean active, Long measurementUnitId, Pageable pageable) {
         Specification<Product> spec = ProductSpecification.filterProducts(search, category, stock, active, measurementUnitId);
-        return productRepository.findAdminListing(spec, pageable);
+        return productRepository.findAll(spec, pageable);
     }
 
     @Override

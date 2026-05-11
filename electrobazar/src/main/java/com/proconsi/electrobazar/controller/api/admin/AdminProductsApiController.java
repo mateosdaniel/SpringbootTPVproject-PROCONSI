@@ -47,7 +47,7 @@ public class AdminProductsApiController {
         } else {
             pageable = PageRequest.of(page, size, Sort.by(direction, safeSort));
         }
-        org.springframework.data.domain.Slice<AdminProductProjection> productsSlice = productService.findAdminListing(search, category, stock, active, unitId, pageable);
+        org.springframework.data.domain.Slice<com.proconsi.electrobazar.model.Product> productsSlice = productService.findAdminListing(search, category, stock, active, unitId, pageable);
 
         List<AdminProductListingDTO> list = productsSlice.getContent().stream().map(p -> AdminProductListingDTO.builder()
                 .id(p.getId())
@@ -55,10 +55,10 @@ public class AdminProductsApiController {
                 .description(p.getDescriptionEs())
                 .price(p.getPrice())
                 .stock(p.getStock())
-                .categoryName(p.getCategoryName())
+                .categoryName(p.getCategory() != null ? p.getCategory().getNameEs() : null)
                 .measurementUnit(p.getMeasurementUnit())
                 .priceDecimals(p.getMeasurementUnit() != null ? Math.max(2, p.getMeasurementUnit().getDecimalPlaces()) : 2)
-                .vatRate(p.getTaxVatRate())
+                .vatRate(p.getTaxRate() != null ? p.getTaxRate().getVatRate() : null)
                 .imageUrl(p.getImageUrl())
                 .active(Boolean.TRUE.equals(p.getActive()))
                 .salesRank(p.getSalesRank())

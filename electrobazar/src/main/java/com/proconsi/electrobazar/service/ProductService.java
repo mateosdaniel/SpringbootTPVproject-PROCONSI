@@ -209,6 +209,5 @@ public interface ProductService {
      */
     int applySelectiveTaxRate(List<Long> productIds, TaxRate taxRate, String taskId);
 
-    org.springframework.data.domain.Slice<AdminProductProjection> findAdminListing(String search, String category, String stock, Boolean active, Long measurementUnitId, Pageable pageable);
+    org.springframework.data.domain.Slice<Product> findAdminListing(String search, String category, String stock, Boolean active, Long measurementUnitId, org.springframework.data.domain.Pageable pageable);
 }
-
